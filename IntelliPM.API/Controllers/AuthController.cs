@@ -8,9 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AuthenticationServices;
-using IntelliPM.Services.JWTServices;
 using System.Net;
-using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.Helper.CustomExceptions;
 
 namespace ConstructionEquipmentRental.API.Controllers

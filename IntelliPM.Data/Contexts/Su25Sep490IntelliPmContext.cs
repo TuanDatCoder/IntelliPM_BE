@@ -92,7 +92,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -105,8 +104,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -126,7 +123,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Address).HasColumnName("address");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
@@ -160,7 +156,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
             entity.Property(e => e.Username)
                 .HasMaxLength(255)
@@ -176,7 +171,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
@@ -189,7 +183,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("title");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.ChangeRequest)
@@ -213,7 +206,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.FileUrl)
@@ -233,7 +225,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("type");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
 
@@ -266,7 +257,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.DocumentId).HasColumnName("document_id");
             entity.Property(e => e.PermissionType)
@@ -301,7 +291,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("code");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.IsActive)
@@ -324,25 +313,19 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.EndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("end_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.StartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("start_date");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Epic)
@@ -368,7 +351,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
-                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasDefaultValueSql("'AC'::character varying")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Label)
@@ -387,14 +370,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Attendees).HasColumnName("attendees");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
-            entity.Property(e => e.EndTime)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("end_time");
-            entity.Property(e => e.MeetingDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("meeting_date");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
+            entity.Property(e => e.MeetingDate).HasColumnName("meeting_date");
             entity.Property(e => e.MeetingTopic)
                 .HasMaxLength(255)
                 .HasColumnName("meeting_topic");
@@ -402,9 +380,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(1024)
                 .HasColumnName("meeting_url");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.StartTime)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("start_time");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -427,7 +403,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.FileUrl)
@@ -441,7 +416,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("title");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Account).WithMany(p => p.MeetingDocument)
@@ -466,7 +440,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Action).HasColumnName("action");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.MeetingId).HasColumnName("meeting_id");
 
@@ -493,7 +466,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.MeetingId).HasColumnName("meeting_id");
             entity.Property(e => e.Role)
@@ -525,7 +497,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("meeting_transcript_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.SummaryText).HasColumnName("summary_text");
 
@@ -546,7 +517,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("meeting_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.TranscriptText).HasColumnName("transcript_text");
 
@@ -565,25 +535,19 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.EndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("end_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.StartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("start_date");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Milestone)
@@ -602,7 +566,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.FeedbackText).HasColumnName("feedback_text");
             entity.Property(e => e.MeetingId).HasColumnName("meeting_id");
@@ -630,7 +593,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.IsRead)
@@ -666,28 +628,22 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("budget");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.EndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("end_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectType)
                 .HasMaxLength(50)
                 .HasColumnName("project_type");
-            entity.Property(e => e.StartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("start_date");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Project)
@@ -708,7 +664,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.JoinedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("joined_at");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
 
@@ -744,7 +699,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("cpi");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.DelayDays).HasColumnName("delay_days");
             entity.Property(e => e.EarnedValue)
@@ -757,9 +711,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_value");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.ProjectedFinishDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("projected_finish_date");
+            entity.Property(e => e.ProjectedFinishDate).HasColumnName("projected_finish_date");
             entity.Property(e => e.ProjectedTotalCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("projected_total_cost");
@@ -768,7 +720,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("spi");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectMetric)
@@ -786,7 +737,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AssignedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("assigned_at");
             entity.Property(e => e.Position)
                 .HasMaxLength(100)
@@ -808,7 +758,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Recommendation).HasColumnName("recommendation");
@@ -838,7 +787,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
             entity.Property(e => e.Status)
@@ -864,9 +812,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.RefreshTokenId).HasColumnName("refresh_token_id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
-            entity.Property(e => e.ExpiredAt)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("expired_at");
+            entity.Property(e => e.ExpiredAt).HasColumnName("expired_at");
             entity.Property(e => e.Token)
                 .HasMaxLength(255)
                 .HasColumnName("token");
@@ -885,7 +831,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Priority)
@@ -900,7 +845,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("type");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Requirement)
@@ -918,7 +862,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.GeneratedBy)
@@ -953,7 +896,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("type");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
@@ -981,13 +923,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ContingencyPlan).HasColumnName("contingency_plan");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.MitigationPlan).HasColumnName("mitigation_plan");
             entity.Property(e => e.RiskId).HasColumnName("risk_id");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Risk).WithMany(p => p.RiskSolution)
@@ -1005,25 +945,19 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
-            entity.Property(e => e.EndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("end_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.Goal).HasColumnName("goal");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.StartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("start_date");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Sprint)
@@ -1044,13 +978,12 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ConfigKey)
                 .HasMaxLength(255)
                 .HasColumnName("config_key");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.EffectedFrom)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("effected_from");
-            entity.Property(e => e.EffectedTo)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("effected_to");
+            entity.Property(e => e.EffectedFrom).HasColumnName("effected_from");
+            entity.Property(e => e.EffectedTo).HasColumnName("effected_to");
             entity.Property(e => e.EstimateValue)
                 .HasMaxLength(255)
                 .HasColumnName("estimate_value");
@@ -1061,6 +994,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("min_value");
             entity.Property(e => e.Note).HasColumnName("note");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
             entity.Property(e => e.ValueConfig).HasColumnName("value_config");
         });
 
@@ -1072,12 +1008,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
-            entity.Property(e => e.AssignedAt)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("assigned_at");
-            entity.Property(e => e.CompletedAt)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("completed_at");
+            entity.Property(e => e.AssignedAt).HasColumnName("assigned_at");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.HourlyRate)
                 .HasPrecision(10, 2)
                 .HasColumnName("hourly_rate");
@@ -1106,7 +1038,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.GenerationAiInput)
                 .HasDefaultValue(false)
@@ -1123,7 +1054,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("title");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Task).WithMany(p => p.TaskCheckList)
@@ -1142,7 +1072,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -1197,7 +1126,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -1256,7 +1184,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.ChangedByNavigation).WithMany(p => p.TaskStatusLog)
@@ -1280,21 +1207,16 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ActualCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("actual_cost");
-            entity.Property(e => e.ActualEndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("actual_end_date");
+            entity.Property(e => e.ActualEndDate).HasColumnName("actual_end_date");
             entity.Property(e => e.ActualHours)
                 .HasPrecision(8, 2)
                 .HasColumnName("actual_hours");
             entity.Property(e => e.ActualResourceCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("actual_resource_cost");
-            entity.Property(e => e.ActualStartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("actual_start_date");
+            entity.Property(e => e.ActualStartDate).HasColumnName("actual_start_date");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Duration)
@@ -1317,18 +1239,14 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.PlannedCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_cost");
-            entity.Property(e => e.PlannedEndDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("planned_end_date");
+            entity.Property(e => e.PlannedEndDate).HasColumnName("planned_end_date");
             entity.Property(e => e.PlannedHours)
                 .HasPrecision(8, 2)
                 .HasColumnName("planned_hours");
             entity.Property(e => e.PlannedResourceCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_resource_cost");
-            entity.Property(e => e.PlannedStartDate)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("planned_start_date");
+            entity.Property(e => e.PlannedStartDate).HasColumnName("planned_start_date");
             entity.Property(e => e.Priority)
                 .HasMaxLength(50)
                 .HasColumnName("priority");
@@ -1349,7 +1267,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("type");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");
 
             entity.HasOne(d => d.Epic).WithMany(p => p.Tasks)
