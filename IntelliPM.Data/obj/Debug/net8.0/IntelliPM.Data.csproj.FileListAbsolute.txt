@@ -1,0 +1,14 @@
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\bin\Debug\net8.0\IntelliPM.Data.deps.json
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\bin\Debug\net8.0\IntelliPM.Data.runtimeconfig.json
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\bin\Debug\net8.0\IntelliPM.Data.dll
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\bin\Debug\net8.0\IntelliPM.Data.pdb
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.csproj.AssemblyReference.cache
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.GeneratedMSBuildEditorConfig.editorconfig
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.AssemblyInfoInputs.cache
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.AssemblyInfo.cs
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.csproj.CoreCompileInputs.cache
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.dll
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\refint\IntelliPM.Data.dll
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.pdb
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.genruntimeconfig.cache
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\ref\IntelliPM.Data.dll

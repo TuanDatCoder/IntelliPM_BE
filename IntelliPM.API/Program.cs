@@ -1,0 +1,166 @@
+using ConstructionEquipmentRental.API.Middlewares;
+using IntelliPM.Data.Contexts;
+using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Repositories.RefreshTokenRepos;
+using IntelliPM.Services.AccountServices;
+using IntelliPM.Services.AuthenticationServices;
+using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.DynamicCategoryServices;
+using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.MapperProfiles;
+using IntelliPM.Services.Helper.VerifyCode;
+using IntelliPM.Services.JWTServices;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+//builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
+
+//------------------------------------AUTOMAPPER-------------------------------------
+builder.Services.AddAutoMapper(typeof(MapperProfiles).Assembly);
+
+//-------------------------------REPOSITORIES-------------------------------------
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IDynamicCategoryRepository, DynamicCategoryRepository>();
+
+
+
+
+//--------------------------------SERVICES-----------------------------------------
+builder.Services.AddScoped<IJWTService, JWTService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IDecodeTokenHandler, DecodeTokenHandler>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
+
+
+
+
+//--------------------------------------DB----------------------------------------
+builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+
+
+//-----------------------------------CORS-----------------------------------------
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowAll",
+                      policy =>
+                      {
+                          policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                      });
+});
+
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+
+
+//-------------------------------AUTHENTICATION-----------------------------------
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+options.TokenValidationParameters = new TokenValidationParameters
+{
+ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+ValidAudience = builder.Configuration["JwtSettings:Audience"],
+IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:JwtKey"])),
+ValidateIssuer = true,
+ValidateAudience = true,
+ValidateIssuerSigningKey = true,
+ValidateLifetime = true,
+};
+});
+
+
+//----------------------------------AUTHORIZATION---------------------------------
+builder.Services.AddAuthorization();
+
+
+//---------------------------------------------------------------------------------
+
+
+builder.Services.AddScoped<VerificationCodeCache>();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(option =>
+{
+    ////JWT Config
+    option.DescribeAllParametersInCamelCase();
+    option.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+    option.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
+
+//++++++++++++ appsettings
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+
+
+
+
+
+var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+    c.RoutePrefix = "swagger";
+});
+
+
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseCors("AllowAll");
+
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+app.Run();

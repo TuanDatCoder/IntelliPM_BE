@@ -1,0 +1,37 @@
+1/ dotnet tool install --global dotnet-ef
+
+2/
+dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force
+
+
+--------------------------------------------------------------------------------------
+3. DBcontext 
+ public static string GetConnectionString(string connectionStringName)
+ {
+     var config = new ConfigurationBuilder()
+         .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+         .AddJsonFile("appsettings.json")
+         .Build();
+
+     string connectionString = config.GetConnectionString(connectionStringName);
+     return connectionString;
+ }
+ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+     => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
+
+----------------------------------------------------------------------------------------------------
+4.
+appsettings.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;"
+  }
+}
