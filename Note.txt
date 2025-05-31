@@ -43,3 +43,5 @@ appsettings.json
 - git add .
 - git commit -m "CRUD 2 tables system_configuration, dynamic_category and change database date field to    	TIMESTAMPTZ"
 - git push origin main
+
+- Làm lại nếu mà có lỗi git rm -r --cached .vs
