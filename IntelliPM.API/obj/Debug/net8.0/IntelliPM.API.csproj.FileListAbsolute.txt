@@ -110,3 +110,4 @@ D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\Sy
 D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Management.dll
 D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
 D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
+D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\IntelliPM.API.sourcelink.json

@@ -13,3 +13,4 @@ D:\GitHub\IntelliPM_BE\IntelliPM.Repositories\bin\Debug\net8.0\IntelliPM.Data.dl
 D:\GitHub\IntelliPM_BE\IntelliPM.Repositories\bin\Debug\net8.0\IntelliPM.Data.pdb
 D:\GitHub\IntelliPM_BE\IntelliPM.Repositories\obj\Debug\net8.0\IntelliPM.Repositories.csproj.AssemblyReference.cache
 D:\GitHub\IntelliPM_BE\IntelliPM.Repositories\obj\Debug\net8.0\IntelliP.CE80CD2D.Up2Date
+D:\GitHub\IntelliPM_BE\IntelliPM.Repositories\obj\Debug\net8.0\IntelliPM.Repositories.sourcelink.json

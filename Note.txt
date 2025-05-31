@@ -1,11 +1,12 @@
 1/ dotnet tool install --global dotnet-ef
 
 2/
-dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force
+
+dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force --no-pluralize
 
 
 --------------------------------------------------------------------------------------
-3. DBcontext 
+3/ DBcontext 
  public static string GetConnectionString(string connectionStringName)
  {
      var config = new ConfigurationBuilder()
@@ -21,7 +22,7 @@ dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_Inte
 
 
 ----------------------------------------------------------------------------------------------------
-4.
+4/
 appsettings.json
 {
   "Logging": {
@@ -35,3 +36,10 @@ appsettings.json
     "DefaultConnection": "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;"
   }
 }
+
+-----------------------------------------------------------------------------------------------------
+5/ Cách commit
+- git status
+- git add .
+- git commit -m "CRUD 2 tables system_configuration, dynamic_category and change database date field to    	TIMESTAMPTZ"
+- git push origin main

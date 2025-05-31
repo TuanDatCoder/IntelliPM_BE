@@ -15,3 +15,4 @@ D:\GitHub\IntelliPM_BE\IntelliPM.Services\bin\Debug\net8.0\IntelliPM.Repositorie
 D:\GitHub\IntelliPM_BE\IntelliPM.Services\bin\Debug\net8.0\IntelliPM.Data.pdb
 D:\GitHub\IntelliPM_BE\IntelliPM.Services\obj\Debug\net8.0\IntelliPM.Services.csproj.AssemblyReference.cache
 D:\GitHub\IntelliPM_BE\IntelliPM.Services\obj\Debug\net8.0\IntelliP.9BBA0A8E.Up2Date
+D:\GitHub\IntelliPM_BE\IntelliPM.Services\obj\Debug\net8.0\IntelliPM.Services.sourcelink.json

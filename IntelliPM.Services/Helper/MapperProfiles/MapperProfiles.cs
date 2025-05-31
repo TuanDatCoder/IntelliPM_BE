@@ -2,6 +2,8 @@
 using IntelliPM.Data.DTOs.Account;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
+using IntelliPM.Data.DTOs.SystemConfiguration.Request;
+using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
@@ -32,6 +34,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<DynamicCategoryRequestDTO, DynamicCategory>();
             CreateMap<DynamicCategory, DynamicCategoryResponseDTO>();
 
+
+            //SystemConfiguration
+            CreateMap<SystemConfigurationRequestDTO, SystemConfiguration>();
+            CreateMap<SystemConfiguration, SystemConfigurationResponseDTO>();
 
         }
     }

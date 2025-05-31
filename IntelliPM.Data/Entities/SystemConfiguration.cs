@@ -24,4 +24,8 @@ public partial class SystemConfiguration
     public DateTime? EffectedFrom { get; set; }
 
     public DateTime? EffectedTo { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 }

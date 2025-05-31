@@ -12,3 +12,4 @@ D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\refint\IntelliPM.Data.dll
 D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.pdb
 D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.genruntimeconfig.cache
 D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\ref\IntelliPM.Data.dll
+D:\GitHub\IntelliPM_BE\IntelliPM.Data\obj\Debug\net8.0\IntelliPM.Data.sourcelink.json
