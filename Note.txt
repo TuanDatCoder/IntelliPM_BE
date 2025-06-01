@@ -1,4 +1,12 @@
-intelliPM@team
+Gmail: intelliPM@team
+Các tài khoản trong DB
+{
+  "username": "teammember+viết tắt",
+  "password": "Test@123"
+}
+
+
+---------------------------------------------------------------------------------------
 1/ dotnet tool install --global dotnet-ef
 
 2/
@@ -46,3 +54,22 @@ appsettings.json
 - git push origin main
 
 - Làm lại nếu mà có lỗi git rm -r --cached .vs
+
+
+-------------------------------------------------------------------------------------------------------
+Data
+|
+|
+Reponsitory
+|
+|
+Services
+|
+|
+Controller
+
+
+
+
+
+
