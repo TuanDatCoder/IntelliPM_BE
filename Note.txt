@@ -1,3 +1,4 @@
+intelliPM@team
 1/ dotnet tool install --global dotnet-ef
 
 2/

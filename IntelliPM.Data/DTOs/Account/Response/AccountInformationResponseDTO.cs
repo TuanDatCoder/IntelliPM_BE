@@ -1,15 +1,13 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.Account
+namespace IntelliPM.Data.DTOs.Account.Response
 {
     public class AccountInformationResponseDTO
     {
-        public int? StoreId { get; set; }
 
         public string? Username { get; set; }
         public string? FullName { get; set; }
@@ -27,7 +25,6 @@ namespace IntelliPM.Data.DTOs.Account
 
         public string? Role { get; set; }
 
-        public string? StoreName { get; set; }
 
     }
 }

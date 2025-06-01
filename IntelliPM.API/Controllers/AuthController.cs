@@ -1,6 +1,4 @@
 ﻿using IntelliPM.Data.DTOs;
-using IntelliPM.Data.DTOs.Account;
-using IntelliPM.Data.DTOs.Auth;
 using IntelliPM.Data.DTOs.Password;
 using IntelliPM.Data.DTOs.RefreshToken.Request;
 using IntelliPM.Services.JWTServices;
@@ -10,8 +8,10 @@ using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AuthenticationServices;
 using System.Net;
 using IntelliPM.Services.Helper.CustomExceptions;
+using IntelliPM.Data.DTOs.Account.Request;
+using IntelliPM.Data.DTOs.Auth.Request;
 
-namespace ConstructionEquipmentRental.API.Controllers
+namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/auth")]
