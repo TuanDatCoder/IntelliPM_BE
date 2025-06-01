@@ -3,6 +3,8 @@ using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
+using IntelliPM.Data.DTOs.Project.Request;
+using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.Entities;
@@ -34,6 +36,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // SystemConfiguration
             CreateMap<SystemConfigurationRequestDTO, SystemConfiguration>();
             CreateMap<SystemConfiguration, SystemConfigurationResponseDTO>();
+
+            // Project
+            CreateMap<ProjectRequestDTO, Project>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<Project, ProjectResponseDTO>();
         }
     }
 }
