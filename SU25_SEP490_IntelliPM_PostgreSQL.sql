@@ -25,6 +25,9 @@ CREATE TABLE account (
     picture VARCHAR(255) NULL
 );
 
+ALTER TABLE account
+ADD COLUMN date_of_birth DATE NULL;
+
 -- 2. refresh_token
 CREATE TABLE refresh_token (
     refresh_token_id SERIAL PRIMARY KEY,

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using IntelliPM.Data.DTOs.Account;
+using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Services.AuthenticationServices;

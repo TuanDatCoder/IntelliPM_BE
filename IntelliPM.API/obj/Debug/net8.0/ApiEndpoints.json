@@ -1,6 +1,48 @@
 [
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AccountController",
+    "Method": "UploadAvatar",
+    "RelativePath": "{accountId}/upload-avatar",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "accountId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "file",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.AccountController",
+    "Method": "ChangeAccountStatus",
+    "RelativePath": "api/account/{id}/status",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "newStatus",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "ChangePassword",
     "RelativePath": "api/auth/change-password",
     "HttpMethod": "POST",
@@ -16,7 +58,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "ForgotPassword",
     "RelativePath": "api/auth/forgot-password",
     "HttpMethod": "POST",
@@ -32,7 +74,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "Login",
     "RelativePath": "api/auth/login",
     "HttpMethod": "POST",
@@ -41,14 +83,14 @@
     "Parameters": [
       {
         "Name": "loginRequestDTO",
-        "Type": "IntelliPM.Data.DTOs.Auth.LoginRequestDTO",
+        "Type": "IntelliPM.Data.DTOs.Auth.Request.LoginRequestDTO",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "LoginGoogle",
     "RelativePath": "api/auth/login-google",
     "HttpMethod": "POST",
@@ -57,14 +99,14 @@
     "Parameters": [
       {
         "Name": "loginGoogleRequestDTO",
-        "Type": "IntelliPM.Data.DTOs.Auth.LoginGoogleRequestDTO",
+        "Type": "IntelliPM.Data.DTOs.Auth.Request.LoginGoogleRequestDTO",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "Logout",
     "RelativePath": "api/auth/logout",
     "HttpMethod": "POST",
@@ -80,7 +122,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "RegisterAccount",
     "RelativePath": "api/auth/register",
     "HttpMethod": "POST",
@@ -89,14 +131,14 @@
     "Parameters": [
       {
         "Name": "accountRequestDTO",
-        "Type": "IntelliPM.Data.DTOs.Account.AccountRequestDTO",
+        "Type": "IntelliPM.Data.DTOs.Account.Request.AccountRequestDTO",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "ResetPassword",
     "RelativePath": "api/auth/reset-password",
     "HttpMethod": "POST",
@@ -112,7 +154,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "GetUserInfor",
     "RelativePath": "api/auth/user-infor",
     "HttpMethod": "GET",
@@ -122,7 +164,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ConstructionEquipmentRental.API.Controllers.AuthController",
+    "ContainingType": "IntelliPM.API.Controllers.AuthController",
     "Method": "VerifyAccount",
     "RelativePath": "api/auth/verify",
     "HttpMethod": "GET",
@@ -348,6 +390,22 @@
       {
         "Name": "configKey",
         "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.AccountController",
+    "Method": "UploadAvatarByToken",
+    "RelativePath": "upload-avatar",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "file",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
         "IsRequired": false
       }
     ],

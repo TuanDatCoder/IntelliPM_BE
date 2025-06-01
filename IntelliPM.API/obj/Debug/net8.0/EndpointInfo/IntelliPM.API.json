@@ -5,6 +5,123 @@
     "version": "1.0"
   },
   "paths": {
+    "/{accountId}/upload-avatar": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/upload-avatar": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/{id}/status": {
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
@@ -607,6 +724,7 @@
         "required": [
           "dateOfBirth",
           "email",
+          "gender",
           "password",
           "username"
         ],
@@ -627,29 +745,19 @@
             "type": "string",
             "format": "email"
           },
-          "fullName": {
-            "type": "string",
-            "nullable": true
-          },
           "gender": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "pattern": "^(MALE|FEMALE|OTHER)$",
+            "type": "string"
           },
-          "phone": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
+          "position": {
+            "maxLength": 50,
             "type": "string",
             "nullable": true
           },
           "dateOfBirth": {
             "type": "string",
             "format": "date"
-          },
-          "role": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false

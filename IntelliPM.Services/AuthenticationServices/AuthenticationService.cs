@@ -16,12 +16,14 @@ using System.Threading.Tasks;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Data.DTOs.Password;
 using IntelliPM.Repositories.AccountRepos;
-using IntelliPM.Data.DTOs.Account;
 using AutoMapper;
-using IntelliPM.Data.DTOs.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
 using IntelliPM.Services.Helper.CustomExceptions;
+using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Account.Request;
+using IntelliPM.Data.DTOs.Auth.Request;
+using IntelliPM.Data.DTOs.Auth.Response;
 
 
 namespace IntelliPM.Services.AuthenticationServices
@@ -385,15 +387,17 @@ namespace IntelliPM.Services.AuthenticationServices
 
             var account = _mapper.Map<Account>(accountRequestDTO);
             account.Password = PasswordHasher.HashPassword(accountRequestDTO.Password);
+            account.Role = "TEAM MEMBER"; // Đặt mặc định Role
             account.Status = "UNVERIFIED";
             account.CreatedAt = DateTime.UtcNow;
             account.UpdatedAt = DateTime.UtcNow;
 
-            if (accountRequestDTO.Gender.ToString().Equals("MALE"))
+            if (accountRequestDTO.Gender.Equals("MALE"))
             {
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219";
             }
-            else if (accountRequestDTO.Gender.ToString().Equals("FEMALE")){
+            else if (accountRequestDTO.Gender.Equals("FEMALE"))
+            {
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/female.png?alt=media&token=c1956e6d-1207-438d-bae4-5c1bcd52e33d";
             }
             else
@@ -401,27 +405,13 @@ namespace IntelliPM.Services.AuthenticationServices
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/orther.png?alt=media&token=f1f7912c-c886-4206-856a-43418e1954bc";
             }
 
-
             var accountId = await _accountRepository.AddAccount(account);
 
             var accountDone = await _accountRepository.GetAccountByUsername(account.Username);
 
             var token = _jWTService.GenerateJWT(accountDone);
 
-            // Generate verification code
-           // var verificationCode = Guid.NewGuid().ToString();
             verificationCodeCache.Put(account.Email, token, 30); // Expire in 30 minutes
-
-            // Send email with verification link
-
-            // Lấy host và port từ request hiện tại
-            //var request = _httpContextAccessor.HttpContext.Request;
-            //var host = $"{request.Scheme}://{request.Host}";
-            //var verificationLink = $"{host}/api/auth/verify?token={token}";
-            
-            // Lấy link fix cứng
-            //var verificationLink = $"https://localhost:7160/api/auth/verify?token={token}";
-
             var verificationLink = $"{_backendUrl}/api/auth/verify?token={token}";
 
             await _emailService.SendRegistrationEmail(account.Username, account.Email, verificationLink);

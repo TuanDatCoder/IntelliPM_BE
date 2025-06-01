@@ -35,6 +35,8 @@ public partial class Account
 
     public string? Picture { get; set; }
 
+    public DateOnly? DateOfBirth { get; set; }
+
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();

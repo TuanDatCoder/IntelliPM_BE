@@ -1,5 +1,7 @@
-﻿using IntelliPM.Data.DTOs.Account;
-using IntelliPM.Data.DTOs.Auth;
+﻿using IntelliPM.Data.DTOs.Account.Request;
+using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Auth.Request;
+using IntelliPM.Data.DTOs.Auth.Response;
 using IntelliPM.Data.DTOs.Password;
 using IntelliPM.Data.Entities;
 using System;

@@ -124,6 +124,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth");
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
                 .HasColumnName("email");
