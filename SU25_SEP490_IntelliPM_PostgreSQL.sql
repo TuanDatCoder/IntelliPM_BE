@@ -513,7 +513,7 @@ CREATE TABLE dynamic_category (
 -- Insert sample data into account
 INSERT INTO account (username, full_name, email, password, role, position, phone, gender, google_id, status, address, picture)
 VALUES 
-	('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM LEADER', 'TEAM LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+	('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM LEADER', 'TEAM LEADER', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM LEADER', 'TEAM LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
 	('stakeholder', 'Nguyen Van KH', 'teamstakeholder@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'STAKEHOLDER', 'STAKEHOLDER', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('pojectManager', 'Tran Thi B', 'pojectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT MANAGER', 'PROJECT MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
@@ -880,8 +880,8 @@ VALUES
     ('account_position', 'TS', 'TESTER', 'Tester position', 4),
     ('account_position', 'PM', 'PROJECT MANAGER', 'Project manager position', 5),
     ('account_position', 'DS', 'DESIGNER', 'Designer position', 6),
-	('account_position', 'TL', 'TEAM LEADER', 'Team leader position', 6),
-	('account_position', 'SH', 'STAKEHOLDER', 'Stakeholder position', 6),
+	('account_position', 'TL', 'TEAM LEADER', 'Team leader position', 7),
+	('account_position', 'SH', 'STAKEHOLDER', 'Stakeholder position', 8),
     ('task_assignment_status', 'AS', 'ASSIGNED', 'Task assigned to user', 1),
     ('task_assignment_status', 'IP', 'IN PROGRESS', 'Task in progress', 2),
     ('task_assignment_status', 'CM', 'COMPLETED', 'Task completed', 3),
