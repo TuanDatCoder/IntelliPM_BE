@@ -3,6 +3,8 @@ using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
+using IntelliPM.Data.DTOs.Epic.Request;
+using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
@@ -43,6 +45,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Project, ProjectResponseDTO>();
+
+
+            // Epic
+            CreateMap<EpicRequestDTO, Epic>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<Epic, EpicResponseDTO>();
+
         }
     }
 }
