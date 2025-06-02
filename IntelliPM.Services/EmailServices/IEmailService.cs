@@ -10,6 +10,8 @@ namespace IntelliPM.Services.EmailServices
     {
  
         Task SendRegistrationEmail(string fullName, string userEmail, string verificationUrl);
+        Task SendRegistrationEmail(string fullName, string userEmail);
+        Task SendAccountResetPassword(string fullName, string userEmail, string OTP);
 
 
     }

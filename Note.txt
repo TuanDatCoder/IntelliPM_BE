@@ -57,19 +57,52 @@ appsettings.json
 
 
 -------------------------------------------------------------------------------------------------------
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+					****** Các bước làm API ******
 Data
-|
-|
-Reponsitory
-|
-|
+Mô tả: Định nghĩa schema (database table) và entity (C# class).
+
+Bước 1:
+
+Tạo bảng trong DB (VD: CREATE TABLE project (...)).
+
+Tạo entity class (VD: Project.cs) ánh xạ với bảng.
+
+Repository
+Mô tả: Tầng giao tiếp với DB, chứa logic truy vấn.
+
+Bước 2:
+
+Tạo interface (VD: IProjectRepository).
+
+Triển khai class (VD: ProjectRepository) với các phương thức CRUD (GetAll, GetById, Add, Update, Delete) dùng EF Core.
+
 Services
-|
-|
+Mô tả: Tầng logic nghiệp vụ, xử lý dữ liệu từ repository và trả về DTO.
+
+Bước 3:
+
+Tạo DTOs (ProjectRequestDTO, ProjectResponseDTO).
+
+Tạo interface (VD: IProjectService).
+
+Triển khai class (VD: ProjectService) gọi repository, ánh xạ DTO bằng AutoMapper, xử lý lỗi.
+
 Controller
+Mô tả: Tầng API, nhận request và trả response.
 
+Bước 4:
 
+Tạo controller (VD: ProjectController).
 
+Định nghĩa các endpoint ([HttpGet], [HttpPost], v.v.) gọi service, trả về ApiResponseDTO.
 
+Thêm
+Cấu hình AutoMapper trong MapperProfiles.cs để ánh xạ entity-DTO.
 
+Đăng ký DI trong Program.cs (VD: builder.Services.AddScoped<IProjectRepository, ProjectRepository>();).
 

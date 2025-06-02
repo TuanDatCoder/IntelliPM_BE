@@ -21,12 +21,6 @@ D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\scopedcss\bundle\IntelliPM
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.build.json
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.development.json
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets\msbuild.IntelliPM.API.Microsoft.AspNetCore.StaticWebAssets.props
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets\msbuild.IntelliPM.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets\msbuild.build.IntelliPM.API.props
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.IntelliPM.API.props
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.IntelliPM.API.props
-D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.pack.json
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\IntelliP.A9100EDF.Up2Date
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\IntelliPM.API.dll
@@ -111,3 +105,4 @@ D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\win\lib\net7.0\Sy
 D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
 D:\GitHub\IntelliPM_BE\IntelliPM.API\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\IntelliPM.API.sourcelink.json
+D:\GitHub\IntelliPM_BE\IntelliPM.API\obj\Debug\net8.0\staticwebassets.build.json.cache
