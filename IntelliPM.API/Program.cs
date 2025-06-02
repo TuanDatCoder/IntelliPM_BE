@@ -170,6 +170,7 @@ app.UseSwaggerUI(c =>
 
 
 app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
