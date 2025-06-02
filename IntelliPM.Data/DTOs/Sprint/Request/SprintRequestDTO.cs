@@ -5,20 +5,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.Epic.Request
+namespace IntelliPM.Data.DTOs.Sprint.Request
 {
-    public class EpicRequestDTO
+    public class SprintRequestDTO
     {
         [Required(ErrorMessage = "Project ID is required")]
         public int ProjectId { get; set; }
 
-        [Required(ErrorMessage = "Epic name is required")]
-        [MaxLength(255, ErrorMessage = "Epic name cannot exceed 255 characters")]
+        [Required(ErrorMessage = "Sprint name is required")]
+        [MaxLength(255, ErrorMessage = "Sprint name cannot exceed 255 characters")]
         public string Name { get; set; } = null!;
 
-        public string? Description { get; set; }
+        public string? Goal { get; set; }
 
         public DateTime? StartDate { get; set; } 
+
         public DateTime? EndDate { get; set; }   
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
