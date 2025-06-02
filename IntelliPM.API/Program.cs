@@ -7,6 +7,7 @@ using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.AccountServices;
+using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DynamicCategoryServices;
@@ -54,6 +55,7 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IDecodeTokenHandler, DecodeTokenHandler>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
@@ -168,6 +170,7 @@ app.UseSwaggerUI(c =>
 
 
 app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
