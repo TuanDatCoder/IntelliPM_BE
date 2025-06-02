@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Services.EmailServices
 {
-    public interface IEmailService 
+    public interface IEmailService
     {
- 
+
         Task SendRegistrationEmail(string fullName, string userEmail, string verificationUrl);
         Task SendRegistrationEmail(string fullName, string userEmail);
         Task SendAccountResetPassword(string fullName, string userEmail, string OTP);

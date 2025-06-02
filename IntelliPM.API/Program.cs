@@ -2,6 +2,7 @@ using ConstructionEquipmentRental.API.Middlewares;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
@@ -10,6 +11,7 @@ using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
@@ -27,23 +29,25 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-//builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
 
-//------------------------------------AUTOMAPPER-------------------------------------
+
+//------------------------------AUTOMAPPER---------------------------
 builder.Services.AddAutoMapper(typeof(MapperProfiles).Assembly);
 
-//-------------------------------REPOSITORIES-------------------------------------
+
+
+//-------------------------REPOSITORIES-------------------------------
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IDynamicCategoryRepository, DynamicCategoryRepository>();
 builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IEpicRepository, EpicRepository>();
 
 
 
-//--------------------------------SERVICES-----------------------------------------
+
+//--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -53,17 +57,20 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IEpicService, EpicService>();
 
 
 
-//--------------------------------------DB----------------------------------------
+
+
+//----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 
 
-//-----------------------------------CORS-----------------------------------------
+//------------------------------CORS--------------------------------
 
 builder.Services.AddCors(options =>
 {
@@ -80,37 +87,36 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 
 
-//-------------------------------AUTHENTICATION-----------------------------------
+//----------------------AUTHENTICATION------------------------------
 
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
-options.TokenValidationParameters = new TokenValidationParameters
-{
-ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-ValidAudience = builder.Configuration["JwtSettings:Audience"],
-IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:JwtKey"])),
-ValidateIssuer = true,
-ValidateAudience = true,
-ValidateIssuerSigningKey = true,
-ValidateLifetime = true,
-};
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:JwtKey"])),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+    };
 });
 
 
-//----------------------------------AUTHORIZATION---------------------------------
+//--------------------------AUTHORIZATION---------------------------
 builder.Services.AddAuthorization();
 
 
-//---------------------------------------------------------------------------------
+//------------------------------------------------------------------
 
 
 builder.Services.AddScoped<VerificationCodeCache>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(option =>
@@ -143,7 +149,7 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
-//++++++++++++ appsettings
+//appsettings
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 
