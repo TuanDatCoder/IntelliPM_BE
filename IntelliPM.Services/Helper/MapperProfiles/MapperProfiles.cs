@@ -7,6 +7,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.Sprint.Request;
+using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.Entities;
@@ -39,20 +41,23 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<SystemConfigurationRequestDTO, SystemConfiguration>();
             CreateMap<SystemConfiguration, SystemConfigurationResponseDTO>();
 
-            // Project
-            CreateMap<ProjectRequestDTO, Project>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-            CreateMap<Project, ProjectResponseDTO>();
-
-
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
+
+            // Sprint
+            CreateMap<SprintRequestDTO, Sprint>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+            CreateMap<Sprint, SprintResponseDTO>();
 
         }
     }
