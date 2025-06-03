@@ -13,6 +13,8 @@ using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
+using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
@@ -28,10 +30,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Status, opt => opt.Ignore())
                 .ForMember(dest => dest.Password, opt => opt.Ignore())
-                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth)); // Ánh xạ trực tiếp DateOnly sang DateOnly?
+                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth)); 
 
             CreateMap<Account, AccountResponseDTO>()
-                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth)); // DateOnly? sang DateOnly?
+                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
 
             CreateMap<Account, AccountInformationResponseDTO>();
 
@@ -46,8 +48,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
@@ -55,8 +57,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Sprint, SprintResponseDTO>();
@@ -64,11 +66,26 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // Milestone
             CreateMap<MilestoneRequestDTO, Milestone>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) 
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) 
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Milestone, MilestoneResponseDTO>();
+
+
+            // Task
+            CreateMap<TaskRequestDTO, Tasks>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) 
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) 
+                .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.PlannedStartDate))
+                .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.PlannedEndDate))
+                .ForMember(dest => dest.ActualStartDate, opt => opt.MapFrom(src => src.ActualStartDate))
+                .ForMember(dest => dest.ActualEndDate, opt => opt.MapFrom(src => src.ActualEndDate));
+            CreateMap<Tasks, TaskResponseDTO>();
+
+
+
 
         }
     }
