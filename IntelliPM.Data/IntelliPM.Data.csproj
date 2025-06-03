@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Contexts\" />
+    <Folder Include="DTOs\ProjectPosition\Response\" />
   </ItemGroup>
 
 </Project>
