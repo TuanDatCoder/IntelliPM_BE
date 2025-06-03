@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
