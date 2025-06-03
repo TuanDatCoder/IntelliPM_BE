@@ -13,6 +13,8 @@ using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.Requirement.Request;
+using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
@@ -100,6 +102,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AssignedAt, opt => opt.Ignore());
             CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
 
+            // Requirement
+            CreateMap<RequirementRequestDTO, Requirement>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) 
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()); 
+            CreateMap<Requirement, RequirementResponseDTO>();
 
         }
     }

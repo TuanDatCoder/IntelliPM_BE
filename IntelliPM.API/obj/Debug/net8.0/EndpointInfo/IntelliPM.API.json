@@ -1141,6 +1141,560 @@
         }
       }
     },
+    "/api/projects/{projectId}/members": {
+      "get": {
+        "tags": [
+          "ProjectMember"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ProjectMember"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectMemberRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectMemberRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectMemberRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/members/{id}": {
+      "get": {
+        "tags": [
+          "ProjectMember"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ProjectMember"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/project-members/{projectMemberId}/positions": {
+      "get": {
+        "tags": [
+          "ProjectPosition"
+        ],
+        "parameters": [
+          {
+            "name": "projectMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ProjectPosition"
+        ],
+        "parameters": [
+          {
+            "name": "projectMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/project-members/{projectMemberId}/positions/{id}": {
+      "get": {
+        "tags": [
+          "ProjectPosition"
+        ],
+        "parameters": [
+          {
+            "name": "projectMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ProjectPosition"
+        ],
+        "parameters": [
+          {
+            "name": "projectMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPositionRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ProjectPosition"
+        ],
+        "parameters": [
+          {
+            "name": "projectMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/requirements": {
+      "get": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/requirements/{id}": {
+      "get": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/requirements/by-title": {
+      "get": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/requirements/{id}/priority": {
+      "patch": {
+        "tags": [
+          "Requirement"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/sprints/all": {
       "get": {
         "tags": [
@@ -1478,6 +2032,196 @@
           }
         }
       }
+    },
+    "/api/tasks/all": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Task"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Task"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/tasks/by-title": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/status": {
+      "patch": {
+        "tags": [
+          "Task"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1689,6 +2433,43 @@
         },
         "additionalProperties": false
       },
+      "ProjectMemberRequestDTO": {
+        "required": [
+          "accountId",
+          "projectId"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectPositionRequestDTO": {
+        "required": [
+          "position",
+          "projectMemberId"
+        ],
+        "type": "object",
+        "properties": {
+          "projectMemberId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ProjectRequestDTO": {
         "required": [
           "createdBy",
@@ -1749,6 +2530,39 @@
           "refreshToken": {
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequirementRequestDTO": {
+        "required": [
+          "projectId",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1860,6 +2674,142 @@
           "effectedTo": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskRequestDTO": {
+        "required": [
+          "projectId",
+          "reporterId",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "reporterId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "epicId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sprintId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "milestoneId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "type": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "manualInput": {
+            "type": "boolean"
+          },
+          "generationAiInput": {
+            "type": "boolean"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "plannedStartDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "plannedEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "duration": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "actualStartDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "actualEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "percentComplete": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "plannedHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "actualHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "plannedCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "plannedResourceCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "actualCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "actualResourceCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "remainingHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "priority": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "evaluate": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "maxLength": 50,
+            "type": "string",
             "nullable": true
           }
         },
