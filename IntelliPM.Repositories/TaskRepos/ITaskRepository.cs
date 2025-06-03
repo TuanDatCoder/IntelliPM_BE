@@ -1,0 +1,19 @@
+﻿using IntelliPM.Data.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace IntelliPM.Repositories.TaskRepos
+{
+    public interface ITaskRepository
+    {
+        Task<List<Tasks>> GetAllTasks();
+        Task<Tasks?> GetByIdAsync(int id);
+        Task<List<Tasks>> GetByTitleAsync(string title);
+        Task Add(Tasks task);
+        Task Update(Tasks task);
+        Task Delete(Tasks task);
+    }
+}

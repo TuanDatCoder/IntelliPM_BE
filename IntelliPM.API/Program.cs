@@ -7,6 +7,7 @@ using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AuthenticationServices;
@@ -21,6 +22,7 @@ using IntelliPM.Services.JWTServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.SystemConfigurationServices;
+using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -47,6 +49,7 @@ builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRe
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IEpicRepository, EpicRepository>();
 builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
 
 
@@ -64,6 +67,7 @@ builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationServi
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IEpicService, EpicService>();
 builder.Services.AddScoped<IMilestoneService, MilestoneService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 
 
