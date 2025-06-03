@@ -5,6 +5,8 @@ using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
+using IntelliPM.Data.DTOs.Milestone.Request;
+using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
@@ -58,6 +60,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Sprint, SprintResponseDTO>();
+
+            // Milestone
+            CreateMap<MilestoneRequestDTO, Milestone>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Để DB tự gán
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+            CreateMap<Milestone, MilestoneResponseDTO>();
 
         }
     }
