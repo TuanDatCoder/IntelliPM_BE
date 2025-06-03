@@ -9,6 +9,10 @@ using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Request;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectPosition.Request;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
@@ -84,7 +88,17 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ActualEndDate, opt => opt.MapFrom(src => src.ActualEndDate));
             CreateMap<Tasks, TaskResponseDTO>();
 
+            // ProjectMember
+            CreateMap<ProjectMemberRequestDTO, ProjectMember>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.JoinedAt, opt => opt.Ignore());
+            CreateMap<ProjectMember, ProjectMemberResponseDTO>();
 
+            // ProjectPosition
+            CreateMap<ProjectPositionRequestDTO, ProjectPosition>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedAt, opt => opt.Ignore());
+            CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
 
 
         }
