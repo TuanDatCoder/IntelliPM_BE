@@ -3,9 +3,13 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MilestoneRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
+using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AuthenticationServices;
@@ -17,8 +21,12 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
+using IntelliPM.Services.MilestoneServices;
+using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
+using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.SystemConfigurationServices;
+using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -44,6 +52,10 @@ builder.Services.AddScoped<IDynamicCategoryRepository, DynamicCategoryRepository
 builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IEpicRepository, EpicRepository>();
+builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
+builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
 
 
 
@@ -60,8 +72,10 @@ builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IEpicService, EpicService>();
-
-
+builder.Services.AddScoped<IMilestoneService, MilestoneService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
+builder.Services.AddScoped<IRequirementService, RequirementService>();
 
 
 
