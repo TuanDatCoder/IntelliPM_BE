@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IntelliPM.Data")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d6aa94a618d8a778d648f219b966a905f077ec96")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f3dd555dee85be48f15bb45e326ffc43e7abb944")]
 [assembly: System.Reflection.AssemblyProductAttribute("IntelliPM.Data")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IntelliPM.Data")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
