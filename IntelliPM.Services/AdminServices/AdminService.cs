@@ -30,7 +30,7 @@ namespace IntelliPM.Services.AdminServices
             return _mapper.Map<List<AccountResponseDTO>>(accounts);
         }
 
-        // Note : viet them cac ham sau nay
+      
 
     }
 }
