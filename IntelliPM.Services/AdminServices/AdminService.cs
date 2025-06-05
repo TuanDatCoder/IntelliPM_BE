@@ -26,10 +26,11 @@ namespace IntelliPM.Services.AdminServices
        
         public async Task<List<AccountResponseDTO>> GetAllAccountsAsync(int? page, int? size)
         {
-            // Phân quyền đã được xử lý ở [Authorize] trong controller
             var accounts = await _accountRepository.GetAccounts(page, size);
             return _mapper.Map<List<AccountResponseDTO>>(accounts);
         }
+
+        // Note : viet them cac ham sau nay
 
     }
 }

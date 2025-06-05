@@ -83,7 +83,7 @@ namespace IntelliPM.Services.ProjectServices
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật thời gian chỉnh sửa
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -112,5 +112,7 @@ namespace IntelliPM.Services.ProjectServices
                 throw new Exception($"Failed to delete project: {ex.Message}", ex);
             }
         }
+
+        // viet them ham create project with project type and status cac kieu con da dieu
     }
 }
