@@ -3,6 +3,7 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -21,6 +22,7 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
+using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
@@ -56,6 +58,7 @@ builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
 builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
+builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
 
 
 
@@ -76,7 +79,7 @@ builder.Services.AddScoped<IMilestoneService, MilestoneService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IRequirementService, RequirementService>();
-
+builder.Services.AddScoped<IMeetingService, MeetingService>();
 
 
 //----------------------------DB-----------------------------------
