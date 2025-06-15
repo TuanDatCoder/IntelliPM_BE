@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Services.AccountServices;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -11,10 +12,12 @@ namespace IntelliPM.API.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IAccountService _accountService;
+        private readonly IProjectMemberService _projectMemberService;
 
-        public AccountController(IAccountService accountService)
+        public AccountController(IAccountService accountService, IProjectMemberService projectMemberService)
         {
             _accountService = accountService;
+            _projectMemberService = projectMemberService;
         }
 
         [HttpPost("/{accountId}/upload-avatar")]
@@ -128,6 +131,29 @@ namespace IntelliPM.API.Controllers
                     Code = (int)HttpStatusCode.BadRequest,
                     Message = ex.Message
                 });
+            }
+        }
+
+
+        [HttpGet("projects/{accountId}")]
+        public async Task<IActionResult> GetProjectsByAccountId(int accountId)
+        {
+            try
+            {
+                var result = await _projectMemberService.GetProjectsByAccountId(accountId);
+       
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Projects retrieved successfully for the account",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
         }
 

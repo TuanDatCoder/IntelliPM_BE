@@ -8,8 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/tasks")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
+    [Route("api/[controller]")]
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _service;
@@ -19,7 +18,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllTasks();

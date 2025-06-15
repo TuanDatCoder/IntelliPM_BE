@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IntelliPM.Repositories")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3cf180f3117a5673e203201edac216e7062a549c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2d6002095e2af6e30b7485e554c20a5eb232ccbc")]
 [assembly: System.Reflection.AssemblyProductAttribute("IntelliPM.Repositories")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IntelliPM.Repositories")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

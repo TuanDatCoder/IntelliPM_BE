@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "GXmnlbhrsWg=",
+  "dgSpecHash": "/2D9dmZXYOU=",
   "success": true,
-  "projectFilePath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
+  "projectFilePath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\laptop\\.nuget\\packages\\automapper\\14.0.0\\automapper.14.0.0.nupkg.sha512",
     "C:\\Users\\laptop\\.nuget\\packages\\bouncycastle.cryptography\\2.5.1\\bouncycastle.cryptography.2.5.1.nupkg.sha512",

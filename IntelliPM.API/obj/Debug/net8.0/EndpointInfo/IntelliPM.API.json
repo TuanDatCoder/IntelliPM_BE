@@ -122,6 +122,29 @@
         }
       }
     },
+    "/api/account/projects/{accountId}": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/account": {
       "get": {
         "tags": [
@@ -402,7 +425,7 @@
         }
       }
     },
-    "/api/dynamic-categories/all": {
+    "/api/dynamiccategory": {
       "get": {
         "tags": [
           "DynamicCategory"
@@ -412,9 +435,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "DynamicCategory"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/dynamic-categories/{id}": {
+    "/api/dynamiccategory/{id}": {
       "get": {
         "tags": [
           "DynamicCategory"
@@ -498,7 +550,7 @@
         }
       }
     },
-    "/api/dynamic-categories/by-name-or-category-group": {
+    "/api/dynamiccategory/by-name-or-category-group": {
       "get": {
         "tags": [
           "DynamicCategory"
@@ -526,38 +578,7 @@
         }
       }
     },
-    "/api/dynamic-categories": {
-      "post": {
-        "tags": [
-          "DynamicCategory"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/DynamicCategoryRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/dynamic-categories/{id}/status": {
+    "/api/dynamiccategory/{id}/status": {
       "patch": {
         "tags": [
           "DynamicCategory"
@@ -599,7 +620,7 @@
         }
       }
     },
-    "/api/epics/all": {
+    "/api/epic": {
       "get": {
         "tags": [
           "Epic"
@@ -609,9 +630,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Epic"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpicRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpicRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpicRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/epics/{id}": {
+    "/api/epic/{id}": {
       "get": {
         "tags": [
           "Epic"
@@ -695,7 +745,7 @@
         }
       }
     },
-    "/api/epics/by-name": {
+    "/api/epic/by-name": {
       "get": {
         "tags": [
           "Epic"
@@ -716,38 +766,7 @@
         }
       }
     },
-    "/api/epics": {
-      "post": {
-        "tags": [
-          "Epic"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EpicRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EpicRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/EpicRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/epics/{id}/status": {
+    "/api/epic/{id}/status": {
       "patch": {
         "tags": [
           "Epic"
@@ -789,7 +808,7 @@
         }
       }
     },
-    "/api/milestones/all": {
+    "/api/milestone": {
       "get": {
         "tags": [
           "Milestone"
@@ -799,9 +818,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Milestone"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MilestoneRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MilestoneRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MilestoneRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/milestones/{id}": {
+    "/api/milestone/{id}": {
       "get": {
         "tags": [
           "Milestone"
@@ -885,7 +933,7 @@
         }
       }
     },
-    "/api/milestones/by-name": {
+    "/api/milestone/by-name": {
       "get": {
         "tags": [
           "Milestone"
@@ -906,38 +954,7 @@
         }
       }
     },
-    "/api/milestones": {
-      "post": {
-        "tags": [
-          "Milestone"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MilestoneRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MilestoneRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/MilestoneRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/milestones/{id}/status": {
+    "/api/milestone/{id}/status": {
       "patch": {
         "tags": [
           "Milestone"
@@ -979,7 +996,7 @@
         }
       }
     },
-    "/api/projects/all": {
+    "/api/project": {
       "get": {
         "tags": [
           "Project"
@@ -989,9 +1006,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Project"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/projects/{id}": {
+    "/api/project/{id}": {
       "get": {
         "tags": [
           "Project"
@@ -1075,7 +1121,7 @@
         }
       }
     },
-    "/api/projects/search": {
+    "/api/project/search": {
       "get": {
         "tags": [
           "Project"
@@ -1110,38 +1156,7 @@
         }
       }
     },
-    "/api/projects": {
-      "post": {
-        "tags": [
-          "Project"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/projects/{projectId}/members": {
+    "/api/projects/{projectId}/projectmember": {
       "get": {
         "tags": [
           "ProjectMember"
@@ -1204,7 +1219,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/members/{id}": {
+    "/api/projects/{projectId}/projectmember/accounts": {
       "get": {
         "tags": [
           "ProjectMember"
@@ -1218,15 +1233,6 @@
               "type": "integer",
               "format": "int32"
             }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
           }
         ],
         "responses": {
@@ -1234,7 +1240,9 @@
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/api/projects/{projectId}/projectmember/{id}": {
       "delete": {
         "tags": [
           "ProjectMember"
@@ -1266,7 +1274,7 @@
         }
       }
     },
-    "/api/project-members/{projectMemberId}/positions": {
+    "/api/project-members/{projectMemberId}/projectposition": {
       "get": {
         "tags": [
           "ProjectPosition"
@@ -1329,7 +1337,7 @@
         }
       }
     },
-    "/api/project-members/{projectMemberId}/positions/{id}": {
+    "/api/project-members/{projectMemberId}/projectposition/{id}": {
       "get": {
         "tags": [
           "ProjectPosition"
@@ -1440,7 +1448,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/requirements": {
+    "/api/projects/{projectId}/requirement": {
       "get": {
         "tags": [
           "Requirement"
@@ -1503,7 +1511,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/requirements/{id}": {
+    "/api/projects/{projectId}/requirement/{id}": {
       "get": {
         "tags": [
           "Requirement"
@@ -1614,7 +1622,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/requirements/by-title": {
+    "/api/projects/{projectId}/requirement/by-title": {
       "get": {
         "tags": [
           "Requirement"
@@ -1644,7 +1652,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/requirements/{id}/priority": {
+    "/api/projects/{projectId}/requirement/{id}/priority": {
       "patch": {
         "tags": [
           "Requirement"
@@ -1695,7 +1703,7 @@
         }
       }
     },
-    "/api/sprints/all": {
+    "/api/sprint": {
       "get": {
         "tags": [
           "Sprint"
@@ -1705,9 +1713,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Sprint"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SprintRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SprintRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SprintRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/sprints/{id}": {
+    "/api/sprint/{id}": {
       "get": {
         "tags": [
           "Sprint"
@@ -1791,7 +1828,7 @@
         }
       }
     },
-    "/api/sprints/by-name": {
+    "/api/sprint/by-name": {
       "get": {
         "tags": [
           "Sprint"
@@ -1812,38 +1849,7 @@
         }
       }
     },
-    "/api/sprints": {
-      "post": {
-        "tags": [
-          "Sprint"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SprintRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SprintRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SprintRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/sprints/{id}/status": {
+    "/api/sprint/{id}/status": {
       "patch": {
         "tags": [
           "Sprint"
@@ -1885,7 +1891,7 @@
         }
       }
     },
-    "/api/system-configurations/all": {
+    "/api/systemconfiguration": {
       "get": {
         "tags": [
           "SystemConfiguration"
@@ -1895,9 +1901,38 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "SystemConfiguration"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
-    "/api/system-configurations/{id}": {
+    "/api/systemconfiguration/{id}": {
       "get": {
         "tags": [
           "SystemConfiguration"
@@ -1981,7 +2016,7 @@
         }
       }
     },
-    "/api/system-configurations/by-config-key": {
+    "/api/systemconfiguration/by-config-key": {
       "get": {
         "tags": [
           "SystemConfiguration"
@@ -2002,26 +2037,36 @@
         }
       }
     },
-    "/api/system-configurations": {
+    "/api/task": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "post": {
         "tags": [
-          "SystemConfiguration"
+          "Task"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+                "$ref": "#/components/schemas/TaskRequestDTO"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+                "$ref": "#/components/schemas/TaskRequestDTO"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemConfigurationRequestDTO"
+                "$ref": "#/components/schemas/TaskRequestDTO"
               }
             }
           }
@@ -2033,19 +2078,7 @@
         }
       }
     },
-    "/api/tasks/all": {
-      "get": {
-        "tags": [
-          "Task"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/tasks/{id}": {
+    "/api/task/{id}": {
       "get": {
         "tags": [
           "Task"
@@ -2129,7 +2162,7 @@
         }
       }
     },
-    "/api/tasks/by-title": {
+    "/api/task/by-title": {
       "get": {
         "tags": [
           "Task"
@@ -2150,38 +2183,7 @@
         }
       }
     },
-    "/api/tasks": {
-      "post": {
-        "tags": [
-          "Task"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/tasks/{id}/status": {
+    "/api/task/{id}/status": {
       "patch": {
         "tags": [
           "Task"

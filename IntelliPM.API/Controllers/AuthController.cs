@@ -14,7 +14,7 @@ using IntelliPM.Data.DTOs.Auth.Request;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IJWTService _jwtService;

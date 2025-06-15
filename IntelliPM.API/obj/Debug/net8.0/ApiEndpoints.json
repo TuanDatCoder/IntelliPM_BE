@@ -42,6 +42,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "IntelliPM.API.Controllers.AccountController",
+    "Method": "GetProjectsByAccountId",
+    "RelativePath": "api/account/projects/{accountId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "accountId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "IntelliPM.API.Controllers.AdminController",
     "Method": "GetAccounts",
     "RelativePath": "api/admin/account",
@@ -202,8 +218,18 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
+    "Method": "GetAll",
+    "RelativePath": "api/dynamiccategory",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "Create",
-    "RelativePath": "api/dynamic-categories",
+    "RelativePath": "api/dynamiccategory",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -219,7 +245,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "GetById",
-    "RelativePath": "api/dynamic-categories/{id}",
+    "RelativePath": "api/dynamiccategory/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -235,7 +261,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "Update",
-    "RelativePath": "api/dynamic-categories/{id}",
+    "RelativePath": "api/dynamiccategory/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -256,7 +282,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "Delete",
-    "RelativePath": "api/dynamic-categories/{id}",
+    "RelativePath": "api/dynamiccategory/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -272,7 +298,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "UpdateStatus",
-    "RelativePath": "api/dynamic-categories/{id}/status",
+    "RelativePath": "api/dynamiccategory/{id}/status",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -292,18 +318,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
-    "Method": "GetAll",
-    "RelativePath": "api/dynamic-categories/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.DynamicCategoryController",
     "Method": "GetByNameOrCategoryGroup",
-    "RelativePath": "api/dynamic-categories/by-name-or-category-group",
+    "RelativePath": "api/dynamiccategory/by-name-or-category-group",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -323,8 +339,18 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
+    "Method": "GetAll",
+    "RelativePath": "api/epic",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "Create",
-    "RelativePath": "api/epics",
+    "RelativePath": "api/epic",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -340,7 +366,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "GetById",
-    "RelativePath": "api/epics/{id}",
+    "RelativePath": "api/epic/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -356,7 +382,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "Update",
-    "RelativePath": "api/epics/{id}",
+    "RelativePath": "api/epic/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -377,7 +403,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "Delete",
-    "RelativePath": "api/epics/{id}",
+    "RelativePath": "api/epic/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -393,7 +419,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "ChangeStatus",
-    "RelativePath": "api/epics/{id}/status",
+    "RelativePath": "api/epic/{id}/status",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -413,18 +439,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.EpicController",
-    "Method": "GetAll",
-    "RelativePath": "api/epics/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.EpicController",
     "Method": "GetByName",
-    "RelativePath": "api/epics/by-name",
+    "RelativePath": "api/epic/by-name",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -439,8 +455,18 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
+    "Method": "GetAll",
+    "RelativePath": "api/milestone",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "Create",
-    "RelativePath": "api/milestones",
+    "RelativePath": "api/milestone",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -456,7 +482,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "GetById",
-    "RelativePath": "api/milestones/{id}",
+    "RelativePath": "api/milestone/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -472,7 +498,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "Update",
-    "RelativePath": "api/milestones/{id}",
+    "RelativePath": "api/milestone/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -493,7 +519,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "Delete",
-    "RelativePath": "api/milestones/{id}",
+    "RelativePath": "api/milestone/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -509,7 +535,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "ChangeStatus",
-    "RelativePath": "api/milestones/{id}/status",
+    "RelativePath": "api/milestone/{id}/status",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -529,18 +555,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
-    "Method": "GetAll",
-    "RelativePath": "api/milestones/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.MilestoneController",
     "Method": "GetByName",
-    "RelativePath": "api/milestones/by-name",
+    "RelativePath": "api/milestone/by-name",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -549,6 +565,32 @@
         "Name": "name",
         "Type": "System.String",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
+    "Method": "GetAll",
+    "RelativePath": "api/project",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
+    "Method": "Create",
+    "RelativePath": "api/project",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "IntelliPM.Data.DTOs.Project.Request.ProjectRequestDTO",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
@@ -556,7 +598,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "GetAll",
-    "RelativePath": "api/project-members/{projectMemberId}/positions",
+    "RelativePath": "api/project-members/{projectMemberId}/projectposition",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -572,7 +614,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Add",
-    "RelativePath": "api/project-members/{projectMemberId}/positions",
+    "RelativePath": "api/project-members/{projectMemberId}/projectposition",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -593,7 +635,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "GetById",
-    "RelativePath": "api/project-members/{projectMemberId}/positions/{id}",
+    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -614,7 +656,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Update",
-    "RelativePath": "api/project-members/{projectMemberId}/positions/{id}",
+    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -640,7 +682,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Delete",
-    "RelativePath": "api/project-members/{projectMemberId}/positions/{id}",
+    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -660,24 +702,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectController",
-    "Method": "Create",
-    "RelativePath": "api/projects",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "request",
-        "Type": "IntelliPM.Data.DTOs.Project.Request.ProjectRequestDTO",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
     "Method": "GetById",
-    "RelativePath": "api/projects/{id}",
+    "RelativePath": "api/project/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -693,7 +719,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectController",
     "Method": "Update",
-    "RelativePath": "api/projects/{id}",
+    "RelativePath": "api/project/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -714,7 +740,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectController",
     "Method": "Delete",
-    "RelativePath": "api/projects/{id}",
+    "RelativePath": "api/project/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -723,6 +749,32 @@
         "Name": "id",
         "Type": "System.Int32",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
+    "Method": "Search",
+    "RelativePath": "api/project/search",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "searchTerm",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "projectType",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -730,7 +782,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "GetAll",
-    "RelativePath": "api/projects/{projectId}/members",
+    "RelativePath": "api/projects/{projectId}/projectmember",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -745,8 +797,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
-    "Method": "Add",
-    "RelativePath": "api/projects/{projectId}/members",
+    "Method": "Create",
+    "RelativePath": "api/projects/{projectId}/projectmember",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -766,29 +818,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
-    "Method": "GetById",
-    "RelativePath": "api/projects/{projectId}/members/{id}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "projectId",
-        "Type": "System.Int32",
-        "IsRequired": true
-      },
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "Delete",
-    "RelativePath": "api/projects/{projectId}/members/{id}",
+    "RelativePath": "api/projects/{projectId}/projectmember/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -807,9 +838,25 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
+    "Method": "GetAccountsByProjectId",
+    "RelativePath": "api/projects/{projectId}/projectmember/accounts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetAll",
-    "RelativePath": "api/projects/{projectId}/requirements",
+    "RelativePath": "api/projects/{projectId}/requirement",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -825,7 +872,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Create",
-    "RelativePath": "api/projects/{projectId}/requirements",
+    "RelativePath": "api/projects/{projectId}/requirement",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -846,7 +893,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetById",
-    "RelativePath": "api/projects/{projectId}/requirements/{id}",
+    "RelativePath": "api/projects/{projectId}/requirement/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -867,7 +914,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Update",
-    "RelativePath": "api/projects/{projectId}/requirements/{id}",
+    "RelativePath": "api/projects/{projectId}/requirement/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -893,7 +940,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Delete",
-    "RelativePath": "api/projects/{projectId}/requirements/{id}",
+    "RelativePath": "api/projects/{projectId}/requirement/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -914,7 +961,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "ChangePriority",
-    "RelativePath": "api/projects/{projectId}/requirements/{id}/priority",
+    "RelativePath": "api/projects/{projectId}/requirement/{id}/priority",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -940,7 +987,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetByTitle",
-    "RelativePath": "api/projects/{projectId}/requirements/by-title",
+    "RelativePath": "api/projects/{projectId}/requirement/by-title",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -959,9 +1006,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
+    "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "GetAll",
-    "RelativePath": "api/projects/all",
+    "RelativePath": "api/sprint",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -969,35 +1016,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
-    "Method": "Search",
-    "RelativePath": "api/projects/search",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "searchTerm",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "projectType",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "status",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "Create",
-    "RelativePath": "api/sprints",
+    "RelativePath": "api/sprint",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1013,7 +1034,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "GetById",
-    "RelativePath": "api/sprints/{id}",
+    "RelativePath": "api/sprint/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1029,7 +1050,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "Update",
-    "RelativePath": "api/sprints/{id}",
+    "RelativePath": "api/sprint/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -1050,7 +1071,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "Delete",
-    "RelativePath": "api/sprints/{id}",
+    "RelativePath": "api/sprint/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -1066,7 +1087,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "ChangeStatus",
-    "RelativePath": "api/sprints/{id}/status",
+    "RelativePath": "api/sprint/{id}/status",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -1086,18 +1107,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.SprintController",
-    "Method": "GetAll",
-    "RelativePath": "api/sprints/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.SprintController",
     "Method": "GetByName",
-    "RelativePath": "api/sprints/by-name",
+    "RelativePath": "api/sprint/by-name",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1112,8 +1123,18 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
+    "Method": "GetAll",
+    "RelativePath": "api/systemconfiguration",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
     "Method": "Create",
-    "RelativePath": "api/system-configurations",
+    "RelativePath": "api/systemconfiguration",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1129,7 +1150,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
     "Method": "GetById",
-    "RelativePath": "api/system-configurations/{id}",
+    "RelativePath": "api/systemconfiguration/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1145,7 +1166,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
     "Method": "Update",
-    "RelativePath": "api/system-configurations/{id}",
+    "RelativePath": "api/systemconfiguration/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -1166,7 +1187,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
     "Method": "Delete",
-    "RelativePath": "api/system-configurations/{id}",
+    "RelativePath": "api/systemconfiguration/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -1181,18 +1202,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
-    "Method": "GetAll",
-    "RelativePath": "api/system-configurations/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.SystemConfigurationController",
     "Method": "GetByConfigKey",
-    "RelativePath": "api/system-configurations/by-config-key",
+    "RelativePath": "api/systemconfiguration/by-config-key",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1207,8 +1218,18 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
+    "Method": "GetAll",
+    "RelativePath": "api/task",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "Create",
-    "RelativePath": "api/tasks",
+    "RelativePath": "api/task",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1224,7 +1245,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "GetById",
-    "RelativePath": "api/tasks/{id}",
+    "RelativePath": "api/task/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1240,7 +1261,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "Update",
-    "RelativePath": "api/tasks/{id}",
+    "RelativePath": "api/task/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -1261,7 +1282,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "Delete",
-    "RelativePath": "api/tasks/{id}",
+    "RelativePath": "api/task/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -1277,7 +1298,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "ChangeStatus",
-    "RelativePath": "api/tasks/{id}/status",
+    "RelativePath": "api/task/{id}/status",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -1297,18 +1318,8 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.TaskController",
-    "Method": "GetAll",
-    "RelativePath": "api/tasks/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.TaskController",
     "Method": "GetByTitle",
-    "RelativePath": "api/tasks/by-title",
+    "RelativePath": "api/task/by-title",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
