@@ -8,7 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects/{projectId}/[controller]")]
+    [Route("api/project/{projectId}/[controller]")]
     [Authorize]
     public class RequirementController : ControllerBase
     {

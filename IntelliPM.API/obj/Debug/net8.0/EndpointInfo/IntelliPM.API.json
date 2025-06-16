@@ -5,7 +5,7 @@
     "version": "1.0"
   },
   "paths": {
-    "/{accountId}/upload-avatar": {
+    "/api/account/{accountId}/upload-avatar": {
       "post": {
         "tags": [
           "Account"
@@ -48,7 +48,7 @@
         }
       }
     },
-    "/upload-avatar": {
+    "/api/account/upload-avatar": {
       "post": {
         "tags": [
           "Account"
@@ -122,7 +122,7 @@
         }
       }
     },
-    "/api/account/projects/{accountId}": {
+    "/api/account/{accountId}/projects": {
       "get": {
         "tags": [
           "Account"
@@ -2296,11 +2296,11 @@
             "type": "string",
             "nullable": true
           },
-          "code": {
+          "name": {
             "type": "string",
             "nullable": true
           },
-          "name": {
+          "label": {
             "type": "string",
             "nullable": true
           },

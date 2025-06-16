@@ -1,8 +1,24 @@
 [
   {
     "ContainingType": "IntelliPM.API.Controllers.AccountController",
+    "Method": "GetProjectsByAccountId",
+    "RelativePath": "api/account/{accountId}/projects",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "accountId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.AccountController",
     "Method": "UploadAvatar",
-    "RelativePath": "{accountId}/upload-avatar",
+    "RelativePath": "api/account/{accountId}/upload-avatar",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -43,16 +59,16 @@
   },
   {
     "ContainingType": "IntelliPM.API.Controllers.AccountController",
-    "Method": "GetProjectsByAccountId",
-    "RelativePath": "api/account/projects/{accountId}",
-    "HttpMethod": "GET",
+    "Method": "UploadAvatarByToken",
+    "RelativePath": "api/account/upload-avatar",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "accountId",
-        "Type": "System.Int32",
-        "IsRequired": true
+        "Name": "file",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -1327,22 +1343,6 @@
       {
         "Name": "title",
         "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "IntelliPM.API.Controllers.AccountController",
-    "Method": "UploadAvatarByToken",
-    "RelativePath": "upload-avatar",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "file",
-        "Type": "Microsoft.AspNetCore.Http.IFormFile",
         "IsRequired": false
       }
     ],

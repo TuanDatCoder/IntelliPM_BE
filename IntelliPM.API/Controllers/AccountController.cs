@@ -20,7 +20,7 @@ namespace IntelliPM.API.Controllers
             _projectMemberService = projectMemberService;
         }
 
-        [HttpPost("/{accountId}/upload-avatar")]
+        [HttpPost("{accountId}/upload-avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatar(int accountId, IFormFile file)
         {
@@ -58,7 +58,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("/upload-avatar")]
+        [HttpPost("upload-avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatarByToken(IFormFile file)
         {
@@ -135,7 +135,7 @@ namespace IntelliPM.API.Controllers
         }
 
 
-        [HttpGet("projects/{accountId}")]
+        [HttpGet("{accountId}/projects")]
         public async Task<IActionResult> GetProjectsByAccountId(int accountId)
         {
             try

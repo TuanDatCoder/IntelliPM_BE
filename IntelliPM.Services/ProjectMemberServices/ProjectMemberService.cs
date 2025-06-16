@@ -60,6 +60,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                 throw new InvalidOperationException($"Account ID {request.AccountId} is already a member of Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<ProjectMember>(request);
+            entity.Status = "CREATED";
 
             try
             {
@@ -96,14 +97,17 @@ namespace IntelliPM.Services.ProjectMemberServices
 
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId)
         {
-            var members = await _repo.GetAllAsync(); 
+            var members = await _repo.GetAllAsync();
             var accountProjects = members
                 .Where(pm => pm.AccountId == accountId)
                 .Select(pm => new ProjectByAccountResponseDTO
                 {
                     ProjectId = pm.ProjectId,
-                    ProjectName = pm.Project.Name, 
-                    JoinedAt = pm.JoinedAt
+                    ProjectName = pm.Project.Name,
+                    ProjectStatus = pm.Project.Status,
+                    JoinedAt = pm.JoinedAt,
+                    InvitedAt = pm.InvitedAt,
+                    Status = pm.Status
                 })
                 .ToList();
 
@@ -121,7 +125,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 {
                     AccountId = pm.AccountId,
                     AccountName = pm.Account.Username, 
-                    JoinedAt = pm.JoinedAt
+                    JoinedAt = pm.JoinedAt,
+                    InvitedAt = pm.InvitedAt,
+                    Status = pm.Status
                 })
                 .ToList();
 

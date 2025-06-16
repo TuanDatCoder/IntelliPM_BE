@@ -61,5 +61,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             _context.ProjectMember.Remove(projectMember);
             await _context.SaveChangesAsync();
         }
+
+
     }
 }

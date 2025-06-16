@@ -76,7 +76,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        [Authorize] // Yêu cầu đăng nhập
+
         public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
         {
             if (!ModelState.IsValid)
@@ -107,7 +107,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+
         public async Task<IActionResult> Update(int id, [FromBody] ProjectRequestDTO request)
         {
             try
@@ -137,7 +137,6 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
             try

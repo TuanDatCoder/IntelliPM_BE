@@ -16,6 +16,8 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         Task Add(ProjectMember projectMember);
         Task Update(ProjectMember projectMember);
         Task Delete(ProjectMember projectMember);
+
+
         
     }
 }
