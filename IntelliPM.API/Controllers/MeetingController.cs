@@ -94,7 +94,7 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
             try
             {
                 await _service.CancelMeeting(id);  // Hủy cuộc họp
-                return Ok(new { message = "Meeting cancelled successfully." });
+                return Ok(new { message = "Meeting cancelled successfully." }); // DMMMMMMMM
             }
             catch (Exception ex)
             {
