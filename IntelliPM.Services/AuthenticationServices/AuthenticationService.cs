@@ -136,6 +136,8 @@ namespace IntelliPM.Services.AuthenticationServices
                 throw new ApiException(HttpStatusCode.NotFound, "User not found");
             }
         }
+
+
         public async Task<Account> GetAccountByToken(string token)
         {
             var decode = _decodeToken.decode(token);

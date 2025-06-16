@@ -6,14 +6,12 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.ProjectMember.Response
 {
-    public class ProjectMemberResponseDTO
+    public class AccountByProjectResponseDTO
     {
-        public int Id { get; set; }
         public int AccountId { get; set; }
-        public int ProjectId { get; set; }
+        public string AccountName { get; set; } = null!;
         public DateTime JoinedAt { get; set; }
         public DateTime InvitedAt { get; set; }
         public string? Status { get; set; }
-
     }
 }
