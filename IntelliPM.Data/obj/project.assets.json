@@ -2648,11 +2648,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Data\\IntelliPM.Data.csproj",
+      "projectUniqueName": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Data\\IntelliPM.Data.csproj",
       "projectName": "IntelliPM.Data",
-      "projectPath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Data\\IntelliPM.Data.csproj",
+      "projectPath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Data\\IntelliPM.Data.csproj",
       "packagesPath": "C:\\Users\\laptop\\.nuget\\packages\\",
-      "outputPath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Data\\obj\\",
+      "outputPath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Data\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

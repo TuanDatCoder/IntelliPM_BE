@@ -194,9 +194,7 @@ PublishScripts/
 
 # NuGet Packages
 *.nupkg
-# NuGet Symbol Packages
 *.snupkg
-# The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
@@ -397,10 +395,12 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# Ignore appsettings.json to prevent conflicts in connection strings
+# Custom ignores for IntelliPM_BE project
 appsettings.json
-
-# Ignore WPF auto-generated files
-KoiShowManagement.WPFApp/
-
-
+appsettings.Development.json
+*.deps.json
+*.runtimeconfig.json
+*.staticwebassets.endpoints.json
+ApiEndpoints.json
+IntelliPM.API.OpenApiFiles.cache
+apphost.exe

@@ -6231,11 +6231,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
+      "projectUniqueName": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
       "projectName": "IntelliPM.Services",
-      "projectPath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
+      "projectPath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Services\\IntelliPM.Services.csproj",
       "packagesPath": "C:\\Users\\laptop\\.nuget\\packages\\",
-      "outputPath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Services\\obj\\",
+      "outputPath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Services\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -6257,8 +6257,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Repositories\\IntelliPM.Repositories.csproj": {
-              "projectPath": "D:\\GitHub\\IntelliPM_BE\\IntelliPM.Repositories\\IntelliPM.Repositories.csproj"
+            "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Repositories\\IntelliPM.Repositories.csproj": {
+              "projectPath": "D:\\GitHub\\IntelliPM\\IntelliPM_BE\\IntelliPM.Repositories\\IntelliPM.Repositories.csproj"
             }
           }
         }
