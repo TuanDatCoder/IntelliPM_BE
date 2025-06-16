@@ -73,6 +73,22 @@ namespace IntelliPM.Services.MeetingServices
             }
         }
 
+        public async Task<List<MeetingResponseDTO>> GetMeetingsByAccount(int accountId)
+        {
+            var meetings = await _repo.GetMeetingsByAccountIdDetailedAsync(accountId);
+            return meetings.Select(m => new MeetingResponseDTO
+            {
+                Id = m.Id,
+                MeetingTopic = m.MeetingTopic,
+                MeetingDate = m.MeetingDate,
+                StartTime = m.StartTime,
+                EndTime = m.EndTime,
+                MeetingUrl = m.MeetingUrl,
+                Status = m.Status,
+               
+            }).ToList();
+        }
+
         public async Task<MeetingResponseDTO> UpdateMeeting(int id, MeetingRequestDTO dto)
         {
             try

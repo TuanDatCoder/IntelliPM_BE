@@ -11,6 +11,7 @@ namespace IntelliPM.Repositories.MeetingRepos
         Task<Meeting> AddAsync(Meeting meeting);
         Task<Meeting?> GetByIdAsync(int id);
         Task<List<Meeting>> GetByAccountIdAsync(int accountId);
+        Task<List<Meeting>> GetMeetingsByAccountIdDetailedAsync(int accountId);
         Task UpdateAsync(Meeting meeting);
         Task DeleteAsync(Meeting meeting);
     }

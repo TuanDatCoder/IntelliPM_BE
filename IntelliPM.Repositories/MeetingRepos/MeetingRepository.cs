@@ -28,6 +28,15 @@ namespace IntelliPM.Repositories.MeetingRepos
         {
             return await _context.Meeting.ToListAsync();  // Lấy tất cả cuộc họp (có thể thay đổi tùy theo logic)
         }
+        public async Task<List<Meeting>> GetMeetingsByAccountIdDetailedAsync(int accountId)
+        {
+            return await _context.MeetingParticipant
+                .Where(mp => mp.AccountId == accountId)
+                .Include(mp => mp.Meeting)
+                .ThenInclude(m => m.Project)
+                .Select(mp => mp.Meeting)
+                .ToListAsync();
+        }
 
         public async Task UpdateAsync(Meeting meeting)
         {

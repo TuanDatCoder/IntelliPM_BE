@@ -6,6 +6,8 @@ using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
+using IntelliPM.Data.DTOs.Meeting.Request;
+using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
@@ -24,8 +26,8 @@ using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
-using IntelliPM.Data.DTOs.Meeting.Request;
-using IntelliPM.Data.DTOs.Meeting.Response;
+using IntelliPM.Data.DTOs.MeetingParticipant.Request;
+using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 
 
 namespace IntelliPM.Services.Helper.MapperProfiles
@@ -123,7 +125,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // Ánh xạ Meeting -> MeetingResponseDTO
             CreateMap<Meeting, MeetingResponseDTO>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));  // Chuyển dữ liệu CreatedAt
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+
+
+            CreateMap<MeetingParticipantRequestDTO, MeetingParticipant>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore())
+               .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+
+            CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
 
 
         }

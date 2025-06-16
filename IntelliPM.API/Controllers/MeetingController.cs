@@ -42,6 +42,20 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+        [HttpGet("account/{accountId}/schedule")]
+public async Task<IActionResult> GetScheduleByAccount(int accountId)
+{
+    try
+    {
+        var result = await _service.GetMeetingsByAccount(accountId);
+        return Ok(result);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error in GetScheduleByAccount: " + ex.Message);
+        return StatusCode(500, new { message = "An error occurred while retrieving meetings." });
+    }
+}
 
 
         [HttpGet("my")]
