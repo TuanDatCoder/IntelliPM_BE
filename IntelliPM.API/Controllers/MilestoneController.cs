@@ -196,7 +196,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("by-project-id")]
+        [HttpGet("by-project-id")] //
         public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
         {
             try
