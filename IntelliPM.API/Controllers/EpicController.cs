@@ -16,6 +16,10 @@ namespace IntelliPM.API.Controllers
         {
             _service = service;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
