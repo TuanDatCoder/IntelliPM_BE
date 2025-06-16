@@ -1,6 +1,8 @@
 using ConstructionEquipmentRental.API.Middlewares;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DocumentRepos;
+using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -15,6 +17,7 @@ using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
@@ -58,6 +61,7 @@ builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
 builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
 
 
@@ -82,6 +86,7 @@ builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IRequirementService, RequirementService>();
 builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
 
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 
 
