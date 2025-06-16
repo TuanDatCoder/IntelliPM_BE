@@ -21,7 +21,7 @@ namespace IntelliPM.Services.ProjectMemberServices
     public class ProjectMemberService : IProjectMemberService
     {
         private readonly IMapper _mapper;
-        private readonly IProjectMemberRepository _repo; 
+        private readonly IProjectMemberRepository _repo;
         private readonly ILogger<ProjectMemberService> _logger;
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IAccountRepository _accountRepository;
@@ -47,6 +47,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             var entities = await _repo.GetAllProjectMembers(projectId);
             return _mapper.Map<List<ProjectMemberResponseDTO>>(entities);
         }
+
         public async Task<ProjectMemberResponseDTO> GetProjectMemberById(int id)
         {
             var entity = await _repo.GetByIdAsync(id);
@@ -64,12 +65,13 @@ namespace IntelliPM.Services.ProjectMemberServices
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
           
+            // Kiểm tra xem cặp account_id và project_id đã tồn tại chưa (ràng buộc UNIQUE)
             var existingMember = await _repo.GetByAccountAndProjectAsync(request.AccountId, request.ProjectId);
             if (existingMember != null)
                 throw new InvalidOperationException($"Account ID {request.AccountId} is already a member of Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<ProjectMember>(request);
-            entity.Status = "CREATED";
+            // Không gán JoinedAt vì DB tự động gán
 
             try
             {

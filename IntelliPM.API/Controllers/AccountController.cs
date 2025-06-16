@@ -155,7 +155,7 @@ namespace IntelliPM.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
-            }
+        }
         }
 
         [HttpGet("/projects")]
