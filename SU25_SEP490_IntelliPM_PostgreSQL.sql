@@ -249,6 +249,7 @@ CREATE TABLE project_member (
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)
 );
+
 -- 17. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
@@ -499,6 +500,7 @@ CREATE TABLE system_configuration (
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
+    code VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
 	label VARCHAR(255) NOT NULL,  
     description TEXT NULL,
@@ -508,6 +510,7 @@ CREATE TABLE dynamic_category (
     UNIQUE (category_group, name) 
 );
 
+--------------------------------------------------------------
 
 
 
@@ -517,7 +520,7 @@ CREATE TABLE dynamic_category (
 -- Insert sample data into account
 INSERT INTO account (username, full_name, email, password, role, position, phone, gender, google_id, status, address, picture)
 VALUES 
-    ('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+	('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_LEADER', 'TEAM_LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('client', 'Nguyen Van KH', 'client@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'CLIENT', 'CLIENT', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('projectManager', 'Tran Thi B', 'projectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT_MANAGER', 'PROJECT_MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),

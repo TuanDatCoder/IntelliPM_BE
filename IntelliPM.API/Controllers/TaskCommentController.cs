@@ -1,32 +1,34 @@
-﻿using IntelliPM.Data.DTOs.Project.Request;
+﻿using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs;
-using IntelliPM.Services.ProjectServices;
-using Microsoft.AspNetCore.Authorization;
+using IntelliPM.Services.TaskCheckListServices;
+using IntelliPM.Services.TaskCommentServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using IntelliPM.Data.DTOs.TaskComment.Request;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProjectController : ControllerBase
+    //[Authorize]
+    public class TaskCommentController : ControllerBase
     {
-        private readonly IProjectService _service;
+        private readonly ITaskCommentService _service;
 
-        public ProjectController(IProjectService service)
+        public TaskCommentController(ITaskCommentService service)
         {
             _service = service;
         }
 
-        [HttpGet]
+        [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllProjects();
+            var result = await _service.GetAllTaskComment();
             return Ok(new ApiResponseDTO
             {
                 IsSuccess = true,
                 Code = (int)HttpStatusCode.OK,
-                Message = "View all projects successfully",
+                Message = "View all task comment successfully",
                 Data = result
             });
         }
@@ -36,13 +38,13 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var project = await _service.GetProjectById(id);
+                var taskComment = await _service.GetTaskCommentById(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = (int)HttpStatusCode.OK,
-                    Message = "Project retrieved successfully",
-                    Data = project
+                    Message = "Task comment retrieved successfully",
+                    Data = taskComment
                 });
             }
             catch (KeyNotFoundException ex)
@@ -51,33 +53,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? searchTerm, [FromQuery] string? projectType, [FromQuery] string? status)
-        {
-            try
-            {
-                var projects = await _service.SearchProjects(searchTerm ?? "", projectType, status);
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = (int)HttpStatusCode.OK,
-                    Message = "Projects retrieved successfully",
-                    Data = projects
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Error searching projects: {ex.Message}" });
-            }
-        }
-
         [HttpPost]
-
-        public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
+        public async Task<IActionResult> Create([FromBody] TaskCommentRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -86,12 +63,12 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateProject(request);
+                var result = await _service.CreateTaskComment(request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = 201,
-                    Message = "Project created successfully",
+                    Message = "Task comment created successfully",
                     Data = result
                 });
             }
@@ -101,23 +78,22 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error creating project: {ex.Message}"
+                    Message = $"Error creating task comment: {ex.Message}"
                 });
             }
         }
 
         [HttpPut("{id}")]
-
-        public async Task<IActionResult> Update(int id, [FromBody] ProjectRequestDTO request)
+        public async Task<IActionResult> Update(int id, [FromBody] TaskCommentRequestDTO request)
         {
             try
             {
-                var updated = await _service.UpdateProject(id, request);
+                var updated = await _service.UpdateTaskComment(id, request);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = 200,
-                    Message = "Project updated successfully",
+                    Message = "Task comment updated successfully",
                     Data = updated
                 });
             }
@@ -131,23 +107,22 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error updating project: {ex.Message}"
+                    Message = $"Error updating task comment: {ex.Message}"
                 });
             }
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                await _service.DeleteProject(id);
+                await _service.DeleteTaskComment(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = 200,
-                    Message = "Project deleted successfully"
+                    Message = "Task comment deleted successfully"
                 });
             }
             catch (KeyNotFoundException ex)
@@ -160,7 +135,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error deleting project: {ex.Message}"
+                    Message = $"Error deleting task comment: {ex.Message}"
                 });
             }
         }
