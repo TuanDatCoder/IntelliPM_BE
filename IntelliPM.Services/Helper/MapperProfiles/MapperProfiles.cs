@@ -21,6 +21,8 @@ using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskCheckList.Request;
+using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
@@ -108,6 +110,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) 
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()); 
             CreateMap<Requirement, RequirementResponseDTO>();
+
+            // TaskCheckList
+            CreateMap<TaskCheckListRequestDTO, TaskCheckList>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<TaskCheckList, TaskCheckListResponseDTO>();
+
 
         }
     }
