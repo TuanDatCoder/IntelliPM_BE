@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -91,12 +89,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Tasks> Tasks { get; set; }
 
-    
-
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
-
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -110,7 +105,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
 
 
 
@@ -296,9 +290,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CategoryGroup)
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
-            entity.Property(e => e.Code)
-                .HasMaxLength(100)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
