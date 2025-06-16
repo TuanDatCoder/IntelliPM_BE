@@ -5,6 +5,8 @@ using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MeetingParticipantRepos;
+using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -25,6 +27,8 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
+using IntelliPM.Services.MeetingParticipantServices;
+using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
@@ -61,10 +65,10 @@ builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
 builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
+builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
+builder.Services.AddScoped<IMeetingParticipantRepository, MeetingParticipantRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
-
-
 
 
 
@@ -84,11 +88,11 @@ builder.Services.AddScoped<IMilestoneService, MilestoneService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IRequirementService, RequirementService>();
+builder.Services.AddScoped<IMeetingService, MeetingService>();
+builder.Services.AddScoped<IMeetingParticipantService, MeetingParticipantService>();
 builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
-
-
 
 //----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>
