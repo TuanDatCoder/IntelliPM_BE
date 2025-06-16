@@ -1,3 +1,5 @@
+
+
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
@@ -141,8 +143,20 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<TaskCheckList, TaskCheckListResponseDTO>();
+            // TaskCheckList
+            CreateMap<TaskCheckListRequestDTO, TaskCheckList>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<TaskCheckList, TaskCheckListResponseDTO>();
 
+            // TaskComment
+            CreateMap<TaskCommentRequestDTO, TaskComment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<TaskComment, TaskCommentResponseDTO>();
 
         }
     }
+
 }
