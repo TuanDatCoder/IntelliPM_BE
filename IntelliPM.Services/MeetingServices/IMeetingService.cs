@@ -18,6 +18,8 @@ namespace IntelliPM.Services.MeetingServices
 
         // Method to cancel a meeting
         Task CancelMeeting(int id);
+
+        Task<List<MeetingResponseDTO>> GetMeetingsByAccount(int accountId);
     }
 }
 
