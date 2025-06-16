@@ -66,6 +66,7 @@ builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
+//
 
 
 
