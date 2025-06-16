@@ -195,5 +195,39 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("by-project-id")]
+        public async Task<IActionResult> GetByProjectId(int projectId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksByProjectIdAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Project ID {projectId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
     }
 }

@@ -56,5 +56,12 @@ namespace IntelliPM.Repositories.MilestoneRepos
             _context.Milestone.Remove(milestone);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Milestone>> GetMilestonesByProjectIdAsync(int projectId)
+        {
+            return await _context.Milestone
+                .Where(m => m.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }
