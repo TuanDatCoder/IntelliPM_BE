@@ -140,8 +140,9 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
+                
+            
                 var result = await _projectMemberService.GetProjectsByAccountId(accountId);
-       
 
                 return Ok(new ApiResponseDTO
                 {
@@ -157,7 +158,32 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("/projects")]
+        public async Task<IActionResult> GetProjectsByAccount()
+        {
+            try
+            {
 
+                var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+                }
+                var result = await _projectMemberService.GetProjectsByAccount(token);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Projects retrieved successfully for the account",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
 
     }
 }

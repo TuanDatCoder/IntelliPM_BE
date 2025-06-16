@@ -38,7 +38,7 @@ namespace IntelliPM.API.Controllers
         public async Task<IActionResult> RegisterAccount(AccountRequestDTO accountRequestDTO)
         {
 
-            // await _accountService.AccountRegister(accountRequestDTO);
+
             await _authenticationService.AccountRegister(accountRequestDTO);
             ApiResponseDTO response = new ApiResponseDTO
             {

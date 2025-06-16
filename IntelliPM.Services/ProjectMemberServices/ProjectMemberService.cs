@@ -1,13 +1,18 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Services.Helper.CustomExceptions;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,14 +21,18 @@ namespace IntelliPM.Services.ProjectMemberServices
     public class ProjectMemberService : IProjectMemberService
     {
         private readonly IMapper _mapper;
-        private readonly IProjectMemberRepository _repo;
+        private readonly IProjectMemberRepository _repo; 
         private readonly ILogger<ProjectMemberService> _logger;
+        private readonly IDecodeTokenHandler _decodeToken;
+        private readonly IAccountRepository _accountRepository;
 
-        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger)
+
+        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _decodeToken = decodeToken;
         }
    
     
@@ -116,6 +125,39 @@ namespace IntelliPM.Services.ProjectMemberServices
 
             return accountProjects;
         }
+
+        public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
+        {
+            var decode = _decodeToken.decode(token);
+            var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
+
+            if (currentAccount == null)
+            {
+                throw new ApiException(HttpStatusCode.NotFound, "User not found");
+            }
+
+            var members = await _repo.GetAllAsync();
+            var accountProjects = members
+                .Where(pm => pm.AccountId == currentAccount.Id)
+                .Select(pm => new ProjectByAccountResponseDTO
+                {
+                    ProjectId = pm.ProjectId,
+                    ProjectName = pm.Project.Name,
+                    ProjectStatus = pm.Project.Status,
+                    JoinedAt = pm.JoinedAt,
+                    InvitedAt = pm.InvitedAt,
+                    Status = pm.Status
+                })
+                .ToList();
+
+            if (!accountProjects.Any())
+            {
+                throw new KeyNotFoundException($"No projects found for Account ID {currentAccount.Id}.");
+            }
+
+            return accountProjects;
+        }
+
 
         public async Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId)
         {

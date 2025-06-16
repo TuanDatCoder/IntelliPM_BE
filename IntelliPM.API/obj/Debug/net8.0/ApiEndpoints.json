@@ -614,7 +614,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "GetAll",
-    "RelativePath": "api/project-members/{projectMemberId}/projectposition",
+    "RelativePath": "api/project-member/{projectMemberId}/projectposition",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -630,7 +630,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Add",
-    "RelativePath": "api/project-members/{projectMemberId}/projectposition",
+    "RelativePath": "api/project-member/{projectMemberId}/projectposition",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -651,7 +651,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "GetById",
-    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
+    "RelativePath": "api/project-member/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -672,7 +672,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Update",
-    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
+    "RelativePath": "api/project-member/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -698,7 +698,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectPositionController",
     "Method": "Delete",
-    "RelativePath": "api/project-members/{projectMemberId}/projectposition/{id}",
+    "RelativePath": "api/project-member/{projectMemberId}/projectposition/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -770,35 +770,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
-    "Method": "Search",
-    "RelativePath": "api/project/search",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "searchTerm",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "projectType",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "status",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "GetAll",
-    "RelativePath": "api/projects/{projectId}/projectmember",
+    "RelativePath": "api/project/{projectId}/projectmember",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -814,7 +788,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "Create",
-    "RelativePath": "api/projects/{projectId}/projectmember",
+    "RelativePath": "api/project/{projectId}/projectmember",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -835,7 +809,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "Delete",
-    "RelativePath": "api/projects/{projectId}/projectmember/{id}",
+    "RelativePath": "api/project/{projectId}/projectmember/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -856,7 +830,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.ProjectMemberController",
     "Method": "GetAccountsByProjectId",
-    "RelativePath": "api/projects/{projectId}/projectmember/accounts",
+    "RelativePath": "api/project/{projectId}/projectmember/accounts",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -872,7 +846,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetAll",
-    "RelativePath": "api/projects/{projectId}/requirement",
+    "RelativePath": "api/project/{projectId}/requirement",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -888,7 +862,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Create",
-    "RelativePath": "api/projects/{projectId}/requirement",
+    "RelativePath": "api/project/{projectId}/requirement",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -909,7 +883,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetById",
-    "RelativePath": "api/projects/{projectId}/requirement/{id}",
+    "RelativePath": "api/project/{projectId}/requirement/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -930,7 +904,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Update",
-    "RelativePath": "api/projects/{projectId}/requirement/{id}",
+    "RelativePath": "api/project/{projectId}/requirement/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -956,7 +930,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "Delete",
-    "RelativePath": "api/projects/{projectId}/requirement/{id}",
+    "RelativePath": "api/project/{projectId}/requirement/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -977,7 +951,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "ChangePriority",
-    "RelativePath": "api/projects/{projectId}/requirement/{id}/priority",
+    "RelativePath": "api/project/{projectId}/requirement/{id}/priority",
     "HttpMethod": "PATCH",
     "IsController": true,
     "Order": 0,
@@ -1003,7 +977,7 @@
   {
     "ContainingType": "IntelliPM.API.Controllers.RequirementController",
     "Method": "GetByTitle",
-    "RelativePath": "api/projects/{projectId}/requirement/by-title",
+    "RelativePath": "api/project/{projectId}/requirement/by-title",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1015,6 +989,32 @@
       },
       {
         "Name": "title",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "IntelliPM.API.Controllers.ProjectController",
+    "Method": "Search",
+    "RelativePath": "api/project/search",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "searchTerm",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "projectType",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "status",
         "Type": "System.String",
         "IsRequired": false
       }
