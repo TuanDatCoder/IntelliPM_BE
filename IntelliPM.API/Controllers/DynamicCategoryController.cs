@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/dynamic-categories")]
+    [Route("api/[controller]")]
     public class DynamicCategoryController : ControllerBase
     {
         private readonly IDynamicCategoryService _dynamicCategoryService;
@@ -18,7 +18,7 @@ namespace IntelliPM.API.Controllers
             _dynamicCategoryService = dynamicCategoryService;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _dynamicCategoryService.GetAllDynamicCategories();

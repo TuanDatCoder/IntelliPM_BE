@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -89,11 +89,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Tasks> Tasks { get; set; }
 
-    
-
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -106,6 +105,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -283,15 +284,12 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.ToTable("dynamic_category");
 
-            entity.HasIndex(e => new { e.CategoryGroup, e.Code }, "dynamic_category_category_group_code_key").IsUnique();
+            entity.HasIndex(e => new { e.CategoryGroup, e.Name }, "dynamic_category_category_group_name_key").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CategoryGroup)
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
-            entity.Property(e => e.Code)
-                .HasMaxLength(100)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
@@ -299,6 +297,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+            entity.Property(e => e.Label)
+                .HasMaxLength(255)
+                .HasColumnName("label");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
@@ -354,7 +355,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
-                .HasDefaultValueSql("'AC'::character varying")
+                .HasDefaultValueSql("'ACTIVE'::character varying")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Label)
@@ -665,10 +666,16 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.InvitedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("invited_at");
             entity.Property(e => e.JoinedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("joined_at");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
                 .HasForeignKey(d => d.AccountId)
@@ -1042,6 +1049,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.GenerationAiInput)
                 .HasDefaultValue(false)
                 .HasColumnName("generation_ai_input");

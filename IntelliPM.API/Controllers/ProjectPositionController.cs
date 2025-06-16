@@ -8,7 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/project-members/{projectMemberId}/positions")]
+    [Route("api/project-member/{projectMemberId}/[controller]")]
     [Authorize] // Yêu cầu xác thực cho toàn bộ controller
     public class ProjectPositionController : ControllerBase
     {

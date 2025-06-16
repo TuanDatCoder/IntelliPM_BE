@@ -77,6 +77,7 @@ builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 
 
 
+
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
@@ -99,6 +100,8 @@ builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+
+
 
 //----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>

@@ -8,8 +8,8 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects/{projectId}/requirements")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
+    [Route("api/project/{projectId}/[controller]")]
+    [Authorize]
     public class RequirementController : ControllerBase
     {
         private readonly IRequirementService _service;

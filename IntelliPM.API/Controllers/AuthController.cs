@@ -14,7 +14,7 @@ using IntelliPM.Data.DTOs.Auth.Request;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IJWTService _jwtService;
@@ -38,7 +38,7 @@ namespace IntelliPM.API.Controllers
         public async Task<IActionResult> RegisterAccount(AccountRequestDTO accountRequestDTO)
         {
 
-            // await _accountService.AccountRegister(accountRequestDTO);
+
             await _authenticationService.AccountRegister(accountRequestDTO);
             ApiResponseDTO response = new ApiResponseDTO
             {

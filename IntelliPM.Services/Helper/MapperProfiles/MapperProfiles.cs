@@ -1,4 +1,4 @@
-
+﻿
 
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Request;
@@ -64,6 +64,23 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<SystemConfigurationRequestDTO, SystemConfiguration>();
             CreateMap<SystemConfiguration, SystemConfigurationResponseDTO>();
 
+            //Project
+            CreateMap<ProjectRequestDTO, Project>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status)) 
+                .ForMember(dest => dest.ProjectType, opt => opt.MapFrom(src => src.ProjectType)) 
+                .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy))
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget));
+
+            CreateMap<Project, ProjectResponseDTO>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.ProjectType, opt => opt.MapFrom(src => src.ProjectType));
+
+
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -108,6 +125,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.JoinedAt, opt => opt.Ignore());
             CreateMap<ProjectMember, ProjectMemberResponseDTO>();
+
+            CreateMap<ProjectMember, ProjectByAccountResponseDTO>()
+                .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project.Name))
+                .ForMember(dest => dest.ProjectStatus, opt => opt.MapFrom(src => src.Project.Status));
+            CreateMap<ProjectMember, AccountByProjectResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account.FullName));
+
+
 
             // ProjectPosition
             CreateMap<ProjectPositionRequestDTO, ProjectPosition>()
