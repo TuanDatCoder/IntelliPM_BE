@@ -7,7 +7,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/system-configurations")]
+    [Route("api/[controller]")]
     public class SystemConfigurationController : ControllerBase
     {
         private readonly ISystemConfigurationService _service;
@@ -17,7 +17,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllSystemConfigurations();

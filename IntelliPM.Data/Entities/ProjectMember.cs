@@ -13,6 +13,10 @@ public partial class ProjectMember
 
     public DateTime JoinedAt { get; set; }
 
+    public DateTime InvitedAt { get; set; }
+
+    public string? Status { get; set; }
+
     public virtual Account Account { get; set; } = null!;
 
     public virtual Project Project { get; set; } = null!;

@@ -7,7 +7,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/epics")]
+    [Route("api/[controller]")]
     public class EpicController : ControllerBase
     {
         private readonly IEpicService _service;
@@ -16,8 +16,12 @@ namespace IntelliPM.API.Controllers
         {
             _service = service;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllEpics();
