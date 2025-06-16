@@ -32,6 +32,8 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+using IntelliPM.Data.DTOs.TaskComment.Request;
+using IntelliPM.Data.DTOs.TaskComment.Response;
 
 
 namespace IntelliPM.Services.Helper.MapperProfiles
