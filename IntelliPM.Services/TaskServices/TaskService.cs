@@ -140,5 +140,19 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+        public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _repo.GetByProjectIdAsync(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No tasks found for Project ID {projectId}.");
+
+            return _mapper.Map<List<TaskResponseDTO>>(entities);
+        }
+
     }
 }
