@@ -12,6 +12,7 @@ namespace IntelliPM.Repositories.MilestoneRepos
         Task<List<Milestone>> GetAllMilestones();
         Task<Milestone?> GetByIdAsync(int id);
         Task<List<Milestone>> GetByNameAsync(string name);
+        Task<List<Milestone>> GetMilestonesByProjectIdAsync(int projectId);
         Task Add(Milestone milestone);
         Task Update(Milestone milestone);
         Task Delete(Milestone milestone);

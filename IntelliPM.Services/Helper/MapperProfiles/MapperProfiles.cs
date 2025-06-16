@@ -1,3 +1,5 @@
+
+
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
@@ -5,6 +7,10 @@ using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
+using IntelliPM.Data.DTOs.Meeting.Request;
+using IntelliPM.Data.DTOs.Meeting.Request;
+using IntelliPM.Data.DTOs.Meeting.Response;
+using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
@@ -23,9 +29,10 @@ using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
-using IntelliPM.Data.DTOs.TaskComment.Request;
-using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.DTOs.MeetingParticipant.Request;
+using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -63,7 +70,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
-            
+
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -113,6 +120,29 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()); 
             CreateMap<Requirement, RequirementResponseDTO>();
 
+
+            // Ánh xạ MeetingRequestDTO -> Meeting
+            CreateMap<MeetingRequestDTO, Meeting>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())  // Giữ nguyên ID của Meeting khi tạo mới
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))  // Tự động set CreatedAt khi tạo mới
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "ACTIVE"));  // Mặc định set Status là "ACTIVE"
+
+            // Ánh xạ Meeting -> MeetingResponseDTO
+            CreateMap<Meeting, MeetingResponseDTO>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+
+
+            CreateMap<MeetingParticipantRequestDTO, MeetingParticipant>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore())
+               .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+
+            CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
+            // TaskCheckList
+            CreateMap<TaskCheckListRequestDTO, TaskCheckList>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<TaskCheckList, TaskCheckListResponseDTO>();
             // TaskCheckList
             CreateMap<TaskCheckListRequestDTO, TaskCheckList>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -126,7 +156,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>();
 
-
         }
     }
+
 }

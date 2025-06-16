@@ -56,5 +56,12 @@ namespace IntelliPM.Repositories.TaskRepos
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Tasks>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }
