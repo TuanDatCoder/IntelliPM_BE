@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +18,6 @@ namespace IntelliPM.Services.MilestoneServices
         Task<MilestoneResponseDTO> UpdateMilestone(int id, MilestoneRequestDTO request);
         Task DeleteMilestone(int id);
         Task<MilestoneResponseDTO> ChangeMilestoneStatus(int id, string status);
+        Task<List<MilestoneResponseDTO>> GetMilestonesByProjectIdAsync(int projectId);
     }
 }

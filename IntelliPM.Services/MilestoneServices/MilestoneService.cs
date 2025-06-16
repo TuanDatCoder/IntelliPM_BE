@@ -140,5 +140,19 @@ namespace IntelliPM.Services.MilestoneServices
 
             return _mapper.Map<MilestoneResponseDTO>(entity);
         }
+
+        public async Task<List<MilestoneResponseDTO>> GetMilestonesByProjectIdAsync(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _repo.GetMilestonesByProjectIdAsync(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No milestones found for Project ID {projectId}.");
+
+            return _mapper.Map<List<MilestoneResponseDTO>>(entities);
+        }
+
     }
 }
