@@ -63,8 +63,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
-            //
-
+            
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
