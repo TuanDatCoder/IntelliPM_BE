@@ -17,7 +17,13 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         {
             _context = context;
         }
-
+        public async Task<List<ProjectMember>> GetAllAsync()
+        {
+            return await _context.ProjectMember
+                .Include(pm => pm.Account)
+                .Include(pm => pm.Project)
+                .ToListAsync();
+        }
         public async Task<List<ProjectMember>> GetAllProjectMembers(int projectId)
         {
             return await _context.ProjectMember
@@ -55,5 +61,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             _context.ProjectMember.Remove(projectMember);
             await _context.SaveChangesAsync();
         }
+
+
     }
 }

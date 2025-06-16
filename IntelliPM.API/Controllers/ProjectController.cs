@@ -8,7 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects")]
+    [Route("api/[controller]")]
     public class ProjectController : ControllerBase
     {
         private readonly IProjectService _service;
@@ -18,7 +18,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllProjects();
@@ -76,7 +76,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        [Authorize] // Yêu cầu đăng nhập
+
         public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
         {
             if (!ModelState.IsValid)
@@ -107,7 +107,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+
         public async Task<IActionResult> Update(int id, [FromBody] ProjectRequestDTO request)
         {
             try
