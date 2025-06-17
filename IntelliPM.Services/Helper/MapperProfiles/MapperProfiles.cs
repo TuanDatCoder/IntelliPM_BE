@@ -7,6 +7,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
+using IntelliPM.Data.DTOs.MeetingParticipant.Request;
+using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
@@ -23,15 +25,14 @@ using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskAssignment.Request;
+using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
-using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
-
 using IntelliPM.Data.Entities;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
@@ -169,6 +170,17 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskFile, TaskFileResponseDTO>();
+
+
+            // TaskAssignment
+            CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.CompletedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Account, opt => opt.Ignore())
+                .ForMember(dest => dest.Task, opt => opt.Ignore());
+
+            CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
 
         }
     }
