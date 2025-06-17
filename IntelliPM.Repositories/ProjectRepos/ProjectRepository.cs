@@ -70,5 +70,17 @@ namespace IntelliPM.Repositories.ProjectRepos
             _context.Project.Remove(project);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<string> GetProjectKeyAsync(int projectId)
+        {
+            var project = await _context.Project.FirstOrDefaultAsync(p => p.Id == projectId);
+            return project?.ProjectKey ?? string.Empty; 
+        }
+
+        public async Task<Project> GetProjectByKeyAsync(string projectKey)
+        {
+            return await _context.Project.FirstOrDefaultAsync(p => p.ProjectKey == projectKey)
+                ?? null;
+        }
     }
 }

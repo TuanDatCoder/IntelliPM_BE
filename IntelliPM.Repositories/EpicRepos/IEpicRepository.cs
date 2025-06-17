@@ -10,8 +10,9 @@ namespace IntelliPM.Repositories.EpicRepos
     public interface IEpicRepository
     {
         Task<List<Epic>> GetAllEpics();
-        Task<Epic?> GetByIdAsync(int id);
+        Task<Epic?> GetByIdAsync(string id);
         Task<List<Epic>> GetByNameAsync(string name);
+        Task<List<Epic>> GetByProjectKeyAsync(string projectKey); 
         Task Add(Epic epic);
         Task Update(Epic epic);
         Task Delete(Epic epic);

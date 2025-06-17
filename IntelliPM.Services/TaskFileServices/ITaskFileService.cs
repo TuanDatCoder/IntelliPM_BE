@@ -12,7 +12,7 @@ namespace IntelliPM.Services.TaskFileServices
     {
         Task<TaskFileResponseDTO> UploadTaskFileAsync(TaskFileRequestDTO request);
         Task<bool> DeleteTaskFileAsync(int fileId);
-        Task<List<TaskFileResponseDTO>> GetFilesByTaskIdAsync(int taskId);
+        Task<List<TaskFileResponseDTO>> GetFilesByTaskIdAsync(string taskId);
 
     }
 }

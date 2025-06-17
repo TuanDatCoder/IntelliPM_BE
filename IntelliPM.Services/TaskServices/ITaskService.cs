@@ -11,12 +11,12 @@ namespace IntelliPM.Services.TaskServices
     public interface ITaskService
     {
         Task<List<TaskResponseDTO>> GetAllTasks();
-        Task<TaskResponseDTO> GetTaskById(int id);
+        Task<TaskResponseDTO> GetTaskById(string id);
         Task<List<TaskResponseDTO>> GetTaskByTitle(string title);
         Task<TaskResponseDTO> CreateTask(TaskRequestDTO request);
-        Task<TaskResponseDTO> UpdateTask(int id, TaskRequestDTO request);
-        Task DeleteTask(int id);
-        Task<TaskResponseDTO> ChangeTaskStatus(int id, string status);
+        Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request);
+        Task DeleteTask(string id);
+        Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
     }
 }

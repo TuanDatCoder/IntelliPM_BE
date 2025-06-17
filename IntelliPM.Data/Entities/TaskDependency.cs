@@ -7,11 +7,11 @@ public partial class TaskDependency
 {
     public int Id { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
-    public int LinkedFrom { get; set; }
+    public string LinkedFrom { get; set; } = null!;
 
-    public int LinkedTo { get; set; }
+    public string LinkedTo { get; set; } = null!;
 
     public string? Type { get; set; }
 
