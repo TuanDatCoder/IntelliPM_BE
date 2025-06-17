@@ -34,6 +34,8 @@ using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
+using IntelliPM.Data.DTOs.TaskFile.Request;
+using IntelliPM.Data.DTOs.TaskFile.Response;
 
 
 namespace IntelliPM.Services.Helper.MapperProfiles
@@ -183,7 +185,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>();
 
+            // TaskFile
+            CreateMap<TaskFileRequestDTO, TaskFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<TaskFile, TaskFileResponseDTO>();
+
         }
     }
-
 }
