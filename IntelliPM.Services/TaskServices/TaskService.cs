@@ -6,6 +6,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -16,47 +17,47 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Services.TaskServices
 {
-        public class TaskService : ITaskService
+    public class TaskService : ITaskService
+    {
+        private readonly IMapper _mapper;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IEpicRepository _epicRepo;
+        private readonly IProjectRepository _projectRepo;
+
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo)
         {
-            private readonly IMapper _mapper;
-            private readonly ITaskRepository _taskRepo;
-            private readonly IEpicRepository _epicRepo;
-            private readonly IProjectRepository _projectRepo;
+            _mapper = mapper;
+            _taskRepo = taskRepo;
+            _epicRepo = epicRepo;
+            _projectRepo = projectRepo;
+        }
 
-            public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo)
-            {
-                _mapper = mapper;
-                _taskRepo = taskRepo;
-                _epicRepo = epicRepo;
-                _projectRepo = projectRepo;
-            }
+        public async Task<List<TaskResponseDTO>> GetAllTasks()
+        {
+            var entities = await _taskRepo.GetAllTasks();
+            return _mapper.Map<List<TaskResponseDTO>>(entities);
+        }
 
-            public async Task<List<TaskResponseDTO>> GetAllTasks()
-            {
-                var entities = await _taskRepo.GetAllTasks();
-                return _mapper.Map<List<TaskResponseDTO>>(entities);
-            }
+        public async Task<TaskResponseDTO> GetTaskById(string id)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            public async Task<TaskResponseDTO> GetTaskById(string id)
-            {
-                var entity = await _taskRepo.GetByIdAsync(id);
-                if (entity == null)
-                    throw new KeyNotFoundException($"Task with ID {id} not found.");
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
 
-                return _mapper.Map<TaskResponseDTO>(entity);
-            }
+        public async Task<List<TaskResponseDTO>> GetTaskByTitle(string title)
+        {
+            if (string.IsNullOrEmpty(title))
+                throw new ArgumentException("Title cannot be null or empty.");
 
-            public async Task<List<TaskResponseDTO>> GetTaskByTitle(string title)
-            {
-                if (string.IsNullOrEmpty(title))
-                    throw new ArgumentException("Title cannot be null or empty.");
+            var entities = await _taskRepo.GetByTitleAsync(title);
+            if (!entities.Any())
+                throw new KeyNotFoundException($"No tasks found with title containing '{title}'.");
 
-                var entities = await _taskRepo.GetByTitleAsync(title);
-                if (!entities.Any())
-                    throw new KeyNotFoundException($"No tasks found with title containing '{title}'.");
-
-                return _mapper.Map<List<TaskResponseDTO>>(entities);
-            }
+            return _mapper.Map<List<TaskResponseDTO>>(entities);
+        }
 
         public async Task<TaskResponseDTO> CreateTask(TaskRequestDTO request)
         {
@@ -66,10 +67,9 @@ namespace IntelliPM.Services.TaskServices
             if (string.IsNullOrEmpty(request.Title))
                 throw new ArgumentException("Task title is required.", nameof(request.Title));
 
-            if (request.ProjectId == null || request.ProjectId <= 0)
+            if (request.ProjectId <= 0)
                 throw new ArgumentException("Project ID is required and must be greater than 0.", nameof(request.ProjectId));
 
-            // Kiểm tra xem project có tồn tại không
             var project = await _projectRepo.GetByIdAsync(request.ProjectId);
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
@@ -79,11 +79,9 @@ namespace IntelliPM.Services.TaskServices
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<Tasks>(request);
-
-            // Sinh ID tự động
-            entity.Id = await GenerateNextId(projectKey);
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo);
+           // entity.CreatedAt = DateTime.UtcNow;
+            //entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -100,110 +98,79 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
         public async Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            _mapper.Map(request, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
             {
-                var entity = await _taskRepo.GetByIdAsync(id);
-                if (entity == null)
-                    throw new KeyNotFoundException($"Task with ID {id} not found.");
-
-                _mapper.Map(request, entity);
-
-                try
-                {
-                    await _taskRepo.Update(entity);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Failed to update task: {ex.Message}", ex);
-                }
-
-                return _mapper.Map<TaskResponseDTO>(entity);
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
-            public async Task DeleteTask(string id)
-            {
-                var entity = await _taskRepo.GetByIdAsync(id);
-                if (entity == null)
-                    throw new KeyNotFoundException($"Task with ID {id} not found.");
-
-                try
-                {
-                    await _taskRepo.Delete(entity);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Failed to delete task: {ex.Message}", ex);
-                }
-            }
-
-            public async Task<TaskResponseDTO> ChangeTaskStatus(string id, string status)
-            {
-                if (string.IsNullOrEmpty(status))
-                    throw new ArgumentException("Status cannot be null or empty.");
-
-                var entity = await _taskRepo.GetByIdAsync(id);
-                if (entity == null)
-                    throw new KeyNotFoundException($"Task with ID {id} not found.");
-
-                entity.Status = status;
-
-                try
-                {
-                    await _taskRepo.Update(entity);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Failed to change task status: {ex.Message}", ex);
-                }
-
-                return _mapper.Map<TaskResponseDTO>(entity);
-            }
-
-            public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
-            {
-                if (projectId <= 0)
-                    throw new ArgumentException("Project ID must be greater than 0.");
-
-                var entities = await _taskRepo.GetByProjectIdAsync(projectId);
-
-                if (entities == null || !entities.Any())
-                    throw new KeyNotFoundException($"No tasks found for Project ID {projectId}.");
-
-                return _mapper.Map<List<TaskResponseDTO>>(entities);
-            }
-
-            private async Task<string> GenerateNextId(string projectKey)
-            {
-                var allEpics = await _epicRepo.GetByProjectKeyAsync(projectKey);
-            //var allTasks = await _taskRepo.GetByProjectIdAsync((await _projectRepo.GetProjectByKeyAsync(projectKey)).Id);
-            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
-            if (project == null)
-                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
-
-            var allTasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-
-            var allIds = new List<string>();
-                allIds.AddRange(allEpics.Select(e => e.Id));
-                allIds.AddRange(allTasks.Select(t => t.Id));
-
-                // Tìm số lớn nhất hiện tại
-                int maxNumber = 0;
-                foreach (var id in allIds)
-                {
-                    var numberPart = id.Split('-').Last();
-                    if (int.TryParse(numberPart, out int number) && number > maxNumber)
-                    {
-                        maxNumber = number;
-                    }
-                }
-
-                // Trả về id mới với số tiếp theo
-                return $"{projectKey}-{maxNumber + 1}";
-            }
-
-
-
-
+            return _mapper.Map<TaskResponseDTO>(entity);
         }
-    
+
+        public async Task DeleteTask(string id)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            try
+            {
+                await _taskRepo.Delete(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete task: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskStatus(string id, string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                throw new ArgumentException("Status cannot be null or empty.");
+
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            entity.Status = status;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task status: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No tasks found for Project ID {projectId}.");
+
+            return _mapper.Map<List<TaskResponseDTO>>(entities);
+        }
+    }
 }
