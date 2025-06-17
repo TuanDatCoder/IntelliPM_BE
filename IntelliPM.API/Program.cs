@@ -15,6 +15,7 @@ using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Repositories.TaskCheckListRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
+using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
@@ -37,6 +38,7 @@ using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.SystemConfigurationServices;
 using IntelliPM.Services.TaskCheckListServices;
 using IntelliPM.Services.TaskCommentServices;
+using IntelliPM.Services.TaskFileServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -72,7 +74,7 @@ builder.Services.AddScoped<IMeetingParticipantRepository, MeetingParticipantRepo
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
-//
+builder.Services.AddScoped<ITaskFileRepository, TaskFileRepository>();
 
 
 
@@ -100,6 +102,7 @@ builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITaskFileService, TaskFileService>();
 
 
 
