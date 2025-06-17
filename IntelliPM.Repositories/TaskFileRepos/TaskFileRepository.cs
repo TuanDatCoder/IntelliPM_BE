@@ -35,7 +35,7 @@ namespace IntelliPM.Repositories.TaskFileRepos
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<TaskFile>> GetFilesByTaskIdAsync(int taskId)
+        public async Task<List<TaskFile>> GetFilesByTaskIdAsync(string taskId)
         {
             return await _context.TaskFile
                 .Where(tf => tf.TaskId == taskId)

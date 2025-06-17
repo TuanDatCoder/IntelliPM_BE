@@ -25,7 +25,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("by-task/{taskId}")]
-        public async Task<IActionResult> GetFilesByTaskId(int taskId)
+        public async Task<IActionResult> GetFilesByTaskId(string taskId)
         {
             try
             {

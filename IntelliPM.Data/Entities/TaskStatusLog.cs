@@ -7,7 +7,7 @@ public partial class TaskStatusLog
 {
     public int Id { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
     public string Status { get; set; } = null!;
 

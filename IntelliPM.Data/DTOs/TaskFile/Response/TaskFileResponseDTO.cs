@@ -9,7 +9,7 @@ namespace IntelliPM.Data.DTOs.TaskFile.Response
     public class TaskFileResponseDTO
     {
         public int Id { get; set; }
-        public int TaskId { get; set; }
+        public string TaskId { get; set; }
         public string Title { get; set; } = null!;
         public string UrlFile { get; set; } = null!;
         public string? Status { get; set; }

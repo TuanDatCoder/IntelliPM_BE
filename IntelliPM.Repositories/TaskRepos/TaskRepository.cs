@@ -25,7 +25,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .ToListAsync();
         }
 
-        public async Task<Tasks?> GetByIdAsync(int id)
+        public async Task<Tasks?> GetByIdAsync(string id)
         {
             return await _context.Tasks
                 .FirstOrDefaultAsync(t => t.Id == id);

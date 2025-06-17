@@ -50,7 +50,7 @@ namespace IntelliPM.Services.TaskFileServices
             return true;
         }
 
-        public async Task<List<TaskFileResponseDTO>> GetFilesByTaskIdAsync(int taskId)
+        public async Task<List<TaskFileResponseDTO>> GetFilesByTaskIdAsync(string taskId)
         {
             var files = await _repository.GetFilesByTaskIdAsync(taskId);
             return _mapper.Map<List<TaskFileResponseDTO>>(files);

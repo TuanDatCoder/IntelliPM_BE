@@ -9,7 +9,7 @@ public partial class TaskLabel
 
     public int LabelId { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
     public bool IsDeleted { get; set; }
 

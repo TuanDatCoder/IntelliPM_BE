@@ -10,6 +10,7 @@ namespace IntelliPM.Data.DTOs.Milestone.Response
     {
         public int Id { get; set; }
         public int ProjectId { get; set; }
+        public int? SprintId { get; set; }
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
