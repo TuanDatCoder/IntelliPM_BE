@@ -12,7 +12,7 @@ namespace IntelliPM.Repositories.TaskFileRepos
         Task AddAsync(TaskFile taskFile);
         Task<TaskFile?> GetByIdAsync(int id);
         Task DeleteAsync(TaskFile taskFile);
-        Task<List<TaskFile>> GetFilesByTaskIdAsync(int taskId);
+        Task<List<TaskFile>> GetFilesByTaskIdAsync(string taskId);
 
     }
 }
