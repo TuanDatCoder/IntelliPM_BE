@@ -12,7 +12,7 @@ namespace IntelliPM.Data.DTOs.Project.Request
         [Required(ErrorMessage = "Project name is required")]
         [MaxLength(255, ErrorMessage = "Project name cannot exceed 255 characters")]
         public string Name { get; set; } = null!;
-
+        public string ProjectKey { get; set; } = null!;
         public string? Description { get; set; }
 
         [Range(0, 9999999999999.99, ErrorMessage = "Budget must be between 0 and 9999999999999.99")]

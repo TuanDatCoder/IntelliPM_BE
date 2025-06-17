@@ -5,17 +5,15 @@ namespace IntelliPM.Data.Entities;
 
 public partial class Tasks
 {
-    public int Id { get; set; }
+    public string Id { get; set; } = null!;
 
     public int ReporterId { get; set; }
 
     public int ProjectId { get; set; }
 
-    public int? EpicId { get; set; }
+    public string? EpicId { get; set; }
 
     public int? SprintId { get; set; }
-
-    public int? MilestoneId { get; set; }
 
     public string? Type { get; set; }
 
@@ -66,8 +64,6 @@ public partial class Tasks
     public virtual ICollection<Document> Document { get; set; } = new List<Document>();
 
     public virtual Epic? Epic { get; set; }
-
-    public virtual Milestone? Milestone { get; set; }
 
     public virtual Project Project { get; set; } = null!;
 

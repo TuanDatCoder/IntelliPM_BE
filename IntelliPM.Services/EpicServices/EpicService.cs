@@ -32,7 +32,7 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<List<EpicResponseDTO>>(entities);
         }
 
-        public async Task<EpicResponseDTO> GetEpicById(int id)
+        public async Task<EpicResponseDTO> GetEpicById(string id)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -81,7 +81,7 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
 
-        public async Task<EpicResponseDTO> UpdateEpic(int id, EpicRequestDTO request)
+        public async Task<EpicResponseDTO> UpdateEpic(string id, EpicRequestDTO request)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -102,7 +102,7 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
 
-        public async Task DeleteEpic(int id)
+        public async Task DeleteEpic(string id)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -118,7 +118,7 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
-        public async Task<EpicResponseDTO> ChangeEpicStatus(int id, string status)
+        public async Task<EpicResponseDTO> ChangeEpicStatus(string id, string status)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
