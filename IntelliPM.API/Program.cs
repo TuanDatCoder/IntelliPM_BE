@@ -13,6 +13,7 @@ using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskCheckListRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskFileRepos;
@@ -36,6 +37,7 @@ using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.SystemConfigurationServices;
+using IntelliPM.Services.TaskAssignmentServices;
 using IntelliPM.Services.TaskCheckListServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.TaskFileServices;
@@ -75,6 +77,7 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 builder.Services.AddScoped<ITaskFileRepository, TaskFileRepository>();
+builder.Services.AddScoped<ITaskAssignmentRepository, TaskAssignmentRepository>();
 
 
 
@@ -100,10 +103,9 @@ builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddScoped<IMeetingParticipantService, MeetingParticipantService>();
 builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
-
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITaskFileService, TaskFileService>();
-
+builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 
 
 //----------------------------DB-----------------------------------
