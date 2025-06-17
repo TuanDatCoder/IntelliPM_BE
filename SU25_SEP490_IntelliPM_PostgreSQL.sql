@@ -1,4 +1,4 @@
--- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
+﻿-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
 
 -- Create database
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
@@ -40,6 +40,7 @@ CREATE TABLE refresh_token (
 -- 3. project
 CREATE TABLE project (
     id SERIAL PRIMARY KEY,
+    project_key VARCHAR(10) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     budget DECIMAL(15, 2) NULL,
@@ -55,7 +56,7 @@ CREATE TABLE project (
 
 -- 4. epic
 CREATE TABLE epic (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     project_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
@@ -85,6 +86,7 @@ CREATE TABLE sprint (
 CREATE TABLE milestone (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
+    sprint_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     start_date TIMESTAMPTZ NULL,
@@ -92,17 +94,17 @@ CREATE TABLE milestone (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (project_id) REFERENCES project(id)
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
 -- 7. tasks
 CREATE TABLE tasks (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
     project_id INT NOT NULL,
-    epic_id INT NULL,
+    epic_id VARCHAR(255) NULL,
     sprint_id INT NULL,
-    milestone_id INT NULL,
     type VARCHAR(50) NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
@@ -129,14 +131,13 @@ CREATE TABLE tasks (
     FOREIGN KEY (reporter_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-    FOREIGN KEY (milestone_id) REFERENCES milestone(id)
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
 -- 8. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     account_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
@@ -149,9 +150,9 @@ CREATE TABLE task_assignment (
 -- 9. task_check_list
 CREATE TABLE task_check_list (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
-	description TEXT NULL,
+    description TEXT NULL,
     status VARCHAR(50) NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
@@ -163,20 +164,20 @@ CREATE TABLE task_check_list (
 -- 10. task_comment
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
-    user_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (user_id) REFERENCES account(id)
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
 -- 11. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
-    linked_from INT NOT NULL,
-    linked_to INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
+    linked_from VARCHAR(255) NOT NULL,
+    linked_to VARCHAR(255) NOT NULL,
     type VARCHAR(50) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (linked_from) REFERENCES tasks(id),
@@ -186,7 +187,7 @@ CREATE TABLE task_dependency (
 -- 12. task_file
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     url_file VARCHAR(1024) NOT NULL,
     status VARCHAR(50) NULL,
@@ -197,7 +198,7 @@ CREATE TABLE task_file (
 -- 13. task_status_log
 CREATE TABLE task_status_log (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL,
     changed_by INT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -209,7 +210,7 @@ CREATE TABLE task_status_log (
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id INT NULL,
+    task_id VARCHAR(255) NULL,
     title VARCHAR(255) NOT NULL,
     type VARCHAR(100) NULL,
     template TEXT NULL,
@@ -370,7 +371,7 @@ CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     responsible_id INT NOT NULL,
     project_id INT NOT NULL,
-    task_id INT NULL,
+    task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
@@ -417,7 +418,7 @@ CREATE TABLE change_request (
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -440,7 +441,7 @@ CREATE TABLE label (
 CREATE TABLE task_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (label_id) REFERENCES label(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
@@ -500,7 +501,6 @@ CREATE TABLE system_configuration (
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
-    code VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
 	label VARCHAR(255) NOT NULL,  
     description TEXT NULL,
@@ -516,11 +516,10 @@ CREATE TABLE dynamic_category (
 
 
 --------------------------------------------------------------
-
 -- Insert sample data into account
 INSERT INTO account (username, full_name, email, password, role, position, phone, gender, google_id, status, address, picture)
 VALUES 
-	('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_LEADER', 'TEAM_LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('client', 'Nguyen Van KH', 'client@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'CLIENT', 'CLIENT', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('projectManager', 'Tran Thi B', 'projectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT_MANAGER', 'PROJECT_MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
@@ -551,27 +550,24 @@ VALUES
     ('2025-06-04 00:00:00+00', 'token_4_jkl012', 4),
     ('2025-06-05 00:00:00+00', 'token_5_mno345', 5);
 
--- Insert sample data into project
-INSERT INTO project (name, description, budget, project_type, created_by, start_date, end_date, status)
+-- Insert sample data into project (gán project_key)
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
 VALUES 
-    ('Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_PROGRESS'),
-    ('Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'PLANNING'),
-    ('Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'ON_HOLD'),
-    ('Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'COMPLETED'),
-    ('Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_REVIEW');
+    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_PROGRESS'),
+    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'PLANNING'),
+    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'ON_HOLD'),
+    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'COMPLETED'),
+    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_REVIEW');
 
-
-
--- Insert sample data into epic
-INSERT INTO epic (project_id, name, description, start_date, end_date, status)
+-- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
+INSERT INTO epic (id, project_id, name, description, start_date, end_date, status)
 VALUES 
-    (1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS'),
-    (1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TODO'),
-    (2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE'),
-    (3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS'),
-    (4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE'),
-    (5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TODO');
-
+    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS'),
+    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO'),
+    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE'),
+    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS'),
+    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE'),
+    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO');
 
 -- Insert sample data into sprint
 INSERT INTO sprint (project_id, name, goal, start_date, end_date, status)
@@ -592,84 +588,84 @@ VALUES
     (4, 'Milestone 4', 'UI review', '2025-09-10 00:00:00+00', '2025-09-12 00:00:00+00', 'COMPLETED'),
     (5, 'Milestone 5', 'Test plan', '2025-10-15 00:00:00+00', '2025-10-20 00:00:00+00', 'IN_PROGRESS');
 
--- Insert sample data into tasks
-INSERT INTO tasks (reporter_id, project_id, epic_id, sprint_id, milestone_id, type, manual_input, generation_ai_input, title, description, planned_start_date, planned_end_date, duration, actual_start_date, actual_end_date, percent_complete, planned_hours, actual_hours, planned_cost, planned_resource_cost, actual_cost, actual_resource_cost, remaining_hours, priority, evaluate, status)
+-- Insert sample data into tasks (sử dụng project_key-số_thứ_tự)
+INSERT INTO tasks (id, reporter_id, project_id, epic_id, sprint_id, type, manual_input, generation_ai_input, title, description, planned_start_date, planned_end_date, duration, actual_start_date, actual_end_date, percent_complete, planned_hours, actual_hours, planned_cost, planned_resource_cost, actual_cost, actual_resource_cost, remaining_hours, priority, evaluate, status)
 VALUES 
-    (1, 1, 1, 1, 1, 'STORY', FALSE, FALSE, 'Task 1', 'Build login page', '2025-06-01 00:00:00+00', '2025-06-05 00:00:00+00', '5 days', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 100.00, 40.00, 38.00, 5000.00, 4000.00, 4800.00, 3800.00, 0.00, 'HIGH', 'Good', 'IN_PROGRESS'),
-    (2, 1, 1, 2, 1, 'STORY', FALSE, TRUE, 'Task 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-20 00:00:00+00', '4 days', '2025-06-16 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3000.00, 2000.00, 1500.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS'),
-    (3, 2, 3, 3, 2, 'TASK', TRUE, FALSE, 'Task 3', 'Setup ads', '2025-07-01 00:00:00+00', '2025-07-05 00:00:00+00', '4 days', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 100.00, 24.00, 22.00, 3000.00, 2500.00, 2800.00, 2300.00, 0.00, 'LOW', 'Excellent', 'IN_PROGRESS'),
-    (4, 3, 4, 4, 3, 'TASK', FALSE, FALSE, 'Task 4', 'Gather data', '2025-08-01 00:00:00+00', '2025-08-10 00:00:00+00', '9 days', '2025-08-01 00:00:00+00', NULL, 30.00, 72.00, 20.00, 9000.00, 8000.00, 2500.00, 2000.00, 52.00, 'HIGH', NULL, 'IN_PROGRESS'),
-    (5, 4, 5, 5, 4, 'STORY', TRUE, TRUE, 'Task 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'MEDIUM', 'Good', 'IN_PROGRESS'),
-    (5, 5, 6, 6, 5, 'TASK', FALSE, TRUE, 'Task 6', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS');
+    ('PROJA-3', 1, 1, 'PROJA-1', 1, 'STORY', FALSE, FALSE, 'Build login page', 'Build login page', '2025-06-01 00:00:00+00', '2025-06-05 00:00:00+00', '5 days', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 100.00, 40.00, 38.00, 5000.00, 4000.00, 4800.00, 3800.00, 0.00, 'HIGH', 'Good', 'IN_PROGRESS'),
+    ('PROJA-4', 2, 1, 'PROJA-1', 2, 'STORY', FALSE, TRUE, 'Add dashboard', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-20 00:00:00+00', '4 days', '2025-06-16 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3000.00, 2000.00, 1500.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS'),
+    ('PROJB-2', 3, 2, 'PROJB-1', 3, 'TASK', TRUE, FALSE, 'Setup ads', 'Setup ads', '2025-07-01 00:00:00+00', '2025-07-05 00:00:00+00', '4 days', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 100.00, 24.00, 22.00, 3000.00, 2500.00, 2800.00, 2300.00, 0.00, 'LOW', 'Excellent', 'IN_PROGRESS'),
+    ('PROJC-2', 4, 3, 'PROJC-1', 4,  'TASK', FALSE, FALSE, 'Gather data', 'Gather data', '2025-08-01 00:00:00+00', '2025-08-10 00:00:00+00', '9 days', '2025-08-01 00:00:00+00', NULL, 30.00, 72.00, 20.00, 9000.00, 8000.00, 2500.00, 2000.00, 52.00, 'HIGH', NULL, 'IN_PROGRESS'),
+    ('PROJD-2', 5, 4, 'PROJD-1', 5,'STORY', TRUE, TRUE, 'Design UI', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'MEDIUM', 'Good', 'IN_PROGRESS'),
+    ('PROJE-2', 5, 5, 'PROJE-1', 6, 'TASK', FALSE, TRUE, 'Setup automation tests', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS');
 
 -- Insert sample data into task_assignment
 INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, hourly_rate)
 VALUES 
-    (1, 1, 'IN_PROGRESS', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 50.00),
-    (2, 2, 'IN_PROGRESS', '2025-06-16 00:00:00+00', NULL, 45.00),
-    (3, 3, 'IN_PROGRESS', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 40.00),
-    (4, 4, 'IN_PROGRESS', '2025-08-01 00:00:00+00', NULL, 55.00),
-    (5, 5, 'IN_PROGRESS', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 60.00),
-    (6, 5, 'IN_PROGRESS', '2025-10-01 00:00:00+00', NULL, 60.00);
+    ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 50.00),
+    ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+00', NULL, 45.00),
+    ('PROJB-2', 3, 'IN_PROGRESS', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 40.00),
+    ('PROJC-2', 4, 'IN_PROGRESS', '2025-08-01 00:00:00+00', NULL, 55.00),
+    ('PROJD-2', 5, 'IN_PROGRESS', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 60.00),
+    ('PROJE-2', 5, 'IN_PROGRESS', '2025-10-01 00:00:00+00', NULL, 60.00);
 
 -- Insert sample data into task_check_list
 INSERT INTO task_check_list (task_id, title, description, status, manual_input, generation_ai_input)
 VALUES 
-    (1, 'Check login UI', 'Ensure login page layout is responsive and user-friendly', 'IN_PROGRESS', FALSE, FALSE),
-    (2, 'Test dashboard', 'Verify all widgets and data visualization on the dashboard', 'IN_PROGRESS', TRUE, FALSE),
-    (3, 'Verify ads', 'Confirm ad placements and tracking functionality', 'IN_PROGRESS', FALSE, TRUE),
-    (4, 'Review data', 'Check data integrity and consistency in the report', 'IN_PROGRESS', FALSE, FALSE),
-    (5, 'Approve design', 'Review UI/UX design for final approval', 'IN_PROGRESS', TRUE, TRUE),
-    (6, 'Setup test scripts', 'Configure automated test scripts for regression testing', 'IN_PROGRESS', FALSE, TRUE);
+    ('PROJA-3', 'Check login UI', 'Ensure login page layout is responsive and user-friendly', 'IN_PROGRESS', FALSE, FALSE),
+    ('PROJA-4', 'Test dashboard', 'Verify all widgets and data visualization on the dashboard', 'IN_PROGRESS', TRUE, FALSE),
+    ('PROJB-2', 'Verify ads', 'Confirm ad placements and tracking functionality', 'IN_PROGRESS', FALSE, TRUE),
+    ('PROJC-2', 'Review data', 'Check data integrity and consistency in the report', 'IN_PROGRESS', FALSE, FALSE),
+    ('PROJD-2', 'Approve design', 'Review UI/UX design for final approval', 'IN_PROGRESS', TRUE, TRUE),
+    ('PROJE-2', 'Setup test scripts', 'Configure automated test scripts for regression testing', 'IN_PROGRESS', FALSE, TRUE);
 
 -- Insert sample data into task_comment
-INSERT INTO task_comment (task_id, user_id, content)
+INSERT INTO task_comment (task_id, account_id, content)
 VALUES 
-    (1, 1, 'Login page looks good'),
-    (2, 2, 'Need more charts on dashboard'),
-    (3, 3, 'Ads are live now'),
-    (4, 4, 'Data collection delayed'),
-    (5, 5, 'Design approved by client'),
-    (6, 5, 'Automation tests in progress');
+    ('PROJA-3', 1, 'Login page looks good'),
+    ('PROJA-4', 2, 'Need more charts on dashboard'),
+    ('PROJB-2', 3, 'Ads are live now'),
+    ('PROJC-2', 4, 'Data collection delayed'),
+    ('PROJD-2', 5, 'Design approved by client'),
+    ('PROJE-2', 5, 'Automation tests in progress');
 
 -- Insert sample data into task_dependency
 INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
 VALUES 
-    (1, 1, 2, 'FINISH_START'),
-    (2, 2, 3, 'FINISH_START'),
-    (3, 3, 4, 'START_START'),
-    (4, 4, 5, 'FINISH_START'),
-    (5, 5, 1, 'START_FINISH'),
-    (6, 5, 6, 'FINISH_START');
+    ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
+    ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
+    ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
+    ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
+    ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
+    ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
 
 -- Insert sample data into task_file
 INSERT INTO task_file (task_id, title, url_file, status)
 VALUES 
-    (1, 'login_design.pdf', 'http://example.com/login.pdf', 'UPLOADED'),
-    (2, 'dashboard_mockup.png', 'http://example.com/dashboard.png', 'IN_REVIEW'),
-    (3, 'ad_campaign.doc', 'http://example.com/ad.doc', 'APPROVED'),
-    (4, 'research_data.xlsx', 'http://example.com/data.xlsx', 'PENDING'),
-    (5, 'ui_design.jpg', 'http://example.com/ui.jpg', 'APPROVED'),
-    (6, 'test_scripts.zip', 'http://example.com/tests.zip', 'UPLOADED');
+    ('PROJA-3', 'login_design.pdf', 'http://example.com/login.pdf', 'UPLOADED'),
+    ('PROJA-4', 'dashboard_mockup.png', 'http://example.com/dashboard.png', 'IN_REVIEW'),
+    ('PROJB-2', 'ad_campaign.doc', 'http://example.com/ad.doc', 'APPROVED'),
+    ('PROJC-2', 'research_data.xlsx', 'http://example.com/data.xlsx', 'PENDING'),
+    ('PROJD-2', 'ui_design.jpg', 'http://example.com/ui.jpg', 'APPROVED'),
+    ('PROJE-2', 'test_scripts.zip', 'http://example.com/tests.zip', 'UPLOADED');
 
 -- Insert sample data into task_status_log
 INSERT INTO task_status_log (task_id, status, changed_by)
 VALUES 
-    (1, 'IN_PROGRESS', 1),
-    (2, 'IN_PROGRESS', 2),
-    (3, 'IN_PROGRESS', 3),
-    (4, 'IN_PROGRESS', 4),
-    (5, 'IN_PROGRESS', 5),
-    (6, 'IN_PROGRESS', 5);
+    ('PROJA-3', 'IN_PROGRESS', 1),
+    ('PROJA-4', 'IN_PROGRESS', 2),
+    ('PROJB-2', 'IN_PROGRESS', 3),
+    ('PROJC-2', 'IN_PROGRESS', 4),
+    ('PROJD-2', 'IN_PROGRESS', 5),
+    ('PROJE-2', 'IN_PROGRESS', 5);
 
 -- Insert sample data into document
 INSERT INTO document (project_id, task_id, title, type, template, content, file_url, is_active, created_by, updated_by)
 VALUES 
-    (1, 1, 'Project Plan', 'PLAN', 'Template_A', 'Project plan details', 'http://example.com/plan.pdf', TRUE, 1, 1),
-    (2, 3, 'Campaign Brief', 'BRIEF', 'Template_B', 'Campaign details', 'http://example.com/brief.pdf', TRUE, 2, 2),
-    (3, 4, 'Research Report', 'REPORT', 'Template_C', 'Research findings', 'http://example.com/report.pdf', TRUE, 3, NULL),
-    (4, 5, 'Design Spec', 'SPEC', 'Template_D', 'Design specifications', 'http://example.com/spec.pdf', TRUE, 4, 4),
-    (5, 6, 'Test Strategy', 'STRATEGY', 'Template_E', 'Test strategy', 'http://example.com/strategy.pdf', TRUE, 5, 5);
+    (1, 'PROJA-3', 'Project Plan', 'PLAN', 'Template_A', 'Project plan details', 'http://example.com/plan.pdf', TRUE, 1, 1),
+    (2, 'PROJB-2', 'Campaign Brief', 'BRIEF', 'Template_B', 'Campaign details', 'http://example.com/brief.pdf', TRUE, 2, 2),
+    (3, 'PROJC-2', 'Research Report', 'REPORT', 'Template_C', 'Research findings', 'http://example.com/report.pdf', TRUE, 3, NULL),
+    (4, 'PROJD-2', 'Design Spec', 'SPEC', 'Template_D', 'Design specifications', 'http://example.com/spec.pdf', TRUE, 4, 4),
+    (5, 'PROJE-2', 'Test Strategy', 'STRATEGY', 'Template_E', 'Test strategy', 'http://example.com/strategy.pdf', TRUE, 5, 5);
 
 -- Insert sample data into document_permission
 INSERT INTO document_permission (document_id, account_id, permission_type)
@@ -703,7 +699,7 @@ VALUES
 -- Insert sample data into notification
 INSERT INTO notification (created_by, type, priority, message, related_entity_type, related_entity_id, is_read)
 VALUES 
-    (1, 'TASK_UPDATE', 'HIGH', 'Task 1 completed', 'TASK', 1, FALSE),
+    (1, 'TASK_UPDATE', 'HIGH', 'Task PROJA-4 completed', 'TASK', 1, FALSE),
     (2, 'PROJECT_UPDATE', 'MEDIUM', 'Project B started', 'PROJECT', 2, FALSE),
     (3, 'MEETING_REMINDER', 'LOW', 'Meeting tomorrow', 'MEETING', 1, TRUE),
     (4, 'RISK_ALERT', 'HIGH', 'Risk identified', 'RISK', 1, FALSE),
@@ -784,11 +780,11 @@ VALUES
 -- Insert sample data into risk
 INSERT INTO risk (responsible_id, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved)
 VALUES 
-    (1, 1, 1, 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE),
-    (2, 2, 3, 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE),
-    (3, 3, 4, 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE),
-    (4, 4, 5, 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE),
-    (5, 5, 6, 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE);
+    (1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE),
+    (2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE),
+    (3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE),
+    (4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE),
+    (5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE);
 
 -- Insert sample data into risk_solution
 INSERT INTO risk_solution (risk_id, mitigation_plan, contingency_plan)
@@ -811,11 +807,11 @@ VALUES
 -- Insert sample data into project_recommendation
 INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
 VALUES 
-    (1, 1, 'PERFORMANCE', 'Optimize database queries'),
-    (2, 3, 'MARKETING', 'Increase ad spend'),
-    (3, 4, 'RESEARCH', 'Use additional sources'),
-    (4, 5, 'DESIGN', 'Improve color contrast'),
-    (5, 6, 'TESTING', 'Add automation tests');
+    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
+    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
+    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
+    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
@@ -829,12 +825,12 @@ VALUES
 -- Insert sample data into task_label
 INSERT INTO task_label (label_id, task_id)
 VALUES 
-    (1, 1),
-    (2, 2),
-    (3, 3),
-    (4, 4),
-    (5, 5),
-    (5, 6);
+    (1, 'PROJA-3'),
+    (2, 'PROJA-4'),
+    (3, 'PROJB-2'),
+    (4, 'PROJC-2'),
+    (5, 'PROJD-2'),
+    (5, 'PROJE-2');
 
 -- Insert sample data into requirement
 INSERT INTO requirement (project_id, title, type, description, priority)
@@ -853,7 +849,6 @@ VALUES
     (3, 'user3', FALSE, 75000.00, 60000.00, 65000.00, 0.80, 0.88, 10, 7000.00, '2025-11-15 00:00:00+00', 82000.00),
     (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 2, 1000.00, '2025-10-05 00:00:00+00', 31000.00),
     (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 4, 2000.00, '2025-12-10 00:00:00+00', 42000.00);
-
 -- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
@@ -876,7 +871,7 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6),
-    ('epic_status', 'TODO', 'To Do', 'Epic not started yet', 1),
+    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1),
     ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2),
     ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3),
     ('sprint_status', 'FUTURE', 'Future', 'Sprint not started yet', 1),
@@ -916,10 +911,10 @@ VALUES
     ('task_file_status', 'APPROVED', 'Approved', 'File approved', 3),
     ('task_file_status', 'PENDING', 'Pending', 'File pending', 4),
     ('task_file_status', 'DELETED', 'Deleted', 'Deleted file', 5),
-    ('task_status', 'TODO', 'To Do', 'Task to do', 1),
+    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1),
     ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2),
     ('task_status', 'DONE', 'Done', 'Task completed', 3),
-    ('log_status', 'TODO', 'To Do', 'Task to do', 1),
+    ('log_status', 'TO_DO', 'To Do', 'Task to do', 1),
     ('log_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2),
     ('log_status', 'DONE', 'Done', 'Task completed', 3),
     ('task_type', 'STORY', 'Story', 'User story tasks', 1),

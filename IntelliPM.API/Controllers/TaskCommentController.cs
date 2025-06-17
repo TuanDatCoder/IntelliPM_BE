@@ -20,7 +20,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllTaskComment();
