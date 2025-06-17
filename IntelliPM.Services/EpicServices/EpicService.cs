@@ -3,6 +3,9 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,13 +20,17 @@ namespace IntelliPM.Services.EpicServices
     {
         private readonly IMapper _mapper;
         private readonly IEpicRepository _repo;
+        private readonly IProjectRepository _projectRepo;
+        private readonly ITaskRepository _taskRepo;
         private readonly ILogger<EpicService> _logger;
 
-        public EpicService(IMapper mapper, IEpicRepository repo, ILogger<EpicService> logger)
+        public EpicService(IMapper mapper, IEpicRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _projectRepo = projectRepo;
+            _taskRepo = taskRepo;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -61,9 +68,20 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(request.Name))
                 throw new ArgumentException("Epic name is required.", nameof(request.Name));
 
+            if (request.ProjectId <= 0)
+                throw new ArgumentException("Project ID is required and must be greater than 0.", nameof(request.ProjectId));
+
+            var project = await _projectRepo.GetByIdAsync(request.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
+
+            var projectKey = await _projectRepo.GetProjectKeyAsync(request.ProjectId);
+            if (string.IsNullOrEmpty(projectKey))
+                throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
+
             var entity = _mapper.Map<Epic>(request);
-            //entity.CreatedAt = DateTime.UtcNow; // Gán ngày tạo hiện tại
-            //entity.UpdatedAt = DateTime.UtcNow; // Gán ngày cập nhật hiện tại
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _repo, _taskRepo, _projectRepo); 
+           
 
             try
             {
@@ -88,7 +106,7 @@ namespace IntelliPM.Services.EpicServices
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày hiện tại khi sửa
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -128,7 +146,7 @@ namespace IntelliPM.Services.EpicServices
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
             entity.Status = status;
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày khi thay đổi trạng thái
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -142,5 +160,4 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
     }
-
 }

@@ -5,7 +5,6 @@ using IntelliPM.Repositories.TaskRepos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Services.Utilities
@@ -17,30 +16,41 @@ namespace IntelliPM.Services.Utilities
             if (string.IsNullOrEmpty(projectKey))
                 throw new ArgumentException("Project key cannot be null or empty.");
 
-            // Lấy project để lấy ID hoặc xác nhận tồn tại
+            // Lấy project để xác nhận tồn tại và lấy ID
             var project = await projectRepo.GetProjectByKeyAsync(projectKey);
             if (project == null)
                 throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
 
+            // Lấy tất cả epic thuộc project
             var allEpics = await epicRepo.GetByProjectKeyAsync(projectKey);
-            var allTasks = taskRepo != null ? await taskRepo.GetByProjectIdAsync(project.Id) : new List<Tasks>();
 
+            // Lấy tất cả task thuộc project, đảm bảo taskRepo không null
+            var allTasks = taskRepo != null ? await taskRepo.GetByProjectIdAsync(project.Id) : new List<Tasks>();
+            if (taskRepo == null)
+            {
+                // Nếu taskRepo là null (như trong EpicService), cần một cách để lấy task
+                // Giả sử có cách nào đó để lấy ITaskRepository, hoặc cần tiêm nó vào EpicService
+                throw new InvalidOperationException("ITaskRepository is required to generate a consistent ID across Tasks and Epics.");
+            }
+
+            // Kết hợp tất cả ID từ cả epic và task
             var allIds = new List<string>();
             allIds.AddRange(allEpics.Select(e => e.Id));
             allIds.AddRange(allTasks.Select(t => t.Id));
 
+            // Tìm số lớn nhất hiện tại từ tất cả ID
             int maxNumber = 0;
             foreach (var id in allIds)
             {
-                var numberPart = id.Split('-').Last();
-                if (int.TryParse(numberPart, out int number) && number > maxNumber)
+                var parts = id.Split('-');
+                if (parts.Length == 2 && parts[0] == projectKey && int.TryParse(parts[1], out int number) && number > maxNumber)
                 {
                     maxNumber = number;
                 }
             }
 
+            // Trả về ID mới với số tiếp theo
             return $"{projectKey}-{maxNumber + 1}";
         }
-
     }
 }
