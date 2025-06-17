@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -101,6 +102,45 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error creating task: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("bulk")]
+        public async Task<IActionResult> CreateBulk([FromBody] List<TaskRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
+            }
+
+            try
+            {
+                var results = new List<TaskResponseDTO>();
+                foreach (var request in requests)
+                {
+                    if (!ModelState.IsValid)
+                    {
+                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+                    }
+                    var result = await _service.CreateTask(request);
+                    results.Add(result);
+                }
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Tasks created successfully",
+                    Data = results
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating tasks: {ex.Message}"
                 });
             }
         }
