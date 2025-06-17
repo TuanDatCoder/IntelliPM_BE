@@ -104,5 +104,19 @@ namespace IntelliPM.Services.ProjectPositionServices
                 throw new Exception($"Failed to delete project position: {ex.Message}", ex);
             }
         }
+
+        public async Task<List<ProjectPositionResponseDTO>> CreateListProjectPosition(List<ProjectPositionRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+                throw new ArgumentException("List of project positions cannot be null or empty.");
+
+            var responses = new List<ProjectPositionResponseDTO>();
+            foreach (var request in requests)
+            {
+                var response = await AddProjectPosition(request);
+                responses.Add(response);
+            }
+            return responses;
+        }
     }
 }
