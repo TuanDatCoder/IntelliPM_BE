@@ -2,6 +2,8 @@
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -181,6 +183,19 @@ namespace IntelliPM.Services.ProjectMemberServices
             return projectAccounts;
         }
 
-       
+        public async Task<List<ProjectMemberResponseDTO>> CreateListProjectMember(List<ProjectMemberRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+                throw new ArgumentException("List of project members cannot be null or empty.");
+
+            var responses = new List<ProjectMemberResponseDTO>();
+            foreach (var request in requests)
+            {
+                var response = await AddProjectMember(request);
+                responses.Add(response);
+            }
+            return responses;
+        }
+
     }
 }
