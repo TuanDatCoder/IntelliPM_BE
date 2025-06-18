@@ -19,6 +19,8 @@ using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
+using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
+using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
@@ -197,6 +199,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // Mapping cho MeetingTranscript
             CreateMap<MeetingTranscriptRequestDTO, MeetingTranscript>();
             CreateMap<MeetingTranscript, MeetingTranscriptResponseDTO>();
+
+            // MilestoneFeedback
+            CreateMap<MilestoneFeedbackRequestDTO, MilestoneFeedback>();
+            CreateMap<MilestoneFeedback, MilestoneFeedbackResponseDTO>();
 
         }
     }
