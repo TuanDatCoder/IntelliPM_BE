@@ -78,5 +78,39 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
 
             return _mapper.Map<MilestoneFeedbackResponseDTO>(feedbackEntity);
         }
+
+        public async Task<MilestoneFeedbackResponseDTO?> GetFeedbackByMeetingIdAsync(int meetingId)
+        {
+            var feedback = await _feedbackRepo.GetByMeetingIdAsync(meetingId);
+            if (feedback == null)
+                return null;
+
+            return _mapper.Map<MilestoneFeedbackResponseDTO>(feedback);
+        }
+
+        public async Task<MilestoneFeedbackResponseDTO> UpdateFeedbackAsync(int id, MilestoneFeedbackRequestDTO request)
+        {
+            var feedback = await _feedbackRepo.GetByIdAsync(id);
+            if (feedback == null)
+                throw new KeyNotFoundException($"Feedback with ID {id} not found.");
+
+            feedback.FeedbackText = request.FeedbackText;
+            feedback.Status = request.Status;
+            feedback.MeetingId = request.MeetingId;
+            feedback.AccountId = request.AccountId;
+
+            await _feedbackRepo.UpdateAsync(feedback);
+
+            return _mapper.Map<MilestoneFeedbackResponseDTO>(feedback);
+        }
+
+        public async Task DeleteFeedbackAsync(int id)
+        {
+            var feedback = await _feedbackRepo.GetByIdAsync(id);
+            if (feedback == null)
+                throw new KeyNotFoundException($"Feedback with ID {id} not found.");
+
+            await _feedbackRepo.DeleteAsync(feedback);
+        }
     }
 }
