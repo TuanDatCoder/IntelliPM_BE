@@ -9,6 +9,7 @@ using IntelliPM.Repositories.MeetingLogRepos;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
+using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -34,6 +35,7 @@ using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MeetingTranscriptServices;
+using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
@@ -79,7 +81,7 @@ builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
 builder.Services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
-
+builder.Services.AddScoped<IMilestoneFeedbackRepository, MilestoneFeedbackRepository>();
 
 
 
@@ -107,7 +109,7 @@ builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IMeetingLogService, MeetingLogService>();
 builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
-
+builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
 //----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
