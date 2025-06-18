@@ -28,5 +28,28 @@ namespace IntelliPM.API.Controllers
             var result = await _service.ApproveMilestoneAsync(meetingId, accountId);
             return Ok(result);
         }
+
+        [HttpGet("get-feedback/{meetingId}")]
+        public async Task<IActionResult> GetFeedbackByMeetingId(int meetingId)
+        {
+            var feedback = await _service.GetFeedbackByMeetingIdAsync(meetingId);
+            if (feedback == null)
+                return NotFound(new { Message = $"No feedback found for Meeting ID {meetingId}" });
+
+            return Ok(feedback);
+        }
+        [HttpPut("update-feedback/{id}")]
+        public async Task<IActionResult> UpdateFeedback(int id, [FromBody] MilestoneFeedbackRequestDTO request)
+        {
+            var result = await _service.UpdateFeedbackAsync(id, request);
+            return Ok(result);
+        }
+
+        [HttpDelete("delete-feedback/{id}")]
+        public async Task<IActionResult> DeleteFeedback(int id)
+        {
+            await _service.DeleteFeedbackAsync(id);
+            return NoContent();
+        }
     }
 }
