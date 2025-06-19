@@ -9,7 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/project/{projectId}/[controller]")]
-    [Authorize]
+
     public class RequirementController : ControllerBase
     {
         private readonly IRequirementService _service;

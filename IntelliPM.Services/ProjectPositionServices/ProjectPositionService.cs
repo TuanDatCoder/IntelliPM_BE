@@ -1,8 +1,12 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,12 +21,14 @@ namespace IntelliPM.Services.ProjectPositionServices
     {
         private readonly IMapper _mapper;
         private readonly IProjectPositionRepository _repo;
+        private readonly IProjectMemberService _projectMemberService; 
         private readonly ILogger<ProjectPositionService> _logger;
 
-        public ProjectPositionService(IMapper mapper, IProjectPositionRepository repo, ILogger<ProjectPositionService> logger)
+        public ProjectPositionService(IMapper mapper, IProjectPositionRepository repo, IProjectMemberService projectMemberService, ILogger<ProjectPositionService> logger)
         {
             _mapper = mapper;
             _repo = repo;
+            _projectMemberService = projectMemberService;
             _logger = logger;
         }
 
@@ -118,5 +124,24 @@ namespace IntelliPM.Services.ProjectPositionServices
             }
             return responses;
         }
+
+     
+        public async Task<List<ProjectPosition>> GetAllByProjectId(int projectId)
+        {
+            var members = await _projectMemberService.GetAllByProjectId(projectId); 
+            var positions = new List<ProjectPosition>();
+            foreach (var member in members)
+            {
+                var memberPositions = await _repo.GetAllProjectPositions(member.Id);
+                positions.AddRange(memberPositions);
+            }
+            if (!positions.Any())
+                throw new KeyNotFoundException($"No project positions found for Project ID {projectId}.");
+            return positions;
+        }
+
+       
     }
+
 }
+
