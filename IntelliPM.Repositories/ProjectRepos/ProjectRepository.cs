@@ -82,5 +82,15 @@ namespace IntelliPM.Repositories.ProjectRepos
             return await _context.Project.FirstOrDefaultAsync(p => p.ProjectKey == projectKey)
                 ?? null;
         }
+
+
+        public async Task<Project> GetProjectWithMembersAndRequirements(int projectId)
+        {
+            return await _context.Project
+                .Include(p => p.Requirement)
+                .Include(p => p.ProjectMember)
+                    .ThenInclude(pm => pm.ProjectPosition)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+        }
     }
 }

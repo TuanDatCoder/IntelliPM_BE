@@ -11,7 +11,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/project/{projectId}/[controller]")] 
-    [Authorize] 
+    //[Authorize] 
     public class ProjectMemberController : ControllerBase
     {
         private readonly IProjectMemberService _service;

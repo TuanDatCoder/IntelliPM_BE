@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectRepos;
 using Microsoft.EntityFrameworkCore;
@@ -113,6 +116,60 @@ namespace IntelliPM.Services.ProjectServices
             }
         }
 
-        // viet them ham create project with project type and status cac kieu con da dieu
+        public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
+        {
+            var project = await _repo.GetProjectWithMembersAndRequirements(id);
+
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {id} not found.");
+
+            var details = new ProjectDetailsDTO
+            {
+                Id = project.Id,
+                ProjectKey = project.ProjectKey,
+                Name = project.Name,
+                Description = project.Description,
+                Budget = project.Budget,
+                ProjectType = project.ProjectType,
+                CreatedBy = project.CreatedBy,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                CreatedAt = project.CreatedAt,
+                UpdatedAt = project.UpdatedAt,
+                Status = project.Status,
+
+                Requirements = project.Requirement?.Select(r => new RequirementResponseDTO
+                {
+                    Id = r.Id,
+                    ProjectId = r.ProjectId,
+                    Title = r.Title,
+                    Type = r.Type,
+                    Description = r.Description,
+                    Priority = r.Priority,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt
+                }).ToList(),
+
+                ProjectMembers = project.ProjectMember?.Select(pm => new ProjectMemberWithPositionsResponseDTO
+                {
+                    Id = pm.Id,
+                    AccountId = pm.AccountId,
+                    ProjectId = pm.ProjectId,
+                    JoinedAt = pm.JoinedAt,
+                    InvitedAt = pm.InvitedAt,
+                    Status = pm.Status,
+                    ProjectPositions = pm.ProjectPosition?.Select(pp => new ProjectPositionResponseDTO
+
+                    {
+                        Id = pp.Id,
+                        ProjectMemberId = pp.ProjectMemberId,
+                        Position = pp.Position
+                    }).ToList()
+                }).ToList()
+            };
+
+            return details;
+        }
+
     }
 }

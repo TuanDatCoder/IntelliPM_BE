@@ -34,6 +34,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Services.AiServices.TaskPlanningServices; // Thêm namespace cho TaskWithMembers
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -79,6 +80,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ProjectType, opt => opt.MapFrom(src => src.ProjectType));
 
+            CreateMap<Project, ProjectDetailsDTO>()
+                .ForMember(dest => dest.Requirements, opt => opt.MapFrom(src => src.Requirement))
+                .ForMember(dest => dest.ProjectMembers, opt => opt.MapFrom(src => src.ProjectMember));
+
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -110,6 +115,17 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<TaskRequestDTO, Tasks>();
             CreateMap<Tasks, TaskResponseDTO>();
 
+            CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.ReporterId, opt => opt.Ignore()) 
+                //.ForMember(dest => dest.ProjectId, opt => opt.Ignore())  
+                .ForMember(dest => dest.EpicId, opt => opt.Ignore())   
+                .ForMember(dest => dest.SprintId, opt => opt.Ignore())  
+                .ForMember(dest => dest.Status, opt => opt.Ignore());
+            CreateMap<TaskResponseDTO, Tasks>();
 
 
             // ProjectMember
@@ -124,6 +140,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMember, AccountByProjectResponseDTO>()
                 .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account.FullName));
 
+            CreateMap<ProjectMemberResponseDTO, ProjectMember>()
+               .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+               .ForMember(dest => dest.AccountId, opt => opt.MapFrom(src => src.AccountId))
+               .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.ProjectId))
+               .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
+               .ForMember(dest => dest.InvitedAt, opt => opt.MapFrom(src => src.InvitedAt))
+               .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+               .ForMember(dest => dest.Account, opt => opt.Ignore());
+
             // ProjectPosition
             CreateMap<ProjectPositionRequestDTO, ProjectPosition>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -136,6 +161,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Requirement, RequirementResponseDTO>();
+            CreateMap<RequirementResponseDTO, RequirementRequestDTO>();
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
@@ -171,7 +197,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskFile, TaskFileResponseDTO>();
 
-
             // TaskAssignment
             CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -181,7 +206,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
 
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
-
         }
     }
 }

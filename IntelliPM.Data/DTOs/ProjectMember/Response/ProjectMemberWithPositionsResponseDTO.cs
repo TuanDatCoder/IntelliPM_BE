@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.ProjectMember.Response
 {
-    public class ProjectMemberResponseDTO
+    public class ProjectMemberWithPositionsResponseDTO
     {
         public int Id { get; set; }
         public int AccountId { get; set; }
@@ -15,6 +15,6 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public DateTime JoinedAt { get; set; }
         public DateTime InvitedAt { get; set; }
         public string? Status { get; set; }
-
+        public List<ProjectPositionResponseDTO> ProjectPositions { get; set; } = new List<ProjectPositionResponseDTO>();
     }
 }
