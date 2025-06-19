@@ -115,47 +115,19 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<TaskRequestDTO, Tasks>();
             CreateMap<Tasks, TaskResponseDTO>();
 
-            //CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
-            //    .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-            //    .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-            //    .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
-            //    .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate))
-            //    .ForMember(dest => dest.ReporterId, opt => opt.Ignore()) 
-            //    //.ForMember(dest => dest.ProjectId, opt => opt.Ignore())  
-            //    .ForMember(dest => dest.EpicId, opt => opt.Ignore())   
-            //    .ForMember(dest => dest.SprintId, opt => opt.Ignore())  
-            //    .ForMember(dest => dest.Status, opt => opt.Ignore());
-            CreateMap<TaskWithMembersDTO, TaskRequestDTO>();
+            CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate))
+                .ForMember(dest => dest.ReporterId, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
+                .ForMember(dest => dest.EpicId, opt => opt.Ignore())
+                .ForMember(dest => dest.SprintId, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore());
 
             CreateMap<TaskResponseDTO, Tasks>();
 
-
-            // ProjectMember
-            CreateMap<ProjectMemberRequestDTO, ProjectMember>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.JoinedAt, opt => opt.Ignore());
-            CreateMap<ProjectMember, ProjectMemberResponseDTO>();
-
-            CreateMap<ProjectMember, ProjectByAccountResponseDTO>()
-                .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project.Name))
-                .ForMember(dest => dest.ProjectStatus, opt => opt.MapFrom(src => src.Project.Status));
-            CreateMap<ProjectMember, AccountByProjectResponseDTO>()
-                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account.FullName));
-
-            CreateMap<ProjectMemberResponseDTO, ProjectMember>()
-               .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-               .ForMember(dest => dest.AccountId, opt => opt.MapFrom(src => src.AccountId))
-               .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.ProjectId))
-               .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
-               .ForMember(dest => dest.InvitedAt, opt => opt.MapFrom(src => src.InvitedAt))
-               .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-               .ForMember(dest => dest.Account, opt => opt.Ignore());
-
-            // ProjectPosition
-            CreateMap<ProjectPositionRequestDTO, ProjectPosition>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.AssignedAt, opt => opt.Ignore());
-            CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
 
             // Requirement
             CreateMap<RequirementRequestDTO, Requirement>()

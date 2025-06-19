@@ -55,13 +55,11 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
         public async Task<List<object>> GenerateTaskPlan(int projectId)
         {
-            // Kiểm tra đầu vào
             if (projectId <= 0)
                 throw new ArgumentException("Invalid request. ProjectId must be greater than 0.");
 
             var result = new List<object>();
 
-            // Lấy toàn bộ thông tin dự án từ ProjectService
             var projectDetails = await _projectService.GetProjectDetails(projectId);
             if (projectDetails == null)
             {
@@ -69,22 +67,19 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 projectDetails = GenerateFallbackProjectDetailsResponse(projectId);
             }
 
-            // Sử dụng startDate và endDate từ projectDetails
+            var projectKey = projectDetails.ProjectKey ?? $"PROJ-{projectId}";
             var startDate = projectDetails.StartDate ?? DateTime.UtcNow;
             var endDate = projectDetails.EndDate ?? startDate.AddMonths(6);
 
-            // Ánh xạ requirements
             var requirements = projectDetails.Requirements?.Select(r => _mapper.Map<RequirementRequestDTO>(r)).ToList() ?? new List<RequirementRequestDTO>();
             _logger.LogInformation("Mapped requirements count: {Count}", requirements?.Count ?? 0);
 
-            // Fallback nếu không có requirements
             if (!requirements.Any())
             {
                 _logger.LogWarning("No requirements found for ProjectId {ProjectId}. Using fallback data.", projectId);
                 requirements = GenerateFallbackRequirementsResponse(projectId);
             }
 
-            // Ánh xạ project members và positions
             var projectMembers = projectDetails.ProjectMembers?.Select(pm => new ProjectMember
             {
                 Id = pm.Id,
@@ -93,6 +88,8 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 JoinedAt = pm.JoinedAt,
                 InvitedAt = pm.InvitedAt,
                 Status = pm.Status,
+                FullName = pm.FullName,
+                Picture = pm.Picture,
                 ProjectPosition = pm.ProjectPositions?.Select(pp => new ProjectPosition
                 {
                     Id = pp.Id,
@@ -102,7 +99,6 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             }).ToList() ?? new List<ProjectMember>();
             _logger.LogInformation("Mapped project members count: {Count}", projectMembers?.Count ?? 0);
 
-            // Fallback nếu không có members
             if (!projectMembers.Any())
             {
                 _logger.LogWarning("No project members found for ProjectId {ProjectId}. Using fallback data.", projectId);
@@ -116,13 +112,10 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 positions = GenerateFallbackPositionsResponse(projectId);
             }
 
-            // Tạo Epics
-            var epics = CreateEpicsResponse(startDate, endDate, projectId, requirements);
+            var epics = CreateEpicsResponse(startDate, endDate, projectId, requirements, projectKey);
 
-            // Tạo tasks và gán members bằng Gemini
-            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirements, projectMembers, positions);
+            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirements, projectMembers, positions, projectKey);
 
-            // Đảm bảo members được gán nếu Gemini không trả về
             foreach (var epic in epicTasks)
             {
                 foreach (var task in epic.Tasks)
@@ -131,10 +124,19 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     {
                         task.Members = AssignMembersToTaskResponse(positions, task.SuggestedRole);
                     }
+                    // Thêm fullName và picture cho từng member
+                    foreach (var member in task.Members)
+                    {
+                        var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
+                        if (projectMember != null)
+                        {
+                            member.FullName = projectMember.FullName;
+                            member.Picture = projectMember.Picture;
+                        }
+                    }
                 }
             }
 
-            // Lưu tasks vào database
             var savedTasks = new List<Tasks>();
             foreach (var epic in epicTasks)
             {
@@ -142,31 +144,29 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 {
                     var taskRequest = _mapper.Map<TaskRequestDTO>(task);
                     taskRequest.ProjectId = projectId;
-                    taskRequest.ReporterId = 1; // Gán ReporterId mặc định (cần thay bằng logic thực tế)
+                    taskRequest.ReporterId = 1;
                     var savedTaskResponse = await _taskService.CreateTask(taskRequest);
                     var savedTask = _mapper.Map<Tasks>(savedTaskResponse);
                     savedTasks.Add(savedTask);
                 }
             }
 
-            // Phân bổ tasks cho thành viên
             var assignments = AssignTasksToMembersResponse(savedTasks, projectMembers, positions);
 
-            // Chuẩn bị response
-            result.AddRange(epicTasks.Select(e => new
+            result.AddRange(epicTasks.Select((e, index) => new
             {
                 Type = "Epic",
                 Data = new
                 {
-                    EpicId = e.EpicId,
+                    EpicId = $"{projectKey}-{index + 1}",
                     ProjectId = projectId,
                     Title = e.Title,
                     Description = e.Description,
                     StartDate = e.StartDate,
                     EndDate = e.EndDate,
-                    Tasks = e.Tasks.Select(t => new
+                    Tasks = e.Tasks.Select((t, taskIndex) => new
                     {
-                        TaskId = t.TaskId,
+                        TaskId = $"{projectKey}-{index + 1}-{taskIndex + 1}",
                         Title = t.Title,
                         Description = t.Description,
                         Milestone = t.Milestone,
@@ -176,7 +176,9 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         Members = t.Members.Select(m => new
                         {
                             AccountId = m.AccountId,
-                            Position = m.Position
+                            Position = m.Position,
+                            FullName = m.FullName,
+                            Picture = m.Picture
                         }).ToList()
                     }).ToList()
                 }
@@ -190,7 +192,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return new ProjectDetailsDTO
             {
                 Id = projectId,
-                ProjectKey = "FALLBACK",
+                ProjectKey = $"PROJ-{projectId}",
                 Name = "Fallback Project",
                 ProjectType = "WEB_APPLICATION",
                 CreatedBy = 1,
@@ -199,38 +201,37 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(6),
                 Requirements = new List<RequirementResponseDTO>
-            {
-                new RequirementResponseDTO { Id = 1, ProjectId = projectId, Title = "Fallback Requirement 1", Priority = "MEDIUM" }
-            },
+                {
+                    new RequirementResponseDTO { Id = 1, ProjectId = projectId, Title = "Fallback Requirement 1", Priority = "MEDIUM" }
+                },
                 ProjectMembers = new List<ProjectMemberWithPositionsResponseDTO>
-            {
-                new ProjectMemberWithPositionsResponseDTO { Id = 1, AccountId = 1, ProjectId = projectId, ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "BE Developer" } } },
-                new ProjectMemberWithPositionsResponseDTO { Id = 2, AccountId = 2, ProjectId = projectId, ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "BACKEND_DEVELOPER" } } }
-            }
+                {
+                    new ProjectMemberWithPositionsResponseDTO { Id = 1, AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png", ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "PROJECT_MANAGER" } } },
+                    new ProjectMemberWithPositionsResponseDTO { Id = 2, AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png", ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "BACKEND_DEVELOPER" } } }
+                }
             };
         }
 
         private List<RequirementRequestDTO> GenerateFallbackRequirementsResponse(int projectId)
         {
             return new List<RequirementRequestDTO>
-        {
-            new RequirementRequestDTO { ProjectId = projectId, Title = "Fallback Requirement 1", Description = "Initial setup" }
-        };
+            {
+                new RequirementRequestDTO { ProjectId = projectId, Title = "Fallback Requirement 1", Description = "Initial setup" }
+            };
         }
 
-        private List<object> CreateEpicsResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements)
+        private List<object> CreateEpicsResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, string projectKey)
         {
             var epics = new List<object>();
-            var totalDuration = (endDate - startDate).Days;
-            var epicCount = Math.Max(1, totalDuration / 30);
+            var epicCount = 5;
 
             for (int i = 0; i < epicCount; i++)
             {
-                var epicStart = startDate.AddDays(i * 30);
-                var epicEnd = i == epicCount - 1 ? endDate : epicStart.AddDays(29);
+                var epicStart = startDate.AddDays(i * 28);
+                var epicEnd = i == epicCount - 1 ? endDate : epicStart.AddDays(27);
                 epics.Add(new
                 {
-                    EpicId = Guid.NewGuid().ToString(),
+                    EpicId = $"{projectKey}-{i + 1}",
                     ProjectId = projectId,
                     Title = $"Epic {i + 1}: {requirements[i % requirements.Count].Title}",
                     Description = $"Epic for {requirements[i % requirements.Count].Description}",
@@ -241,7 +242,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return epics;
         }
 
-        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, List<ProjectMember> members, List<ProjectPosition> positions)
+        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, List<ProjectMember> projectMembers, List<ProjectPosition> positions, string projectKey)
         {
             var projectDetails = await _projectService.GetProjectDetails(projectId);
             if (projectDetails == null)
@@ -291,7 +292,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     aiResponse.candidates[0]?.content?.parts == null || !aiResponse.candidates[0].content.parts.Any())
                 {
                     _logger.LogWarning("No valid content from Gemini API.");
-                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, members, positions);
+                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
                 }
 
                 var epicTasksJson = aiResponse.candidates[0].content.parts[0].text;
@@ -300,11 +301,38 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 if (string.IsNullOrWhiteSpace(cleanedJson) || cleanedJson == "[]")
                 {
                     _logger.LogWarning("No valid tasks from Gemini. Using fallback.");
-                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, members, positions);
+                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
                 }
 
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var aiEpicTasks = JsonSerializer.Deserialize<List<EpicWithTasksDTO>>(cleanedJson, options) ?? new List<EpicWithTasksDTO>();
+
+                // Thay đổi epicId và taskId
+                for (int i = 0; i < aiEpicTasks.Count; i++)
+                {
+                    aiEpicTasks[i].EpicId = $"{projectKey}-{i + 1}";
+                    for (int j = 0; j < aiEpicTasks[i].Tasks.Count; j++)
+                    {
+                        aiEpicTasks[i].Tasks[j].TaskId = $"{projectKey}-{i + 1}-{j + 1}";
+                    }
+                }
+
+                // Điền fullName và picture cho từng member
+                foreach (var epic in aiEpicTasks)
+                {
+                    foreach (var task in epic.Tasks)
+                    {
+                        foreach (var member in task.Members)
+                        {
+                            var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
+                            if (projectMember != null)
+                            {
+                                member.FullName = projectMember.FullName;
+                                member.Picture = projectMember.Picture;
+                            }
+                        }
+                    }
+                }
 
                 _logger.LogInformation("Generated epic tasks count: {Count}", aiEpicTasks.Count);
                 return aiEpicTasks;
@@ -312,41 +340,40 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GenerateEpicTasksFromAIResponse");
-                return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, members, positions);
+                return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
             }
         }
 
         private List<ProjectMember> GenerateFallbackMembersResponse(int projectId)
         {
             return new List<ProjectMember>
-        {
-            new ProjectMember { AccountId = 1, ProjectId = projectId, Account = new Account { Username = "user1" } },
-            new ProjectMember { AccountId = 2, ProjectId = projectId, Account = new Account { Username = "user2" } }
-        };
+            {
+                new ProjectMember { AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png" },
+                new ProjectMember { AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png" }
+            };
         }
 
         private List<ProjectPosition> GenerateFallbackPositionsResponse(int projectId)
         {
             return new List<ProjectPosition>
-        {
-            new ProjectPosition { ProjectMemberId = 1, Id = projectId, Position = "BE Developer" },
-            new ProjectPosition { ProjectMemberId = 2, Id = projectId, Position = "BACKEND_DEVELOPER" }
-        };
+            {
+                new ProjectPosition { ProjectMemberId = 1, Id = projectId, Position = "PROJECT_MANAGER" },
+                new ProjectPosition { ProjectMemberId = 2, Id = projectId, Position = "BACKEND_DEVELOPER" }
+            };
         }
 
-        private List<EpicWithTasksDTO> GenerateFallbackEpicTasksResponse(DateTime startDate, DateTime endDate, List<RequirementRequestDTO> requirements, List<ProjectMember> members, List<ProjectPosition> positions)
+        private List<EpicWithTasksDTO> GenerateFallbackEpicTasksResponse(DateTime startDate, DateTime endDate, List<RequirementRequestDTO> requirements, List<ProjectMember> projectMembers, List<ProjectPosition> positions, string projectKey)
         {
             var epicTasks = new List<EpicWithTasksDTO>();
-            var totalDuration = (endDate - startDate).Days;
-            var epicCount = 5; // Đảm bảo 5 Epics
+            var epicCount = 5;
 
             for (int i = 0; i < epicCount; i++)
             {
-                var epicStart = startDate.AddDays(i * 28); // Khoảng 4 tuần mỗi Epic
+                var epicStart = startDate.AddDays(i * 28);
                 var epicEnd = i == epicCount - 1 ? endDate : epicStart.AddDays(27);
                 var epic = new EpicWithTasksDTO
                 {
-                    EpicId = Guid.NewGuid().ToString(),
+                    EpicId = $"{projectKey}-{i + 1}",
                     Title = $"Epic {i + 1}: {requirements[i % requirements.Count].Title}",
                     Description = $"Epic for {requirements[i % requirements.Count].Description}",
                     StartDate = epicStart,
@@ -354,7 +381,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     Tasks = new List<TaskWithMembersDTO>()
                 };
 
-                var taskCount = new Random().Next(5, 11); // 5-10 tasks per Epic
+                var taskCount = new Random().Next(5, 11);
                 for (int j = 0; j < taskCount; j++)
                 {
                     var taskStart = epicStart.AddDays(j * (28 / taskCount));
@@ -362,15 +389,25 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     var suggestedRole = GetSuggestedRoleResponse(j, positions);
                     var task = new TaskWithMembersDTO
                     {
-                        TaskId = Guid.NewGuid().ToString(),
+                        TaskId = $"{projectKey}-{i + 1}-{j + 1}",
                         Title = $"Task {j + 1} for {requirements[i % requirements.Count].Title}",
                         Description = $"Task {j + 1} description for {requirements[i % requirements.Count].Title}",
                         Milestone = $"Sprint {i + 1}",
                         StartDate = taskStart,
                         EndDate = taskEnd,
                         SuggestedRole = suggestedRole,
-                        Members = AssignMembersToTaskResponse(positions, suggestedRole).Take(new Random().Next(1, 4)).ToList() // 1-3 members
+                        Members = AssignMembersToTaskResponse(positions, suggestedRole).Take(new Random().Next(1, 4)).ToList()
                     };
+                    // Điền fullName và picture cho fallback
+                    foreach (var member in task.Members)
+                    {
+                        var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
+                        if (projectMember != null)
+                        {
+                            member.FullName = projectMember.FullName;
+                            member.Picture = projectMember.Picture;
+                        }
+                    }
                     epic.Tasks.Add(task);
                 }
                 epicTasks.Add(epic);
@@ -407,14 +444,14 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             catch { _logger.LogWarning("Invalid JSON: {RawJson}", rawJson); return "[]"; }
         }
 
-        private List<TaskAssignment> AssignTasksToMembersResponse(List<Tasks> tasks, List<ProjectMember> members, List<ProjectPosition> positions)
+        private List<TaskAssignment> AssignTasksToMembersResponse(List<Tasks> tasks, List<ProjectMember> projectMembers, List<ProjectPosition> positions)
         {
             var assignments = new List<TaskAssignment>();
             var roleMap = positions.ToDictionary(p => p.ProjectMemberId, p => p.Position.ToLower());
 
             foreach (var task in tasks)
             {
-                var suitableMember = members
+                var suitableMember = projectMembers
                     .Where(m => roleMap.ContainsKey(m.AccountId) && roleMap[m.AccountId] != "admin" && roleMap[m.AccountId] != "project_manager")
                     .OrderBy(m => Guid.NewGuid())
                     .FirstOrDefault(m => IsSuitableForRoleResponse(roleMap[m.AccountId], task.Title));
@@ -448,6 +485,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 || (position.Contains("developer") && taskTitle.Contains("develop"));
         }
     }
+
     public class EpicWithTasksDTO
     {
         public string EpicId { get; set; }
@@ -474,6 +512,8 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
     {
         public int AccountId { get; set; }
         public string Position { get; set; }
+        public string FullName { get; set; }
+        public string Picture { get; set; }
     }
 
     public class GeminiResponseDTO
@@ -495,5 +535,25 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
     public class GeminiPartDTO
     {
         public string text { get; set; }
+    }
+
+    public class ProjectMember
+    {
+        public int Id { get; set; }
+        public int AccountId { get; set; }
+        public int ProjectId { get; set; }
+        public DateTime JoinedAt { get; set; }
+        public DateTime InvitedAt { get; set; }
+        public string Status { get; set; }
+        public string FullName { get; set; }
+        public string Picture { get; set; }
+        public List<ProjectPosition> ProjectPosition { get; set; }
+    }
+
+    public class ProjectPosition
+    {
+        public int Id { get; set; }
+        public int ProjectMemberId { get; set; }
+        public string Position { get; set; }
     }
 }
