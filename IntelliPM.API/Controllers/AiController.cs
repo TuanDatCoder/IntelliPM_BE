@@ -18,10 +18,10 @@ namespace IntelliPM.API.Controllers
         }
 
         // Đạt: AI tạo gợi ý tạo các task cho project
-        [HttpPost("project/{projectId}/task-planning")]
-        public async Task<IActionResult> GenerateTaskPlan(int projectId)
+        [HttpPost("project/{id}/task-planning")]
+        public async Task<IActionResult> GenerateTaskPlan(int id)
         {
-            if (projectId <= 0)
+            if (id <= 0)
             {
                 return BadRequest(new ApiResponseDTO
                 {
@@ -33,7 +33,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var plan = await _taskPlanningService.GenerateTaskPlan(projectId);
+                var plan = await _taskPlanningService.GenerateTaskPlan(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
