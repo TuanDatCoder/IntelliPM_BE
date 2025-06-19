@@ -36,8 +36,8 @@ namespace IntelliPM.Services.ProjectMemberServices
             _logger = logger;
             _decodeToken = decodeToken;
         }
-   
-    
+
+
         public async Task<List<ProjectMemberResponseDTO>> GetAllAsync()
         {
             var entities = await _repo.GetAllAsync();
@@ -66,7 +66,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
-          
+
             // Kiểm tra xem cặp account_id và project_id đã tồn tại chưa (ràng buộc UNIQUE)
             var existingMember = await _repo.GetByAccountAndProjectAsync(request.AccountId, request.ProjectId);
             if (existingMember != null)
@@ -170,7 +170,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                 .Select(pm => new AccountByProjectResponseDTO
                 {
                     AccountId = pm.AccountId,
-                    AccountName = pm.Account.Username, 
+                    AccountName = pm.Account.Username,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status
@@ -197,5 +197,12 @@ namespace IntelliPM.Services.ProjectMemberServices
             return responses;
         }
 
+
+        public async Task<List<ProjectMember>> GetAllByProjectId(int projectId)
+        {
+            var entities = await _repo.GetAllProjectMembers(projectId);
+            throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+            return entities;
+        }
     }
 }
