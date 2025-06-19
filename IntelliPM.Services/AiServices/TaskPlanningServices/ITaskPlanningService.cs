@@ -9,6 +9,6 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 {
     public interface ITaskPlanningService
     {
-        Task<List<object>> GenerateTaskPlan(ProjectTaskPlanningRequestDTO request);
+        Task<List<object>> GenerateTaskPlan(int projectId);
     }
 }

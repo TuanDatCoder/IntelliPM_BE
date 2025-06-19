@@ -90,6 +90,8 @@ namespace IntelliPM.Repositories.ProjectRepos
                 .Include(p => p.Requirement)
                 .Include(p => p.ProjectMember)
                     .ThenInclude(pm => pm.ProjectPosition)
+                    .Include(p => p.ProjectMember) 
+                    .ThenInclude(pm => pm.Account) 
                 .FirstOrDefaultAsync(p => p.Id == projectId);
         }
     }

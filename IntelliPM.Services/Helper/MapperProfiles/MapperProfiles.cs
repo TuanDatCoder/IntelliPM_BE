@@ -115,16 +115,18 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<TaskRequestDTO, Tasks>();
             CreateMap<Tasks, TaskResponseDTO>();
 
-            CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
-                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
-                .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate))
-                .ForMember(dest => dest.ReporterId, opt => opt.Ignore()) 
-                //.ForMember(dest => dest.ProjectId, opt => opt.Ignore())  
-                .ForMember(dest => dest.EpicId, opt => opt.Ignore())   
-                .ForMember(dest => dest.SprintId, opt => opt.Ignore())  
-                .ForMember(dest => dest.Status, opt => opt.Ignore());
+            //CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
+            //    .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+            //    .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            //    .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
+            //    .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate))
+            //    .ForMember(dest => dest.ReporterId, opt => opt.Ignore()) 
+            //    //.ForMember(dest => dest.ProjectId, opt => opt.Ignore())  
+            //    .ForMember(dest => dest.EpicId, opt => opt.Ignore())   
+            //    .ForMember(dest => dest.SprintId, opt => opt.Ignore())  
+            //    .ForMember(dest => dest.Status, opt => opt.Ignore());
+            CreateMap<TaskWithMembersDTO, TaskRequestDTO>();
+
             CreateMap<TaskResponseDTO, Tasks>();
 
 

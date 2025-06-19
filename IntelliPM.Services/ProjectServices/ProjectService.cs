@@ -158,8 +158,10 @@ namespace IntelliPM.Services.ProjectServices
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status,
+                    FullName = pm.Account?.FullName, 
+                    Username = pm.Account?.Username, 
+                    Picture = pm.Account?.Picture,  
                     ProjectPositions = pm.ProjectPosition?.Select(pp => new ProjectPositionResponseDTO
-
                     {
                         Id = pp.Id,
                         ProjectMemberId = pp.ProjectMemberId,

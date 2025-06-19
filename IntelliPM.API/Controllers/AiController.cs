@@ -1,7 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Ai.ProjectTaskPlanning.Request;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -9,19 +8,20 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TaskPlanningController : ControllerBase
+    public class AiController : ControllerBase
     {
         private readonly ITaskPlanningService _taskPlanningService;
 
-        public TaskPlanningController(ITaskPlanningService taskPlanningService)
+        public AiController(ITaskPlanningService taskPlanningService)
         {
             _taskPlanningService = taskPlanningService ?? throw new ArgumentNullException(nameof(taskPlanningService));
         }
 
-        [HttpPost("generate-plan")]
-        public async Task<IActionResult> GenerateTaskPlan([FromBody] ProjectTaskPlanningRequestDTO request)
+        // Đạt: AI tạo gợi ý tạo các task cho project
+        [HttpPost("project/{projectId}/task-planning")]
+        public async Task<IActionResult> GenerateTaskPlan(int projectId)
         {
-            if (request.ProjectId <= 0)
+            if (projectId <= 0)
             {
                 return BadRequest(new ApiResponseDTO
                 {
@@ -33,7 +33,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var plan = await _taskPlanningService.GenerateTaskPlan(request);
+                var plan = await _taskPlanningService.GenerateTaskPlan(projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
