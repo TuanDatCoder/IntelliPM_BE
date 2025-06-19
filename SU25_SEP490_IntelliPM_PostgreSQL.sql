@@ -990,3 +990,105 @@ VALUES
 
 	-------  INTELLIPM DB ---------
 	-- Update 16/06/2025
+
+
+	-- Update 19/06/2025
+	
+-- Chèn dữ liệu mẫu cho dự án Online Flower Shop
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+VALUES 
+    ('FLOWER1', 'Online Flower Shop', 'Phát triển một website thương mại điện tử để bán hoa tươi trực tuyến, cung cấp các tính năng như danh mục sản phẩm (hoa theo dịp, hoa bó, hoa chậu), giỏ hàng, thanh toán trực tuyến, và quản lý đơn hàng. Website sẽ có giao diện thân thiện, tích hợp hệ thống khuyến mãi, và hỗ trợ giao hàng nhanh trong 24 giờ.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'IN_PROGRESS');
+
+-- Chèn dữ liệu mẫu cho project_member (ít nhất 10 thành viên)
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
+VALUES 
+    (1, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
+    (2, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
+    (4, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
+    (5, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (6, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (7, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (8, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (9, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (12, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
+    (19, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
+
+-- Chèn dữ liệu mẫu cho project_position
+INSERT INTO project_position (project_member_id, position, assigned_at)
+VALUES 
+    ((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'ADMIN', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TEAM_LEADER', '2024-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'PROJECT_MANAGER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 12 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TESTER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 19 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'DESIGNER', '2025-06-19 00:00:00+07');
+
+-- Chèn dữ liệu mẫu cho requirement
+INSERT INTO requirement (project_id, title, type, description, priority)
+VALUES 
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'User Registration', 'FUNCTIONAL', 'Người dùng có thể đăng ký tài khoản với email và mật khẩu.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Product Catalog', 'FUNCTIONAL', 'Hiển thị danh mục sản phẩm bao gồm hoa theo dịp, hoa bó, và hoa chậu với hình ảnh và giá cả.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Shopping Cart', 'FUNCTIONAL', 'Cho phép người dùng thêm sản phẩm vào giỏ hàng và chỉnh sửa số lượng.', 'MEDIUM'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Payment Integration', 'NON_FUNCTIONAL', 'Tích hợp thanh toán trực tuyến qua MoMo và thẻ tín dụng với bảo mật SSL.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Order Management', 'FUNCTIONAL', 'Hệ thống quản lý đơn hàng cho admin và theo dõi trạng thái giao hàng.', 'MEDIUM');
+
+
+
+	------------------------------------------------------------------------------------------
+	-- Insert sample data for the project "Online Course Platform"
+-- Insert project
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+VALUES 
+(
+    'COURSE',
+    'Online Course Platform',
+    'Develop a web-based platform for managing and delivering online courses. The system supports course creation, student enrollment, video lectures, quizzes, grading, and progress tracking. It will have role-based access for Admin, Instructor, and Student, and support responsive UI.',
+    1200000.00,
+    'WEB_APPLICATION',
+    1,
+    '2025-06-20 00:00:00+07',
+    '2025-12-20 00:00:00+07',
+    'IN_PROGRESS'
+);
+
+-- Insert project members
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
+VALUES 
+(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'IN_PROGRESS'),
+(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'IN_PROGRESS'),
+(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'IN_PROGRESS'),
+(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'IN_PROGRESS'),
+(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'IN_PROGRESS'),
+(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'IN_PROGRESS'),
+(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'IN_PROGRESS'),
+(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'IN_PROGRESS'),
+(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'IN_PROGRESS');
+
+-- ✅ Đặt dấu ; KẾT THÚC ở đây để tách lệnh
+-- Nếu bạn không có dấu này thì phần `INSERT INTO project_position` sẽ bị coi là phần tiếp của câu trên.
+
+-- Insert project positions
+INSERT INTO project_position (project_member_id, position, assigned_at)
+VALUES 
+((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'ADMIN', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'TEAM_LEADER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 3 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'PROJECT_MANAGER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'FRONTEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'FRONTEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'BACKEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'BACKEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'QA_TESTER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'UX_UI_DESIGNER', '2025-06-20');
+
+-- Insert project requirements
+INSERT INTO requirement (project_id, title, type, description, priority)
+VALUES 
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'User Registration and Login', 'FUNCTIONAL', 'Users can register and log in with email/password or Google.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Course Creation by Instructors', 'FUNCTIONAL', 'Instructors can create and manage their own courses.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Video Lecture Streaming', 'NON_FUNCTIONAL', 'Stream high-quality videos hosted on cloud storage.', 'MEDIUM'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Quiz and Grading System', 'FUNCTIONAL', 'Students can take quizzes and receive scores instantly.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Progress Tracking', 'FUNCTIONAL', 'Students and instructors can view progress reports.', 'MEDIUM');

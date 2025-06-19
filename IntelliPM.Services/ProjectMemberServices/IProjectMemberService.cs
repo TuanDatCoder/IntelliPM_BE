@@ -21,5 +21,6 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
+        Task<List<ProjectMember>> GetAllByProjectId(int projectId);
     }
 }
