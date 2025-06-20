@@ -26,15 +26,16 @@ namespace IntelliPM.Services.ProjectMemberServices
         private readonly IProjectMemberRepository _repo;
         private readonly ILogger<ProjectMemberService> _logger;
         private readonly IDecodeTokenHandler _decodeToken;
-        private readonly IAccountRepository _accountRepository;
+        private readonly IAccountRepository _accountRepo;
 
 
-        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken)
+        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _decodeToken = decodeToken;
+            _accountRepo = accountRepo;
         }
 
 
@@ -133,7 +134,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
         {
             var decode = _decodeToken.decode(token);
-            var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
 
             if (currentAccount == null)
             {
