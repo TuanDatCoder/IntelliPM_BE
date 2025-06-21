@@ -48,6 +48,7 @@ CREATE TABLE project (
     created_by INT NOT NULL,
     start_date TIMESTAMPTZ NULL,
     end_date TIMESTAMPTZ NULL,
+    icon_url TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
@@ -502,13 +503,31 @@ CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
-	label VARCHAR(255) NOT NULL,  
+    label VARCHAR(255) NOT NULL,  
     description TEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name) 
 );
+
+-- 37. activity_log
+CREATE TABLE activity_log (
+    id SERIAL PRIMARY KEY,
+    project_id INT NULL,
+    task_id VARCHAR(255) NULL,
+    related_entity_type VARCHAR(100) NOT NULL, -- TASK, PROJECT, COMMENT, FILE, etc.
+    related_entity_id VARCHAR(255) NULL,       -- ID của entity thay đổi
+    action_type VARCHAR(100) NOT NULL,         -- CREATE, UPDATE, DELETE, STATUS_CHANGE, COMMENT, etc.
+    field_changed VARCHAR(100) NULL,           -- Nếu là UPDATE thì ghi field nào thay đổi
+    old_value TEXT NULL,
+    new_value TEXT NULL,
+    message TEXT NULL,                         -- Tuỳ chọn: mô tả thân thiện
+    created_by INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES account(id)
+);
+
 
 --------------------------------------------------------------
 
@@ -550,14 +569,14 @@ VALUES
     ('2025-06-04 00:00:00+00', 'token_4_jkl012', 4),
     ('2025-06-05 00:00:00+00', 'token_5_mno345', 5);
 
--- Insert sample data into project (gán project_key)
-INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+-- Insert sample data into project (gán project_key + icon_url)
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url, status)
 VALUES 
-    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_PROGRESS'),
-    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'PLANNING'),
-    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'ON_HOLD'),
-    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'COMPLETED'),
-    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IN_REVIEW');
+    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-a.png', 'IN_PROGRESS'),
+    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'https://example.com/icons/project-b.png', 'PLANNING'),
+    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'https://example.com/icons/project-c.png', 'ON_HOLD'),
+    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://example.com/icons/project-d.png', 'COMPLETED'),
+    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-e.png', 'IN_REVIEW');
 
 -- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
 INSERT INTO epic (id, project_id, name, description, start_date, end_date, status)
