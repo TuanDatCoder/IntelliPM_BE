@@ -67,7 +67,6 @@ namespace IntelliPM.Services.TaskCheckListServices
 
             var entity = _mapper.Map<TaskCheckList>(request);
 
-            // Gán TaskId từ route
             entity.TaskId = taskId;
             entity.Status = "TO-DO";
             entity.ManualInput = true;
@@ -105,11 +104,6 @@ namespace IntelliPM.Services.TaskCheckListServices
                 throw new Exception($"Failed to delete task check list: {ex.Message}", ex);
             }
         }
-
-        //public Task<List<TaskCheckList>> GenerateChecklistFromTaskAsync(string taskId)
-        //{
-        //    throw new NotImplementedException();
-        //}
 
         public async Task<List<TaskCheckListResponseDTO>> GetAllTaskCheckList()
         {
