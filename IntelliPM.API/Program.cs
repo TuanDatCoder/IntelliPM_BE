@@ -25,6 +25,7 @@ using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
@@ -103,7 +104,10 @@ builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITaskFileService, TaskFileService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
 
+
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 
 
 //----------------------------DB-----------------------------------
