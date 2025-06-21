@@ -19,6 +19,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Account> Account { get; set; }
 
+    public virtual DbSet<ActivityLog> ActivityLog { get; set; }
+
     public virtual DbSet<ChangeRequest> ChangeRequest { get; set; }
 
     public virtual DbSet<Document> Document { get; set; }
@@ -71,11 +73,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Sprint> Sprint { get; set; }
 
+    public virtual DbSet<Subtask> Subtask { get; set; }
+
+    public virtual DbSet<SubtaskComment> SubtaskComment { get; set; }
+
+    public virtual DbSet<SubtaskFile> SubtaskFile { get; set; }
+
     public virtual DbSet<SystemConfiguration> SystemConfiguration { get; set; }
 
     public virtual DbSet<TaskAssignment> TaskAssignment { get; set; }
-
-    public virtual DbSet<TaskCheckList> TaskCheckList { get; set; }
 
     public virtual DbSet<TaskComment> TaskComment { get; set; }
 
@@ -84,8 +90,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<TaskFile> TaskFile { get; set; }
 
     public virtual DbSet<TaskLabel> TaskLabel { get; set; }
-
-    public virtual DbSet<TaskStatusLog> TaskStatusLog { get; set; }
 
     public virtual DbSet<Tasks> Tasks { get; set; }
 
@@ -105,7 +109,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -164,6 +167,54 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(255)
                 .HasColumnName("username");
+        });
+
+        modelBuilder.Entity<ActivityLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("activity_log_pkey");
+
+            entity.ToTable("activity_log");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ActionType)
+                .HasMaxLength(100)
+                .HasColumnName("action_type");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.FieldChanged)
+                .HasMaxLength(100)
+                .HasColumnName("field_changed");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.NewValue).HasColumnName("new_value");
+            entity.Property(e => e.OldValue).HasColumnName("old_value");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.RelatedEntityId)
+                .HasMaxLength(255)
+                .HasColumnName("related_entity_id");
+            entity.Property(e => e.RelatedEntityType)
+                .HasMaxLength(100)
+                .HasColumnName("related_entity_type");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.ActivityLog)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("activity_log_created_by_fkey");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.ActivityLog)
+                .HasForeignKey(d => d.SubtaskId)
+                .HasConstraintName("activity_log_subtask_id_fkey");
+
+            entity.HasOne(d => d.Task).WithMany(p => p.ActivityLog)
+                .HasForeignKey(d => d.TaskId)
+                .HasConstraintName("activity_log_task_id_fkey");
         });
 
         modelBuilder.Entity<ChangeRequest>(entity =>
@@ -647,6 +698,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.IconUrl).HasColumnName("icon_url");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
@@ -994,6 +1046,106 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("sprint_project_id_fkey");
         });
 
+        modelBuilder.Entity<Subtask>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("subtask_pkey");
+
+            entity.ToTable("subtask");
+
+            entity.Property(e => e.Id)
+                .HasMaxLength(255)
+                .HasColumnName("id");
+            entity.Property(e => e.AssignedBy).HasColumnName("assigned_by");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.GenerationAiInput)
+                .HasDefaultValue(false)
+                .HasColumnName("generation_ai_input");
+            entity.Property(e => e.ManualInput)
+                .HasDefaultValue(false)
+                .HasColumnName("manual_input");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+            entity.Property(e => e.Title)
+                .HasMaxLength(255)
+                .HasColumnName("title");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.AssignedByNavigation).WithMany(p => p.Subtask)
+                .HasForeignKey(d => d.AssignedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subtask_assigned_by_fkey");
+
+            entity.HasOne(d => d.Task).WithMany(p => p.Subtask)
+                .HasForeignKey(d => d.TaskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subtask_task_id_fkey");
+        });
+
+        modelBuilder.Entity<SubtaskComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("subtask_comment_pkey");
+
+            entity.ToTable("subtask_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.SubtaskComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subtask_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.SubtaskComment)
+                .HasForeignKey(d => d.SubtaskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subtask_comment_subtask_id_fkey");
+        });
+
+        modelBuilder.Entity<SubtaskFile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("subtask_file_pkey");
+
+            entity.ToTable("subtask_file");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+            entity.Property(e => e.Title)
+                .HasMaxLength(255)
+                .HasColumnName("title");
+            entity.Property(e => e.UrlFile)
+                .HasMaxLength(1024)
+                .HasColumnName("url_file");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.SubtaskFile)
+                .HasForeignKey(d => d.SubtaskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subtask_file_subtask_id_fkey");
+        });
+
         modelBuilder.Entity<SystemConfiguration>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("system_configuration_pkey");
@@ -1057,42 +1209,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("task_assignment_task_id_fkey");
-        });
-
-        modelBuilder.Entity<TaskCheckList>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("task_check_list_pkey");
-
-            entity.ToTable("task_check_list");
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.GenerationAiInput)
-                .HasDefaultValue(false)
-                .HasColumnName("generation_ai_input");
-            entity.Property(e => e.ManualInput)
-                .HasDefaultValue(false)
-                .HasColumnName("manual_input");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasColumnName("status");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
-            entity.Property(e => e.Title)
-                .HasMaxLength(255)
-                .HasColumnName("title");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskCheckList)
-                .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_check_list_task_id_fkey");
         });
 
         modelBuilder.Entity<TaskComment>(entity =>
@@ -1213,35 +1329,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("task_label_task_id_fkey");
-        });
-
-        modelBuilder.Entity<TaskStatusLog>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("task_status_log_pkey");
-
-            entity.ToTable("task_status_log");
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.ChangedBy).HasColumnName("changed_by");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasColumnName("status");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.ChangedByNavigation).WithMany(p => p.TaskStatusLog)
-                .HasForeignKey(d => d.ChangedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_status_log_changed_by_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskStatusLog)
-                .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_status_log_task_id_fkey");
         });
 
         modelBuilder.Entity<Tasks>(entity =>
