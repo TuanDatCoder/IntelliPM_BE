@@ -67,7 +67,6 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                //request.TaskId = taskId; // Gán taskId từ route vào DTO
                 var result = await _service.CreateTaskCheckList(taskId,request);
 
                 return StatusCode(201, new ApiResponseDTO
