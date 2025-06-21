@@ -17,5 +17,6 @@ namespace IntelliPM.Repositories.ProjectRepos
         Task Delete(Project project);
         Task<string> GetProjectKeyAsync(int projectId); 
         Task<Project> GetProjectByKeyAsync(string projectKey);
+        Task<Project> GetProjectWithMembersAndRequirements(int projectId);
     }
 }
