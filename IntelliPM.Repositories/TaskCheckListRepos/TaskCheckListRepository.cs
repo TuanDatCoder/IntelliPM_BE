@@ -48,5 +48,13 @@ namespace IntelliPM.Repositories.TaskCheckListRepos
             _context.TaskCheckList.Remove(taskCheckList);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<TaskCheckList>> GetTaskCheckListByTaskIdAsync(string taskId)
+        {
+            return await _context.TaskCheckList
+                .Where(tf => tf.TaskId == taskId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

@@ -2,6 +2,8 @@
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
+using IntelliPM.Data.DTOs.TaskFile.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +16,11 @@ namespace IntelliPM.Services.TaskCheckListServices
     {
         Task<List<TaskCheckListResponseDTO>> GetAllTaskCheckList();
         Task<TaskCheckListResponseDTO> GetTaskCheckListById(int id);
-        Task<TaskCheckListResponseDTO> CreateTaskCheckList(TaskCheckListRequestDTO request);
+        Task<TaskCheckListResponseDTO> CreateTaskCheckList(string taskId, TaskCheckListRequestDTO request);
         Task<TaskCheckListResponseDTO> UpdateTaskCheckList(int id, TaskCheckListRequestDTO request);
         Task DeleteTaskCheckList(int id);
+        Task<List<TaskCheckListResponseDTO>> GetTaskCheckListByTaskIdAsync(string taskId);
+        //Task<List<TaskCheckList>> GenerateChecklistFromTaskAsync(string taskId);
+
     }
 }
