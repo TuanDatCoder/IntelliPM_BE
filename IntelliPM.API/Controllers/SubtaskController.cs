@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.GeminiServices;
+using IntelliPM.Data.Entities;
 
 namespace IntelliPM.API.Controllers
 {
@@ -54,8 +57,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] SubtaskRequestDTO request)
+        [HttpPost("{taskId}")]
+        public async Task<IActionResult> Create(string taskId, [FromBody] TaskCheckListRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -69,7 +72,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = 201,
-                    Message = "Task check list created successfully",
+                    Message = "Task checklist created successfully",
                     Data = result
                 });
             }
@@ -79,10 +82,11 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error creating task check list: {ex.Message}"
+                    Message = $"Error creating task checklist: {ex.Message}"
                 });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] SubtaskRequestDTO request)
@@ -141,37 +145,29 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        //[HttpPatch("{id}/status")]
-        //public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
-        //{
-        //    try
-        //    {
-        //        var updated = await _service.ChangeTaskStatus(id, status);
-        //        return Ok(new ApiResponseDTO
-        //        {
-        //            IsSuccess = true,
-        //            Code = 200,
-        //            Message = "Task status updated successfully",
-        //            Data = updated
-        //        });
-        //    }
-        //    catch (KeyNotFoundException ex)
-        //    {
-        //        return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new ApiResponseDTO
-        //        {
-        //            IsSuccess = false,
-        //            Code = 500,
-        //            Message = $"Error updating task status: {ex.Message}"
-        //        });
-        //    }
-        //}
+        [HttpGet("by-task/{taskId}")]
+        public async Task<IActionResult> GetTaskCheckListByTaskId(string taskId)
+        {
+            try
+            {
+                var files = await _service.GetTaskCheckListByTaskIdAsync(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved task check list successfully.",
+                    Data = files
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving task check list: {ex.Message}"
+                });
+            }
+        }
     }
 }
