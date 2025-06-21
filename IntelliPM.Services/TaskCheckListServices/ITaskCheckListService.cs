@@ -20,7 +20,7 @@ namespace IntelliPM.Services.TaskCheckListServices
         Task<TaskCheckListResponseDTO> UpdateTaskCheckList(int id, TaskCheckListRequestDTO request);
         Task DeleteTaskCheckList(int id);
         Task<List<TaskCheckListResponseDTO>> GetTaskCheckListByTaskIdAsync(string taskId);
-        //Task<List<TaskCheckList>> GenerateChecklistFromTaskAsync(string taskId);
+        Task<List<TaskCheckList>> GenerateChecklistPreviewAsync(string taskId);
 
     }
 }

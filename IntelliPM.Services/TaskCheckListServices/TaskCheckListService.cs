@@ -6,6 +6,7 @@ using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.TaskCheckListRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,12 +23,38 @@ namespace IntelliPM.Services.TaskCheckListServices
         private readonly IMapper _mapper;
         private readonly ITaskCheckListRepository _repo;
         private readonly ILogger<TaskCheckListService> _logger;
+        private readonly ITaskRepository _taskRepository;
+        private readonly IGeminiService _geminiService;
 
-        public TaskCheckListService(IMapper mapper, ITaskCheckListRepository repo, ILogger<TaskCheckListService> logger)
+        public TaskCheckListService(IMapper mapper, ITaskCheckListRepository repo, ILogger<TaskCheckListService> logger, ITaskRepository taskRepository, IGeminiService geminiService)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _taskRepository = taskRepository;
+            _geminiService = geminiService;
+        }
+
+        public async Task<List<TaskCheckList>> GenerateChecklistPreviewAsync(string taskId)
+        {
+            var task = await _taskRepository.GetByIdAsync(taskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {taskId} not found.");
+
+            var checklistTitles = await _geminiService.GenerateChecklistAsync(task.Title);
+
+            var checklists = checklistTitles.Select(title => new TaskCheckList
+            {
+                TaskId = taskId,
+                Title = title,
+                Status = "TO-DO",
+                ManualInput = false,
+                GenerationAiInput = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }).ToList();
+
+            return checklists;
         }
 
         public async Task<TaskCheckListResponseDTO> CreateTaskCheckList(string taskId, TaskCheckListRequestDTO request)

@@ -18,62 +18,11 @@ namespace IntelliPM.API.Controllers
     public class TaskCheckListController : ControllerBase
     {
         private readonly ITaskCheckListService _service;
-        private readonly ITaskRepository _taskRepo;
-        private readonly IGeminiService _geminiService;
 
-        public TaskCheckListController(
-    ITaskCheckListService service,
-    ITaskRepository taskRepo,
-    IGeminiService geminiService)
+        public TaskCheckListController(ITaskCheckListService service)
         {
             _service = service;
-            _taskRepo = taskRepo;
-            _geminiService = geminiService;
         }
-
-        [HttpPost("{taskId}/generate-checklist")]
-        public async Task<IActionResult> GenerateChecklistFromTitle(string taskId)
-        {
-            try
-            {
-                var task = await _taskRepo.GetByIdAsync(taskId);
-                if (task == null) return NotFound();
-
-                var checklistTitles = await _geminiService.GenerateChecklistAsync(task.Title);
-
-                // Tạo danh sách checklist tạm, chưa lưu vào DB
-                var checklists = checklistTitles.Select(title => new
-                {
-                    TaskId = taskId,
-                    Title = title,
-                    Status = "TO-DO",
-                    ManualInput = false,
-                    GenerationAiInput = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                }).ToList();
-
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Checklist generated successfully (not saved)",
-                    Data = checklists
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponseDTO
-                {
-                    IsSuccess = false,
-                    Code = 500,
-                    Message = $"Error generating checklist: {ex.Message}"
-                });
-            }
-        }
-
-
-
 
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
