@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using IntelliPM.Services.TaskCheckListServices;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.GeminiServices;
+using IntelliPM.Data.Entities;
 
 namespace IntelliPM.API.Controllers
 {
@@ -15,11 +18,62 @@ namespace IntelliPM.API.Controllers
     public class TaskCheckListController : ControllerBase
     {
         private readonly ITaskCheckListService _service;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IGeminiService _geminiService;
 
-        public TaskCheckListController(ITaskCheckListService service)
+        public TaskCheckListController(
+    ITaskCheckListService service,
+    ITaskRepository taskRepo,
+    IGeminiService geminiService)
         {
             _service = service;
+            _taskRepo = taskRepo;
+            _geminiService = geminiService;
         }
+
+        [HttpPost("{taskId}/generate-checklist")]
+        public async Task<IActionResult> GenerateChecklistFromTitle(string taskId)
+        {
+            try
+            {
+                var task = await _taskRepo.GetByIdAsync(taskId);
+                if (task == null) return NotFound();
+
+                var checklistTitles = await _geminiService.GenerateChecklistAsync(task.Title);
+
+                // Tạo danh sách checklist tạm, chưa lưu vào DB
+                var checklists = checklistTitles.Select(title => new
+                {
+                    TaskId = taskId,
+                    Title = title,
+                    Status = "TO-DO",
+                    ManualInput = false,
+                    GenerationAiInput = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }).ToList();
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Checklist generated successfully (not saved)",
+                    Data = checklists
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating checklist: {ex.Message}"
+                });
+            }
+        }
+
+
+
 
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
@@ -54,8 +108,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] TaskCheckListRequestDTO request)
+        [HttpPost("{taskId}")]
+        public async Task<IActionResult> Create(string taskId, [FromBody] TaskCheckListRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -64,12 +118,14 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateTaskCheckList(request);
+                //request.TaskId = taskId; // Gán taskId từ route vào DTO
+                var result = await _service.CreateTaskCheckList(taskId,request);
+
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = 201,
-                    Message = "Task check list created successfully",
+                    Message = "Task checklist created successfully",
                     Data = result
                 });
             }
@@ -79,10 +135,11 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error creating task check list: {ex.Message}"
+                    Message = $"Error creating task checklist: {ex.Message}"
                 });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TaskCheckListRequestDTO request)
@@ -141,37 +198,29 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        //[HttpPatch("{id}/status")]
-        //public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
-        //{
-        //    try
-        //    {
-        //        var updated = await _service.ChangeTaskStatus(id, status);
-        //        return Ok(new ApiResponseDTO
-        //        {
-        //            IsSuccess = true,
-        //            Code = 200,
-        //            Message = "Task status updated successfully",
-        //            Data = updated
-        //        });
-        //    }
-        //    catch (KeyNotFoundException ex)
-        //    {
-        //        return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new ApiResponseDTO
-        //        {
-        //            IsSuccess = false,
-        //            Code = 500,
-        //            Message = $"Error updating task status: {ex.Message}"
-        //        });
-        //    }
-        //}
+        [HttpGet("by-task/{taskId}")]
+        public async Task<IActionResult> GetTaskCheckListByTaskId(string taskId)
+        {
+            try
+            {
+                var files = await _service.GetTaskCheckListByTaskIdAsync(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved task check list successfully.",
+                    Data = files
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving task check list: {ex.Message}"
+                });
+            }
+        }
     }
 }
