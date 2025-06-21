@@ -1,0 +1,17 @@
+﻿using IntelliPM.Data.DTOs.ProjectMetric.Response;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace IntelliPM.Services.ProjectMetricServices
+{
+    public interface IProjectMetricService
+    {
+        Task<List<ProjectMetricResponseDTO>> GetAllAsync();
+        Task<ProjectMetricResponseDTO> GetByIdAsync(int id);
+        Task<List<ProjectMetricResponseDTO>> GetByProjectIdAsync(int projectId);
+        Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId);
+    }
+}
