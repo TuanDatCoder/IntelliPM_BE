@@ -1,0 +1,34 @@
+﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace IntelliPM.Repositories.ProjectMetricRepos
+{
+    public class ProjectMetricRepository : IProjectMetricRepository
+    {
+        private readonly Su25Sep490IntelliPmContext _context;
+
+        public ProjectMetricRepository(Su25Sep490IntelliPmContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<ProjectMetric>> GetAllAsync()
+        {
+            return await _context.ProjectMetric.ToListAsync();
+        }
+
+        public async Task<ProjectMetric?> GetByIdAsync(int id)
+        {
+            return await _context.ProjectMetric.FindAsync(id);
+        }
+
+        public async Task<List<ProjectMetric>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMetric
+                .Where(m => m.ProjectId == projectId)
+                .ToListAsync();
+        }
+
+    }
+}
