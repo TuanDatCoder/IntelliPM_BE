@@ -23,6 +23,8 @@ public partial class Project
 
     public DateTime? EndDate { get; set; }
 
+    public string? IconUrl { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

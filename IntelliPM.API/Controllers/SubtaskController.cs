@@ -4,7 +4,7 @@ using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using IntelliPM.Services.TaskCheckListServices;
+using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 
 namespace IntelliPM.API.Controllers
@@ -12,19 +12,19 @@ namespace IntelliPM.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     //[Authorize]
-    public class TaskCheckListController : ControllerBase
+    public class SubtaskController : ControllerBase
     {
-        private readonly ITaskCheckListService _service;
+        private readonly ISubtaskService _service;
 
-        public TaskCheckListController(ITaskCheckListService service)
+        public SubtaskController(ISubtaskService service)
         {
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllTaskCheckList();
+            var result = await _service.GetAllSubtaskList();
             return Ok(new ApiResponseDTO
             {
                 IsSuccess = true,
@@ -35,11 +35,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(string id)
         {
             try
             {
-                var taskCheckList = await _service.GetTaskCheckListById(id);
+                var taskCheckList = await _service.GetSubtaskById(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -55,7 +55,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] TaskCheckListRequestDTO request)
+        public async Task<IActionResult> Create([FromBody] SubtaskRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -64,7 +64,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateTaskCheckList(request);
+                var result = await _service.CreateSubtask(request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -85,11 +85,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] TaskCheckListRequestDTO request)
+        public async Task<IActionResult> Update(string id, [FromBody] SubtaskRequestDTO request)
         {
             try
             {
-                var updated = await _service.UpdateTaskCheckList(id, request);
+                var updated = await _service.UpdateSubtask(id, request);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -114,11 +114,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
-                await _service.DeleteTaskCheckList(id);
+                await _service.DeleteSubtask(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
