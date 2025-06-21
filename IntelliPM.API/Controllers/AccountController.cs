@@ -1,4 +1,4 @@
-﻿using IntelliPM.Data.DTOs;
+﻿ using IntelliPM.Data.DTOs;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.AspNetCore.Authorization;
@@ -159,6 +159,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("/projects")]
+        [Authorize]
         public async Task<IActionResult> GetProjectsByAccount()
         {
             try
