@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
+using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.TaskCheckListRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -29,16 +30,21 @@ namespace IntelliPM.Services.TaskCheckListServices
             _logger = logger;
         }
 
-        public async Task<TaskCheckListResponseDTO> CreateTaskCheckList(TaskCheckListRequestDTO request)
+        public async Task<TaskCheckListResponseDTO> CreateTaskCheckList(string taskId, TaskCheckListRequestDTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
             if (string.IsNullOrEmpty(request.Title))
-                throw new ArgumentException("Task check list title is required.", nameof(request.Title));
+                throw new ArgumentException("Task checklist title is required.", nameof(request.Title));
 
             var entity = _mapper.Map<TaskCheckList>(request);
+
+            // Gán TaskId từ route
+            entity.TaskId = taskId;
             entity.Status = "TO-DO";
+            entity.ManualInput = true;
+            entity.GenerationAiInput = false;
 
             try
             {
@@ -46,15 +52,16 @@ namespace IntelliPM.Services.TaskCheckListServices
             }
             catch (DbUpdateException ex)
             {
-                throw new Exception($"Failed to create task check list due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+                throw new Exception($"Failed to create task checklist due to DB error: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to create task check list: {ex.Message}", ex);
+                throw new Exception($"Failed to create task checklist: {ex.Message}", ex);
             }
 
             return _mapper.Map<TaskCheckListResponseDTO>(entity);
         }
+
 
         public async Task DeleteTaskCheckList(int id)
         {
@@ -72,6 +79,11 @@ namespace IntelliPM.Services.TaskCheckListServices
             }
         }
 
+        //public Task<List<TaskCheckList>> GenerateChecklistFromTaskAsync(string taskId)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
         public async Task<List<TaskCheckListResponseDTO>> GetAllTaskCheckList()
         {
             var entities = await _repo.GetAllTaskCheckList();
@@ -85,6 +97,12 @@ namespace IntelliPM.Services.TaskCheckListServices
                 throw new KeyNotFoundException($"Task check list with ID {id} not found.");
 
             return _mapper.Map<TaskCheckListResponseDTO>(entity);
+        }
+
+        public async Task<List<TaskCheckListResponseDTO>> GetTaskCheckListByTaskIdAsync(string taskId)
+        {
+            var checkList = await _repo.GetTaskCheckListByTaskIdAsync(taskId);
+            return _mapper.Map<List<TaskCheckListResponseDTO>>(checkList);
         }
 
         public async Task<TaskCheckListResponseDTO> UpdateTaskCheckList(int id, TaskCheckListRequestDTO request)

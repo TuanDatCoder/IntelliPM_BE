@@ -29,6 +29,7 @@ using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
@@ -110,12 +111,16 @@ builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ITaskPlanningService, TaskPlanningService>();
 builder.Services.AddScoped<IProjectPositionService, ProjectPositionService>();
 builder.Services.AddScoped<ISprintService, SprintService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
+
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
 {
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
 });
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+
 
 //----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>

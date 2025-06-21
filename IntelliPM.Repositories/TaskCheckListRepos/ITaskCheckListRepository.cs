@@ -14,5 +14,7 @@ namespace IntelliPM.Repositories.TaskCheckListRepos
         Task Add(TaskCheckList taskCheckList);
         Task Update(TaskCheckList taskCheckList);
         Task Delete(TaskCheckList taskCheckList);
+        Task<List<TaskCheckList>> GetTaskCheckListByTaskIdAsync(string taskId);
+
     }
 }
