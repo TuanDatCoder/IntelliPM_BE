@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -23,14 +24,18 @@ namespace IntelliPM.Services.EpicServices
         private readonly IProjectRepository _projectRepo;
         private readonly ITaskRepository _taskRepo;
         private readonly ILogger<EpicService> _logger;
+        private readonly IEpicRepository _epicRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
 
-        public EpicService(IMapper mapper, IEpicRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger)
+        public EpicService(IMapper mapper, IEpicRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, IEpicRepository epicRepo, ISubtaskRepository subtaskRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
+            _epicRepo = epicRepo;
+            _subtaskRepo = subtaskRepo;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -80,11 +85,13 @@ namespace IntelliPM.Services.EpicServices
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<Epic>(request);
-            entity.Id = await IdGenerator.GenerateNextId(projectKey, _repo, _taskRepo, _projectRepo); 
+            Console.WriteLine("Generated ID: " + entity.Id);
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo); 
            
 
             try
             {
+                Console.WriteLine("Generated Subtask ID: " + entity.Id);
                 await _repo.Add(entity);
             }
             catch (DbUpdateException ex)
