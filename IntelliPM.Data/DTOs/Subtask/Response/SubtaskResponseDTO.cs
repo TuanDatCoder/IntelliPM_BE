@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.TaskCheckList.Response
 {
-    public class TaskCheckListResponseDTO
+    public class SubtaskResponseDTO
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         public string TaskId { get; set; }
 

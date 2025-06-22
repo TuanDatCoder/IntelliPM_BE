@@ -158,7 +158,7 @@ namespace IntelliPM.API.Controllers
         }
         }
 
-        [HttpGet("/projects")]
+        [HttpGet("projects")]
         [Authorize]
         public async Task<IActionResult> GetProjectsByAccount()
         {

@@ -11,6 +11,7 @@ namespace IntelliPM.API.Controllers
     public class AiController : ControllerBase
     {
         private readonly ITaskPlanningService _taskPlanningService;
+  
 
         public AiController(ITaskPlanningService taskPlanningService)
         {
@@ -61,6 +62,8 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+       
 
     }
 }

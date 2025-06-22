@@ -162,11 +162,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
 
             // TaskCheckList
-            CreateMap<TaskCheckListRequestDTO, TaskCheckList>()
+            CreateMap<SubtaskRequestDTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-            CreateMap<TaskCheckList, TaskCheckListResponseDTO>();
+            CreateMap<Subtask, SubtaskResponseDTO>();
 
             // TaskComment
             CreateMap<TaskCommentRequestDTO, TaskComment>()

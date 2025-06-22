@@ -37,6 +37,8 @@ public partial class Account
 
     public DateOnly? DateOfBirth { get; set; }
 
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();
@@ -65,11 +67,13 @@ public partial class Account
 
     public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
 
+    public virtual ICollection<Subtask> Subtask { get; set; } = new List<Subtask>();
+
+    public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
+
     public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
-
-    public virtual ICollection<TaskStatusLog> TaskStatusLog { get; set; } = new List<TaskStatusLog>();
 
     public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }
