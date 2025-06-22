@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.Entities;
@@ -140,6 +141,19 @@ namespace IntelliPM.Services.SprintServices
             }
 
             return _mapper.Map<SprintResponseDTO>(entity);
+        }
+
+        public async Task<List<SprintResponseDTO>> GetSprintByProjectId(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _repo.GetByProjectIdAsync(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No sprints found for Project ID {projectId}.");
+
+            return _mapper.Map<List<SprintResponseDTO>>(entities);
         }
     }
 }
