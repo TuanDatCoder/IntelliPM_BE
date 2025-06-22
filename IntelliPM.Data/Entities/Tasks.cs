@@ -61,6 +61,8 @@ public partial class Tasks
 
     public string? Status { get; set; }
 
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
     public virtual ICollection<Document> Document { get; set; } = new List<Document>();
 
     public virtual Epic? Epic { get; set; }
@@ -75,9 +77,9 @@ public partial class Tasks
 
     public virtual Sprint? Sprint { get; set; }
 
-    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
+    public virtual ICollection<Subtask> Subtask { get; set; } = new List<Subtask>();
 
-    public virtual ICollection<TaskCheckList> TaskCheckList { get; set; } = new List<TaskCheckList>();
+    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
 
@@ -90,6 +92,4 @@ public partial class Tasks
     public virtual ICollection<TaskFile> TaskFile { get; set; } = new List<TaskFile>();
 
     public virtual ICollection<TaskLabel> TaskLabel { get; set; } = new List<TaskLabel>();
-
-    public virtual ICollection<TaskStatusLog> TaskStatusLog { get; set; } = new List<TaskStatusLog>();
 }

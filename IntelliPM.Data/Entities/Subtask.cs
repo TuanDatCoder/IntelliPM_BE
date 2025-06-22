@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace IntelliPM.Data.Entities;
 
-public partial class TaskCheckList
+public partial class Subtask
 {
-    public int Id { get; set; }
+    public string Id { get; set; } = null!;
 
     public string TaskId { get; set; } = null!;
+
+    public int AssignedBy { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -22,6 +24,14 @@ public partial class TaskCheckList
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
+    public virtual Account AssignedByNavigation { get; set; } = null!;
+
+    public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
+
+    public virtual ICollection<SubtaskFile> SubtaskFile { get; set; } = new List<SubtaskFile>();
 
     public virtual Tasks Task { get; set; } = null!;
 }
