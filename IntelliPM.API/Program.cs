@@ -9,6 +9,7 @@ using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectMetricRepos;
 using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
@@ -38,6 +39,7 @@ using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
+using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RequirementServices;
@@ -55,6 +57,8 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpClient<ProjectMetricService>();
 
 // Add services to the container.
 
@@ -84,6 +88,7 @@ builder.Services.AddScoped<ITaskFileRepository, TaskFileRepository>();
 builder.Services.AddScoped<ITaskAssignmentRepository, TaskAssignmentRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectPositionRepository, ProjectPositionRepository>();
+builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -111,8 +116,8 @@ builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ITaskPlanningService, TaskPlanningService>();
 builder.Services.AddScoped<IProjectPositionService, ProjectPositionService>();
 builder.Services.AddScoped<ISprintService, SprintService>();
+builder.Services.AddScoped<IProjectMetricService, ProjectMetricService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
-
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
