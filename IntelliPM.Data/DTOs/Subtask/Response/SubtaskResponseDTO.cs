@@ -8,11 +8,15 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
 {
     public class SubtaskResponseDTO
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = null!;
 
-        public string TaskId { get; set; }
+        public string TaskId { get; set; } = null!;
+
+        public int AssignedBy { get; set; }
 
         public string Title { get; set; } = null!;
+
+        public string? Description { get; set; }
 
         public string? Status { get; set; }
 

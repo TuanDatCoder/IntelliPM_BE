@@ -14,10 +14,10 @@ public class GeminiService : IGeminiService
         _httpClient = httpClient;
     }
 
-    public async Task<List<string>> GenerateChecklistAsync(string taskTitle)
+    public async Task<List<string>> GenerateSubtaskAsync(string taskTitle)
     {
-        var prompt = @$"Please list 5 to 7 specific checklist items required to complete the task titled: ""{taskTitle}"".
-Each checklist item must follow **this exact JSON format** and be returned as a JSON array only (no explanation):
+        var prompt = @$"Please list 5 to 7 specific Subtask items required to complete the task titled: ""{taskTitle}"".
+Each Subtask item must follow **this exact JSON format** and be returned as a JSON array only (no explanation):
 
 [
   {{

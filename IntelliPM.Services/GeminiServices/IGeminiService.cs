@@ -8,7 +8,7 @@ namespace IntelliPM.Services.GeminiServices
 {
     public interface IGeminiService
     {
-        Task<List<string>> GenerateChecklistAsync(string taskTitle);
+        Task<List<string>> GenerateSubtaskAsync(string taskTitle);
     }
 
 }

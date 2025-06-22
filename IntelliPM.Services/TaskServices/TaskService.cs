@@ -6,6 +6,7 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -24,13 +25,15 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskRepository _taskRepo;
         private readonly IEpicRepository _epicRepo;
         private readonly IProjectRepository _projectRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
             _epicRepo = epicRepo;
             _projectRepo = projectRepo;
+            _subtaskRepo = subtaskRepo;
         }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
@@ -80,7 +83,7 @@ namespace IntelliPM.Services.TaskServices
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<Tasks>(request);
-            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo);
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
            // entity.CreatedAt = DateTime.UtcNow;
             //entity.UpdatedAt = DateTime.UtcNow;
 
