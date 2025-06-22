@@ -1,14 +1,15 @@
-﻿using IntelliPM.Data.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.TaskCheckList.Request
+namespace IntelliPM.Data.DTOs.Subtask.Request
 {
-    public class SubtaskRequestDTO
+    public class SubtaskRequest1DTO
     {
+        public string TaskId { get; set; } = null!;
+
         public int AssignedBy { get; set; }
 
         public string Title { get; set; } = null!;
