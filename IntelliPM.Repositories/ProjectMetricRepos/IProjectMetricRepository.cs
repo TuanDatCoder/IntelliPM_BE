@@ -12,5 +12,7 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
         Task<List<ProjectMetric>> GetAllAsync();
         Task<ProjectMetric?> GetByIdAsync(int id);
         Task<List<ProjectMetric>> GetByProjectIdAsync(int projectId);
+        Task Add(ProjectMetric metric);
+        Task<ProjectMetric?> GetLatestByProjectIdAsync(int projectId);
     }
 }

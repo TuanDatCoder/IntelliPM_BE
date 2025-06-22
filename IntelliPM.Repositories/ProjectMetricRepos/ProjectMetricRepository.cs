@@ -13,6 +13,12 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
             _context = context;
         }
 
+        public async Task Add(ProjectMetric metric)
+        {
+            await _context.ProjectMetric.AddAsync(metric);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<List<ProjectMetric>> GetAllAsync()
         {
             return await _context.ProjectMetric.ToListAsync();
@@ -28,6 +34,14 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
             return await _context.ProjectMetric
                 .Where(m => m.ProjectId == projectId)
                 .ToListAsync();
+        }
+
+        public async Task<ProjectMetric?> GetLatestByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMetric
+                .Where(x => x.ProjectId == projectId)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
         }
 
     }
