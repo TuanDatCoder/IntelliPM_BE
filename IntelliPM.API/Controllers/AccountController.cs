@@ -1,5 +1,6 @@
-﻿using IntelliPM.Data.DTOs;
+﻿ using IntelliPM.Data.DTOs;
 using IntelliPM.Services.AccountServices;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -11,13 +12,15 @@ namespace IntelliPM.API.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IAccountService _accountService;
+        private readonly IProjectMemberService _projectMemberService;
 
-        public AccountController(IAccountService accountService)
+        public AccountController(IAccountService accountService, IProjectMemberService projectMemberService)
         {
             _accountService = accountService;
+            _projectMemberService = projectMemberService;
         }
 
-        [HttpPost("/{accountId}/upload-avatar")]
+        [HttpPost("{accountId}/upload-avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatar(int accountId, IFormFile file)
         {
@@ -55,7 +58,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("/upload-avatar")]
+        [HttpPost("upload-avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatarByToken(IFormFile file)
         {
@@ -132,6 +135,56 @@ namespace IntelliPM.API.Controllers
         }
 
 
+        [HttpGet("{accountId}/projects")]
+        public async Task<IActionResult> GetProjectsByAccountId(int accountId)
+        {
+            try
+            {
+                
+            
+                var result = await _projectMemberService.GetProjectsByAccountId(accountId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Projects retrieved successfully for the account",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+        }
+        }
+
+        [HttpGet("projects")]
+        [Authorize]
+        public async Task<IActionResult> GetProjectsByAccount()
+        {
+            try
+            {
+
+                var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+                }
+                var result = await _projectMemberService.GetProjectsByAccount(token);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Projects retrieved successfully for the account",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
 
     }
 }

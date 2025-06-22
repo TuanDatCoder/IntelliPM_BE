@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Services.ProjectPositionServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/project-members/{projectMemberId}/positions")]
+    [Route("api/project-member/{projectMemberId}/[controller]")]
     [Authorize] // Yêu cầu xác thực cho toàn bộ controller
     public class ProjectPositionController : ControllerBase
     {
@@ -84,6 +85,44 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error adding project position: {ex.Message}"
+                });
+            }
+        }
+        [HttpPost("bulk")]
+        public async Task<IActionResult> AddBulk(int projectMemberId, [FromBody] List<ProjectPositionRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
+            }
+
+            try
+            {
+                var results = new List<ProjectPositionResponseDTO>();
+                foreach (var request in requests)
+                {
+                    if (!ModelState.IsValid || request.ProjectMemberId != projectMemberId)
+                    {
+                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data or project member ID mismatch." });
+                    }
+                    var result = await _service.AddProjectPosition(request);
+                    results.Add(result);
+                }
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Project positions added successfully",
+                    Data = results
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error adding project positions: {ex.Message}"
                 });
             }
         }

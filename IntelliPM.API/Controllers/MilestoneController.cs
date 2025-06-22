@@ -8,7 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/milestones")]
+    [Route("api/[controller]")]
     [Authorize] // Yêu cầu xác thực cho toàn bộ controller
     public class MilestoneController : ControllerBase
     {
@@ -19,7 +19,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllMilestones();
@@ -195,5 +195,39 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("by-project-id")] 
+        public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
+        {
+            try
+            {
+                var milestones = await _service.GetMilestonesByProjectIdAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Milestones retrieved successfully",
+                    Data = milestones
+                });
+            }
+            catch(KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+
     }
 }

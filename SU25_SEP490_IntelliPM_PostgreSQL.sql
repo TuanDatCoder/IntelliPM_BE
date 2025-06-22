@@ -1,4 +1,4 @@
--- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
+﻿-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
 
 -- Create database
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
@@ -40,6 +40,7 @@ CREATE TABLE refresh_token (
 -- 3. project
 CREATE TABLE project (
     id SERIAL PRIMARY KEY,
+    project_key VARCHAR(10) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     budget DECIMAL(15, 2) NULL,
@@ -47,6 +48,7 @@ CREATE TABLE project (
     created_by INT NOT NULL,
     start_date TIMESTAMPTZ NULL,
     end_date TIMESTAMPTZ NULL,
+    icon_url TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
@@ -55,7 +57,7 @@ CREATE TABLE project (
 
 -- 4. epic
 CREATE TABLE epic (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     project_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
@@ -85,6 +87,7 @@ CREATE TABLE sprint (
 CREATE TABLE milestone (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
+    sprint_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     start_date TIMESTAMPTZ NULL,
@@ -92,17 +95,17 @@ CREATE TABLE milestone (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (project_id) REFERENCES project(id)
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
 -- 7. tasks
 CREATE TABLE tasks (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
     project_id INT NOT NULL,
-    epic_id INT NULL,
+    epic_id VARCHAR(255) NULL,
     sprint_id INT NULL,
-    milestone_id INT NULL,
     type VARCHAR(50) NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
@@ -129,14 +132,13 @@ CREATE TABLE tasks (
     FOREIGN KEY (reporter_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-    FOREIGN KEY (milestone_id) REFERENCES milestone(id)
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
 -- 8. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     account_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
@@ -146,46 +148,71 @@ CREATE TABLE task_assignment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 9. task_check_list
-CREATE TABLE task_check_list (
-    id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+-- 9. subtask (replaced task_check_list)
+CREATE TABLE subtask (
+    id VARCHAR(255) PRIMARY KEY,
+    task_id VARCHAR(255) NOT NULL,
+    assigned_by INT NOT NULL,
     title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
     status VARCHAR(50) NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (task_id) REFERENCES tasks(id)
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (assigned_by) REFERENCES account(id)
 );
 
--- 10. task_comment
+-- 10. subtask_file
+CREATE TABLE subtask_file (
+    id SERIAL PRIMARY KEY,
+    subtask_id VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    url_file VARCHAR(1024) NOT NULL,
+    status VARCHAR(50) NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+);
+
+-- 11. subtask_comment
+CREATE TABLE subtask_comment (
+    id SERIAL PRIMARY KEY,
+    subtask_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+    FOREIGN KEY (account_id) REFERENCES account(id)
+);
+
+-- 12. task_comment (renumbered due to subtask changes)
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
-    user_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (user_id) REFERENCES account(id)
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 11. task_dependency
+-- 13. task_dependency (renumbered)
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
-    linked_from INT NOT NULL,
-    linked_to INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
+    linked_from VARCHAR(255) NOT NULL,
+    linked_to VARCHAR(255) NOT NULL,
     type VARCHAR(50) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (linked_from) REFERENCES tasks(id),
     FOREIGN KEY (linked_to) REFERENCES tasks(id)
 );
 
--- 12. task_file
+-- 14. task_file (renumbered)
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     url_file VARCHAR(1024) NOT NULL,
     status VARCHAR(50) NULL,
@@ -193,22 +220,11 @@ CREATE TABLE task_file (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 13. task_status_log
-CREATE TABLE task_status_log (
-    id SERIAL PRIMARY KEY,
-    task_id INT NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    changed_by INT NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (changed_by) REFERENCES account(id)
-);
-
--- 14. document
+-- 15. document
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id INT NULL,
+    task_id VARCHAR(255) NULL,
     title VARCHAR(255) NOT NULL,
     type VARCHAR(100) NULL,
     template TEXT NULL,
@@ -225,7 +241,7 @@ CREATE TABLE document (
     FOREIGN KEY (updated_by) REFERENCES account(id)
 );
 
--- 15. document_permission
+-- 16. document_permission
 CREATE TABLE document_permission (
     id SERIAL PRIMARY KEY,
     document_id INT NOT NULL,
@@ -236,18 +252,20 @@ CREATE TABLE document_permission (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 16. project_member
+-- 17. project_member
 CREATE TABLE project_member (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
     project_id INT NOT NULL,
     joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NULL, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)
 );
 
--- 17. project_position
+-- 18. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
     project_member_id INT NOT NULL,
@@ -256,7 +274,7 @@ CREATE TABLE project_position (
     FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 18. notification
+-- 19. notification
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     created_by INT NOT NULL,
@@ -270,7 +288,7 @@ CREATE TABLE notification (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 19. recipient_notification
+-- 20. recipient_notification
 CREATE TABLE recipient_notification (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
@@ -281,7 +299,7 @@ CREATE TABLE recipient_notification (
     FOREIGN KEY (notification_id) REFERENCES notification(id)
 );
 
--- 20. meeting
+-- 21. meeting
 CREATE TABLE meeting (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -296,7 +314,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 21. meeting_document
+-- 22. meeting_document
 CREATE TABLE meeting_document (
     meeting_id INT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -310,7 +328,7 @@ CREATE TABLE meeting_document (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 22. meeting_log
+-- 23. meeting_log
 CREATE TABLE meeting_log (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -321,7 +339,7 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 23. meeting_participant
+-- 24. meeting_participant
 CREATE TABLE meeting_participant (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -334,7 +352,7 @@ CREATE TABLE meeting_participant (
     UNIQUE (meeting_id, account_id)
 );
 
--- 24. meeting_transcript
+-- 25. meeting_transcript
 CREATE TABLE meeting_transcript (
     meeting_id INT PRIMARY KEY,
     transcript_text TEXT NOT NULL,
@@ -342,7 +360,7 @@ CREATE TABLE meeting_transcript (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id)
 );
 
--- 25. meeting_summary
+-- 26. meeting_summary
 CREATE TABLE meeting_summary (
     meeting_transcript_id INT PRIMARY KEY,
     summary_text TEXT NOT NULL,
@@ -350,7 +368,7 @@ CREATE TABLE meeting_summary (
     FOREIGN KEY (meeting_transcript_id) REFERENCES meeting_transcript(meeting_id)
 );
 
--- 26. milestone_feedback
+-- 27. milestone_feedback
 CREATE TABLE milestone_feedback (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -362,12 +380,12 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 27. risk
+-- 28. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     responsible_id INT NOT NULL,
     project_id INT NOT NULL,
-    task_id INT NULL,
+    task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
@@ -385,7 +403,7 @@ CREATE TABLE risk (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 28. risk_solution
+-- 29. risk_solution
 CREATE TABLE risk_solution (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -396,7 +414,7 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 29. change_request
+-- 30. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -410,11 +428,11 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 30. project_recommendation
+-- 31. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -422,29 +440,30 @@ CREATE TABLE project_recommendation (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 31. label
+-- 32. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     color_code VARCHAR(7) NULL,
     description TEXT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'AC',
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 32. task_label
+-- 33. task_label
 CREATE TABLE task_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
-    task_id INT NOT NULL,
+    task_id VARCHAR(255) NOT NULL,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (label_id) REFERENCES label(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     UNIQUE (label_id, task_id)
 );
 
--- 33. requirement
+
+-- 34. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -457,7 +476,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 34. project_metric
+-- 35. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -477,7 +496,7 @@ CREATE TABLE project_metric (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 35. system_configuration
+-- 36. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -493,47 +512,64 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 36. dynamic_category
+-- 37. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
-    code VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    label VARCHAR(255) NOT NULL,
     description TEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (category_group, code)
+    UNIQUE (category_group, name)
 );
 
+-- 38. activity_log
+CREATE TABLE activity_log (
+    id SERIAL PRIMARY KEY,
+    project_id INT NULL,
+    task_id VARCHAR(255) NULL,
+    subtask_id VARCHAR(255) NULL,
+    related_entity_type VARCHAR(100) NOT NULL, -- TASK, PROJECT, COMMENT, FILE, SUBTASK, etc.
+    related_entity_id VARCHAR(255) NULL,       -- ID của entity thay đổi
+    action_type VARCHAR(100) NOT NULL,         -- CREATE, UPDATE, DELETE, STATUS_CHANGE, COMMENT, etc.
+    field_changed VARCHAR(100) NULL,           -- Nếu là UPDATE thì ghi field nào thay đổi
+    old_value TEXT NULL,
+    new_value TEXT NULL,
+    message TEXT NULL,                         -- Tuỳ chọn: mô tả thân thiện
+    created_by INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES account(id),
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+);
 --------------------------------------------------------------
-
-
 
 -- Insert sample data into account
 INSERT INTO account (username, full_name, email, password, role, position, phone, gender, google_id, status, address, picture)
 VALUES 
-	('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM LEADER', 'TEAM LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('stakeholder', 'Nguyen Van KH', 'teamstakeholder@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'STAKEHOLDER', 'STAKEHOLDER', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('pojectManager', 'Tran Thi B', 'pojectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT MANAGER', 'PROJECT MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberFE', 'Le Van C', 'teammemberfe@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'FRONTEND DEVELOPER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberFE2', 'Pham Van D', 'teamMemberfe2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'FRONTEND DEVELOPER', '0923456789', 'MALE', 'google4', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberFE3', 'Hoang Van E', 'teamMemberfe3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'FRONTEND DEVELOPER', '0934567890', 'MALE', 'google5', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBE', 'Hoang Van F', 'teamMemberbe@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'FRONTEND DEVELOPER', '0934567890', 'MALE', 'google6', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBE2', 'Hoang Van E', 'teamMemberbe2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BACKEND DEVELOPER', '0934567890', 'MALE', 'google7', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBE3', 'Hoang Van P', 'teamMemberbe3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BACKEND DEVELOPER', '0934567890', 'MALE', 'google8', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBE4', 'Hoang Van R', 'teamMemberbe4@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BACKEND DEVELOPER', '0934567890', 'MALE', 'google9', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberTS', 'Le Van Q', 'teammemberts@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberTS2', 'Pham Van W', 'teamMemberts2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0923456789', 'MALE', 'google10', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberTS3', 'Hoang Van T', 'teamMemberts3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0934567890', 'MALE', 'google11', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBA', 'Hoang Van U', 'teamMemberba@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BUSINESS ANALYST', '0934567890', 'MALE', 'google12', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBA2', 'Hoang Van L', 'teamMemberba2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BUSINESS ANALYST', '0934567890', 'MALE', 'google13', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBA3', 'Hoang Van K', 'teamMemberba3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BUSINESS ANALYST', '0934567890', 'MALE', 'google14', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberBA4', 'Hoang Van H', 'teamMemberBA@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'BACKEND DEVELOPER', '0934567890', 'MALE', 'google15', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-	('teamMemberDS', 'Le Van Q', 'teammemberds@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0912345678', 'Male', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberDS2', 'Pham Van W', 'teamMemberds2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0923456789', 'MALE', 'google16', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamMemberDS3', 'Hoang Van T', 'teamMemberds3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM MEMBER', 'TESTER', '0934567890', 'MALE', 'google17', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219');
+    ('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_LEADER', 'TEAM_LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('client', 'Nguyen Van KH', 'client@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'CLIENT', 'CLIENT', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('projectManager', 'Tran Thi B', 'projectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT_MANAGER', 'PROJECT_MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberFE', 'Le Van C', 'teammemberfe@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberFE2', 'Pham Van D', 'teamMemberfe2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0923456789', 'MALE', 'google4', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberFE3', 'Hoang Van E', 'teamMemberfe3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0934567890', 'MALE', 'google5', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBE', 'Hoang Van Dat', 'teamMemberbe@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BACKEND_DEVELOPER', '0934567890', 'MALE', 'google6', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBE2', 'Hoang Van E', 'teamMemberbe2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BACKEND_DEVELOPER', '0934567890', 'MALE', 'google7', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBE3', 'Hoang Van P', 'teamMemberbe3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BACKEND_DEVELOPER', '0934567890', 'MALE', 'google8', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBE4', 'Hoang Van R', 'teamMemberbe4@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BACKEND_DEVELOPER', '0934567890', 'MALE', 'google9', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberTS', 'Le Van Q', 'teammemberts@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'TESTER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberTS2', 'Pham Van W', 'teamMemberts2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'TESTER', '0923456789', 'MALE', 'google10', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberTS3', 'Hoang Van T', 'teamMemberts3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'TESTER', '0934567890', 'MALE', 'google11', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBA', 'Hoang Van U', 'teamMemberba@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BUSINESS_ANALYST', '0934567890', 'MALE', 'google12', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBA2', 'Hoang Van L', 'teamMemberba2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BUSINESS_ANALYST', '0934567890', 'MALE', 'google13', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBA3', 'Hoang Van K', 'teamMemberba3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BUSINESS_ANALYST', '0934567890', 'MALE', 'google14', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberBA4', 'Hoang Van H', 'teamMemberBA@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'BACKEND_DEVELOPER', '0934567890', 'MALE', 'google15', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberDS', 'Le Van Q', 'teammemberds@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'DESIGNER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberDS2', 'Pham Van W', 'teamMemberds2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'DESIGNER', '0923456789', 'MALE', 'google16', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamMemberDS3', 'Hoang Van T', 'teamMemberds3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'DESIGNER', '0934567890', 'MALE', 'google17', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219');
 
 -- Insert sample data into refresh_token
 INSERT INTO refresh_token (expired_at, token, account_id)
@@ -544,178 +580,190 @@ VALUES
     ('2025-06-04 00:00:00+00', 'token_4_jkl012', 4),
     ('2025-06-05 00:00:00+00', 'token_5_mno345', 5);
 
--- Insert sample data into project
-INSERT INTO project (name, description, budget, project_type, created_by, start_date, end_date, status)
+-- Insert sample data into project (gán project_key + icon_url)
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url, status)
 VALUES 
-    ('Project A', 'Development project', 1000000.00, 'SW', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IP'),
-    ('Project B', 'Marketing campaign', 500000.00, 'MK', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'PL'),
-    ('Project C', 'Research project', 750000.00, 'RS', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'OH'),
-    ('Project D', 'UI/UX Design', 300000.00, 'SW', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'CM'),
-    ('Project E', 'Testing project', 400000.00, 'SW', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'IP');
+    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-a.png', 'IN_PROGRESS'),
+    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'https://example.com/icons/project-b.png', 'PLANNING'),
+    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'https://example.com/icons/project-c.png', 'ON_HOLD'),
+    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://example.com/icons/project-d.png', 'COMPLETED'),
+    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-e.png', 'IN_REVIEW');
 
--- Insert sample data into epic
-INSERT INTO epic (project_id, name, description, start_date, end_date, status)
+-- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
+INSERT INTO epic (id, project_id, name, description, start_date, end_date, status)
 VALUES 
-    (1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IP'),
-    (1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'PL'),
-    (2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'CM'),
-    (3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'OH'),
-    (4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'CM'),
-    (5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'IP');
+    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS'),
+    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO'),
+    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE'),
+    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS'),
+    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE'),
+    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO');
 
 -- Insert sample data into sprint
 INSERT INTO sprint (project_id, name, goal, start_date, end_date, status)
 VALUES 
-    (1, 'Sprint 1', 'Implement login', '2025-06-01 00:00:00+00', '2025-06-15 00:00:00+00', 'CM'),
-    (1, 'Sprint 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-30 00:00:00+00', 'IP'),
-    (2, 'Sprint 3', 'Launch campaign', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'PL'),
-    (3, 'Sprint 4', 'Initial research', '2025-08-01 00:00:00+00', '2025-08-15 00:00:00+00', 'OH'),
-    (4, 'Sprint 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-10 00:00:00+00', 'CM'),
-    (5, 'Sprint 6', 'Test automation', '2025-10-01 00:00:00+00', '2025-10-15 00:00:00+00', 'IP');
+    (1, 'Sprint 1', 'Implement login', '2025-06-01 00:00:00+00', '2025-06-15 00:00:00+00', 'COMPLETED'),
+    (1, 'Sprint 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-30 00:00:00+00', 'IN_PROGRESS'),
+    (2, 'Sprint 3', 'Launch campaign', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'PLANNING'),
+    (3, 'Sprint 4', 'Initial research', '2025-08-01 00:00:00+00', '2025-08-15 00:00:00+00', 'ON_HOLD'),
+    (4, 'Sprint 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-10 00:00:00+00', 'COMPLETED'),
+    (5, 'Sprint 6', 'Test automation', '2025-10-01 00:00:00+00', '2025-10-15 00:00:00+00', 'IN_PROGRESS');
 
 -- Insert sample data into milestone
 INSERT INTO milestone (project_id, name, description, start_date, end_date, status)
 VALUES 
-    (1, 'Milestone 1', 'Beta release', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'IP'),
-    (2, 'Milestone 2', 'Campaign launch', '2025-07-15 00:00:00+00', '2025-07-20 00:00:00+00', 'PL'),
-    (3, 'Milestone 3', 'Research complete', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'OH'),
-    (4, 'Milestone 4', 'UI review', '2025-09-10 00:00:00+00', '2025-09-12 00:00:00+00', 'CM'),
-    (5, 'Milestone 5', 'Test plan', '2025-10-15 00:00:00+00', '2025-10-20 00:00:00+00', 'IP');
+    (1, 'Milestone 1', 'Beta release', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'IN_PROGRESS'),
+    (2, 'Milestone 2', 'Campaign launch', '2025-07-15 00:00:00+00', '2025-07-20 00:00:00+00', 'PLANNING'),
+    (3, 'Milestone 3', 'Research complete', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'ON_HOLD'),
+    (4, 'Milestone 4', 'UI review', '2025-09-10 00:00:00+00', '2025-09-12 00:00:00+00', 'COMPLETED'),
+    (5, 'Milestone 5', 'Test plan', '2025-10-15 00:00:00+00', '2025-10-20 00:00:00+00', 'IN_PROGRESS');
 
--- Insert sample data into tasks
-INSERT INTO tasks (reporter_id, project_id, epic_id, sprint_id, milestone_id, type, manual_input, generation_ai_input, title, description, planned_start_date, planned_end_date, duration, actual_start_date, actual_end_date, percent_complete, planned_hours, actual_hours, planned_cost, planned_resource_cost, actual_cost, actual_resource_cost, remaining_hours, priority, evaluate, status)
+-- Insert sample data into tasks (sử dụng project_key-số_thứ_tự)
+INSERT INTO tasks (id, reporter_id, project_id, epic_id, sprint_id, type, manual_input, generation_ai_input, title, description, planned_start_date, planned_end_date, duration, actual_start_date, actual_end_date, percent_complete, planned_hours, actual_hours, planned_cost, planned_resource_cost, actual_cost, actual_resource_cost, remaining_hours, priority, evaluate, status)
 VALUES 
-    (1, 1, 1, 1, 1, 'ST', FALSE, FALSE, 'Task 1', 'Build login page', '2025-06-01 00:00:00+00', '2025-06-05 00:00:00+00', '5 days', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 100.00, 40.00, 38.00, 5000.00, 4000.00, 4800.00, 3800.00, 0.00, 'High', 'Good', 'CM'),
-    (2, 1, 1, 2, 1, 'ST', FALSE, TRUE, 'Task 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-20 00:00:00+00', '4 days', '2025-06-16 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3000.00, 2000.00, 1500.00, 16.00, 'Medium', NULL, 'IP'),
-    (3, 2, 3, 3, 2, 'TS', TRUE, FALSE, 'Task 3', 'Setup ads', '2025-07-01 00:00:00+00', '2025-07-05 00:00:00+00', '4 days', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 100.00, 24.00, 22.00, 3000.00, 2500.00, 2800.00, 2300.00, 0.00, 'Low', 'Excellent', 'CM'),
-    (4, 3, 4, 4, 3, 'TS', FALSE, FALSE, 'Task 4', 'Gather data', '2025-08-01 00:00:00+00', '2025-08-10 00:00:00+00', '9 days', '2025-08-01 00:00:00+00', NULL, 30.00, 72.00, 20.00, 9000.00, 8000.00, 2500.00, 2000.00, 52.00, 'High', NULL, 'OH'),
-    (5, 4, 5, 5, 4, 'ST', TRUE, TRUE, 'Task 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'Medium', 'Good', 'CM'),
-    (5, 5, 6, 6, 5, 'TS', FALSE, TRUE, 'Task 6', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'Medium', NULL, 'IP');
+    ('PROJA-3', 1, 1, 'PROJA-1', 1, 'STORY', FALSE, FALSE, 'Build login page', 'Build login page', '2025-06-01 00:00:00+00', '2025-06-05 00:00:00+00', '5 days', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 100.00, 40.00, 38.00, 5000.00, 4000.00, 4800.00, 3800.00, 0.00, 'HIGH', 'Good', 'IN_PROGRESS'),
+    ('PROJA-4', 2, 1, 'PROJA-1', 2, 'STORY', FALSE, TRUE, 'Add dashboard', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-20 00:00:00+00', '4 days', '2025-06-16 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3000.00, 2000.00, 1500.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS'),
+    ('PROJB-2', 3, 2, 'PROJB-1', 3, 'TASK', TRUE, FALSE, 'Setup ads', 'Setup ads', '2025-07-01 00:00:00+00', '2025-07-05 00:00:00+00', '4 days', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 100.00, 24.00, 22.00, 3000.00, 2500.00, 2800.00, 2300.00, 0.00, 'LOW', 'Excellent', 'IN_PROGRESS'),
+    ('PROJC-2', 4, 3, 'PROJC-1', 4, 'TASK', FALSE, FALSE, 'Gather data', 'Gather data', '2025-08-01 00:00:00+00', '2025-08-10 00:00:00+00', '9 days', '2025-08-01 00:00:00+00', NULL, 30.00, 72.00, 20.00, 9000.00, 8000.00, 2500.00, 2000.00, 52.00, 'HIGH', NULL, 'IN_PROGRESS'),
+    ('PROJD-2', 5, 4, 'PROJD-1', 5,'STORY', TRUE, TRUE, 'Design UI', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'MEDIUM', 'Good', 'IN_PROGRESS'),
+    ('PROJE-2', 5, 5, 'PROJE-1', 6, 'TASK', FALSE, TRUE, 'Setup automation tests', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS');
 
 -- Insert sample data into task_assignment
 INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, hourly_rate)
 VALUES 
-    (1, 1, 'AS', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 50.00),
-    (2, 2, 'IP', '2025-06-16 00:00:00+00', NULL, 45.00),
-    (3, 3, 'CM', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 40.00),
-    (4, 4, 'OH', '2025-08-01 00:00:00+00', NULL, 55.00),
-    (5, 5, 'CM', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 60.00),
-    (6, 5, 'IP', '2025-10-01 00:00:00+00', NULL, 60.00);
+    ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 50.00),
+    ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+00', NULL, 45.00),
+    ('PROJB-2', 3, 'IN_PROGRESS', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 40.00),
+    ('PROJC-2', 4, 'IN_PROGRESS', '2025-08-01 00:00:00+00', NULL, 55.00),
+    ('PROJD-2', 5, 'IN_PROGRESS', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 60.00),
+    ('PROJE-2', 5, 'IN_PROGRESS', '2025-10-01 00:00:00+00', NULL, 60.00);
 
--- Insert sample data into task_check_list
-INSERT INTO task_check_list (task_id, title, status, manual_input, generation_ai_input)
-VALUES 
-    (1, 'Check login UI', 'CM', FALSE, FALSE),
-    (2, 'Test dashboard', 'IP', TRUE, FALSE),
-    (3, 'Verify ads', 'CM', FALSE, TRUE),
-    (4, 'Review data', 'OH', FALSE, FALSE),
-    (5, 'Approve design', 'CM', TRUE, TRUE),
-    (6, 'Setup test scripts', 'IP', FALSE, TRUE);
 
 -- Insert sample data into task_comment
-INSERT INTO task_comment (task_id, user_id, content)
+INSERT INTO task_comment (task_id, account_id, content)
 VALUES 
-    (1, 1, 'Login page looks good'),
-    (2, 2, 'Need more charts on dashboard'),
-    (3, 3, 'Ads are live now'),
-    (4, 4, 'Data collection delayed'),
-    (5, 5, 'Design approved by client'),
-    (6, 5, 'Automation tests in progress');
+    ('PROJA-3', 1, 'Login page looks good'),
+    ('PROJA-4', 2, 'Need more charts on dashboard'),
+    ('PROJB-2', 3, 'Ads are live now'),
+    ('PROJC-2', 4, 'Data collection delayed'),
+    ('PROJD-2', 5, 'Design approved by client'),
+    ('PROJE-2', 5, 'Automation tests in progress');
 
 -- Insert sample data into task_dependency
 INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
 VALUES 
-    (1, 1, 2, 'Finish-Start'),
-    (2, 2, 3, 'Finish-Start'),
-    (3, 3, 4, 'Start-Start'),
-    (4, 4, 5, 'Finish-Start'),
-    (5, 5, 1, 'Start-Finish'),
-    (6, 5, 6, 'Finish-Start');
+    ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
+    ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
+    ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
+    ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
+    ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
+    ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
 
 -- Insert sample data into task_file
 INSERT INTO task_file (task_id, title, url_file, status)
 VALUES 
-    (1, 'login_design.pdf', 'http://example.com/login.pdf', 'UP'),
-    (2, 'dashboard_mockup.png', 'http://example.com/dashboard.png', 'IR'),
-    (3, 'ad_campaign.doc', 'http://example.com/ad.doc', 'AP'),
-    (4, 'research_data.xlsx', 'http://example.com/data.xlsx', 'PD'),
-    (5, 'ui_design.jpg', 'http://example.com/ui.jpg', 'AP'),
-    (6, 'test_scripts.zip', 'http://example.com/tests.zip', 'UP');
+    ('PROJA-3', 'login_design.pdf', 'http://example.com/login.pdf', 'UPLOADED'),
+    ('PROJA-4', 'dashboard_mockup.png', 'http://example.com/dashboard.png', 'IN_REVIEW'),
+    ('PROJB-2', 'ad_campaign.doc', 'http://example.com/ad.doc', 'APPROVED'),
+    ('PROJC-2', 'research_data.xlsx', 'http://example.com/data.xlsx', 'PENDING'),
+    ('PROJD-2', 'ui_design.jpg', 'http://example.com/ui.jpg', 'APPROVED'),
+    ('PROJE-2', 'test_scripts.zip', 'http://example.com/tests.zip', 'UPLOADED');
 
--- Insert sample data into task_status_log
-INSERT INTO task_status_log (task_id, status, changed_by)
+-- Insert sample data into subtask (id based on project_id)
+INSERT INTO subtask (id, task_id, assigned_by, title, description, status, manual_input, generation_ai_input)
 VALUES 
-    (1, 'CM', 1),
-    (2, 'IP', 2),
-    (3, 'CM', 3),
-    (4, 'OH', 4),
-    (5, 'CM', 5),
-    (6, 'IP', 5);
+    ('PROJA-5', 'PROJA-3', 1, 'Subtask 1 - Login Validation', 'Validate login credentials', 'IN_PROGRESS', FALSE, FALSE),
+    ('PROJA-6', 'PROJA-4', 2, 'Subtask 2 - Chart Implementation', 'Implement charts on dashboard', 'IN_PROGRESS', TRUE, FALSE),
+    ('PROJB-3', 'PROJB-2', 3, 'Subtask 3 - Ad Placement', 'Place ads on website', 'IN_PROGRESS', FALSE, TRUE),
+    ('PROJC-3', 'PROJC-2', 4, 'Subtask 4 - Data Review', 'Review collected data', 'IN_PROGRESS', FALSE, FALSE),
+    ('PROJD-3', 'PROJD-2', 5, 'Subtask 5 - UI Feedback', 'Gather feedback on UI', 'IN_PROGRESS', TRUE, TRUE),
+    ('PROJE-3', 'PROJE-2', 5, 'Subtask 6 - Test Script Setup', 'Setup initial test scripts', 'IN_PROGRESS', FALSE, TRUE);
+
+-- Insert sample data into subtask_file
+INSERT INTO subtask_file (subtask_id, title, url_file, status)
+VALUES 
+    ('PROJA-5', 'validation_rules.pdf', 'http://example.com/validation.pdf', 'UPLOADED'),
+    ('PROJA-6', 'chart_design.png', 'http://example.com/chart.png', 'IN_REVIEW'),
+    ('PROJB-3', 'ad_placement.doc', 'http://example.com/ad_placement.doc', 'APPROVED'),
+    ('PROJC-3', 'data_review.xlsx', 'http://example.com/data_review.xlsx', 'PENDING'),
+    ('PROJD-3', 'ui_feedback.jpg', 'http://example.com/ui_feedback.jpg', 'APPROVED'),
+    ('PROJE-3', 'test_scripts.zip', 'http://example.com/test_scripts.zip', 'UPLOADED');
+
+-- Insert sample data into subtask_comment
+INSERT INTO subtask_comment (subtask_id, account_id, content)
+VALUES 
+    ('PROJA-5', 1, 'Validation logic implemented'),
+    ('PROJA-6', 2, 'Charts need more data points'),
+    ('PROJB-3', 3, 'Ads placed successfully'),
+    ('PROJC-3', 4, 'Data review ongoing'),
+    ('PROJD-3', 5, 'Feedback collected from client'),
+    ('PROJE-3', 5, 'Test scripts in progress');
+
 
 -- Insert sample data into document
 INSERT INTO document (project_id, task_id, title, type, template, content, file_url, is_active, created_by, updated_by)
 VALUES 
-    (1, 1, 'Project Plan', 'PL', 'Template A', 'Project plan details', 'http://example.com/plan.pdf', TRUE, 1, 1),
-    (2, 3, 'Campaign Brief', 'BR', 'Template B', 'Campaign details', 'http://example.com/brief.pdf', TRUE, 2, 2),
-    (3, 4, 'Research Report', 'RP', 'Template C', 'Research findings', 'http://example.com/report.pdf', TRUE, 3, NULL),
-    (4, 5, 'Design Spec', 'SP', 'Template D', 'Design specifications', 'http://example.com/spec.pdf', TRUE, 4, 4),
-    (5, 6, 'Test Strategy', 'ST', 'Template E', 'Test strategy', 'http://example.com/strategy.pdf', TRUE, 5, 5);
+    (1, 'PROJA-3', 'Project Plan', 'PLAN', 'Template_A', 'Project plan details', 'http://example.com/plan.pdf', TRUE, 1, 1),
+    (2, 'PROJB-2', 'Campaign Brief', 'BRIEF', 'Template_B', 'Campaign details', 'http://example.com/brief.pdf', TRUE, 2, 2),
+    (3, 'PROJC-2', 'Research Report', 'REPORT', 'Template_C', 'Research findings', 'http://example.com/report.pdf', TRUE, 3, NULL),
+    (4, 'PROJD-2', 'Design Spec', 'SPEC', 'Template_D', 'Design specifications', 'http://example.com/spec.pdf', TRUE, 4, 4),
+    (5, 'PROJE-2', 'Test Strategy', 'STRATEGY', 'Template_E', 'Test strategy', 'http://example.com/strategy.pdf', TRUE, 5, 5);
 
 -- Insert sample data into document_permission
 INSERT INTO document_permission (document_id, account_id, permission_type)
 VALUES 
-    (1, 1, 'RD'),
-    (2, 2, 'WR'),
-    (3, 3, 'RD'),
-    (4, 4, 'WR'),
-    (5, 5, 'RD');
+    (1, 1, 'READ'),
+    (2, 2, 'WRITE'),
+    (3, 3, 'READ'),
+    (4, 4, 'WRITE'),
+    (5, 5, 'READ');
 
 -- Insert sample data into project_member
-INSERT INTO project_member (account_id, project_id, joined_at)
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-    (1, 1, '2025-06-01 00:00:00+00'),
-    (2, 1, '2025-06-01 00:00:00+00'),
-    (3, 2, '2025-07-01 00:00:00+00'),
-    (4, 3, '2025-08-01 00:00:00+00'),
-    (5, 4, '2025-09-01 00:00:00+00'),
-    (5, 5, '2025-10-01 00:00:00+00');
+    (1, 1, '2025-06-01 00:00:00+00', '2025-05-25 00:00:00+00', 'IN_PROGRESS'),
+    (2, 1, '2025-06-01 00:00:00+00', '2025-05-26 00:00:00+00', 'IN_PROGRESS'),
+    (3, 2, '2025-07-01 00:00:00+00', '2025-06-20 00:00:00+00', 'IN_PROGRESS'),
+    (4, 3, '2025-08-01 00:00:00+00', '2025-07-15 00:00:00+00', 'DONE'),
+    (5, 4, '2025-09-01 00:00:00+00', '2025-08-20 00:00:00+00', 'IN_PROGRESS'),
+    (5, 5, '2025-10-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE');
 
 -- Insert sample data into project_position
 INSERT INTO project_position (project_member_id, position, assigned_at)
 VALUES 
-    (1, 'PM', '2025-06-01 00:00:00+00'),
-    (2, 'BE', '2025-06-01 00:00:00+00'),
-    (3, 'TM', '2025-07-01 00:00:00+00'),
-    (4, 'BA', '2025-08-01 00:00:00+00'),
-    (5, 'DS', '2025-09-01 00:00:00+00'),
-    (6, 'TS', '2025-10-01 00:00:00+00');
+    (1, 'PROJECT_MANAGER', '2025-06-01 00:00:00+00'),
+    (2, 'BACKEND_DEVELOPER', '2025-06-01 00:00:00+00'),
+    (3, 'TEAM_MEMBER', '2025-07-01 00:00:00+00'),
+    (4, 'BUSINESS_ANALYST', '2025-08-01 00:00:00+00'),
+    (5, 'DESIGNER', '2025-09-01 00:00:00+00'),
+    (6, 'TESTER', '2025-10-01 00:00:00+00');
 
 -- Insert sample data into notification
 INSERT INTO notification (created_by, type, priority, message, related_entity_type, related_entity_id, is_read)
 VALUES 
-    (1, 'TU', 'High', 'Task 1 completed', 'Task', 1, FALSE),
-    (2, 'PU', 'Medium', 'Project B started', 'Project', 2, FALSE),
-    (3, 'MR', 'Low', 'Meeting tomorrow', 'Meeting', 1, TRUE),
-    (4, 'RA', 'High', 'Risk identified', 'Risk', 1, FALSE),
-    (5, 'DU', 'Medium', 'New document added', 'Document', 1, FALSE);
+    (1, 'TASK_UPDATE', 'HIGH', 'Task PROJA-4 completed', 'TASK', 1, FALSE),
+    (2, 'PROJECT_UPDATE', 'MEDIUM', 'Project B started', 'PROJECT', 2, FALSE),
+    (3, 'MEETING_REMINDER', 'LOW', 'Meeting tomorrow', 'MEETING', 1, TRUE),
+    (4, 'RISK_ALERT', 'HIGH', 'Risk identified', 'RISK', 1, FALSE),
+    (5, 'DOCUMENT_UPDATE', 'MEDIUM', 'New document added', 'DOCUMENT', 1, FALSE);
 
 -- Insert sample data into recipient_notification
 INSERT INTO recipient_notification (account_id, notification_id, status)
 VALUES 
-    (1, 1, 'RC'),
-    (2, 2, 'RC'),
-    (3, 3, 'RD'),
-    (4, 4, 'RC'),
-    (5, 5, 'RC');
+    (1, 1, 'RECEIVED'),
+    (2, 2, 'RECEIVED'),
+    (3, 3, 'READ'),
+    (4, 4, 'RECEIVED'),
+    (5, 5, 'RECEIVED');
 
 -- Insert sample data into meeting
 INSERT INTO meeting (project_id, meeting_topic, meeting_date, meeting_url, status, start_time, end_time, attendees)
 VALUES 
-    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'SC', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
-    (2, 'Campaign Review', '2025-07-10 14:00:00+00', 'http://meet.example.com/2', 'CM', '2025-07-10 14:00:00+00', '2025-07-10 15:00:00+00', 3),
-    (3, 'Research Sync', '2025-08-15 09:00:00+00', 'http://meet.example.com/3', 'CN', '2025-08-15 09:00:00+00', '2025-08-15 10:00:00+00', 2),
-    (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'CM', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
-    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'SC', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
+    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'SCHEDULED', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
+    (2, 'Campaign Review', '2025-07-10 14:00:00+00', 'http://meet.example.com/2', 'COMPLETED', '2025-07-10 14:00:00+00', '2025-07-10 15:00:00+00', 3),
+    (3, 'Research Sync', '2025-08-15 09:00:00+00', 'http://meet.example.com/3', 'CANCELLED', '2025-08-15 09:00:00+00', '2025-08-15 10:00:00+00', 2),
+    (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'COMPLETED', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
+    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'SCHEDULED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
 
 -- Insert sample data into meeting_document
 INSERT INTO meeting_document (meeting_id, title, description, file_url, is_active, account_id)
@@ -738,11 +786,11 @@ VALUES
 -- Insert sample data into meeting_participant
 INSERT INTO meeting_participant (meeting_id, account_id, role, status)
 VALUES 
-    (1, 1, 'PM', 'AT'),
-    (1, 2, 'TM', 'AT'),
-    (2, 3, 'TM', 'AT'),
-    (3, 4, 'TM', 'AB'),
-    (4, 5, 'PM', 'AT');
+    (1, 1, 'PROJECT_MANAGER', 'ATTENDED'),
+    (1, 2, 'TEAM_MEMBER', 'ATTENDED'),
+    (2, 3, 'TEAM_MEMBER', 'ATTENDED'),
+    (3, 4, 'TEAM_MEMBER', 'ABSENT'),
+    (4, 5, 'PROJECT_MANAGER', 'ATTENDED');
 
 -- Insert sample data into meeting_transcript
 INSERT INTO meeting_transcript (meeting_id, transcript_text)
@@ -765,20 +813,20 @@ VALUES
 -- Insert sample data into milestone_feedback
 INSERT INTO milestone_feedback (meeting_id, account_id, feedback_text, status)
 VALUES 
-    (1, 1, 'Good progress', 'RV'),
-    (2, 2, 'Needs more effort', 'PD'),
-    (3, 3, 'Delayed', 'RV'),
-    (4, 4, 'Excellent work', 'AP'),
-    (5, 5, 'On schedule', 'PD');
+    (1, 1, 'Good progress', 'REVIEWED'),
+    (2, 2, 'Needs more effort', 'PENDING'),
+    (3, 3, 'Delayed', 'REVIEWED'),
+    (4, 4, 'Excellent work', 'APPROVED'),
+    (5, 5, 'On schedule', 'PENDING');
 
 -- Insert sample data into risk
 INSERT INTO risk (responsible_id, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved)
 VALUES 
-    (1, 1, 1, 'Schedule', 'Delay Risk', 'Possible delay in delivery', 'OP', 'SC', 'AI', 'Medium', 'High', 'Moderate', FALSE),
-    (2, 2, 3, 'Budget', 'Cost Overrun', 'Budget might exceed', 'OP', 'FN', 'Manual', 'Low', 'Medium', 'Low', FALSE),
-    (3, 3, 4, 'Resource', 'Staff Shortage', 'Lack of resources', 'CL', 'RS', 'AI', 'High', 'High', 'High', TRUE),
-    (4, 4, 5, 'Quality', 'Bug Risk', 'Potential bugs', 'OP', 'QL', 'Manual', 'Medium', 'Low', 'Low', FALSE),
-    (5, 5, 6, 'Scope', 'Scope Creep', 'Expanding scope', 'OP', 'SP', 'AI', 'Low', 'Medium', 'Moderate', FALSE);
+    (1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE),
+    (2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE),
+    (3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE),
+    (4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE),
+    (5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE);
 
 -- Insert sample data into risk_solution
 INSERT INTO risk_solution (risk_id, mitigation_plan, contingency_plan)
@@ -792,48 +840,48 @@ VALUES
 -- Insert sample data into change_request
 INSERT INTO change_request (project_id, requested_by, title, description, status)
 VALUES 
-    (1, 1, 'Add Feature', 'Add new login feature', 'PD'),
-    (2, 2, 'Change Budget', 'Increase budget by 10%', 'AP'),
-    (3, 3, 'Extend Deadline', 'Extend by 1 month', 'RJ'),
-    (4, 4, 'Update Design', 'Revise UI colors', 'PD'),
-    (5, 5, 'Add Test Case', 'Include edge cases', 'AP');
+    (1, 1, 'Add Feature', 'Add new login feature', 'PENDING'),
+    (2, 2, 'Change Budget', 'Increase budget by 10%', 'APPROVED'),
+    (3, 3, 'Extend Deadline', 'Extend by 1 month', 'REJECTED'),
+    (4, 4, 'Update Design', 'Revise UI colors', 'PENDING'),
+    (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
 INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
 VALUES 
-    (1, 1, 'PF', 'Optimize database queries'),
-    (2, 3, 'MK', 'Increase ad spend'),
-    (3, 4, 'RS', 'Use additional sources'),
-    (4, 5, 'DS', 'Improve color contrast'),
-    (5, 6, 'TS', 'Add automation tests');
+    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
+    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
+    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
+    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
 VALUES 
-    (1, 'Bug', '#FF0000', 'Critical issues', 'AC'),
-    (2, 'Enhancement', '#00FF00', 'New features', 'AC'),
-    (3, 'Task', '#0000FF', 'General tasks', 'AC'),
-    (4, 'Review', '#FFFF00', 'For review', 'AC'),
-    (5, 'Done', '#00FFFF', 'Completed tasks', 'AC');
+    (1, 'BUG', '#FF0000', 'Critical issues', 'ACTIVE'),
+    (2, 'ENHANCEMENT', '#00FF00', 'New features', 'ACTIVE'),
+    (3, 'TASK', '#0000FF', 'General tasks', 'ACTIVE'),
+    (4, 'REVIEW', '#FFFF00', 'For review', 'ACTIVE'),
+    (5, 'DONE', '#00FFFF', 'Completed tasks', 'ACTIVE');
 
 -- Insert sample data into task_label
 INSERT INTO task_label (label_id, task_id)
 VALUES 
-    (1, 1),
-    (2, 2),
-    (3, 3),
-    (4, 4),
-    (5, 5),
-    (5, 6);
+    (1, 'PROJA-3'),
+    (2, 'PROJA-4'),
+    (3, 'PROJB-2'),
+    (4, 'PROJC-2'),
+    (5, 'PROJD-2'),
+    (5, 'PROJE-2');
 
 -- Insert sample data into requirement
 INSERT INTO requirement (project_id, title, type, description, priority)
 VALUES 
-    (1, 'User Login', 'FN', 'User must log in', 'High'),
-    (2, 'Ad Campaign', 'NF', 'Ads must be visible', 'Medium'),
-    (3, 'Data Collection', 'FN', 'Gather research data', 'High'),
-    (4, 'UI Layout', 'NF', 'Responsive design', 'Medium'),
-    (5, 'Test Coverage', 'FN', 'Cover all cases', 'Low');
+    (1, 'User Login', 'FUNCTIONAL', 'User must log in', 'HIGH'),
+    (2, 'Ad Campaign', 'NON_FUNCTIONAL', 'Ads must be visible', 'MEDIUM'),
+    (3, 'Data Collection', 'FUNCTIONAL', 'Gather research data', 'HIGH'),
+    (4, 'UI Layout', 'NON_FUNCTIONAL', 'Responsive design', 'MEDIUM'),
+    (5, 'Test Coverage', 'FUNCTIONAL', 'Cover all cases', 'LOW');
 
 -- Insert sample data into project_metric
 INSERT INTO project_metric (project_id, calculated_by, is_approved, planned_value, earned_value, actual_cost, spi, cpi, delay_days, budget_overrun, projected_finish_date, projected_total_cost)
@@ -844,114 +892,257 @@ VALUES
     (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 2, 1000.00, '2025-10-05 00:00:00+00', 31000.00),
     (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 4, 2000.00, '2025-12-10 00:00:00+00', 42000.00);
 
--- Insert sample data into system_configuration
+	-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
-    ('min_budget', '1000.00', '0.00', '1000000.00', '50000.00', 'Minimum project budget', 'Must be non-negative', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('max_users', '100', '1', '1000', '500', 'Maximum users per project', 'Adjust based on scale', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('work_hours_day', '8', '4', '12', '8', 'Working hours per day', 'Standard work hours', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('max_delay_days', '10', '0', '30', '15', 'Maximum allowable delay', 'Monitor closely', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('budget_threshold', '50000.00', '0.00', '1000000.00', '75000.00', 'Budget threshold for approval', 'Requires review', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('max_sprint_duration', '30', '7', '60', '14', 'Maximum duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('min_sprint_tasks', '5', '1', '20', '10', 'Minimum number of tasks per sprint', 'Ensure productivity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('max_tasks_per_user', '10', '1', '50', '15', 'Maximum tasks assigned per user', 'Monitor workload', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('priority_threshold', 'HIGH', 'LOW', 'HIGHEST', 'MEDIUM', 'Threshold for priority alerts', 'Trigger notifications', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('overtime_hours', '2', '0', '4', '2', 'Maximum overtime hours per day', 'Ensure compliance', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
 
--- Insert sample data into dynamic_category
-INSERT INTO dynamic_category (category_group, code, name, description, order_index)
+
+INSERT INTO dynamic_category (category_group, name, label, description, order_index)
 VALUES 
-    ('project_type', 'SW', 'SOFTWARE', 'Software projects', 1),
-    ('project_type', 'MK', 'MARKETING', 'Marketing projects', 2),
-    ('project_type', 'RS', 'RESEARCH', 'Research projects', 3),
-    ('status', 'IP', 'IN PROGRESS', 'Projects, epics, sprints, milestones, tasks in progress', 1),
-    ('status', 'PL', 'PLANNING', 'Projects, epics, sprints, milestones, tasks in planning', 2),
-    ('status', 'CM', 'COMPLETED', 'Projects, epics, sprints, milestones, tasks completed', 3),
-    ('status', 'OH', 'ON HOLD', 'Projects, epics, sprints, milestones, tasks on hold', 4),
-    ('status', 'DL', 'DELETED', 'Deleted projects, epics, sprints, milestones, tasks', 5),
-    ('account_role', 'PM', 'PROJECT MANAGER', 'Project manager role', 1),
-    ('account_role', 'TL', 'TEAM LEADER', 'Team leader role', 2),
-    ('account_role', 'TM', 'TEAM MEMBER', 'Team member role', 3),
-    ('account_role', 'SH', 'STAKEHOLDER', 'Stakeholder role', 4),
-	('account_role', 'AD', 'ADMIN', 'Admin role', 5),
-    ('account_status', 'AC', 'ACTIVE', 'Active user account', 1),
-    ('account_status', 'IN', 'INACTIVE', 'Inactive user account', 2),
-    ('account_status', 'VR', 'VERIFIED', 'Verified user account', 3),
-    ('account_status', 'UV', 'UNVERIFIED', 'Unverified user account', 4),
-    ('account_status', 'BN', 'BANNED', 'Banned user account', 5),
-    ('account_status', 'DL', 'DELETED', 'Deleted user account', 6),
-    ('account_position', 'BA', 'BUSINESS ANALYST', 'Business analyst position', 1),
-    ('account_position', 'BE', 'BACKEND DEVELOPER', 'Backend developer position', 2),
-    ('account_position', 'FE', 'FRONTEND DEVELOPER', 'Frontend developer position', 3),
-    ('account_position', 'TS', 'TESTER', 'Tester position', 4),
-    ('account_position', 'PM', 'PROJECT MANAGER', 'Project manager position', 5),
-    ('account_position', 'DS', 'DESIGNER', 'Designer position', 6),
-	('account_position', 'TL', 'TEAM LEADER', 'Team leader position', 7),
-	('account_position', 'SH', 'STAKEHOLDER', 'Stakeholder position', 8),
-	('account_position', 'AD', 'ADMIN', 'Admin position', 9),
-    ('task_assignment_status', 'AS', 'ASSIGNED', 'Task assigned to user', 1),
-    ('task_assignment_status', 'IP', 'IN PROGRESS', 'Task in progress', 2),
-    ('task_assignment_status', 'CM', 'COMPLETED', 'Task completed', 3),
-    ('task_assignment_status', 'OH', 'ON HOLD', 'Task on hold', 4),
-    ('task_assignment_status', 'DL', 'DELETED', 'Deleted task assignment', 5),
-    ('task_check_list_status', 'IP', 'IN PROGRESS', 'Checklist item in progress', 1),
-    ('task_check_list_status', 'CM', 'COMPLETED', 'Checklist item completed', 2),
-    ('task_check_list_status', 'OH', 'ON HOLD', 'Checklist item on hold', 3),
-    ('task_check_list_status', 'DL', 'DELETED', 'Deleted checklist item', 4),
-    ('task_file_status', 'UP', 'UPLOADED', 'File uploaded', 1),
-    ('task_file_status', 'IR', 'IN REVIEW', 'File under review', 2),
-    ('task_file_status', 'AP', 'APPROVED', 'File approved', 3),
-    ('task_file_status', 'PD', 'PENDING', 'File pending', 4),
-    ('task_file_status', 'DL', 'DELETED', 'Deleted file', 5),
-    ('task_status_log_status', 'IP', 'IN PROGRESS', 'Task in progress', 1),
-    ('task_status_log_status', 'CM', 'COMPLETED', 'Task completed', 2),
-    ('task_status_log_status', 'OH', 'ON HOLD', 'Task on hold', 3),
-    ('task_status_log_status', 'DL', 'DELETED', 'Deleted task', 4),
-    ('task_type', 'ST', 'STORY', 'User story tasks', 1),
-    ('task_type', 'TS', 'TASK', 'General task', 2),
-    ('task_type', 'BG', 'BUG', 'Bug fix tasks', 3),
-    ('document_type', 'PL', 'PLAN', 'Project plan', 1),
-    ('document_type', 'BR', 'BRIEF', 'Project brief', 2),
-    ('document_type', 'RP', 'REPORT', 'Project report', 3),
-    ('document_type', 'SP', 'SPEC', 'Project specification', 4),
-    ('document_type', 'ST', 'STRATEGY', 'Project strategy', 5),
-    ('permission_type', 'RD', 'READ', 'Read permission', 1),
-    ('permission_type', 'WR', 'WRITE', 'Write permission', 2),
-    ('notification_type', 'TU', 'TASK UPDATE', 'Task update notification', 1),
-    ('notification_type', 'PU', 'PROJECT UPDATE', 'Project update notification', 2),
-    ('notification_type', 'MR', 'MEETING REMINDER', 'Meeting reminder notification', 3),
-    ('notification_type', 'RA', 'RISK ALERT', 'Risk alert notification', 4),
-    ('notification_type', 'DU', 'DOCUMENT UPDATE', 'Document update notification', 5),
-    ('recipient_notification_status', 'RC', 'RECEIVED', 'Notification received', 1),
-    ('recipient_notification_status', 'RD', 'READ', 'Notification read', 2),
-    ('recipient_notification_status', 'DL', 'DELETED', 'Deleted notification', 3),
-    ('meeting_status', 'SC', 'SCHEDULED', 'Meeting scheduled', 1),
-    ('meeting_status', 'CM', 'COMPLETED', 'Meeting completed', 2),
-    ('meeting_status', 'CN', 'CANCELLED', 'Meeting cancelled', 3),
-    ('meeting_status', 'DL', 'DELETED', 'Deleted meeting', 4),
-    ('meeting_participant_status', 'AT', 'ATTENDED', 'Participant attended', 1),
-    ('meeting_participant_status', 'AB', 'ABSENT', 'Participant absent', 2),
-    ('meeting_participant_status', 'DL', 'DELETED', 'Deleted participant', 3),
-    ('milestone_feedback_status', 'RV', 'REVIEWED', 'Feedback reviewed', 1),
-    ('milestone_feedback_status', 'PD', 'PENDING', 'Feedback pending', 2),
-    ('milestone_feedback_status', 'AP', 'APPROVED', 'Feedback approved', 3),
-    ('milestone_feedback_status', 'DL', 'DELETED', 'Deleted feedback', 4),
-    ('risk_status', 'OP', 'OPEN', 'Risk open', 1),
-    ('risk_status', 'CL', 'CLOSED', 'Risk closed', 2),
-    ('risk_status', 'DL', 'DELETED', 'Deleted risk', 3),
-    ('risk_type', 'SC', 'SCHEDULE', 'Schedule risk', 1),
-    ('risk_type', 'FN', 'FINANCIAL', 'Financial risk', 2),
-    ('risk_type', 'RS', 'RESOURCE', 'Resource risk', 3),
-    ('risk_type', 'QL', 'QUALITY', 'Quality risk', 4),
-    ('risk_type', 'SP', 'SCOPE', 'Scope risk', 5),
-    ('change_request_status', 'PD', 'PENDING', 'Change request pending', 1),
-    ('change_request_status', 'AP', 'APPROVED', 'Change request approved', 2),
-    ('change_request_status', 'RJ', 'REJECTED', 'Change request rejected', 3),
-    ('change_request_status', 'DL', 'DELETED', 'Deleted change request', 4),
-    ('recommendation_type', 'PF', 'PERFORMANCE', 'Performance recommendation', 1),
-    ('recommendation_type', 'MK', 'MARKETING', 'Marketing recommendation', 2),
-    ('recommendation_type', 'RS', 'RESEARCH', 'Research recommendation', 3),
-    ('recommendation_type', 'DS', 'DESIGN', 'Design recommendation', 4),
-    ('recommendation_type', 'TS', 'TESTING', 'Testing recommendation', 5),
-    ('label_status', 'AC', 'ACTIVE', 'Active label', 1),
-    ('label_status', 'DL', 'DELETED', 'Deleted label', 2),
-    ('requirement_type', 'FN', 'FUNCTIONAL', 'Functional requirement', 1),
-    ('requirement_type', 'NF', 'NON-FUNCTIONAL', 'Non-functional requirement', 2);
+    ('project_type', 'WEB_APPLICATION', 'Web Application', 'Web application development projects for IT companies', 1),
+    ('project_type', 'MOBILE_APPLICATION', 'Mobile Application', 'Mobile application development projects for IT companies', 2),
+    ('project_type', 'ENTERPRISE_SOFTWARE', 'Enterprise Software', 'Enterprise software development projects for IT companies', 3),
+    ('project_type', 'GAME_DEVELOPMENT', 'Game Development', 'Game development projects for IT companies', 4),
+    ('project_status', 'PLANNING', 'Planning', 'Project is in planning stage', 1),
+    ('project_status', 'IN_PROGRESS', 'In Progress', 'Project is actively in progress', 2),
+    ('project_status', 'ON_HOLD', 'On Hold', 'Project is temporarily paused', 3),
+    ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4),
+    ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5),
+    ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6),
+    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1),
+    ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2),
+    ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3),
+    ('sprint_status', 'FUTURE', 'Future', 'Sprint not started yet', 1),
+    ('sprint_status', 'ACTIVE', 'Active', 'Sprint in progress or planning phase', 2),
+    ('sprint_status', 'COMPLETED', 'Completed', 'Sprint successfully completed', 3),
+    ('account_role', 'PROJECT_MANAGER', 'Project Manager', 'Project manager role', 1),
+    ('account_role', 'TEAM_LEADER', 'Team Leader', 'Team leader role', 2),
+    ('account_role', 'TEAM_MEMBER', 'Team Member', 'Team member role', 3),
+    ('account_role', 'CLIENT', 'Client', 'Client role', 4),
+    ('account_role', 'ADMIN', 'Admin', 'Admin role', 5),
+    ('account_status', 'ACTIVE', 'Active', 'Active user account', 1),
+    ('account_status', 'INACTIVE', 'Inactive', 'Inactive user account', 2),
+    ('account_status', 'VERIFIED', 'Verified', 'Verified user account', 3),
+    ('account_status', 'UNVERIFIED', 'Unverified', 'Unverified user account', 4),
+    ('account_status', 'BANNED', 'Banned', 'Banned user account', 5),
+    ('account_status', 'DELETED', 'Deleted', 'Deleted user account', 6),
+    ('account_position', 'BUSINESS_ANALYST', 'Business Analyst', 'Business analyst position', 1),
+    ('account_position', 'BACKEND_DEVELOPER', 'Backend Developer', 'Backend developer position', 2),
+    ('account_position', 'FRONTEND_DEVELOPER', 'Frontend Developer', 'Frontend developer position', 3),
+    ('account_position', 'TESTER', 'Tester', 'Tester position', 4),
+    ('account_position', 'PROJECT_MANAGER', 'Project Manager', 'Project manager position', 5),
+    ('account_position', 'DESIGNER', 'Designer', 'Designer position', 6),
+    ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7),
+    ('account_position', 'CLIENT', 'Client', 'Client position', 8),
+    ('account_position', 'ADMIN', 'Admin', 'Admin position', 9),
+    ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1),
+    ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2),
+    ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3),
+    ('task_assignment_status', 'COMPLETED', 'Completed', 'User has completed their assigned part', 4),
+    ('task_assignment_status', 'UNASSIGNED', 'Unassigned', 'User is unassigned or removed from task', 5),
+    ('task_assignment_status', 'DELETED', 'Deleted', 'Task assignment record is deleted', 6),
+    ('subtask_status', 'TODO', 'To Do', 'Checklist item to do', 1),
+    ('subtask_status', 'IN_PROGRESS', 'In Progress', 'Checklist item in progress', 2),
+    ('subtask_status', 'DONE', 'Done', 'Checklist item completed', 3),
+    ('task_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1),
+    ('task_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2),
+    ('task_file_status', 'APPROVED', 'Approved', 'File approved', 3),
+    ('task_file_status', 'PENDING', 'Pending', 'File pending', 4),
+    ('task_file_status', 'DELETED', 'Deleted', 'Deleted file', 5),
+	('subtask_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1),
+    ('subtask_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2),
+    ('subtask_file_status', 'APPROVED', 'Approved', 'File approved', 3),
+    ('subtask_file_status', 'PENDING', 'Pending', 'File pending', 4),
+    ('subtask_file_status', 'DELETED', 'Deleted', 'Deleted file', 5),
+    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1),
+    ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2),
+    ('task_status', 'DONE', 'Done', 'Task completed', 3),
+    ('task_type', 'STORY', 'Story', 'User story tasks', 1),
+    ('task_type', 'TASK', 'Task', 'General task', 2),
+    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3),
+    ('document_type', 'PLAN', 'Plan', 'Project plan', 1),
+    ('document_type', 'BRIEF', 'Brief', 'Project brief', 2),
+    ('document_type', 'REPORT', 'Report', 'Project report', 3),
+    ('document_type', 'SPEC', 'Specification', 'Project specification', 4),
+    ('document_type', 'STRATEGY', 'Strategy', 'Project strategy', 5),
+    ('permission_type', 'READ', 'Read', 'Read permission', 1),
+    ('permission_type', 'WRITE', 'Write', 'Write permission', 2),
+    ('notification_type', 'TASK_UPDATE', 'Task Update', 'Task update notification', 1),
+    ('notification_type', 'PROJECT_UPDATE', 'Project Update', 'Project update notification', 2),
+    ('notification_type', 'MEETING_REMINDER', 'Meeting Reminder', 'Meeting reminder notification', 3),
+    ('notification_type', 'RISK_ALERT', 'Risk Alert', 'Risk alert notification', 4),
+    ('notification_type', 'DOCUMENT_UPDATE', 'Document Update', 'Document update notification', 5),
+    ('recipient_notification_status', 'RECEIVED', 'Received', 'Notification received', 1),
+    ('recipient_notification_status', 'READ', 'Read', 'Notification read', 2),
+    ('recipient_notification_status', 'DELETED', 'Deleted', 'Deleted notification', 3),
+    ('meeting_status', 'SCHEDULED', 'Scheduled', 'Meeting scheduled', 1),
+    ('meeting_status', 'COMPLETED', 'Completed', 'Meeting completed', 2),
+    ('meeting_status', 'CANCELLED', 'Cancelled', 'Meeting cancelled', 3),
+    ('meeting_status', 'DELETED', 'Deleted', 'Deleted meeting', 4),
+    ('meeting_participant_status', 'ATTENDED', 'Attended', 'Participant attended', 1),
+    ('meeting_participant_status', 'ABSENT', 'Absent', 'Participant absent', 2),
+    ('meeting_participant_status', 'DELETED', 'Deleted', 'Deleted participant', 3),
+    ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1),
+    ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2),
+    ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3),
+    ('milestone_feedback_status', 'DELETED', 'Deleted', 'Deleted feedback', 4),
+    ('risk_status', 'OPEN', 'Open', 'Risk open', 1),
+    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2),
+    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3),
+    ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1),
+    ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2),
+    ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3),
+    ('risk_type', 'QUALITY', 'Quality', 'Quality risk', 4),
+    ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5),
+    ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1),
+    ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2),
+    ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3),
+    ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4),
+    ('recommendation_type', 'PERFORMANCE', 'Performance', 'Performance recommendation', 1),
+    ('recommendation_type', 'MARKETING', 'Marketing', 'Marketing recommendation', 2),
+    ('recommendation_type', 'RESEARCH', 'Research', 'Research recommendation', 3),
+    ('recommendation_type', 'DESIGN', 'Design', 'Design recommendation', 4),
+    ('recommendation_type', 'TESTING', 'Testing', 'Testing recommendation', 5),
+    ('label_status', 'ACTIVE', 'Active', 'Active label', 1),
+    ('label_status', 'DELETED', 'Deleted', 'Deleted label', 2),
+    ('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional requirement', 1),
+    ('requirement_type', 'NON_FUNCTIONAL', 'Non-Functional', 'Non-functional requirement', 2),
+    ('project_member_status', 'CREATED', 'Created', 'Project member newly created', 1),
+    ('project_member_status', 'INVITED', 'Invited', 'Project member invited to join', 2),
+    ('project_member_status', 'ACTIVE', 'Active', 'Project member active in project', 3),
+    ('project_member_status', 'BANNED', 'Banned', 'Project member banned, no access', 4),
+    ('project_member_status', 'DELETED', 'Deleted', 'Project member deleted from project', 5),
+    ('task_priority', 'HIGHEST', 'Highest', 'Highest priority task', 1),
+    ('task_priority', 'HIGH', 'High', 'High priority task', 2),
+    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority task', 3),
+    ('task_priority', 'LOW', 'Low', 'Low priority task', 4),
+    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority task', 5),
+	('milestone_status', 'PLANNING', 'Planning', 'Milestone is in planning stage', 1),
+    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is in progress', 2),
+    ('milestone_status', 'COMPLETED', 'Completed', 'Milestone has been completed', 3),
+    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 4),
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone was cancelled', 5),
+	('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1),
+    ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2),
+    ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3),
+    ('task-dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4),
+    ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 2),
+    ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 3),
+    ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 4),
+    ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 5),
+    ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1),
+    ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2),
+    ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3),
+    ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4),
+    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5);
 
 
 	-------  INTELLIPM DB ---------
+	-- Update 16/06/2025
+
+
+	-- Update 19/06/2025
+	
+-- Chèn dữ liệu mẫu cho dự án Online Flower Shop
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+VALUES 
+    ('FLOWER1', 'Online Flower Shop', 'Phát triển một website thương mại điện tử để bán hoa tươi trực tuyến, cung cấp các tính năng như danh mục sản phẩm (hoa theo dịp, hoa bó, hoa chậu), giỏ hàng, thanh toán trực tuyến, và quản lý đơn hàng. Website sẽ có giao diện thân thiện, tích hợp hệ thống khuyến mãi, và hỗ trợ giao hàng nhanh trong 24 giờ.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'IN_PROGRESS');
+
+-- Chèn dữ liệu mẫu cho project_member (ít nhất 10 thành viên)
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
+VALUES 
+    (1, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
+    (2, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
+    (4, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
+    (5, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (6, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (7, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (8, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (9, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (12, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
+    (19, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
+
+-- Chèn dữ liệu mẫu cho project_position
+INSERT INTO project_position (project_member_id, position, assigned_at)
+VALUES 
+    ((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'ADMIN', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TEAM_LEADER', '2024-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'PROJECT_MANAGER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 12 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TESTER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 19 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'DESIGNER', '2025-06-19 00:00:00+07');
+
+-- Chèn dữ liệu mẫu cho requirement
+INSERT INTO requirement (project_id, title, type, description, priority)
+VALUES 
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'User Registration', 'FUNCTIONAL', 'Người dùng có thể đăng ký tài khoản với email và mật khẩu.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Product Catalog', 'FUNCTIONAL', 'Hiển thị danh mục sản phẩm bao gồm hoa theo dịp, hoa bó, và hoa chậu với hình ảnh và giá cả.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Shopping Cart', 'FUNCTIONAL', 'Cho phép người dùng thêm sản phẩm vào giỏ hàng và chỉnh sửa số lượng.', 'MEDIUM'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Payment Integration', 'NON_FUNCTIONAL', 'Tích hợp thanh toán trực tuyến qua MoMo và thẻ tín dụng với bảo mật SSL.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Order Management', 'FUNCTIONAL', 'Hệ thống quản lý đơn hàng cho admin và theo dõi trạng thái giao hàng.', 'MEDIUM');
+
+
+
+	------------------------------------------------------------------------------------------
+	-- Insert sample data for the project "Online Course Platform"
+-- Insert project
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+VALUES 
+(
+    'COURSE',
+    'Online Course Platform',
+    'Develop a web-based platform for managing and delivering online courses. The system supports course creation, student enrollment, video lectures, quizzes, grading, and progress tracking. It will have role-based access for Admin, Instructor, and Student, and support responsive UI.',
+    1200000.00,
+    'WEB_APPLICATION',
+    1,
+    '2025-06-20 00:00:00+07',
+    '2025-12-20 00:00:00+07',
+    'IN_PROGRESS'
+);
+
+-- Insert project members
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
+VALUES 
+(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'IN_PROGRESS'),
+(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'IN_PROGRESS'),
+(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'IN_PROGRESS'),
+(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'IN_PROGRESS'),
+(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'IN_PROGRESS'),
+(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'IN_PROGRESS'),
+(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'IN_PROGRESS'),
+(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'IN_PROGRESS'),
+(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'IN_PROGRESS');
+
+-- ✅ Đặt dấu ; KẾT THÚC ở đây để tách lệnh
+-- Nếu bạn không có dấu này thì phần `INSERT INTO project_position` sẽ bị coi là phần tiếp của câu trên.
+
+-- Insert project positions
+INSERT INTO project_position (project_member_id, position, assigned_at)
+VALUES 
+((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'ADMIN', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'TEAM_LEADER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 3 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'PROJECT_MANAGER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'FRONTEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'FRONTEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'BACKEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'BACKEND_DEVELOPER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'QA_TESTER', '2025-06-20'),
+((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'COURSE')), 'UX_UI_DESIGNER', '2025-06-20');
+
+-- Insert project requirements
+INSERT INTO requirement (project_id, title, type, description, priority)
+VALUES 
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'User Registration and Login', 'FUNCTIONAL', 'Users can register and log in with email/password or Google.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Course Creation by Instructors', 'FUNCTIONAL', 'Instructors can create and manage their own courses.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Video Lecture Streaming', 'NON_FUNCTIONAL', 'Stream high-quality videos hosted on cloud storage.', 'MEDIUM'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Quiz and Grading System', 'FUNCTIONAL', 'Students can take quizzes and receive scores instantly.', 'HIGH'),
+((SELECT id FROM project WHERE project_key = 'COURSE'), 'Progress Tracking', 'FUNCTIONAL', 'Students and instructors can view progress reports.', 'MEDIUM');

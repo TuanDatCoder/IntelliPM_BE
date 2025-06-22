@@ -1,15 +1,17 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects/{projectId}/members")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
+    [Route("api/project/{projectId}/[controller]")] 
+    //[Authorize] 
     public class ProjectMemberController : ControllerBase
     {
         private readonly IProjectMemberService _service;
@@ -32,21 +34,19 @@ namespace IntelliPM.API.Controllers
             });
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int projectId, int id)
+  
+        [HttpGet("accounts")] 
+        public async Task<IActionResult> GetAccountsByProjectId(int projectId)
         {
             try
             {
-                var member = await _service.GetProjectMemberById(id);
-                if (member.ProjectId != projectId)
-                    return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID does not match." });
-
+                var result = await _service.GetAccountsByProjectId(projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = (int)HttpStatusCode.OK,
-                    Message = "Project member retrieved successfully",
-                    Data = member
+                    Message = "Accounts retrieved successfully for the project",
+                    Data = result
                 });
             }
             catch (KeyNotFoundException ex)
@@ -55,8 +55,51 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("bulk")]
+        public async Task<IActionResult> CreateBulk(int projectId, [FromBody] List<ProjectMemberRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
+            }
+
+            try
+            {
+                var results = new List<ProjectMemberResponseDTO>();
+                foreach (var request in requests)
+                {
+                    if (!ModelState.IsValid || request.ProjectId != projectId)
+                    {
+                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data or project ID mismatch." });
+                    }
+                    var result = await _service.AddProjectMember(request);
+                    results.Add(result);
+                }
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Project members created successfully",
+                    Data = results
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating project members: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPost]
-        public async Task<IActionResult> Add(int projectId, [FromBody] ProjectMemberRequestDTO request)
+        public async Task<IActionResult> Create(int projectId, [FromBody] ProjectMemberRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -73,7 +116,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = 201,
-                    Message = "Project member added successfully",
+                    Message = "Project member created successfully",
                     Data = result
                 });
             }
@@ -87,7 +130,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error adding project member: {ex.Message}"
+                    Message = $"Error creating project member: {ex.Message}"
                 });
             }
         }
@@ -105,7 +148,7 @@ namespace IntelliPM.API.Controllers
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
-                    Code = 200,
+                    Code = (int)HttpStatusCode.OK,
                     Message = "Project member deleted successfully"
                 });
             }

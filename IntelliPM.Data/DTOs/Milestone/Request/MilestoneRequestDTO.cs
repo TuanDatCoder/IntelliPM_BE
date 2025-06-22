@@ -11,6 +11,7 @@ namespace IntelliPM.Data.DTOs.Milestone.Request
     {
         [Required(ErrorMessage = "Project ID is required")]
         public int ProjectId { get; set; }
+        public int? SprintId { get; set; }
 
         [Required(ErrorMessage = "Milestone name is required")]
         [MaxLength(255, ErrorMessage = "Milestone name cannot exceed 255 characters")]
@@ -18,9 +19,9 @@ namespace IntelliPM.Data.DTOs.Milestone.Request
 
         public string? Description { get; set; }
 
-        public DateTime? StartDate { get; set; } // NULL được phép
+        public DateTime? StartDate { get; set; } 
 
-        public DateTime? EndDate { get; set; }   // NULL được phép
+        public DateTime? EndDate { get; set; } 
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         public string? Status { get; set; }

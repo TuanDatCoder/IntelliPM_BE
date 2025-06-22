@@ -25,7 +25,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .ToListAsync();
         }
 
-        public async Task<Epic?> GetByIdAsync(int id)
+        public async Task<Epic?> GetByIdAsync(string id)
         {
             return await _context.Epic
                 .FirstOrDefaultAsync(e => e.Id == id);
@@ -36,6 +36,13 @@ namespace IntelliPM.Repositories.EpicRepos
             return await _context.Epic
                 .Where(e => e.Name.Contains(name))
                 .OrderBy(e => e.Id)
+                .ToListAsync();
+        }
+
+        public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey) 
+        {
+            return await _context.Epic
+                .Where(e => e.Project != null && e.Project.ProjectKey == projectKey)
                 .ToListAsync();
         }
 

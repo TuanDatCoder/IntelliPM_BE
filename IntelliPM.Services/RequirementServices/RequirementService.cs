@@ -137,5 +137,21 @@ namespace IntelliPM.Services.RequirementServices
 
             return _mapper.Map<RequirementResponseDTO>(entity);
         }
+
+        public async Task<List<RequirementResponseDTO>> CreateListRequirement(List<RequirementRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+                throw new ArgumentException("List of requirements cannot be null or empty.");
+
+            var responses = new List<RequirementResponseDTO>();
+            foreach (var request in requests)
+            {
+                var response = await CreateRequirement(request);
+                responses.Add(response);
+            }
+            return responses;
+        }
+
+
     }
 }

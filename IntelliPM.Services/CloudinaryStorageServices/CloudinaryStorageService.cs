@@ -36,7 +36,7 @@ namespace IntelliPM.Services.CloudinaryStorageServices
 
             string uniqueFileName = GenerateUniqueFileName(originalFileName);
 
-            var uploadParams = new ImageUploadParams
+            var uploadParams = new RawUploadParams
             {
                 File = new FileDescription(originalFileName, fileStream),
                 PublicId = uniqueFileName,

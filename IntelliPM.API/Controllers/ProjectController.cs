@@ -8,7 +8,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects")]
+    [Route("api/[controller]")]
     public class ProjectController : ControllerBase
     {
         private readonly IProjectService _service;
@@ -18,7 +18,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllProjects();
@@ -51,6 +51,36 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpGet("{id}/details")]
+        public async Task<IActionResult> GetProjectDetails(int id)
+        {
+            try
+            {
+                var projectDetails = await _service.GetProjectDetails(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Project details retrieved successfully",
+                    Data = projectDetails
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project details: {ex.Message}"
+                });
+            }
+        }
+
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? searchTerm, [FromQuery] string? projectType, [FromQuery] string? status)
         {
@@ -76,7 +106,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        [Authorize] // Yêu cầu đăng nhập
+
         public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
         {
             if (!ModelState.IsValid)
@@ -107,7 +137,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+
         public async Task<IActionResult> Update(int id, [FromBody] ProjectRequestDTO request)
         {
             try

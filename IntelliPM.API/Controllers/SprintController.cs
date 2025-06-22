@@ -7,7 +7,7 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/sprints")]
+    [Route("api/[controller]")]
     public class SprintController : ControllerBase
     {
         private readonly ISprintService _service;
@@ -17,7 +17,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpGet("all")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllSprints();
@@ -190,6 +190,39 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error updating sprint status: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("by-project-id")]
+        public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
+        {
+            try
+            {
+                var sprints = await _service.GetSprintByProjectId(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Sprints retrieved successfully",
+                    Data = sprints
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = "Internal server error: " + ex.Message
                 });
             }
         }
