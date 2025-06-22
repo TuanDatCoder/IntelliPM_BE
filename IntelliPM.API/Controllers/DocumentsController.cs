@@ -1,11 +1,13 @@
 ﻿using IntelliPM.Data.DTOs.Document.Request;
-
-using IntelliPM.Services.DocumentServices;
-using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Data.DTOs.Document.Response;
+using IntelliPM.Services.DocumentServices;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
+    [Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentsController : ControllerBase
@@ -46,6 +48,21 @@ namespace IntelliPM.API.Controllers
             var result = await _documentService.GetDocumentById(id);
             return Ok(result);
         }
+
+        [HttpGet("created-by-me")]
+        public async Task<ActionResult<List<DocumentResponseDTO>>> GetDocumentsCreatedByMe()
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            int userId = int.Parse(userIdClaim);
+
+            var result = await _documentService.GetDocumentsCreatedByUser(userId);
+            return Ok(result);
+        }
+
 
     }
 }
