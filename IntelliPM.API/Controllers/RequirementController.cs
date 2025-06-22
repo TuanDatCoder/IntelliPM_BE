@@ -8,8 +8,8 @@ using System.Net;
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
-    [Route("api/projects/{projectId}/requirements")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
+    [Route("api/project/{projectId}/[controller]")]
+
     public class RequirementController : ControllerBase
     {
         private readonly IRequirementService _service;
@@ -111,6 +111,53 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error creating requirement: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("bulk")]
+        public async Task<IActionResult> CreateBulk(int projectId, [FromBody] List<RequirementRequestDTO> requests)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "List of requirements cannot be null or empty." });
+            }
+
+            try
+            {
+                foreach (var request in requests)
+                {
+                    if (request.ProjectId != projectId)
+                    {
+                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID in request does not match URL." });
+                    }
+                }
+
+                var result = await _service.CreateListRequirement(requests);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Requirements created successfully",
+                    Data = result
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating requirements: {ex.Message}"
                 });
             }
         }

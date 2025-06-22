@@ -11,11 +11,11 @@ namespace IntelliPM.Services.EpicServices
     public interface IEpicService
     {
         Task<List<EpicResponseDTO>> GetAllEpics();
-        Task<EpicResponseDTO> GetEpicById(int id);
+        Task<EpicResponseDTO> GetEpicById(string id);
         Task<List<EpicResponseDTO>> GetEpicByName(string name);
         Task<EpicResponseDTO> CreateEpic(EpicRequestDTO request);
-        Task<EpicResponseDTO> UpdateEpic(int id, EpicRequestDTO request);
-        Task DeleteEpic(int id);
-        Task<EpicResponseDTO> ChangeEpicStatus(int id, string status);
+        Task<EpicResponseDTO> UpdateEpic(string id, EpicRequestDTO request);
+        Task DeleteEpic(string id);
+        Task<EpicResponseDTO> ChangeEpicStatus(string id, string status);
     }
 }

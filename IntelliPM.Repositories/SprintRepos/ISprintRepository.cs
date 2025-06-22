@@ -12,6 +12,7 @@ namespace IntelliPM.Repositories.SprintRepos
         Task<List<Sprint>> GetAllSprints();
         Task<Sprint?> GetByIdAsync(int id);
         Task<List<Sprint>> GetByNameAsync(string name);
+        Task<List<Sprint>> GetByProjectIdAsync(int projectId);
         Task Add(Sprint sprint);
         Task Update(Sprint sprint);
         Task Delete(Sprint sprint);

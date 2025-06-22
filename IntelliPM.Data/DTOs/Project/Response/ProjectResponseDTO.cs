@@ -10,6 +10,7 @@ namespace IntelliPM.Data.DTOs.Project.Response
     {
         public int Id { get; set; }
         public string? Name { get; set; }
+        public string ProjectKey { get; set; } 
         public string? Description { get; set; }
         public decimal? Budget { get; set; }
         public string? ProjectType { get; set; }

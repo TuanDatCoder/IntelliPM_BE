@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,8 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public int AccountId { get; set; }
         public int ProjectId { get; set; }
         public DateTime JoinedAt { get; set; }
+        public DateTime InvitedAt { get; set; }
+        public string? Status { get; set; }
+
     }
 }
