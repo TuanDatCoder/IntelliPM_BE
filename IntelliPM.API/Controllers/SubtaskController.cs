@@ -58,7 +58,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost("{taskId}")]
-        public async Task<IActionResult> Create(string taskId, [FromBody] TaskCheckListRequestDTO request)
+        public async Task<IActionResult> Create(string taskId, [FromBody] SubtaskRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -145,29 +145,29 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("by-task/{taskId}")]
-        public async Task<IActionResult> GetTaskCheckListByTaskId(string taskId)
-        {
-            try
-            {
-                var files = await _service.GetTaskCheckListByTaskIdAsync(taskId);
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Retrieved task check list successfully.",
-                    Data = files
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponseDTO
-                {
-                    IsSuccess = false,
-                    Code = 500,
-                    Message = $"Error retrieving task check list: {ex.Message}"
-                });
-            }
-        }
+        //[HttpGet("by-task/{taskId}")]
+        //public async Task<IActionResult> GetTaskCheckListByTaskId(string taskId)
+        //{
+        //    try
+        //    {
+        //        var files = await _service.GetTaskCheckListByTaskIdAsync(taskId);
+        //        return Ok(new ApiResponseDTO
+        //        {
+        //            IsSuccess = true,
+        //            Code = 200,
+        //            Message = "Retrieved task check list successfully.",
+        //            Data = files
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new ApiResponseDTO
+        //        {
+        //            IsSuccess = false,
+        //            Code = 500,
+        //            Message = $"Error retrieving task check list: {ex.Message}"
+        //        });
+        //    }
+        //}
     }
 }
