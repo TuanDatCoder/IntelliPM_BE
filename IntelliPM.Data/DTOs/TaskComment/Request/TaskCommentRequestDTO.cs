@@ -9,7 +9,7 @@ namespace IntelliPM.Data.DTOs.TaskComment.Request
 {
     public class TaskCommentRequestDTO
     {
-        public int TaskId { get; set; }
+        public string TaskId { get; set; }
 
         public int UserId { get; set; }
 

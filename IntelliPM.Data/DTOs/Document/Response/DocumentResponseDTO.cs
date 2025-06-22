@@ -10,7 +10,7 @@ namespace IntelliPM.Data.DTOs.Document.Response
     {
         public int Id { get; set; }
         public int ProjectId { get; set; }
-        public int? TaskId { get; set; }
+        public string? TaskId { get; set; }
         public string Title { get; set; } = "";
         public string? Type { get; set; }
         public string? Template { get; set; }

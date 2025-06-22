@@ -7,15 +7,15 @@ public partial class TaskComment
 {
     public int Id { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
-    public int UserId { get; set; }
+    public int AccountId { get; set; }
 
     public string Content { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual Tasks Task { get; set; } = null!;
+    public virtual Account Account { get; set; } = null!;
 
-    public virtual Account User { get; set; } = null!;
+    public virtual Tasks Task { get; set; } = null!;
 }
