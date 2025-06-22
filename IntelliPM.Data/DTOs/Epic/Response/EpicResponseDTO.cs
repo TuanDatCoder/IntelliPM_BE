@@ -8,7 +8,7 @@ namespace IntelliPM.Data.DTOs.Epic.Response
 {
     public class EpicResponseDTO
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
         public int ProjectId { get; set; }
         public string Name { get; set; } = null!;
         public string? Description { get; set; }

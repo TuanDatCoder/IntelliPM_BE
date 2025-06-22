@@ -4,24 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.TaskCheckList.Response
+namespace IntelliPM.Data.DTOs.TaskFile.Response
 {
-    public class TaskCheckListResponseDTO
+    public class TaskFileResponseDTO
     {
         public int Id { get; set; }
-
-        public int TaskId { get; set; }
-
+        public string TaskId { get; set; }
         public string Title { get; set; } = null!;
-
+        public string UrlFile { get; set; } = null!;
         public string? Status { get; set; }
-
-        public bool ManualInput { get; set; }
-
-        public bool GenerationAiInput { get; set; }
-
         public DateTime CreatedAt { get; set; }
-
-        public DateTime UpdatedAt { get; set; }
     }
 }

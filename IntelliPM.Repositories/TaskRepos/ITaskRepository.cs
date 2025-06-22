@@ -10,7 +10,7 @@ namespace IntelliPM.Repositories.TaskRepos
     public interface ITaskRepository
     {
         Task<List<Tasks>> GetAllTasks();
-        Task<Tasks?> GetByIdAsync(int id);
+        Task<Tasks?> GetByIdAsync(string id);
         Task<List<Tasks>> GetByTitleAsync(string title);
         Task<List<Tasks>> GetByProjectIdAsync(int projectId);
         Task Add(Tasks task);
