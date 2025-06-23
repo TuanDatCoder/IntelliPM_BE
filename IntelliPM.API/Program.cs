@@ -63,6 +63,10 @@ using Microsoft.OpenApi.Models;
 using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Services.MeetingSummaryServices;
 using System.Text;
+using IntelliPM.Services.SubtaskFileServices;
+using IntelliPM.Services.SubtaskCommentServices;
+using IntelliPM.Repositories.SubtaskFileRepos;
+using IntelliPM.Repositories.SubtaskCommentRepos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +107,10 @@ builder.Services.AddScoped<ITaskAssignmentRepository, TaskAssignmentRepository>(
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectPositionRepository, ProjectPositionRepository>();
 builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
+builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
+builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
+
+
 
 
 //--------------------------SERVICES---------------------------------
@@ -137,6 +145,11 @@ builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IMeetingLogService, MeetingLogService>();
 builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
 builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
+builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
+builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
+
+
+
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
 {
