@@ -16,10 +16,6 @@ namespace IntelliPM.API.Controllers
         {
             _service = service;
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -35,7 +31,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(string id)
         {
             try
             {
@@ -109,7 +105,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] EpicRequestDTO request)
+        public async Task<IActionResult> Update(string id, [FromBody] EpicRequestDTO request)
         {
             try
             {
@@ -138,7 +134,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
@@ -166,7 +162,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
         {
             try
             {

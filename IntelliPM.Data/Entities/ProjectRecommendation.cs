@@ -9,7 +9,7 @@ public partial class ProjectRecommendation
 
     public int ProjectId { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
     public string Type { get; set; } = null!;
 

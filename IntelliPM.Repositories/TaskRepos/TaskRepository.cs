@@ -25,7 +25,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .ToListAsync();
         }
 
-        public async Task<Tasks?> GetByIdAsync(int id)
+        public async Task<Tasks?> GetByIdAsync(string id)
         {
             return await _context.Tasks
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -63,5 +63,19 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Where(t => t.ProjectId == projectId)
                 .ToListAsync();
         }
+
+        public async Task<string> GetProjectKeyByTaskIdAsync(string taskId)
+        {
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+            if (task == null) throw new Exception($"Task with ID {taskId} not found.");
+
+            var project = await _context.Project.FirstOrDefaultAsync(p => p.Id == task.ProjectId);
+            if (project == null) throw new Exception($"Project not found for Task {taskId}.");
+
+            return project.ProjectKey;
+        }
+
+
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,7 @@ namespace IntelliPM.Services.ProjectPositionServices
         Task<ProjectPositionResponseDTO> AddProjectPosition(ProjectPositionRequestDTO request);
         Task<ProjectPositionResponseDTO> UpdateProjectPosition(int id, ProjectPositionRequestDTO request);
         Task DeleteProjectPosition(int id);
+        Task<List<ProjectPosition>> GetAllByProjectId(int projectId);
+        
     }
 }

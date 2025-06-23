@@ -7,18 +7,12 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.TaskCheckList.Request
 {
-    public class TaskCheckListRequestDTO
+    public class SubtaskRequestDTO
     {
-        //public int Id { get; set; }
-
-        public int TaskId { get; set; }
+        public int AssignedBy { get; set; }
 
         public string Title { get; set; } = null!;
 
-        //public string? Status { get; set; }
-
-        public bool ManualInput { get; set; }
-
-        public bool GenerationAiInput { get; set; }
+        public string? Description { get; set; }
     }
 }
