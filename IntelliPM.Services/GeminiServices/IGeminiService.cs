@@ -12,6 +12,7 @@ namespace IntelliPM.Services.GeminiServices
     {
         Task<List<string>> GenerateSubtaskAsync(string taskTitle);
         Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
+        Task<string> SummarizeTextAsync(string transcriptText);
     }
 
 }
