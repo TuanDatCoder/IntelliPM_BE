@@ -261,5 +261,53 @@ Danh sách task:
         {
             public string text { get; set; }
         }
+
+
+    }
+
+    public async Task<string> SummarizeTextAsync(string transcriptText)
+    {
+        var prompt = $@"Summarize the following meeting transcript in concise, clear English (max 200 words):
+
+{transcriptText}
+
+Summary:";
+
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[]
+                {
+                    new { text = prompt }
+                }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+            throw new Exception("Gemini did not return any text response.");
+
+        // Clean up markdown if present
+        if (replyText.StartsWith("```"))
+        {
+            replyText = replyText.Replace("```", "").Replace("json", "").Trim();
+        }
+
+        return replyText;
     }
 }
