@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingRepos;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -23,30 +24,82 @@ namespace IntelliPM.Services.MeetingServices
             _context = context;
         }
 
+        //public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // Kiểm tra ProjectId có tồn tại trong cơ sở dữ liệu không
+        //        var project = await _context.Project.FindAsync(dto.ProjectId);
+        //        if (project == null)
+        //        {
+        //            throw new KeyNotFoundException("Project not found.");
+        //        }
+
+        //        var meeting = _mapper.Map<Meeting>(dto);
+        //        meeting.Status = "ACTIVE";
+        //        meeting.CreatedAt = DateTime.UtcNow;
+
+        //        // Lưu vào cơ sở dữ liệu
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();  // Lưu thay đổi vào cơ sở dữ liệu
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);  // Trả về MeetingResponseDTO
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Ghi chi tiết lỗi vào Console (hoặc sử dụng công cụ ghi log như Serilog, NLog)
+        //        Console.WriteLine("Error in CreateMeeting: " + ex.Message);
+        //        Console.WriteLine("Stack Trace: " + ex.StackTrace);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+
+        //        // Trả về lỗi chi tiết cho người dùng
+        //        throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
+        //    }
+        //}
+
         public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
         {
             try
             {
-                // Kiểm tra ProjectId có tồn tại trong cơ sở dữ liệu không
-                var project = await _context.Project.FindAsync(dto.ProjectId);
-                if (project == null)
+                // ⚠️ Check nếu Project đã có họp vào cùng ngày
+                bool hasConflict = await _context.Meeting.AnyAsync(m =>
+                    m.ProjectId == dto.ProjectId &&
+                    m.MeetingDate.Date == dto.MeetingDate.Date &&
+                    m.Status != "CANCELLED" // Optional: nếu không tính họp đã huỷ
+                );
+
+                if (hasConflict)
                 {
-                    throw new KeyNotFoundException("Project not found.");
+                    throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
                 }
 
                 var meeting = _mapper.Map<Meeting>(dto);
                 meeting.Status = "ACTIVE";
                 meeting.CreatedAt = DateTime.UtcNow;
 
-                // Lưu vào cơ sở dữ liệu
-                await _repo.AddAsync(meeting);
-                await _context.SaveChangesAsync();  // Lưu thay đổi vào cơ sở dữ liệu
+                // Bắt buộc xử lý UTC
+                meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+                if (meeting.StartTime.HasValue)
+                    meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+                if (meeting.EndTime.HasValue)
+                    meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
 
-                return _mapper.Map<MeetingResponseDTO>(meeting);  // Trả về MeetingResponseDTO
+                await _repo.AddAsync(meeting);
+                await _context.SaveChangesAsync();
+
+                return _mapper.Map<MeetingResponseDTO>(meeting);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Lỗi nghiệp vụ
+                throw new Exception(ex.Message);
+
             }
             catch (Exception ex)
             {
-                // Ghi chi tiết lỗi vào Console (hoặc sử dụng công cụ ghi log như Serilog, NLog)
                 Console.WriteLine("Error in CreateMeeting: " + ex.Message);
                 Console.WriteLine("Stack Trace: " + ex.StackTrace);
                 if (ex.InnerException != null)
@@ -54,7 +107,6 @@ namespace IntelliPM.Services.MeetingServices
                     Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
                 }
 
-                // Trả về lỗi chi tiết cho người dùng
                 throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
             }
         }
@@ -75,19 +127,25 @@ namespace IntelliPM.Services.MeetingServices
 
         public async Task<List<MeetingResponseDTO>> GetMeetingsByAccount(int accountId)
         {
-            var meetings = await _repo.GetMeetingsByAccountIdDetailedAsync(accountId);
-            return meetings.Select(m => new MeetingResponseDTO
-            {
-                Id = m.Id,
-                MeetingTopic = m.MeetingTopic,
-                MeetingDate = m.MeetingDate,
-                StartTime = m.StartTime,
-                EndTime = m.EndTime,
-                MeetingUrl = m.MeetingUrl,
-                Status = m.Status,
-               
-            }).ToList();
+            return await _context.MeetingParticipant
+                .Where(mp => mp.AccountId == accountId)
+                .Select(mp => new MeetingResponseDTO
+                {
+                    Id = mp.Meeting.Id,
+                    ProjectId = mp.Meeting.ProjectId,
+                    MeetingTopic = mp.Meeting.MeetingTopic,
+                    MeetingDate = mp.Meeting.MeetingDate,
+                    StartTime = mp.Meeting.StartTime,
+                    EndTime = mp.Meeting.EndTime,
+                    Status = mp.Meeting.Status,
+                    MeetingUrl = mp.Meeting.MeetingUrl,
+                    Attendees = mp.Meeting.Attendees,
+                    CreatedAt = mp.Meeting.CreatedAt
+                    // Không cần map Project.Name hoặc IconUrl
+                })
+                .ToListAsync();
         }
+
 
         public async Task<MeetingResponseDTO> UpdateMeeting(int id, MeetingRequestDTO dto)
         {

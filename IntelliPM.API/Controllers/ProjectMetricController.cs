@@ -39,7 +39,7 @@ namespace IntelliPM.API.Controllers
             return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Success", Data = result });
         }
 
-        [HttpGet("health")]
+        [HttpGet("health-dashboard")]
         public async Task<IActionResult> GetProjectHealth([FromQuery] int projectId)
         {
             try
@@ -114,6 +114,27 @@ namespace IntelliPM.API.Controllers
                 return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
             }
         }
+
+        [HttpGet("tasks-dashboard")]
+        public async Task<IActionResult> GetTaskStatusDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _service.GetTaskStatusDashboardAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Tasks dashboard loaded successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
 
     }
 }
