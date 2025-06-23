@@ -3,6 +3,10 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,13 +21,21 @@ namespace IntelliPM.Services.EpicServices
     {
         private readonly IMapper _mapper;
         private readonly IEpicRepository _repo;
+        private readonly IProjectRepository _projectRepo;
+        private readonly ITaskRepository _taskRepo;
         private readonly ILogger<EpicService> _logger;
+        private readonly IEpicRepository _epicRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
 
-        public EpicService(IMapper mapper, IEpicRepository repo, ILogger<EpicService> logger)
+        public EpicService(IMapper mapper, IEpicRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, IEpicRepository epicRepo, ISubtaskRepository subtaskRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _projectRepo = projectRepo;
+            _taskRepo = taskRepo;
+            _epicRepo = epicRepo;
+            _subtaskRepo = subtaskRepo;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -32,7 +44,7 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<List<EpicResponseDTO>>(entities);
         }
 
-        public async Task<EpicResponseDTO> GetEpicById(int id)
+        public async Task<EpicResponseDTO> GetEpicById(string id)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -61,12 +73,25 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(request.Name))
                 throw new ArgumentException("Epic name is required.", nameof(request.Name));
 
+            if (request.ProjectId <= 0)
+                throw new ArgumentException("Project ID is required and must be greater than 0.", nameof(request.ProjectId));
+
+            var project = await _projectRepo.GetByIdAsync(request.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
+
+            var projectKey = await _projectRepo.GetProjectKeyAsync(request.ProjectId);
+            if (string.IsNullOrEmpty(projectKey))
+                throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
+
             var entity = _mapper.Map<Epic>(request);
-            //entity.CreatedAt = DateTime.UtcNow; // Gán ngày tạo hiện tại
-            //entity.UpdatedAt = DateTime.UtcNow; // Gán ngày cập nhật hiện tại
+            Console.WriteLine("Generated ID: " + entity.Id);
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo); 
+           
 
             try
             {
+                Console.WriteLine("Generated Subtask ID: " + entity.Id);
                 await _repo.Add(entity);
             }
             catch (DbUpdateException ex)
@@ -81,14 +106,14 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
 
-        public async Task<EpicResponseDTO> UpdateEpic(int id, EpicRequestDTO request)
+        public async Task<EpicResponseDTO> UpdateEpic(string id, EpicRequestDTO request)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày hiện tại khi sửa
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -102,7 +127,7 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
 
-        public async Task DeleteEpic(int id)
+        public async Task DeleteEpic(string id)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -118,7 +143,7 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
-        public async Task<EpicResponseDTO> ChangeEpicStatus(int id, string status)
+        public async Task<EpicResponseDTO> ChangeEpicStatus(string id, string status)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
@@ -128,7 +153,7 @@ namespace IntelliPM.Services.EpicServices
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
             entity.Status = status;
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày khi thay đổi trạng thái
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -142,5 +167,4 @@ namespace IntelliPM.Services.EpicServices
             return _mapper.Map<EpicResponseDTO>(entity);
         }
     }
-
 }

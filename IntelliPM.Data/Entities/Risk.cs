@@ -11,7 +11,7 @@ public partial class Risk
 
     public int ProjectId { get; set; }
 
-    public int? TaskId { get; set; }
+    public string? TaskId { get; set; }
 
     public string RiskScope { get; set; } = null!;
 

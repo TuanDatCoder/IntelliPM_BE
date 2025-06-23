@@ -2,6 +2,8 @@
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -24,18 +26,19 @@ namespace IntelliPM.Services.ProjectMemberServices
         private readonly IProjectMemberRepository _repo;
         private readonly ILogger<ProjectMemberService> _logger;
         private readonly IDecodeTokenHandler _decodeToken;
-        private readonly IAccountRepository _accountRepository;
+        private readonly IAccountRepository _accountRepo;
 
 
-        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken)
+        public ProjectMemberService(IMapper mapper, IProjectMemberRepository repo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _decodeToken = decodeToken;
+            _accountRepo = accountRepo;
         }
-   
-    
+
+
         public async Task<List<ProjectMemberResponseDTO>> GetAllAsync()
         {
             var entities = await _repo.GetAllAsync();
@@ -64,7 +67,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
-          
+
             // Kiểm tra xem cặp account_id và project_id đã tồn tại chưa (ràng buộc UNIQUE)
             var existingMember = await _repo.GetByAccountAndProjectAsync(request.AccountId, request.ProjectId);
             if (existingMember != null)
@@ -131,7 +134,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
         {
             var decode = _decodeToken.decode(token);
-            var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
 
             if (currentAccount == null)
             {
@@ -168,7 +171,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                 .Select(pm => new AccountByProjectResponseDTO
                 {
                     AccountId = pm.AccountId,
-                    AccountName = pm.Account.Username, 
+                    AccountName = pm.Account.Username,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status
@@ -181,6 +184,26 @@ namespace IntelliPM.Services.ProjectMemberServices
             return projectAccounts;
         }
 
-       
+        public async Task<List<ProjectMemberResponseDTO>> CreateListProjectMember(List<ProjectMemberRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+                throw new ArgumentException("List of project members cannot be null or empty.");
+
+            var responses = new List<ProjectMemberResponseDTO>();
+            foreach (var request in requests)
+            {
+                var response = await AddProjectMember(request);
+                responses.Add(response);
+            }
+            return responses;
+        }
+
+
+        public async Task<List<ProjectMember>> GetAllByProjectId(int projectId)
+        {
+            var entities = await _repo.GetAllProjectMembers(projectId);
+            throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+            return entities;
+        }
     }
 }

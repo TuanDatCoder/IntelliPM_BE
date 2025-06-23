@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(string id)
         {
             try
             {
@@ -105,8 +106,47 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("bulk")]
+        public async Task<IActionResult> CreateBulk([FromBody] List<TaskRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
+            }
+
+            try
+            {
+                var results = new List<TaskResponseDTO>();
+                foreach (var request in requests)
+                {
+                    if (!ModelState.IsValid)
+                    {
+                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+                    }
+                    var result = await _service.CreateTask(request);
+                    results.Add(result);
+                }
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Tasks created successfully",
+                    Data = results
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating tasks: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] TaskRequestDTO request)
+        public async Task<IActionResult> Update(string id, [FromBody] TaskRequestDTO request)
         {
             try
             {
@@ -135,7 +175,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
@@ -163,7 +203,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
         {
             try
             {

@@ -7,7 +7,7 @@ public partial class TaskAssignment
 {
     public int Id { get; set; }
 
-    public int TaskId { get; set; }
+    public string TaskId { get; set; } = null!;
 
     public int AccountId { get; set; }
 
