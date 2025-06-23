@@ -12,21 +12,28 @@ using IntelliPM.Repositories.MeetingTranscriptRepos;
 using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectMetricRepos;
+using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
+using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
-using IntelliPM.Repositories.TaskCheckListRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
+using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
+using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
@@ -38,11 +45,16 @@ using IntelliPM.Services.MeetingTranscriptServices;
 using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
+using IntelliPM.Services.ProjectMetricServices;
+using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RequirementServices;
+using IntelliPM.Services.SprintServices;
 using IntelliPM.Services.SystemConfigurationServices;
-using IntelliPM.Services.TaskCheckListServices;
+using IntelliPM.Services.TaskAssignmentServices;
+using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskCommentServices;
+using IntelliPM.Services.TaskFileServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +64,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient<ProjectMetricService>();
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -59,8 +73,6 @@ builder.Services.AddControllers();
 
 //------------------------------AUTOMAPPER---------------------------
 builder.Services.AddAutoMapper(typeof(MapperProfiles).Assembly);
-
-
 
 //-------------------------REPOSITORIES-------------------------------
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -76,13 +88,18 @@ builder.Services.AddScoped<IRequirementRepository, RequirementRepository>();
 builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
 builder.Services.AddScoped<IMeetingParticipantRepository, MeetingParticipantRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
-builder.Services.AddScoped<ITaskCheckListRepository, TaskCheckListRepository>();
+builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
+
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
 builder.Services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
 builder.Services.AddScoped<IMilestoneFeedbackRepository, MilestoneFeedbackRepository>();
-
+builder.Services.AddScoped<ITaskFileRepository, TaskFileRepository>();
+builder.Services.AddScoped<ITaskAssignmentRepository, TaskAssignmentRepository>();
+builder.Services.AddScoped<ISprintRepository, SprintRepository>();
+builder.Services.AddScoped<IProjectPositionRepository, ProjectPositionRepository>();
+builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -103,13 +120,29 @@ builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IRequirementService, RequirementService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddScoped<IMeetingParticipantService, MeetingParticipantService>();
-builder.Services.AddScoped<ITaskCheckListService, TaskCheckListService>();
+builder.Services.AddScoped<ISubtaskService, SubtaskService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
-
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+
+builder.Services.AddScoped<ITaskFileService, TaskFileService>();
+builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
+builder.Services.AddScoped<ITaskPlanningService, TaskPlanningService>();
+builder.Services.AddScoped<IProjectPositionService, ProjectPositionService>();
+builder.Services.AddScoped<ISprintService, SprintService>();
+builder.Services.AddScoped<IProjectMetricService, ProjectMetricService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IMeetingLogService, MeetingLogService>();
 builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
 builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
+// ------------------------- HttpClient -----------------------------
+builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
+{
+    client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
+});
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+
+
+
 //----------------------------DB-----------------------------------
 builder.Services.AddDbContext<Su25Sep490IntelliPmContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
