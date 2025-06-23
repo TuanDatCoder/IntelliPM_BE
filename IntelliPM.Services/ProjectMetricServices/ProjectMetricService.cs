@@ -189,5 +189,21 @@ namespace IntelliPM.Services.ProjectMetricServices
                 Cost = costDto
             };
         }
+
+        public async Task<object> GetTaskStatusDashboardAsync(int projectId)
+        {
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            var notStarted = tasks.Count(t => string.Equals(t.Status, "NOT_STARTED", StringComparison.OrdinalIgnoreCase));
+            var inProgress = tasks.Count(t => string.Equals(t.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+            var completed = tasks.Count(t => string.Equals(t.Status, "COMPLETE", StringComparison.OrdinalIgnoreCase));
+
+            return new
+            {
+                notStarted,
+                inProgress,
+                completed
+            };
+        }
     }
 }
