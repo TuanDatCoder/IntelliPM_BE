@@ -10,11 +10,11 @@ using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.MeetingLog.Request;
 using IntelliPM.Data.DTOs.MeetingLog.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
+using IntelliPM.Data.DTOs.MeetingParticipant.Request;
+using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
-using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
@@ -42,12 +42,13 @@ using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
-using IntelliPM.Data.Entities;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Entities;
 using IntelliPM.Services.AiServices.TaskPlanningServices; // Thêm namespace cho TaskWithMembers
-
+using IntelliPM.Data.DTOs.MeetingSummary.Request;
+using IntelliPM.Data.DTOs.MeetingSummary.Response;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -217,6 +218,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
 
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
+
+            //MeetingSummary
+            CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
+            CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
 
         }
     }
