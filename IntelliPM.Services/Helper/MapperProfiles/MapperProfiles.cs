@@ -15,12 +15,15 @@ using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectMetric.Request;
+using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
@@ -83,6 +86,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<Project, ProjectDetailsDTO>()
                 .ForMember(dest => dest.Requirements, opt => opt.MapFrom(src => src.Requirement))
                 .ForMember(dest => dest.ProjectMembers, opt => opt.MapFrom(src => src.ProjectMember));
+
+            // ProjectMetric
+            CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
+            CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
@@ -152,8 +162,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
 
-            // TaskCheckList
+            // TaskSubtask
             CreateMap<SubtaskRequestDTO, Subtask>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<SubtaskRequest1DTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
