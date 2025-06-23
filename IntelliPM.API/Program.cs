@@ -60,6 +60,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using IntelliPM.Repositories.MeetingSummaryRepos;
+using IntelliPM.Services.MeetingSummaryServices;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -90,6 +92,7 @@ builder.Services.AddScoped<IMeetingParticipantRepository, MeetingParticipantRepo
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
+builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
 
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
@@ -123,7 +126,7 @@ builder.Services.AddScoped<IMeetingParticipantService, MeetingParticipantService
 builder.Services.AddScoped<ISubtaskService, SubtaskService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
-
+builder.Services.AddScoped<IMeetingSummaryService, MeetingSummaryService>();
 builder.Services.AddScoped<ITaskFileService, TaskFileService>();
 builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ITaskPlanningService, TaskPlanningService>();
