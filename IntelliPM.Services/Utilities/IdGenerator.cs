@@ -10,7 +10,9 @@ using System.Threading.Tasks;
 namespace IntelliPM.Services.Utilities
 {
     public static class IdGenerator
-    {
+    {   
+
+
         public static async Task<string> GenerateNextId(string projectKey, IEpicRepository epicRepo, ITaskRepository taskRepo, IProjectRepository projectRepo)
         {
             if (string.IsNullOrEmpty(projectKey))
