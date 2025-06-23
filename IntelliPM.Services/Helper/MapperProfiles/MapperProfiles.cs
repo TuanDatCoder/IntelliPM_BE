@@ -24,6 +24,10 @@ using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.SubtaskComment.Request;
+using IntelliPM.Data.DTOs.SubtaskComment.Response;
+using IntelliPM.Data.DTOs.SubtaskFile.Request;
+using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
@@ -181,11 +185,23 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>();
 
+            // SubaskComment
+            CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<SubtaskComment, SubtaskCommentResponseDTO>();
+
             // TaskFile
             CreateMap<TaskFileRequestDTO, TaskFile>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskFile, TaskFileResponseDTO>();
+
+            // SubtaskFile
+            CreateMap<SubtaskFileRequestDTO, SubtaskFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<SubtaskFile, SubtaskFileResponseDTO>();
 
             // TaskAssignment
             CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()
@@ -194,7 +210,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CompletedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Account, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
-
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
         }
     }
