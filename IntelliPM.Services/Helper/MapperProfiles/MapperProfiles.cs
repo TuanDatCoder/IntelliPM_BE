@@ -190,13 +190,18 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Subtask, SubtaskResponseDTO>();
 
+            // ProjectMember
+            CreateMap<ProjectMemberRequestDTO, Data.Entities.ProjectMember>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<Data.Entities.ProjectMember, ProjectMemberResponseDTO>();
+
             // TaskComment
             CreateMap<TaskCommentRequestDTO, TaskComment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>();
 
-            // SubaskComment
+            // SubtaskComment
             CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
