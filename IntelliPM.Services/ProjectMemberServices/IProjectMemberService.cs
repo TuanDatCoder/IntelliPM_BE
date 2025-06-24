@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
@@ -22,5 +23,6 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
+        Task<List<ProjectMemberResponseDTO>> GetProjectMemberbyProjectId(int projectId);
     }
 }
