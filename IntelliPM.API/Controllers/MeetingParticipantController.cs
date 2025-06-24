@@ -50,5 +50,7 @@ namespace IntelliPM.API.Controllers
             await _service.DeleteParticipant(id);
             return NoContent();
         }
+
+
     }
 }
