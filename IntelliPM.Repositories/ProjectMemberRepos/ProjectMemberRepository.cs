@@ -62,6 +62,11 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             await _context.SaveChangesAsync();
         }
 
-
+        public async Task<List<ProjectMember>> GetProjectMemberbyProjectId(int projectId)
+        {
+            return await _context.ProjectMember
+                .Where(tf => tf.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }

@@ -67,6 +67,7 @@ using IntelliPM.Services.SubtaskFileServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Repositories.SubtaskFileRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
+using IntelliPM.Repositories.NotificationRepos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,6 +110,7 @@ builder.Services.AddScoped<IProjectPositionRepository, ProjectPositionRepository
 builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
 builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
 builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 
 
@@ -147,6 +149,7 @@ builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>(
 builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
 builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
+
 
 
 
