@@ -3,6 +3,7 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -14,40 +15,63 @@ namespace IntelliPM.Services.MeetingServices
     public class MeetingService : IMeetingService
     {
         private readonly IMeetingRepository _repo;
+        private readonly IMeetingParticipantRepository _meetingParticipantRepo;
         private readonly Su25Sep490IntelliPmContext _context;
         private readonly IMapper _mapper;
 
-        public MeetingService(IMeetingRepository repo, IMapper mapper, Su25Sep490IntelliPmContext context)
+        public MeetingService(
+            IMeetingRepository repo,
+            IMeetingParticipantRepository meetingParticipantRepo,
+            IMapper mapper,
+            Su25Sep490IntelliPmContext context)
         {
             _repo = repo;
+            _meetingParticipantRepo = meetingParticipantRepo;
             _mapper = mapper;
             _context = context;
         }
 
         //public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
         //{
+
         //    try
         //    {
-        //        // Kiểm tra ProjectId có tồn tại trong cơ sở dữ liệu không
-        //        var project = await _context.Project.FindAsync(dto.ProjectId);
-        //        if (project == null)
+        //        // ⚠️ Check nếu Project đã có họp vào cùng ngày
+        //        bool hasConflict = await _context.Meeting.AnyAsync(m =>
+        //            m.ProjectId == dto.ProjectId &&
+        //            m.MeetingDate.Date == dto.MeetingDate.Date &&
+        //            m.Status != "CANCELLED" // Optional: nếu không tính họp đã huỷ
+        //        );
+
+        //        if (hasConflict)
         //        {
-        //            throw new KeyNotFoundException("Project not found.");
+        //            throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
         //        }
 
         //        var meeting = _mapper.Map<Meeting>(dto);
         //        meeting.Status = "ACTIVE";
         //        meeting.CreatedAt = DateTime.UtcNow;
 
-        //        // Lưu vào cơ sở dữ liệu
-        //        await _repo.AddAsync(meeting);
-        //        await _context.SaveChangesAsync();  // Lưu thay đổi vào cơ sở dữ liệu
+        //        // Bắt buộc xử lý UTC
+        //        meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+        //        if (meeting.StartTime.HasValue)
+        //            meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+        //        if (meeting.EndTime.HasValue)
+        //            meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
 
-        //        return _mapper.Map<MeetingResponseDTO>(meeting);  // Trả về MeetingResponseDTO
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);
+        //    }
+        //    catch (InvalidOperationException ex)
+        //    {
+        //        // Lỗi nghiệp vụ
+        //        throw new Exception(ex.Message);
+
         //    }
         //    catch (Exception ex)
         //    {
-        //        // Ghi chi tiết lỗi vào Console (hoặc sử dụng công cụ ghi log như Serilog, NLog)
         //        Console.WriteLine("Error in CreateMeeting: " + ex.Message);
         //        Console.WriteLine("Stack Trace: " + ex.StackTrace);
         //        if (ex.InnerException != null)
@@ -55,7 +79,6 @@ namespace IntelliPM.Services.MeetingServices
         //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
         //        }
 
-        //        // Trả về lỗi chi tiết cho người dùng
         //        throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
         //    }
         //}
@@ -64,16 +87,32 @@ namespace IntelliPM.Services.MeetingServices
         {
             try
             {
-                // ⚠️ Check nếu Project đã có họp vào cùng ngày
+                // Kiểm tra nếu Project đã có họp vào cùng ngày
                 bool hasConflict = await _context.Meeting.AnyAsync(m =>
                     m.ProjectId == dto.ProjectId &&
                     m.MeetingDate.Date == dto.MeetingDate.Date &&
-                    m.Status != "CANCELLED" // Optional: nếu không tính họp đã huỷ
+                    m.Status != "CANCELLED"
                 );
 
                 if (hasConflict)
                 {
                     throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
+                }
+
+                // Validate danh sách người tham gia
+                if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+                    throw new Exception("At least one participant is required.");
+
+                // Kiểm tra trùng lịch cho từng participant
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    foreach (var participantId in dto.ParticipantIds)
+                    {
+                        bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+                            participantId, dto.StartTime.Value, dto.EndTime.Value);
+                        if (participantConflict)
+                            throw new Exception($"Participant {participantId} has a conflicting meeting.");
+                    }
                 }
 
                 var meeting = _mapper.Map<Meeting>(dto);
@@ -90,13 +129,25 @@ namespace IntelliPM.Services.MeetingServices
                 await _repo.AddAsync(meeting);
                 await _context.SaveChangesAsync();
 
+                // Thêm participant vào bảng MeetingParticipant
+                foreach (var participantId in dto.ParticipantIds)
+                {
+                    var participant = new MeetingParticipant
+                    {
+                        MeetingId = meeting.Id,
+                        AccountId = participantId,
+                        Role = "Attendee",
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _meetingParticipantRepo.AddAsync(participant);
+                }
+
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
             catch (InvalidOperationException ex)
             {
-                // Lỗi nghiệp vụ
                 throw new Exception(ex.Message);
-
             }
             catch (Exception ex)
             {
@@ -106,7 +157,6 @@ namespace IntelliPM.Services.MeetingServices
                 {
                     Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
                 }
-
                 throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
             }
         }
