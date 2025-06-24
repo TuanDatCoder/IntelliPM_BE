@@ -48,5 +48,13 @@ namespace IntelliPM.Repositories.SubtaskRepos
             _context.Subtask.Remove(subtask);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Subtask>> GetSubtaskByTaskIdAsync(string taskId)
+        {
+            return await _context.Subtask
+                .Where(tf => tf.TaskId == taskId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

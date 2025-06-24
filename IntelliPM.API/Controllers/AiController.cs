@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Ai.ProjectTaskPlanning.Request;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
+using IntelliPM.Services.SubtaskServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -11,11 +12,13 @@ namespace IntelliPM.API.Controllers
     public class AiController : ControllerBase
     {
         private readonly ITaskPlanningService _taskPlanningService;
-  
+        private readonly ISubtaskService _subtaskService;
 
-        public AiController(ITaskPlanningService taskPlanningService)
+
+        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService)
         {
             _taskPlanningService = taskPlanningService ?? throw new ArgumentNullException(nameof(taskPlanningService));
+            _subtaskService = subtaskService ?? throw new ArgumentNullException( nameof(subtaskService));
         }
 
         // Đạt: AI tạo gợi ý tạo các task cho project
@@ -63,7 +66,29 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-       
-
+        [HttpPost("{taskId}/generate-subtask")]
+        public async Task<IActionResult> GenerateSubtaskFromTaskTitle(string taskId)
+        {
+            try
+            {
+                var subtask = await _subtaskService.GenerateSubtaskPreviewAsync(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask generated successfully (not saved)",
+                    Data = subtask
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating Subtask: {ex.Message}"
+                });
+            }
+        }
     }
 }
