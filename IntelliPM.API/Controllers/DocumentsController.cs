@@ -52,15 +52,17 @@ namespace IntelliPM.API.Controllers
         [HttpGet("created-by-me")]
         public async Task<ActionResult<List<DocumentResponseDTO>>> GetDocumentsCreatedByMe()
         {
-            var userIdClaim = User.FindFirst("accountId")?.Value;
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
+            if (string.IsNullOrEmpty(accountIdClaim))
                 return Unauthorized();
 
-            int userId = int.Parse(userIdClaim);
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
 
             var result = await _documentService.GetDocumentsCreatedByUser(userId);
             return Ok(result);
+
         }
 
 
