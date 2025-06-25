@@ -151,12 +151,27 @@ namespace IntelliPM.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponseDTO
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("time-dashboard")]
+        public async Task<IActionResult> GetTimeDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _service.GetTimeDashboardAsync(projectId);
+                return Ok(new ApiResponseDTO
                 {
-                    IsSuccess = false,
-                    Code = 500,
-                    Message = $"Internal Server Error: {ex.Message}"
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Time dashboard loaded successfully",
+                    Data = result
                 });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
             }
         }
 
