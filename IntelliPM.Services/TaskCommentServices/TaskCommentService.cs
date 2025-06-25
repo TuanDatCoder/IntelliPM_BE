@@ -51,10 +51,8 @@ namespace IntelliPM.Services.TaskCommentServices
 
             try
             {
-                // Lưu comment
                 await _repo.Add(entity);
 
-                // 🔍 1. Lấy task để tìm ProjectId
                 var task = await _taskRepo.GetByIdAsync(request.TaskId);
                 Console.WriteLine($"Creating comment for TaskId: {request.TaskId}");
                 if (task == null)
@@ -62,7 +60,6 @@ namespace IntelliPM.Services.TaskCommentServices
 
                 var projectId = task.ProjectId;
 
-                // 👥 2. Lấy danh sách thành viên dự án (trừ người đang comment)
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
                     .Where(m => m.AccountId != request.AccountId)
@@ -71,7 +68,6 @@ namespace IntelliPM.Services.TaskCommentServices
 
                 if (recipients.Count > 0)
                 {
-                    // 🛎️ 3. Tạo notification
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
@@ -79,7 +75,7 @@ namespace IntelliPM.Services.TaskCommentServices
                         Priority = "NORMAL",
                         Message = $"Đã bình luận trên task {request.TaskId}: {request.Content}",
                         RelatedEntityType = "Task",
-                        RelatedEntityId = entity.Id, // comment ID
+                        RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
                         RecipientNotification = new List<RecipientNotification>()
@@ -93,8 +89,6 @@ namespace IntelliPM.Services.TaskCommentServices
                             //IsRead = false
                         });
                     }
-
-                    // 4. Lưu notification
                     await _notificationRepo.Add(notification);
                 }
             }
@@ -106,10 +100,8 @@ namespace IntelliPM.Services.TaskCommentServices
             {
                 throw new Exception($"Failed to create task comment: {ex.Message}", ex);
             }
-
             return _mapper.Map<TaskCommentResponseDTO>(entity);
         }
-
 
         public async Task DeleteTaskComment(int id)
         {
