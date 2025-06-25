@@ -194,5 +194,43 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("{projectId}/send-email-to-pm")]
+        [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
+        public async Task<IActionResult> SendEmailToPM(int projectId)
+        {
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = "Authorization token is required."
+                });
+
+            try
+            {
+                var result = await _service.SendEmailToProjectManager(projectId, token);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = result,
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = $"Error sending email: {ex.Message}"
+                });
+            }
+        }
+
+
     }
 }
