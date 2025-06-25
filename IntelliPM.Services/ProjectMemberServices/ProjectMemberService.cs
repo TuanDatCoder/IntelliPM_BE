@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -204,6 +205,16 @@ namespace IntelliPM.Services.ProjectMemberServices
             var entities = await _repo.GetAllProjectMembers(projectId);
             throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
             return entities;
+        }
+
+        public async Task<List<ProjectMemberResponseDTO>> GetProjectMemberbyProjectId(int projectId)
+        {
+            var entities = await _repo.GetProjectMemberbyProjectId(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No members found for projectId {projectId}.");
+
+            return _mapper.Map<List<ProjectMemberResponseDTO>>(entities);
         }
     }
 }

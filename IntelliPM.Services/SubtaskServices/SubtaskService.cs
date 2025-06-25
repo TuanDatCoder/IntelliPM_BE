@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
@@ -138,8 +139,14 @@ namespace IntelliPM.Services.SubtaskServices
 
         public async Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId)
         {
-            var checkList = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-            return _mapper.Map<List<SubtaskResponseDTO>>(checkList);
+            { 
+                var entities = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No subtasks found for Task ID {taskId}.");
+
+                return _mapper.Map<List<SubtaskResponseDTO>>(entities);
+            }
         }
 
         public async Task<SubtaskResponseDTO> UpdateSubtask(string id, SubtaskRequestDTO request)
