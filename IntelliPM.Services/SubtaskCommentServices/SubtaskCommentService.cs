@@ -1,12 +1,11 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
-using IntelliPM.Data.DTOs.TaskComment.Request;
-using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.NotificationRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
-using IntelliPM.Repositories.TaskCommentRepos;
-using IntelliPM.Services.TaskCommentServices;
+using IntelliPM.Repositories.SubtaskRepos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -21,13 +20,19 @@ namespace IntelliPM.Services.SubtaskCommentServices
     {
         private readonly IMapper _mapper;
         private readonly ISubtaskCommentRepository _repo;
+        private readonly INotificationRepository _notificationRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<SubtaskCommentService> _logger;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, ILogger<SubtaskCommentService> logger)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ILogger<SubtaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _notificationRepo = notificationRepo;   
+            _subtaskRepo = subtaskRepo;
+            _projectMemberRepo = projectMemberRepo;
         }
 
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
@@ -36,23 +41,63 @@ namespace IntelliPM.Services.SubtaskCommentServices
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
             if (string.IsNullOrEmpty(request.Content))
-                throw new ArgumentException("Subtask comment content is required.", nameof(request.Content));
+                throw new ArgumentException("Task comment content is required.", nameof(request.Content));
 
             var entity = _mapper.Map<SubtaskComment>(request);
+            entity.CreatedAt = DateTime.UtcNow;
 
             try
             {
                 await _repo.Add(entity);
+
+                var subtask = await _subtaskRepo.GetByIdAsync(request.SubtaskId);
+                Console.WriteLine($"Creating comment for TaskId: {request.SubtaskId}");
+                if (subtask == null)
+                    throw new Exception($"Task with ID {request.SubtaskId} not found.");
+
+                var projectId = subtask.Task.ProjectId;
+
+                // 👥 2. Lấy danh sách thành viên dự án (trừ người đang comment)
+                var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
+                var recipients = members
+                    .Where(m => m.AccountId != request.AccountId)
+                    .Select(m => m.AccountId)
+                    .ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var notification = new Notification
+                    {
+                        CreatedBy = request.AccountId,
+                        Type = "COMMENT",
+                        Priority = "NORMAL",
+                        Message = $"Đã bình luận trên subtask {request.SubtaskId}: {request.Content}",
+                        RelatedEntityType = "Subtask",
+                        RelatedEntityId = entity.Id, // comment ID
+                        CreatedAt = DateTime.UtcNow,
+                        //IsRead = false,
+                        RecipientNotification = new List<RecipientNotification>()
+                    };
+
+                    foreach (var accId in recipients)
+                    {
+                        notification.RecipientNotification.Add(new RecipientNotification
+                        {
+                            AccountId = accId
+                            //IsRead = false
+                        });
+                    }
+                    await _notificationRepo.Add(notification);
+                }
             }
             catch (DbUpdateException ex)
             {
-                throw new Exception($"Failed to create subtask comment due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+                throw new Exception($"Failed to create task comment due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to create subtask comment: {ex.Message}", ex);
+                throw new Exception($"Failed to create task comment: {ex.Message}", ex);
             }
-
             return _mapper.Map<SubtaskCommentResponseDTO>(entity);
         }
 
