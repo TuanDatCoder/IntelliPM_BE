@@ -135,6 +135,30 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("progress-dashboard")]
+        public async Task<IActionResult> GetProgressDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _service.GetProgressDashboardAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Progress dashboard loaded successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}"
+                });
+            }
+        }
 
     }
 }
