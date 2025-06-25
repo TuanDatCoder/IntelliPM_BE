@@ -18,11 +18,11 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<ProjectMemberResponseDTO> GetProjectMemberById(int id);
         Task<ProjectMemberResponseDTO> AddProjectMember(ProjectMemberRequestDTO request);
         Task DeleteProjectMember(int id);
-
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
-        Task<List<ProjectMemberResponseDTO>> GetProjectMemberbyProjectId(int projectId);
+        Task<List<ProjectMemberResponseDTO>> GetProjectMemberByProjectId(int projectId);
+        Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests);
     }
 }

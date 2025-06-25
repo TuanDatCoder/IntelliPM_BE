@@ -172,7 +172,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var files = await _service.GetProjectMemberbyProjectId(projectId);
+                var files = await _service.GetProjectMemberByProjectId(projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -188,6 +188,63 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error retrieving member: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("bulk-with-positions")]
+        [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
+        public async Task<IActionResult> CreateBulkWithPositions(int projectId, [FromBody] List<ProjectMemberWithPositionRequestDTO> requests)
+        {
+
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+
+            if (requests == null || !requests.Any())
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = "Request list cannot be null or empty."
+                });
+            }
+
+            try
+            {
+                var results = await _service.CreateBulkWithPositions(projectId, token, requests);
+                return StatusCode((int)HttpStatusCode.Created, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.Created,
+                    Message = "Project members and positions created successfully",
+                    Data = results
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = $"Error creating project members and positions: {ex.Message}"
                 });
             }
         }
