@@ -19,25 +19,25 @@ namespace IntelliPM.Services.ProjectServices
     public class ProjectService : IProjectService
     {
         private readonly IMapper _mapper;
-        private readonly IProjectRepository _repo;
+        private readonly IProjectRepository _projectRepo;
         private readonly ILogger<ProjectService> _logger;
 
-        public ProjectService(IMapper mapper, IProjectRepository repo, ILogger<ProjectService> logger)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, ILogger<ProjectService> logger)
         {
             _mapper = mapper;
-            _repo = repo;
+            _projectRepo = projectRepo;
             _logger = logger;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
-            var entities = await _repo.GetAllProjects();
+            var entities = await _projectRepo.GetAllProjects();
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
         public async Task<ProjectResponseDTO> GetProjectById(int id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
@@ -49,7 +49,7 @@ namespace IntelliPM.Services.ProjectServices
             if (string.IsNullOrEmpty(searchTerm) && string.IsNullOrEmpty(projectType) && string.IsNullOrEmpty(status))
                 throw new ArgumentException("At least one search criterion must be provided.");
 
-            var entities = await _repo.SearchProjects(searchTerm, projectType, status);
+            var entities = await _projectRepo.SearchProjects(searchTerm, projectType, status);
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
@@ -65,7 +65,7 @@ namespace IntelliPM.Services.ProjectServices
 
             try
             {
-                await _repo.Add(entity);
+                await _projectRepo.Add(entity);
             }
             catch (DbUpdateException ex)
             {
@@ -81,7 +81,7 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
@@ -90,7 +90,7 @@ namespace IntelliPM.Services.ProjectServices
 
             try
             {
-                await _repo.Update(entity);
+                await _projectRepo.Update(entity);
             }
             catch (Exception ex)
             {
@@ -102,13 +102,13 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task DeleteProject(int id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
             try
             {
-                await _repo.Delete(entity);
+                await _projectRepo.Delete(entity);
             }
             catch (Exception ex)
             {
@@ -118,7 +118,7 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
-            var project = await _repo.GetProjectWithMembersAndRequirements(id);
+            var project = await _projectRepo.GetProjectWithMembersAndRequirements(id);
 
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
