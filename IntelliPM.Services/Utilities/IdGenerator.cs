@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace IntelliPM.Services.Utilities
 {
     public static class IdGenerator
     {
-        public static async Task<string> GenerateNextId(string projectKey, IEpicRepository epicRepo, ITaskRepository taskRepo, IProjectRepository projectRepo)
+        public static async Task<string> GenerateNextId(string projectKey, IEpicRepository epicRepo, ITaskRepository taskRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo)
         {
             if (string.IsNullOrEmpty(projectKey))
                 throw new ArgumentException("Project key cannot be null or empty.");
@@ -31,10 +32,18 @@ namespace IntelliPM.Services.Utilities
                 throw new InvalidOperationException("ITaskRepository is required to generate a consistent ID across Tasks and Epics.");
             }
 
+            var allSubtasks = new List<Subtask>();
+            foreach (var task in allTasks)
+            {
+                var subtasks = await subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+                allSubtasks.AddRange(subtasks);
+            }
+
             // Kết hợp tất cả ID từ cả epic và task
             var allIds = new List<string>();
             allIds.AddRange(allEpics.Select(e => e.Id));
             allIds.AddRange(allTasks.Select(t => t.Id));
+            allIds.AddRange(allSubtasks.Select(s => s.Id));
 
             // Tìm số lớn nhất hiện tại từ tất cả ID
             int maxNumber = 0;
