@@ -248,5 +248,39 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("with-positions")]
+        public async Task<IActionResult> GetProjectMemberWithPositions(int projectId)
+        {
+            try
+            {
+                var member = await _service.GetProjectMemberWithPositionsByProjectId(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Project member with positions retrieved successfully",
+                    Data = member
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project member with positions: {ex.Message}"
+                });
+            }
+        }
     }
 }

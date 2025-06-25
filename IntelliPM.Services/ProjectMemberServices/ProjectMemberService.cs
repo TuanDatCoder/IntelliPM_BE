@@ -310,6 +310,36 @@ namespace IntelliPM.Services.ProjectMemberServices
             return memberResponses;
         }
 
+        public async Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId)
+        {
+          
+            var members = await _projectMemberRepo.GetAllProjectMembers(projectId);
+            if (members == null || !members.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            var responses = new List<ProjectMemberWithPositionsResponseDTO>();
+
+            foreach (var member in members)
+            {
+                var positions = await _projectPositionRepo.GetAllProjectPositions(member.Id);
+
+                var response = _mapper.Map<ProjectMemberWithPositionsResponseDTO>(member);
+                response.ProjectPositions = _mapper.Map<List<ProjectPositionResponseDTO>>(positions);
+
+                var account = await _accountRepo.GetAccountById(member.AccountId);
+                if (account != null)
+                {
+                    response.FullName = account.FullName;
+                    response.Username = account.Username;
+                    response.Picture = account.Picture;
+                    response.Email = account.Email; 
+                }
+
+                responses.Add(response);
+            }
+
+            return responses;
+        }
 
     }
 }

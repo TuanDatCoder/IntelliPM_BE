@@ -24,5 +24,6 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
         Task<List<ProjectMemberResponseDTO>> GetProjectMemberByProjectId(int projectId);
         Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests);
+        Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId);
     }
 }
