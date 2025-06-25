@@ -229,5 +229,22 @@ namespace IntelliPM.Services.MeetingServices
                 throw new Exception("An error occurred while cancelling the meeting.");
             }
         }
+
+        public async Task<List<MeetingResponseDTO>> GetManagedMeetingsByAccount(int accountId)
+        {
+            // Lấy các MeetingId mà account này đã tạo (Action = "CREATE_MEETING")
+            var meetingIds = await _context.MeetingLog
+                .Where(log => log.AccountId == accountId && log.Action == "CREATE_MEETING")
+                .Select(log => log.MeetingId)
+                .Distinct()
+                .ToListAsync();
+
+            // Lấy thông tin chi tiết các cuộc họp và map sang MeetingResponseDTO
+            var meetings = await _context.Meeting
+                .Where(m => meetingIds.Contains(m.Id))
+                .ToListAsync();
+
+            return _mapper.Map<List<MeetingResponseDTO>>(meetings);
+        }
     }
 }
