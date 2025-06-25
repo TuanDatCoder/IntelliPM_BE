@@ -1,7 +1,5 @@
 ﻿using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
-using IntelliPM.Data.DTOs.TaskComment.Request;
-using IntelliPM.Data.DTOs.TaskComment.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
