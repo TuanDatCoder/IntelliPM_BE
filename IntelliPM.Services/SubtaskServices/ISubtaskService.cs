@@ -1,5 +1,4 @@
 ﻿using IntelliPM.Data.DTOs.Subtask.Request;
-using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
@@ -21,5 +20,6 @@ namespace IntelliPM.Services.SubtaskServices
         Task DeleteSubtask(string id);
         Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
         Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId);
+        Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status);
     }
 }
