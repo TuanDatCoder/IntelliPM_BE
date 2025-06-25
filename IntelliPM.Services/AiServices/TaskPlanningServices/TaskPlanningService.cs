@@ -76,11 +76,11 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
             if (!requirements.Any())
             {
-                _logger.LogWarning("No requirements found for ProjectId {ProjectId}. Using fallback data.", projectId);
+
                 requirements = GenerateFallbackRequirementsResponse(projectId);
             }
 
-            var projectMembers = projectDetails.ProjectMembers?.Select(pm => new ProjectMember
+            var projectMembers = projectDetails.ProjectMembers?.Select(pm => new ProjectMemberDTO
             {
                 Id = pm.Id,
                 AccountId = pm.AccountId,
@@ -90,13 +90,13 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 Status = pm.Status,
                 FullName = pm.FullName,
                 Picture = pm.Picture,
-                ProjectPosition = pm.ProjectPositions?.Select(pp => new ProjectPosition
+                ProjectPosition = pm.ProjectPositions?.Select(pp => new ProjectPositionDTO
                 {
                     Id = pp.Id,
                     ProjectMemberId = pp.ProjectMemberId,
                     Position = pp.Position
-                }).ToList() ?? new List<ProjectPosition>()
-            }).ToList() ?? new List<ProjectMember>();
+                }).ToList() ?? new List<ProjectPositionDTO>()
+            }).ToList() ?? new List<ProjectMemberDTO>();
             _logger.LogInformation("Mapped project members count: {Count}", projectMembers?.Count ?? 0);
 
             if (!projectMembers.Any())
@@ -242,7 +242,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return epics;
         }
 
-        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, List<ProjectMember> projectMembers, List<ProjectPosition> positions, string projectKey)
+        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions, string projectKey)
         {
             var projectDetails = await _projectService.GetProjectDetails(projectId);
             if (projectDetails == null)
@@ -344,25 +344,25 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             }
         }
 
-        private List<ProjectMember> GenerateFallbackMembersResponse(int projectId)
+        private List<ProjectMemberDTO> GenerateFallbackMembersResponse(int projectId)
         {
-            return new List<ProjectMember>
+            return new List<ProjectMemberDTO>
             {
-                new ProjectMember { AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png" },
-                new ProjectMember { AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png" }
+                new ProjectMemberDTO { AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png" },
+                new ProjectMemberDTO { AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png" }
             };
         }
 
-        private List<ProjectPosition> GenerateFallbackPositionsResponse(int projectId)
+        private List<ProjectPositionDTO> GenerateFallbackPositionsResponse(int projectId)
         {
-            return new List<ProjectPosition>
+            return new List<ProjectPositionDTO>
             {
-                new ProjectPosition { ProjectMemberId = 1, Id = projectId, Position = "PROJECT_MANAGER" },
-                new ProjectPosition { ProjectMemberId = 2, Id = projectId, Position = "BACKEND_DEVELOPER" }
+                new ProjectPositionDTO { ProjectMemberId = 1, Id = projectId, Position = "PROJECT_MANAGER" },
+                new ProjectPositionDTO { ProjectMemberId = 2, Id = projectId, Position = "BACKEND_DEVELOPER" }
             };
         }
 
-        private List<EpicWithTasksDTO> GenerateFallbackEpicTasksResponse(DateTime startDate, DateTime endDate, List<RequirementRequestDTO> requirements, List<ProjectMember> projectMembers, List<ProjectPosition> positions, string projectKey)
+        private List<EpicWithTasksDTO> GenerateFallbackEpicTasksResponse(DateTime startDate, DateTime endDate, List<RequirementRequestDTO> requirements, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions, string projectKey)
         {
             var epicTasks = new List<EpicWithTasksDTO>();
             var epicCount = 5;
@@ -416,14 +416,14 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return epicTasks;
         }
 
-        private string GetSuggestedRoleResponse(int index, List<ProjectPosition> positions)
+        private string GetSuggestedRoleResponse(int index, List<ProjectPositionDTO> positions)
         {
             var roles = positions.Select(p => p.Position).Distinct().Where(r => r != "ADMIN" && r != "PROJECT_MANAGER").ToArray();
             if (!roles.Any()) roles = new[] { "FRONTEND_DEVELOPER", "BACKEND_DEVELOPER", "TESTER", "DESIGNER", "TEAM_LEADER" };
             return roles[index % roles.Length];
         }
 
-        private List<MemberAssignmentDTO> AssignMembersToTaskResponse(List<ProjectPosition> positions, string suggestedRole)
+        private List<MemberAssignmentDTO> AssignMembersToTaskResponse(List<ProjectPositionDTO> positions, string suggestedRole)
         {
             return positions
                 .Where(p => p.Position.ToLower().Contains(suggestedRole.ToLower().Replace(" ", "")) && p.Position != "ADMIN" && p.Position != "PROJECT_MANAGER")
@@ -444,7 +444,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             catch { _logger.LogWarning("Invalid JSON: {RawJson}", rawJson); return "[]"; }
         }
 
-        private List<TaskAssignment> AssignTasksToMembersResponse(List<Tasks> tasks, List<ProjectMember> projectMembers, List<ProjectPosition> positions)
+        private List<TaskAssignment> AssignTasksToMembersResponse(List<Tasks> tasks, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions)
         {
             var assignments = new List<TaskAssignment>();
             var roleMap = positions.ToDictionary(p => p.ProjectMemberId, p => p.Position.ToLower());
@@ -461,10 +461,10 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     var assignment = new TaskAssignment
                     {
                         TaskId = task.Id.ToString(),
-                        AccountId = suitableMember.AccountId,
+                        ProjectMemberId = suitableMember.AccountId,
                         Status = "Assigned",
                         AssignedAt = DateTime.UtcNow,
-                        HourlyRate = 50.00m
+                        PlannedHours = 50.00m
                     };
                     assignments.Add(assignment);
                     _taskAssignmentService.CreateTaskAssignment(_mapper.Map<TaskAssignmentRequestDTO>(assignment)).GetAwaiter().GetResult();
@@ -537,7 +537,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         public string text { get; set; }
     }
 
-    public class ProjectMember
+    public class ProjectMemberDTO
     {
         public int Id { get; set; }
         public int AccountId { get; set; }
@@ -547,10 +547,10 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         public string Status { get; set; }
         public string FullName { get; set; }
         public string Picture { get; set; }
-        public List<ProjectPosition> ProjectPosition { get; set; }
+        public List<ProjectPositionDTO> ProjectPosition { get; set; }
     }
 
-    public class ProjectPosition
+    public class ProjectPositionDTO
     {
         public int Id { get; set; }
         public int ProjectMemberId { get; set; }
