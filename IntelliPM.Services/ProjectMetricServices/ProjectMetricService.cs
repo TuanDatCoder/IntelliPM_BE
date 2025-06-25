@@ -19,6 +19,8 @@ using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Configuration;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -28,15 +30,19 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IProjectMetricRepository _repo;
         private readonly ITaskRepository _taskRepo;
         private readonly IProjectRepository _projectRepo;
+        private readonly ISprintRepository _sprintRepo;
+        private readonly IMilestoneRepository _milestoneRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
+            _sprintRepo = sprintRepo;
+            _milestoneRepo = milestoneRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -138,6 +144,49 @@ namespace IntelliPM.Services.ProjectMetricServices
         {
             var entities = await _repo.GetByProjectIdAsync(projectId);
             return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
+        }
+
+        public async Task<List<object>> GetProgressDashboardAsync(int projectId)
+        {
+            var sprints = await _sprintRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(projectId);
+
+            var result = new List<object>();
+
+            foreach (var sprint in sprints)
+            {
+                var sprintTasks = tasks.Where(t => t.SprintId == sprint.Id).ToList();
+                var sprintMilestones = milestones.Where(m => m.SprintId == sprint.Id).ToList(); 
+
+                //var totalItems = sprintTasks.Count + sprintMilestones.Count;
+                var totalItems = sprintTasks.Count;
+                if (totalItems == 0)
+                {
+                    result.Add(new
+                    {
+                        sprintId = sprint.Id,
+                        sprintName = sprint.Name,
+                        percentComplete = 0.0
+                    });
+                    continue;
+                }
+
+                double taskProgress = (double)sprintTasks.Sum(t => t.PercentComplete ?? 0);
+                //double milestoneProgress = sprintMilestones.Sum(m => m.PercentComplete ?? 0);
+
+                //double percentComplete = (taskProgress + milestoneProgress) / totalItems;
+                double percentComplete = taskProgress / totalItems;
+
+                result.Add(new
+                {
+                    sprintId = sprint.Id,
+                    sprintName = sprint.Name,
+                    percentComplete = Math.Round(percentComplete, 2)
+                });
+            }
+
+            return result;
         }
 
         public async Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId)
