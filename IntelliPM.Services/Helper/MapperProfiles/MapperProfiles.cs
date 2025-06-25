@@ -53,6 +53,8 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Services.AiServices.TaskPlanningServices; // Thêm namespace cho TaskWithMembers
 using IntelliPM.Data.DTOs.MeetingSummary.Request;
 using IntelliPM.Data.DTOs.MeetingSummary.Response;
+using IntelliPM.Data.DTOs.Risk.Request;
+using IntelliPM.Data.DTOs.Risk.Response;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -161,6 +163,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Requirement, RequirementResponseDTO>();
             CreateMap<RequirementResponseDTO, RequirementRequestDTO>();
+
+            //Risk
+            CreateMap<Risk, RiskResponseDTO>()
+                .ForMember(dest => dest.ResponsibleName, opt => opt.MapFrom(src => src.Responsible.FullName))
+                .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
+
+            CreateMap<RiskRequestDTO, Risk>();
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()

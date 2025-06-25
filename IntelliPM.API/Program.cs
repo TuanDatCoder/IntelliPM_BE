@@ -68,13 +68,12 @@ using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Repositories.SubtaskFileRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
 using IntelliPM.Repositories.NotificationRepos;
+using IntelliPM.Repositories.RiskRepos;
+using IntelliPM.Services.RiskServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient<ProjectMetricService>();
-
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 
@@ -111,6 +110,7 @@ builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
 builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
 builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IRiskRepository, RiskRepository>();
 
 
 
@@ -149,6 +149,7 @@ builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>(
 builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
 builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
+builder.Services.AddScoped<IRiskService, RiskService>();
 
 
 
