@@ -146,6 +146,45 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
         }
 
+        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
+        //{
+        //    var project = await _projectRepo.GetByIdAsync(projectId)
+        //        ?? throw new Exception("Project not found");
+
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId); 
+        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);   // để lấy HourlyRate
+
+        //    // Tính Task Cost
+        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+
+        //    // Tính Resource Cost từ TaskAssignment và ProjectMember
+        //    decimal actualResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.ActualHours ?? 0) * hourly;
+        //    });
+
+        //    decimal plannedResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.PlannedHours ?? 0) * hourly;
+        //    });
+
+        //    return new CostDashboardResponseDTO
+        //    {
+        //        ActualTaskCost = actualTaskCost,
+        //        PlannedTaskCost = plannedTaskCost,
+        //        ActualResourceCost = actualResourceCost,
+        //        PlannedResourceCost = plannedResourceCost,
+
+        //        ActualCost = actualTaskCost + actualResourceCost,
+        //        PlannedCost = plannedTaskCost + plannedResourceCost,
+        //        Budget = project.Budget ?? 0
+        //    };
+        //}
+
         public async Task<List<object>> GetProgressDashboardAsync(int projectId)
         {
             var sprints = await _sprintRepo.GetByProjectIdAsync(projectId);
