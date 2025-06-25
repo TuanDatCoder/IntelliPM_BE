@@ -18,5 +18,6 @@ namespace IntelliPM.Services.TaskServices
         Task DeleteTask(string id);
         Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
+        Task<TaskResponseDTO> ChangeTaskType(string id, string type);
     }
 }
