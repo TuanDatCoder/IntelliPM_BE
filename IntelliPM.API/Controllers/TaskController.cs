@@ -240,7 +240,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var updated = await _service.ChangeTaskStatus(id, type);
+                var updated = await _service.ChangeTaskType(id, type);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
