@@ -12,6 +12,7 @@
         public DateTime? EndTime { get; set; }
         public int? Attendees { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? ProjectName { get; set; }
     }
 }
 
