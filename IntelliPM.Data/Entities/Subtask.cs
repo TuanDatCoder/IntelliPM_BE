@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace IntelliPM.Data.Entities;
 
 public partial class Subtask
 {
-    [Key]
     public string Id { get; set; } = null!;
 
     public string TaskId { get; set; } = null!;
@@ -22,6 +20,8 @@ public partial class Subtask
     public bool ManualInput { get; set; }
 
     public bool GenerationAiInput { get; set; }
+
+    public string? Priority { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
