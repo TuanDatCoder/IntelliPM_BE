@@ -11,7 +11,7 @@ public partial class ProjectMember
 
     public int ProjectId { get; set; }
 
-    public DateTime JoinedAt { get; set; }
+    public DateTime? JoinedAt { get; set; }
 
     public DateTime InvitedAt { get; set; }
 
