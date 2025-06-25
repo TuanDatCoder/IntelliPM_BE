@@ -1,16 +1,11 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
-using IntelliPM.Data.DTOs.TaskComment.Request;
-using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
 using IntelliPM.Repositories.SubtaskRepos;
-using IntelliPM.Repositories.TaskCommentRepos;
-using IntelliPM.Repositories.TaskRepos;
-using IntelliPM.Services.TaskCommentServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
