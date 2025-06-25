@@ -254,5 +254,52 @@ namespace IntelliPM.Services.ProjectMetricServices
                 completed
             };
         }
+
+        public async Task<object> GetTimeDashboardAsync(int projectId)
+        {
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            if (tasks == null || !tasks.Any())
+                throw new Exception("Project has no tasks");
+
+            var today = DateTime.UtcNow;
+
+            decimal totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
+            decimal plannedCostTillToday = tasks
+                .Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today)
+                .Sum(t => t.PlannedCost ?? 0);
+
+            // Nếu không có PlannedCost, fallback sang số lượng task
+            double plannedCompletion;
+            if (totalPlannedCost > 0)
+            {
+                plannedCompletion = (double)(plannedCostTillToday / totalPlannedCost) * 100;
+            }
+            else
+            {
+                int totalTasks = tasks.Count;
+                int expectedCompletedTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
+                plannedCompletion = totalTasks == 0 ? 0 : (double)expectedCompletedTasks / totalTasks * 100;
+            }
+
+            double actualCompletion = (double)tasks.Average(t => t.PercentComplete ?? 0);
+
+            string status;
+            double diff = actualCompletion - plannedCompletion;
+
+            if (diff > 5)
+                status = "Ahead";
+            else if (diff < -5)
+                status = "Behind";
+            else
+                status = "On Time";
+
+            return new
+            {
+                plannedCompletion = Math.Round(plannedCompletion, 2),
+                actualCompletion = Math.Round(actualCompletion, 2),
+                status
+            };
+        }
+
     }
 }
