@@ -235,7 +235,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.AssignedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.CompletedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.Account, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectMember, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
 
