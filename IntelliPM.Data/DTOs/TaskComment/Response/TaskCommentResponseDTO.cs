@@ -11,9 +11,9 @@ namespace IntelliPM.Data.DTOs.TaskComment.Response
     {
         public int Id { get; set; }
 
-        public string TaskId { get; set; }
+        public string TaskId { get; set; } = null!;
 
-        public int UserId { get; set; }
+        public int AccountId { get; set; }
 
         public string Content { get; set; } = null!;
 
