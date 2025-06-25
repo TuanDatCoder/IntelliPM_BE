@@ -49,8 +49,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
-using IntelliPM.Data.Entities;
-using IntelliPM.Services.AiServices.TaskPlanningServices; // Thêm namespace cho TaskWithMembers
+using IntelliPM.Services.AiServices.TaskPlanningServices; 
 using IntelliPM.Data.DTOs.MeetingSummary.Request;
 using IntelliPM.Data.DTOs.MeetingSummary.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
@@ -200,9 +199,21 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<Subtask, SubtaskResponseDTO>();
 
             // ProjectMember
-            CreateMap<ProjectMemberRequestDTO, Data.Entities.ProjectMember>()
+            CreateMap<ProjectMemberRequestDTO, ProjectMember>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
-            CreateMap<Data.Entities.ProjectMember, ProjectMemberResponseDTO>();
+            CreateMap<ProjectMember, ProjectMemberResponseDTO>();
+            CreateMap<ProjectMember, ProjectMemberWithPositionsResponseDTO>()
+              .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
+              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+              .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+              .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+              .ForMember(dest => dest.Picture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null))
+              .ForMember(dest => dest.ProjectPositions, opt => opt.MapFrom(src => src.ProjectPosition)); ;
+
+            // ProjectPosition
+            CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
+
+
 
             // TaskComment
             CreateMap<TaskCommentRequestDTO, TaskComment>()
