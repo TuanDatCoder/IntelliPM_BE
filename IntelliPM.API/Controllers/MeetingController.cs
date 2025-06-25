@@ -88,6 +88,13 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
             }
         }
 
+        [HttpGet("managed-by/{accountId}")]
+        public async Task<IActionResult> GetManagedMeetings(int accountId)
+        {
+            var meetings = await _service.GetManagedMeetingsByAccount(accountId);
+            return Ok(meetings);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Cancel(int id)
         {
