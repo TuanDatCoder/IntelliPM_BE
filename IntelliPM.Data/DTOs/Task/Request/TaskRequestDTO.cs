@@ -15,6 +15,8 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         public int? SprintId { get; set; }
 
+        public string? Type { get; set; }
+
         [Required(ErrorMessage = "Task title is required")]
         [MaxLength(255, ErrorMessage = "Task title cannot exceed 255 characters")]
         public string Title { get; set; } = null!;
