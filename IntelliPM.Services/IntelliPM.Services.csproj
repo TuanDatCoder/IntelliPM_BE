@@ -18,9 +18,11 @@
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.4.25258.110" />
 		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.11.0" />
+		<PackageReference Include="NAudio" Version="2.2.1" />
 		<PackageReference Include="payOS" Version="1.0.9" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
+		<PackageReference Include="Vosk" Version="0.3.38" />
 	</ItemGroup>
 
 
