@@ -139,7 +139,7 @@ CREATE TABLE project_member (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
     project_id INT NOT NULL,
-    joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    joined_at TIMESTAMPTZ NULL,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     hourly_rate DECIMAL(10, 2) NULL,
