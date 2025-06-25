@@ -28,7 +28,8 @@ namespace IntelliPM.Repositories.SubtaskRepos
         public async Task<Subtask?> GetByIdAsync(string id)
         {
             return await _context.Subtask
-                .FirstOrDefaultAsync(t => t.Id == id);
+                .Include(s => s.Task) 
+                .FirstOrDefaultAsync(s => s.Id == id);
         }
 
         public async Task Add(Subtask subtask)
