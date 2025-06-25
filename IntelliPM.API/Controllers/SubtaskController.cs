@@ -9,6 +9,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.DTOs.Subtask.Request;
 
 namespace IntelliPM.API.Controllers
 {
@@ -32,7 +33,7 @@ namespace IntelliPM.API.Controllers
             {
                 IsSuccess = true,
                 Code = (int)HttpStatusCode.OK,
-                Message = "View all task check list successfully",
+                Message = "View all Subtask successfully",
                 Data = result
             });
         }
@@ -47,7 +48,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = (int)HttpStatusCode.OK,
-                    Message = "Task check list retrieved successfully",
+                    Message = "Subtask retrieved successfully",
                     Data = taskCheckList
                 });
             }
@@ -58,7 +59,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost("{taskId}")]
-        public async Task<IActionResult> Create(string taskId, [FromBody] SubtaskRequestDTO request)
+        public async Task<IActionResult> Create(string taskId, [FromBody] SubtaskRequest1DTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -72,7 +73,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = 201,
-                    Message = "Task checklist created successfully",
+                    Message = "Subtask created successfully",
                     Data = result
                 });
             }
@@ -82,7 +83,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error creating task checklist: {ex.Message}"
+                    Message = $"Error creating Subtask: {ex.Message}"
                 });
             }
         }
@@ -98,7 +99,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = 200,
-                    Message = "Task check list updated successfully",
+                    Message = "Subtask updated successfully",
                     Data = updated
                 });
             }
@@ -112,7 +113,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error updating task check list: {ex.Message}"
+                    Message = $"Error updating Subtask: {ex.Message}"
                 });
             }
         }
@@ -127,7 +128,7 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = true,
                     Code = 200,
-                    Message = "Task check list deleted successfully"
+                    Message = "Subtask deleted successfully"
                 });
             }
             catch (KeyNotFoundException ex)
@@ -140,34 +141,34 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error deleting task check list: {ex.Message}"
+                    Message = $"Error deleting Subtask: {ex.Message}"
                 });
             }
         }
 
-        //[HttpGet("by-task/{taskId}")]
-        //public async Task<IActionResult> GetTaskCheckListByTaskId(string taskId)
-        //{
-        //    try
-        //    {
-        //        var files = await _service.GetTaskCheckListByTaskIdAsync(taskId);
-        //        return Ok(new ApiResponseDTO
-        //        {
-        //            IsSuccess = true,
-        //            Code = 200,
-        //            Message = "Retrieved task check list successfully.",
-        //            Data = files
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new ApiResponseDTO
-        //        {
-        //            IsSuccess = false,
-        //            Code = 500,
-        //            Message = $"Error retrieving task check list: {ex.Message}"
-        //        });
-        //    }
-        //}
+        [HttpGet("by-task/{taskId}")]
+        public async Task<IActionResult> GetSubtaskByTaskId(string taskId)
+        {
+            try
+            {
+                var files = await _service.GetSubtaskByTaskIdAsync(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved Subtask successfully.",
+                    Data = files
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving Subtask: {ex.Message}"
+                });
+            }
+        }
     }
 }
