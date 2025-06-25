@@ -5,7 +5,11 @@ using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -20,12 +24,20 @@ namespace IntelliPM.Services.ProjectServices
     {
         private readonly IMapper _mapper;
         private readonly IProjectRepository _projectRepo;
+        private readonly IDecodeTokenHandler _decodeToken;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IEmailService _emailService; 
+        private readonly IProjectMemberService _projectMemberService;
         private readonly ILogger<ProjectService> _logger;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, ILogger<ProjectService> logger)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
+            _decodeToken = decodeToken;
+            _accountRepo = accountRepo;
+            _emailService = emailService;
+            _projectMemberService = projectMemberService;
             _logger = logger;
         }
 
@@ -171,6 +183,41 @@ namespace IntelliPM.Services.ProjectServices
             };
 
             return details;
+        }
+
+        public async Task<string> SendEmailToProjectManager(int projectId, string token)
+        {
+            var decode = _decodeToken.decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            // Tìm Project Manager trong danh sách
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
+            if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
+                throw new ArgumentException("No Project Manager found or email is missing.");
+
+            // Chuẩn bị URL chi tiết dự án
+            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+
+            // Gửi email trực tiếp với các tham số
+            await _emailService.SendProjectCreationNotification(
+                pm.FullName,
+                pm.Email,
+                currentAccount.FullName,
+                currentAccount.Username,
+                projectId,
+                projectDetailsUrl
+            );
+
+            return "Email sent successfully to Project Manager.";
         }
 
     }
