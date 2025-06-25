@@ -21,6 +21,11 @@ namespace IntelliPM.Data.DTOs.TaskAssignment.Request
         public string? Status { get; set; }
 
         [Column(TypeName = "decimal(10, 2)")]
-        public decimal? HourlyRate { get; set; }
+        public decimal? PlannedHours { get; set; }
+
+
+        [Column(TypeName = "decimal(10, 2)")]
+        public decimal? ActualHours { get; set; }
+
     }
 }

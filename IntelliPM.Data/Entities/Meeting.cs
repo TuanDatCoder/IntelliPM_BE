@@ -31,6 +31,8 @@ public partial class Meeting
 
     public virtual ICollection<MeetingParticipant> MeetingParticipant { get; set; } = new List<MeetingParticipant>();
 
+    public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequest { get; set; } = new List<MeetingRescheduleRequest>();
+
     public virtual MeetingTranscript? MeetingTranscript { get; set; }
 
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
