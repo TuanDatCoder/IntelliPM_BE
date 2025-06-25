@@ -71,7 +71,6 @@ namespace IntelliPM.Services.TaskCommentServices
 
                 if (recipients.Count > 0)
                 {
-                    // 🛎️ 3. Tạo notification
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
@@ -93,8 +92,6 @@ namespace IntelliPM.Services.TaskCommentServices
                             //IsRead = false
                         });
                     }
-
-                    // 4. Lưu notification
                     await _notificationRepo.Add(notification);
                 }
             }
@@ -106,10 +103,8 @@ namespace IntelliPM.Services.TaskCommentServices
             {
                 throw new Exception($"Failed to create task comment: {ex.Message}", ex);
             }
-
             return _mapper.Map<TaskCommentResponseDTO>(entity);
         }
-
 
         public async Task DeleteTaskComment(int id)
         {
