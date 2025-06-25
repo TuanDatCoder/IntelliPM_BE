@@ -166,5 +166,30 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("by-project")]
+        public async Task<IActionResult> GetProjectMemberByProjectId(int projectId)
+        {
+            try
+            {
+                var files = await _service.GetProjectMemberbyProjectId(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved member successfully.",
+                    Data = files
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving member: {ex.Message}"
+                });
+            }
+        }
     }
 }
