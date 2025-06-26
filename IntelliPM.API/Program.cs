@@ -4,23 +4,29 @@ using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MeetingLogRepos;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
+using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
 using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MilestoneRepos;
+using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectMetricRepos;
 using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
+using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.SubtaskCommentRepos;
+using IntelliPM.Repositories.SubtaskFileRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
-using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -32,6 +38,7 @@ using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.EpicCommentServices;
 using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
@@ -41,6 +48,7 @@ using IntelliPM.Services.JWTServices;
 using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
+using IntelliPM.Services.MeetingSummaryServices;
 using IntelliPM.Services.MeetingTranscriptServices;
 using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
@@ -49,10 +57,13 @@ using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RequirementServices;
+using IntelliPM.Services.RiskServices;
 using IntelliPM.Services.SprintServices;
+using IntelliPM.Services.SubtaskCommentServices;
+using IntelliPM.Services.SubtaskFileServices;
+using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.SystemConfigurationServices;
 using IntelliPM.Services.TaskAssignmentServices;
-using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.TaskFileServices;
 using IntelliPM.Services.TaskServices;
@@ -60,16 +71,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using IntelliPM.Repositories.MeetingSummaryRepos;
-using IntelliPM.Services.MeetingSummaryServices;
 using System.Text;
-using IntelliPM.Services.SubtaskFileServices;
-using IntelliPM.Services.SubtaskCommentServices;
-using IntelliPM.Repositories.SubtaskFileRepos;
-using IntelliPM.Repositories.SubtaskCommentRepos;
-using IntelliPM.Repositories.NotificationRepos;
-using IntelliPM.Repositories.RiskRepos;
-using IntelliPM.Services.RiskServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,7 +113,7 @@ builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
 builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
-
+builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 
 
 
@@ -150,7 +152,7 @@ builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>(
 builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
 builder.Services.AddScoped<IRiskService, RiskService>();
-
+builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 
 
 
