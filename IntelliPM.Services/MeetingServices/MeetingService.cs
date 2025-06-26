@@ -83,6 +83,149 @@ namespace IntelliPM.Services.MeetingServices
         //    }
         //}
 
+        //public async Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // Không kiểm tra trùng lịch họp theo project trong ngày
+
+        //        // Validate danh sách người tham gia
+        //        if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+        //            throw new Exception("At least one participant is required.");
+
+        //        // Kiểm tra trùng lịch cho từng participant
+        //        if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+        //        {
+        //            foreach (var participantId in dto.ParticipantIds)
+        //            {
+        //                bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+        //                    participantId, dto.StartTime.Value, dto.EndTime.Value);
+        //                if (participantConflict)
+        //                    throw new Exception($"Participant {participantId} has a conflicting meeting.");
+        //            }
+        //        }
+
+        //        var meeting = _mapper.Map<Meeting>(dto);
+        //        meeting.Status = "ACTIVE";
+        //        meeting.CreatedAt = DateTime.UtcNow;
+
+        //        // Bắt buộc xử lý UTC
+        //        meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+        //        if (meeting.StartTime.HasValue)
+        //            meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+        //        if (meeting.EndTime.HasValue)
+        //            meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
+
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();
+
+        //        // Thêm participant vào bảng MeetingParticipant
+        //        foreach (var participantId in dto.ParticipantIds)
+        //        {
+        //            var participant = new MeetingParticipant
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = participantId,
+        //                Role = "Attendee",
+        //                Status = "Active",
+        //                CreatedAt = DateTime.UtcNow
+        //            };
+        //            await _meetingParticipantRepo.AddAsync(participant);
+        //        }
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CreateInternalMeeting: " + ex.Message);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+        //        throw new Exception("An error occurred while creating the internal meeting. Please try again.", ex);
+        //    }
+        //}
+        //public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // Kiểm tra nếu Project đã có họp vào cùng ngày
+        //        bool hasConflict = await _context.Meeting.AnyAsync(m =>
+        //            m.ProjectId == dto.ProjectId &&
+        //            m.MeetingDate.Date == dto.MeetingDate.Date &&
+        //            m.Status != "CANCELLED"
+        //        );
+
+        //        if (hasConflict)
+        //        {
+        //            throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
+        //        }
+
+        //        // Validate danh sách người tham gia
+        //        if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+        //            throw new Exception("At least one participant is required.");
+
+        //        // Kiểm tra trùng lịch cho từng participant
+        //        if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+        //        {
+        //            foreach (var participantId in dto.ParticipantIds)
+        //            {
+        //                bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+        //                    participantId, dto.StartTime.Value, dto.EndTime.Value);
+        //                if (participantConflict)
+        //                    throw new Exception($"Participant {participantId} has a conflicting meeting.");
+        //            }
+        //        }
+
+        //        var meeting = _mapper.Map<Meeting>(dto);
+        //        meeting.Status = "ACTIVE";
+        //        meeting.CreatedAt = DateTime.UtcNow;
+
+        //        // Bắt buộc xử lý UTC
+        //        meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+        //        if (meeting.StartTime.HasValue)
+        //            meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+        //        if (meeting.EndTime.HasValue)
+        //            meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
+
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();
+
+        //        // Thêm participant vào bảng MeetingParticipant
+        //        foreach (var participantId in dto.ParticipantIds)
+        //        {
+        //            var participant = new MeetingParticipant
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = participantId,
+        //                Role = "Attendee",
+        //                Status = "Active",
+        //                CreatedAt = DateTime.UtcNow
+        //            };
+        //            await _meetingParticipantRepo.AddAsync(participant);
+        //        }
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);
+        //    }
+        //    catch (InvalidOperationException ex)
+        //    {
+        //        throw new Exception(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CreateMeeting: " + ex.Message);
+        //        Console.WriteLine("Stack Trace: " + ex.StackTrace);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+        //        throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
+        //    }
+        //}
+
+
+
+
         public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
         {
             try
@@ -143,6 +286,19 @@ namespace IntelliPM.Services.MeetingServices
                     await _meetingParticipantRepo.AddAsync(participant);
                 }
 
+                // Tạo MeetingLog cho người tạo (participant đầu tiên)
+                if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
+                {
+                    var log = new MeetingLog
+                    {
+                        MeetingId = meeting.Id,
+                        AccountId = dto.ParticipantIds[0],
+                        Action = "CREATE_MEETING"
+                    };
+                    _context.MeetingLog.Add(log);
+                    await _context.SaveChangesAsync();
+                }
+
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
             catch (InvalidOperationException ex)
@@ -160,6 +316,84 @@ namespace IntelliPM.Services.MeetingServices
                 throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
             }
         }
+
+        public async Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto)
+        {
+            try
+            {
+                // Không kiểm tra trùng lịch họp theo project trong ngày
+
+                // Validate danh sách người tham gia
+                if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+                    throw new Exception("At least one participant is required.");
+
+                // Kiểm tra trùng lịch cho từng participant
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    foreach (var participantId in dto.ParticipantIds)
+                    {
+                        bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+                            participantId, dto.StartTime.Value, dto.EndTime.Value);
+                        if (participantConflict)
+                            throw new Exception($"Participant {participantId} has a conflicting meeting.");
+                    }
+                }
+
+                var meeting = _mapper.Map<Meeting>(dto);
+                meeting.Status = "ACTIVE";
+                meeting.CreatedAt = DateTime.UtcNow;
+
+                // Bắt buộc xử lý UTC
+                meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+                if (meeting.StartTime.HasValue)
+                    meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+                if (meeting.EndTime.HasValue)
+                    meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
+
+                await _repo.AddAsync(meeting);
+                await _context.SaveChangesAsync();
+
+                // Thêm participant vào bảng MeetingParticipant
+                foreach (var participantId in dto.ParticipantIds)
+                {
+                    var participant = new MeetingParticipant
+                    {
+                        MeetingId = meeting.Id,
+                        AccountId = participantId,
+                        Role = "Attendee",
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _meetingParticipantRepo.AddAsync(participant);
+                }
+
+                // Tạo MeetingLog cho người tạo (participant đầu tiên)
+                if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
+                {
+                    var log = new MeetingLog
+                    {
+                        MeetingId = meeting.Id,
+                        AccountId = dto.ParticipantIds[0],
+                        Action = "CREATE_MEETING"
+                    };
+                    _context.MeetingLog.Add(log);
+                    await _context.SaveChangesAsync();
+                }
+
+                return _mapper.Map<MeetingResponseDTO>(meeting);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in CreateInternalMeeting: " + ex.Message);
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+                }
+                throw new Exception("An error occurred while creating the internal meeting. Please try again.", ex);
+            }
+        }
+
+
 
         public async Task<List<MeetingResponseDTO>> GetMeetingsByUser()
         {
