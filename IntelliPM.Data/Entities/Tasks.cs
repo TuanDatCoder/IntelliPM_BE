@@ -71,7 +71,7 @@ public partial class Tasks
 
     public virtual ICollection<ProjectRecommendation> ProjectRecommendation { get; set; } = new List<ProjectRecommendation>();
 
-    public virtual Account Reporter { get; set; } = null!;
+    public virtual ProjectMember Reporter { get; set; } = null!;
 
     public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
 
@@ -91,5 +91,5 @@ public partial class Tasks
 
     public virtual ICollection<TaskFile> TaskFile { get; set; } = new List<TaskFile>();
 
-    public virtual ICollection<TaskLabel> TaskLabel { get; set; } = new List<TaskLabel>();
+    public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
 }

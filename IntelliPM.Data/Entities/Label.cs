@@ -19,5 +19,5 @@ public partial class Label
 
     public virtual Project Project { get; set; } = null!;
 
-    public virtual ICollection<TaskLabel> TaskLabel { get; set; } = new List<TaskLabel>();
+    public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
 }

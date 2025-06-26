@@ -144,15 +144,7 @@ builder.Services.AddScoped<IProjectPositionService, ProjectPositionService>();
 builder.Services.AddScoped<ISprintService, SprintService>();
 builder.Services.AddScoped<IProjectMetricService, ProjectMetricService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
-builder.Services.AddScoped<IMeetingLogService, MeetingLogService>();
-builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
-builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
-builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
-builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
-builder.Services.AddScoped<IRiskService, RiskService>();
-
-
-
+builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
