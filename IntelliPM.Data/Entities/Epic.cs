@@ -31,7 +31,7 @@ public partial class Epic
 
     public virtual Project Project { get; set; } = null!;
 
-    public virtual ProjectMember? Reporter { get; set; }
+    public virtual Account? Reporter { get; set; }
 
     public virtual Sprint? Sprint { get; set; }
 
