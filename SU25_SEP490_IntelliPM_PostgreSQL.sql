@@ -96,7 +96,7 @@ CREATE TABLE epic (
     reporter_id INT NULL,
     sprint_id INT NULL,
     FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (reporter_id) REFERENCES project_member(id) ON DELETE SET NULL,
+    FOREIGN KEY (reporter_id) REFERENCES account(id) ON DELETE SET NULL,
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
@@ -157,7 +157,7 @@ CREATE TABLE tasks (
     priority VARCHAR(50) NULL,
     evaluate VARCHAR(50) NULL,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (reporter_id) REFERENCES project_member(id),
+    FOREIGN KEY (reporter_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
@@ -167,14 +167,14 @@ CREATE TABLE tasks (
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    project_member_id INT NOT NULL,
+    account_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
     completed_at TIMESTAMPTZ NULL,
     planned_hours DECIMAL(8, 2) NULL,
     actual_hours DECIMAL(8, 2) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (project_member_id) REFERENCES project_member(id)
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
 -- 11. subtask
@@ -195,9 +195,9 @@ CREATE TABLE subtask (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES project_member(id),
+    FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-	FOREIGN KEY (reporter_id) REFERENCES project_member(id)
+	FOREIGN KEY (reporter_id) REFERENCES account(id)
 );
 
 -- 12. subtask_file
@@ -698,7 +698,7 @@ VALUES
 
 
 -- Insert sample data into task_assignment (cập nhật với project_member_id, planned_hours, actual_hours)
-INSERT INTO task_assignment (task_id, project_member_id, status, assigned_at, completed_at, planned_hours, actual_hours)
+INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, planned_hours, actual_hours)
 VALUES 
     ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+07', '2025-06-04 00:00:00+07', 40.00, 38.00),
     ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+07', NULL, 32.00, 16.00),
