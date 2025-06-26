@@ -109,5 +109,29 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
                 return StatusCode(500, new { message = "An error occurred while cancelling the meeting." });
             }
         }
+
+        [HttpPost("internal")]
+        public async Task<IActionResult> CreateInternal([FromBody] MeetingRequestDTO request)
+        {
+            try
+            {
+                var result = await _service.CreateInternalMeeting(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in CreateInternal: " + ex.Message);
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+                }
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while creating the internal meeting.",
+                    details = ex.Message,
+                    innerDetails = ex.InnerException?.Message
+                });
+            }
+        }
     }
 }
