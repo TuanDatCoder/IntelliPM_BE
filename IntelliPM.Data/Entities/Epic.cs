@@ -25,11 +25,15 @@ public partial class Epic
 
     public int? Reporterid { get; set; }
 
+    public int? SprintId { get; set; }
+
     public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
 
     public virtual Project Project { get; set; } = null!;
 
     public virtual ProjectMember? Reporter { get; set; }
+
+    public virtual Sprint? Sprint { get; set; }
 
     public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }
