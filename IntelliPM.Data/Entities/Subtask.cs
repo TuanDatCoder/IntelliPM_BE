@@ -27,9 +27,13 @@ public partial class Subtask
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? SprintId { get; set; }
+
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
     public virtual Account AssignedByNavigation { get; set; } = null!;
+
+    public virtual Sprint? Sprint { get; set; }
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
 
