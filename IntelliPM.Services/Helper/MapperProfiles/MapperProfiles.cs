@@ -263,6 +263,16 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
             CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
 
+
+            // TaskComment Mappings 
+            CreateMap<TaskCommentRequestDTO, TaskComment>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ReverseMap();
+
+            CreateMap<TaskComment, TaskCommentResponseDTO>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ReverseMap();
+
         }
     }
 }
