@@ -5,8 +5,11 @@ using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MeetingLogRepos;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
+using IntelliPM.Repositories.MeetingTranscriptRepos;
+using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectMetricRepos;
@@ -35,8 +38,11 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
+using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
+using IntelliPM.Services.MeetingTranscriptServices;
+using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectMetricServices;
@@ -54,14 +60,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using IntelliPM.Repositories.MeetingSummaryRepos;
+using IntelliPM.Services.MeetingSummaryServices;
 using System.Text;
+using IntelliPM.Services.SubtaskFileServices;
+using IntelliPM.Services.SubtaskCommentServices;
+using IntelliPM.Repositories.SubtaskFileRepos;
+using IntelliPM.Repositories.SubtaskCommentRepos;
+using IntelliPM.Repositories.NotificationRepos;
+using IntelliPM.Repositories.RiskRepos;
+using IntelliPM.Services.RiskServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient<ProjectMetricService>();
-
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 
@@ -84,11 +96,24 @@ builder.Services.AddScoped<IMeetingParticipantRepository, MeetingParticipantRepo
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
+builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
+
+//
+builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
+builder.Services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
+builder.Services.AddScoped<IMilestoneFeedbackRepository, MilestoneFeedbackRepository>();
 builder.Services.AddScoped<ITaskFileRepository, TaskFileRepository>();
 builder.Services.AddScoped<ITaskAssignmentRepository, TaskAssignmentRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectPositionRepository, ProjectPositionRepository>();
 builder.Services.AddScoped<IProjectMetricRepository, ProjectMetricRepository>();
+builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
+builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IRiskRepository, RiskRepository>();
+
+
+
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -111,6 +136,7 @@ builder.Services.AddScoped<IMeetingParticipantService, MeetingParticipantService
 builder.Services.AddScoped<ISubtaskService, SubtaskService>();
 builder.Services.AddScoped<ITaskCommentService, TaskCommentService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IMeetingSummaryService, MeetingSummaryService>();
 builder.Services.AddScoped<ITaskFileService, TaskFileService>();
 builder.Services.AddScoped<ITaskAssignmentService, TaskAssignmentService>();
 builder.Services.AddScoped<ITaskPlanningService, TaskPlanningService>();
@@ -126,6 +152,7 @@ builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
 });
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+
 
 
 //----------------------------DB-----------------------------------
