@@ -1,7 +1,8 @@
-﻿using IntelliPM.Data.DTOs.Task.Request;
+﻿using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,11 @@ namespace IntelliPM.Services.SubtaskServices
     {
         Task<List<SubtaskResponseDTO>> GetAllSubtaskList();
         Task<SubtaskResponseDTO> GetSubtaskById(string id);
-        Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequestDTO request);
+        Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request);
         Task<SubtaskResponseDTO> UpdateSubtask(string id, SubtaskRequestDTO request);
         Task DeleteSubtask(string id);
+        Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
+        Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId);
+        Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status);
     }
 }

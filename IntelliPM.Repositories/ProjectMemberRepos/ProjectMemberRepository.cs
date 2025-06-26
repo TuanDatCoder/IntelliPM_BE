@@ -35,15 +35,18 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         public async Task<ProjectMember?> GetByIdAsync(int id)
         {
             return await _context.ProjectMember
+                .Include(pm => pm.Account)
+                .Include(pm => pm.ProjectPosition)
                 .FirstOrDefaultAsync(pm => pm.Id == id);
         }
 
         public async Task<ProjectMember?> GetByAccountAndProjectAsync(int accountId, int projectId)
         {
             return await _context.ProjectMember
+                .Include(pm => pm.Account)
+                .Include(pm => pm.ProjectPosition)
                 .FirstOrDefaultAsync(pm => pm.AccountId == accountId && pm.ProjectId == projectId);
         }
-
         public async Task Add(ProjectMember projectMember)
         {
             await _context.ProjectMember.AddAsync(projectMember);
@@ -62,6 +65,11 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             await _context.SaveChangesAsync();
         }
 
-
+        public async Task<List<ProjectMember>> GetProjectMemberbyProjectId(int projectId)
+        {
+            return await _context.ProjectMember
+                .Where(tf => tf.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }

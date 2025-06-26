@@ -21,7 +21,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         public async Task<List<TaskAssignment>> GetAllAsync()
         {
             return await _context.TaskAssignment
-                .Include(ta => ta.Account)
+                .Include(ta => ta.ProjectMember)
                 .Include(ta => ta.Task)
                 .ToListAsync();
         }
@@ -30,7 +30,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         {
             return await _context.TaskAssignment
                 .Where(ta => ta.TaskId == taskId)
-                .Include(ta => ta.Account)
+                .Include(ta => ta.ProjectMember)
                 .Include(ta => ta.Task)
                 .ToListAsync();
         }
@@ -38,8 +38,8 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         public async Task<List<TaskAssignment>> GetByAccountIdAsync(int accountId)
         {
             return await _context.TaskAssignment
-                .Where(ta => ta.AccountId == accountId)
-                .Include(ta => ta.Account)
+                .Where(ta => ta.ProjectMember.AccountId == accountId)
+                .Include(ta => ta.ProjectMember)
                 .Include(ta => ta.Task)
                 .ToListAsync();
         }
@@ -47,7 +47,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         public async Task<TaskAssignment> GetByIdAsync(int id)
         {
             return await _context.TaskAssignment
-                .Include(ta => ta.Account)
+                .Include(ta => ta.ProjectMember)
                 .Include(ta => ta.Task)
                 .FirstOrDefaultAsync(ta => ta.Id == id);
         }

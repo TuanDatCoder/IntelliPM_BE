@@ -41,6 +41,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<MeetingParticipant> MeetingParticipant { get; set; }
 
+    public virtual DbSet<MeetingRescheduleRequest> MeetingRescheduleRequest { get; set; }
+
     public virtual DbSet<MeetingSummary> MeetingSummary { get; set; }
 
     public virtual DbSet<MeetingTranscript> MeetingTranscript { get; set; }
@@ -343,10 +345,14 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CategoryGroup)
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
+            entity.Property(e => e.Color)
+                .HasMaxLength(7)
+                .HasColumnName("color");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IconLink).HasColumnName("icon_link");
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -545,6 +551,45 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("meeting_participant_meeting_id_fkey");
         });
 
+        modelBuilder.Entity<MeetingRescheduleRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("meeting_reschedule_request_pkey");
+
+            entity.ToTable("meeting_reschedule_request");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.MeetingId).HasColumnName("meeting_id");
+            entity.Property(e => e.PmId).HasColumnName("pm_id");
+            entity.Property(e => e.PmNote).HasColumnName("pm_note");
+            entity.Property(e => e.PmProposedDate).HasColumnName("pm_proposed_date");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.RequestedDate).HasColumnName("requested_date");
+            entity.Property(e => e.RequesterId).HasColumnName("requester_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Meeting).WithMany(p => p.MeetingRescheduleRequest)
+                .HasForeignKey(d => d.MeetingId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("meeting_reschedule_request_meeting_id_fkey");
+
+            entity.HasOne(d => d.Pm).WithMany(p => p.MeetingRescheduleRequestPm)
+                .HasForeignKey(d => d.PmId)
+                .HasConstraintName("meeting_reschedule_request_pm_id_fkey");
+
+            entity.HasOne(d => d.Requester).WithMany(p => p.MeetingRescheduleRequestRequester)
+                .HasForeignKey(d => d.RequesterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("meeting_reschedule_request_requester_id_fkey");
+        });
+
         modelBuilder.Entity<MeetingSummary>(entity =>
         {
             entity.HasKey(e => e.MeetingTranscriptId).HasName("meeting_summary_pkey");
@@ -732,12 +777,13 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.HourlyRate)
+                .HasPrecision(10, 2)
+                .HasColumnName("hourly_rate");
             entity.Property(e => e.InvitedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("invited_at");
-            entity.Property(e => e.JoinedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("joined_at");
+            entity.Property(e => e.JoinedAt).HasColumnName("joined_at");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -866,6 +912,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.IsRead)
+                .HasDefaultValue(false)
+                .HasColumnName("is_read");
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -1066,6 +1115,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ManualInput)
                 .HasDefaultValue(false)
                 .HasColumnName("manual_input");
+            entity.Property(e => e.Priority)
+                .HasMaxLength(50)
+                .HasColumnName("priority");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -1187,12 +1239,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.ToTable("task_assignment");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.ActualHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("actual_hours");
             entity.Property(e => e.AssignedAt).HasColumnName("assigned_at");
             entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
-            entity.Property(e => e.HourlyRate)
-                .HasPrecision(10, 2)
-                .HasColumnName("hourly_rate");
+            entity.Property(e => e.PlannedHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("planned_hours");
+            entity.Property(e => e.ProjectMemberId).HasColumnName("project_member_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -1200,10 +1255,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("task_id");
 
-            entity.HasOne(d => d.Account).WithMany(p => p.TaskAssignment)
-                .HasForeignKey(d => d.AccountId)
+            entity.HasOne(d => d.ProjectMember).WithMany(p => p.TaskAssignment)
+                .HasForeignKey(d => d.ProjectMemberId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_assignment_account_id_fkey");
+                .HasConstraintName("task_assignment_project_member_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.TaskAssignment)
                 .HasForeignKey(d => d.TaskId)
