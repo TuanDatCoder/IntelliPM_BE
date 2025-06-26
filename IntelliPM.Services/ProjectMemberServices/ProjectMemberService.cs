@@ -137,7 +137,7 @@ namespace IntelliPM.Services.ProjectMemberServices
 
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
             var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
 
             if (currentAccount == null)
@@ -227,7 +227,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             if (string.IsNullOrEmpty(token))
                 throw new ArgumentException("Token is required.", nameof(token));
 
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
             if (decode == null || string.IsNullOrEmpty(decode.username))
                 throw new ApiException(HttpStatusCode.Unauthorized, "Invalid token data.");
 
