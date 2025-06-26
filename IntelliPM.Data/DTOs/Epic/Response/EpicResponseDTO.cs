@@ -19,4 +19,6 @@ namespace IntelliPM.Data.DTOs.Epic.Response
         public string? Status { get; set; }
         public int? Reporterid { get; set; }
     }
+
+
 }
