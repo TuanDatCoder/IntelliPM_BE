@@ -47,6 +47,8 @@ public partial class Account
 
     public virtual ICollection<Document> DocumentUpdatedByNavigation { get; set; } = new List<Document>();
 
+    public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
+
     public virtual ICollection<MeetingDocument> MeetingDocument { get; set; } = new List<MeetingDocument>();
 
     public virtual ICollection<MeetingLog> MeetingLog { get; set; } = new List<MeetingLog>();
@@ -76,6 +78,4 @@ public partial class Account
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
-
-    public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }
