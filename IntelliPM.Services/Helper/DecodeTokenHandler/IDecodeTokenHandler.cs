@@ -9,7 +9,7 @@ namespace IntelliPM.Services.Helper.DecodeTokenHandler
 {
     public interface IDecodeTokenHandler
     {
-        TokenModel decode(string token);
+        TokenModel Decode(string token);
 
     }
 }

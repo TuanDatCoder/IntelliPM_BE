@@ -69,7 +69,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
         public async Task ChangePassword(string token, ChangePasswordRequestDTO changePasswordRequestDTO)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
 
             var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
 
@@ -121,7 +121,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
         public async Task<AccountInformationResponseDTO> GetUserInfor(string token)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
 
             var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
 
@@ -140,7 +140,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
         public async Task<Account> GetAccountByToken(string token)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
 
             var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
 
@@ -356,7 +356,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
         public async Task VerifyAccount(string token)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
 
             var currentAccount = await _accountRepository.GetAccountByUsername(decode.username);
 

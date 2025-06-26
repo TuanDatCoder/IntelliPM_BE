@@ -17,5 +17,6 @@ namespace IntelliPM.Services.SprintServices
         Task<SprintResponseDTO> UpdateSprint(int id, SprintRequestDTO request);
         Task DeleteSprint(int id);
         Task<SprintResponseDTO> ChangeSprintStatus(int id, string status);
+        Task<List<SprintResponseDTO>> GetSprintByProjectId(int projectId);
     }
 }

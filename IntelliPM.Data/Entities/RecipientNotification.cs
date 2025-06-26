@@ -13,6 +13,8 @@ public partial class RecipientNotification
 
     public string? Status { get; set; }
 
+    public bool IsRead { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual Account Account { get; set; } = null!;
