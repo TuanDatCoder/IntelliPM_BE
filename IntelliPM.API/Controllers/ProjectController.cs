@@ -231,6 +231,41 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("{projectId}/send-invitations")]
+        [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
+        public async Task<IActionResult> SendInvitationsToTeamMembers(int projectId)
+        {
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+
+            try
+            {
+                var result = await _service.SendInvitationsToTeamMembers(projectId, token);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = result,
+                    Data = null
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error sending invitations: {ex.Message}"
+                });
+            }
+        }
 
     }
 }
