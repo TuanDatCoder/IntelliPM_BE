@@ -203,19 +203,27 @@ namespace IntelliPM.Services.ProjectServices
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
+            if(!pm.Status.Equals("CREATED"))
+                throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
 
-            // Chuẩn bị URL chi tiết dự án
+            var projectInfo = await GetProjectById(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+            if (!projectInfo.Status.Equals("PLANNING"))
+                throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
+
             var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
 
-            // Gửi email trực tiếp với các tham số
             await _emailService.SendProjectCreationNotification(
-                pm.FullName,
-                pm.Email,
-                currentAccount.FullName,
-                currentAccount.Username,
-                projectId,
-                projectDetailsUrl
-            );
+                  pm.FullName,
+                  pm.Email,
+                  currentAccount.FullName,
+                  currentAccount.Username,
+                  projectInfo.Name, 
+                  projectInfo.ProjectKey,  
+                  projectId,
+                  projectDetailsUrl
+              );
 
             return "Email sent successfully to Project Manager.";
         }
