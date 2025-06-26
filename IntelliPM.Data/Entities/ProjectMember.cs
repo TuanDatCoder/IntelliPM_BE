@@ -21,6 +21,8 @@ public partial class ProjectMember
 
     public virtual Account Account { get; set; } = null!;
 
+    public virtual ICollection<Epic> Epic { get; set; } = new List<Epic>();
+
     public virtual Project Project { get; set; } = null!;
 
     public virtual ICollection<ProjectPosition> ProjectPosition { get; set; } = new List<ProjectPosition>();
