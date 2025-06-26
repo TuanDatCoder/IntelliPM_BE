@@ -65,6 +65,20 @@ namespace IntelliPM.API.Controllers
 
         }
 
+        [HttpGet("{id}/summary")]
+        public async Task<IActionResult> SummarizeDocument(int id)
+        {
+            try
+            {
+                var summary = await _documentService.SummarizeContent(id);
+                return Ok(new { summary });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
 
     }
 }
