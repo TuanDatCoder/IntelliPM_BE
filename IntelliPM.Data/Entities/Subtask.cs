@@ -19,6 +19,10 @@ public partial class Subtask
 
     public string? Status { get; set; }
 
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
     public bool ManualInput { get; set; }
 
     public bool GenerationAiInput { get; set; }
@@ -35,7 +39,7 @@ public partial class Subtask
 
     public virtual Account AssignedByNavigation { get; set; } = null!;
 
-    public virtual ProjectMember? Reporter { get; set; }
+    public virtual Account? Reporter { get; set; }
 
     public virtual Sprint? Sprint { get; set; }
 
