@@ -1,8 +1,7 @@
-﻿using IntelliPM.Data.Entities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using IntelliPM.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -30,6 +29,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<DynamicCategory> DynamicCategory { get; set; }
 
     public virtual DbSet<Epic> Epic { get; set; }
+
+    public virtual DbSet<EpicComment> EpicComment { get; set; }
 
     public virtual DbSet<Label> Label { get; set; }
 
@@ -91,27 +92,13 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<TaskFile> TaskFile { get; set; }
 
-    public virtual DbSet<TaskLabel> TaskLabel { get; set; }
-
     public virtual DbSet<Tasks> Tasks { get; set; }
 
-    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+    public virtual DbSet<WorkItemLabel> WorkItemLabel { get; set; }
 
-    public static string GetConnectionString(string connectionStringName)
-    {
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
-            .Build();
-
-        string connectionString = config.GetConnectionString(connectionStringName);
-        return connectionString;
-    }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -385,6 +372,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.ReporterId).HasColumnName("reporter_id");
+            entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -397,6 +386,42 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("epic_project_id_fkey");
+
+            entity.HasOne(d => d.Reporter).WithMany(p => p.Epic)
+                .HasForeignKey(d => d.ReporterId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("epic_reporter_id_fkey");
+
+            entity.HasOne(d => d.Sprint).WithMany(p => p.Epic)
+                .HasForeignKey(d => d.SprintId)
+                .HasConstraintName("epic_sprint_id_fkey");
+        });
+
+        modelBuilder.Entity<EpicComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("epic_comment_pkey");
+
+            entity.ToTable("epic_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.EpicComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("epic_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.EpicComment)
+                .HasForeignKey(d => d.EpicId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("epic_comment_epic_id_fkey");
         });
 
         modelBuilder.Entity<Label>(entity =>
@@ -1118,6 +1143,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Priority)
                 .HasMaxLength(50)
                 .HasColumnName("priority");
+            entity.Property(e => e.ReporterId).HasColumnName("reporter_id");
+            entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -1135,6 +1162,14 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.AssignedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("subtask_assigned_by_fkey");
+
+            entity.HasOne(d => d.Reporter).WithMany(p => p.Subtask)
+                .HasForeignKey(d => d.ReporterId)
+                .HasConstraintName("subtask_reporter_id_fkey");
+
+            entity.HasOne(d => d.Sprint).WithMany(p => p.Subtask)
+                .HasForeignKey(d => d.SprintId)
+                .HasConstraintName("subtask_sprint_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Subtask)
                 .HasForeignKey(d => d.TaskId)
@@ -1358,34 +1393,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("task_file_task_id_fkey");
         });
 
-        modelBuilder.Entity<TaskLabel>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("task_label_pkey");
-
-            entity.ToTable("task_label");
-
-            entity.HasIndex(e => new { e.LabelId, e.TaskId }, "task_label_label_id_task_id_key").IsUnique();
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.LabelId).HasColumnName("label_id");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
-
-            entity.HasOne(d => d.Label).WithMany(p => p.TaskLabel)
-                .HasForeignKey(d => d.LabelId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_label_label_id_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskLabel)
-                .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_label_task_id_fkey");
-        });
-
         modelBuilder.Entity<Tasks>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("tasks_pkey");
@@ -1478,6 +1485,47 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Sprint).WithMany(p => p.Tasks)
                 .HasForeignKey(d => d.SprintId)
                 .HasConstraintName("tasks_sprint_id_fkey");
+        });
+
+        modelBuilder.Entity<WorkItemLabel>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("work_item_label_pkey");
+
+            entity.ToTable("work_item_label");
+
+            entity.HasIndex(e => new { e.LabelId, e.TaskId, e.EpicId, e.SubtaskId }, "work_item_label_label_id_task_id_epic_id_subtask_id_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.LabelId).HasColumnName("label_id");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.WorkItemLabel)
+                .HasForeignKey(d => d.EpicId)
+                .HasConstraintName("work_item_label_epic_id_fkey");
+
+            entity.HasOne(d => d.Label).WithMany(p => p.WorkItemLabel)
+                .HasForeignKey(d => d.LabelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("work_item_label_label_id_fkey");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.WorkItemLabel)
+                .HasForeignKey(d => d.SubtaskId)
+                .HasConstraintName("work_item_label_subtask_id_fkey");
+
+            entity.HasOne(d => d.Task).WithMany(p => p.WorkItemLabel)
+                .HasForeignKey(d => d.TaskId)
+                .HasConstraintName("work_item_label_task_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);
