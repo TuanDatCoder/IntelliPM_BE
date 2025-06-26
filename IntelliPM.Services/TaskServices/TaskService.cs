@@ -177,6 +177,28 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<List<TaskResponseDTO>>(entities);
         }
 
-        
+        public async Task<TaskResponseDTO> ChangeTaskType(string id, string type)
+        {
+            if (string.IsNullOrEmpty(type))
+                throw new ArgumentException("Type cannot be null or empty.");
+
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            entity.Type = type;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task type: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
     }
 }

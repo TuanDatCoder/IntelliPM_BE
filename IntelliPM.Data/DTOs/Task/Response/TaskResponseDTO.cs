@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 
 namespace IntelliPM.Data.DTOs.Task.Response
 {
@@ -13,6 +14,12 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public string? EpicId { get; set; }
 
         public int? SprintId { get; set; }
+
+        public string? Type { get; set; }
+
+        public bool ManualInput { get; set; }
+
+        public bool GenerationAiInput { get; set; }
 
         public string Title { get; set; } = null!;
 

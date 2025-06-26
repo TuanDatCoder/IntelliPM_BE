@@ -65,7 +65,6 @@ namespace IntelliPM.API.Controllers
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
             }
-
             try
             {
                 var result = await _service.CreateSubtask(request);
@@ -87,7 +86,6 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
-
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] SubtaskRequestDTO request)
@@ -114,6 +112,39 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error updating Subtask: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
+        {
+            try
+            {
+                var updated = await _service.ChangeSubtaskStatus(id, status);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask status: {ex.Message}"
                 });
             }
         }

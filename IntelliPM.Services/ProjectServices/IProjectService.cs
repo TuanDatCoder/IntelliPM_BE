@@ -17,5 +17,7 @@ namespace IntelliPM.Services.ProjectServices
         Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request);
         Task DeleteProject(int id);
         Task<ProjectDetailsDTO> GetProjectDetails(int id);
+        Task<string> SendEmailToProjectManager(int projectId, string token);
+        Task<string> SendInvitationsToTeamMembers(int projectId, string token);
     }
 }
