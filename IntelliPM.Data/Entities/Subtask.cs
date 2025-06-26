@@ -11,6 +11,8 @@ public partial class Subtask
 
     public int AssignedBy { get; set; }
 
+    public int? ReporterId { get; set; }
+
     public string Title { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -33,6 +35,8 @@ public partial class Subtask
 
     public virtual Account AssignedByNavigation { get; set; } = null!;
 
+    public virtual ProjectMember? Reporter { get; set; }
+
     public virtual Sprint? Sprint { get; set; }
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
@@ -40,4 +44,6 @@ public partial class Subtask
     public virtual ICollection<SubtaskFile> SubtaskFile { get; set; } = new List<SubtaskFile>();
 
     public virtual Tasks Task { get; set; } = null!;
+
+    public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
 }

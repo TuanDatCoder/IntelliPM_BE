@@ -93,10 +93,10 @@ CREATE TABLE epic (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    reporterId INT NULL,
+    reporter_id INT NULL,
     sprint_id INT NULL,
     FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (reporterId) REFERENCES project_member(id) ON DELETE SET NULL,
+    FOREIGN KEY (reporter_id) REFERENCES project_member(id) ON DELETE SET NULL,
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
@@ -108,7 +108,7 @@ CREATE TABLE epic_comment (
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
+    FOREIGN KEY (account_id) REFERENCES account(id) 
 );
 
 -- 8. milestone
@@ -157,7 +157,7 @@ CREATE TABLE tasks (
     priority VARCHAR(50) NULL,
     evaluate VARCHAR(50) NULL,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (reporter_id) REFERENCES account(id),
+    FOREIGN KEY (reporter_id) REFERENCES project_member(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
@@ -182,9 +182,12 @@ CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
     assigned_by INT NOT NULL,
+	reporter_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
     status VARCHAR(50) NULL,
+	start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
     priority VARCHAR(50) NULL,
@@ -192,8 +195,9 @@ CREATE TABLE subtask (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES account(id),
-    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
+    FOREIGN KEY (assigned_by) REFERENCES project_member(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id),
+	FOREIGN KEY (reporter_id) REFERENCES project_member(id)
 );
 
 -- 12. subtask_file
@@ -471,15 +475,19 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 34. task_label
-CREATE TABLE task_label (
+-- 34. work_item_label
+CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
+    task_id VARCHAR(255) NULL,     
+    epic_id VARCHAR(255) NULL,      
+    subtask_id VARCHAR(255) NULL,   
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (label_id) REFERENCES label(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    UNIQUE (label_id, task_id)
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+    UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
 -- 35. requirement
@@ -640,7 +648,7 @@ VALUES
 
 
 -- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
-INSERT INTO epic (id, project_id, name, description, start_date, end_date, status,reporterId)
+INSERT INTO epic (id, project_id, name, description, start_date, end_date, status,reporter_id)
 VALUES 
     ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS',1),
     ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO',2),
@@ -917,7 +925,7 @@ VALUES
     (5, 'DONE', '#00FFFF', 'Completed tasks', 'ACTIVE');
 
 -- Insert sample data into task_label
-INSERT INTO task_label (label_id, task_id)
+INSERT INTO work_item_label (label_id, task_id)
 VALUES 
     (1, 'PROJA-3'),
     (2, 'PROJA-4'),

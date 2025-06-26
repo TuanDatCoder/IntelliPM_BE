@@ -78,6 +78,4 @@ public partial class Account
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
-
-    public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }
