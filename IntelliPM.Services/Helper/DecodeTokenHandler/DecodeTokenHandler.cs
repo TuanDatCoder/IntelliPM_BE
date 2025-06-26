@@ -18,7 +18,7 @@ namespace IntelliPM.Services.Helper.DecodeTokenHandler
         {
             _jWTService = jWTService;
         }
-        //public TokenModel decode(string token)
+        //public TokenModel Decode(string token)
         //{
         //    var roleName = _jWTService.decodeToken(token, ClaimsIdentity.DefaultRoleClaimType);
         //    var userId = _jWTService.decodeToken(token, "userid");
@@ -27,7 +27,7 @@ namespace IntelliPM.Services.Helper.DecodeTokenHandler
 
         //    return new TokenModel(userId, roleName, email, username);
         //}
-        public TokenModel decode(string token)
+        public TokenModel Decode(string token)
         {
             var roleName = _jWTService.decodeToken(token, ClaimsIdentity.DefaultRoleClaimType); // Giải mã vai trò từ token
             var userId = _jWTService.decodeToken(token, "accountId"); // Giải mã ID người dùng từ token

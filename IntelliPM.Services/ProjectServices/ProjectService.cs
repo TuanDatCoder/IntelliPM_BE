@@ -187,7 +187,7 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<string> SendEmailToProjectManager(int projectId, string token)
         {
-            var decode = _decodeToken.decode(token);
+            var decode = _decodeToken.Decode(token);
             if (decode == null || string.IsNullOrEmpty(decode.username))
                 throw new UnauthorizedAccessException("Invalid token data.");
 
@@ -227,6 +227,57 @@ namespace IntelliPM.Services.ProjectServices
 
             return "Email sent successfully to Project Manager.";
         }
+
+
+        public async Task<string> SendInvitationsToTeamMembers(int projectId, string token)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+
+            var projectInfo = await GetProjectById(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+         
+            var eligibleMembers = membersWithPositions
+                .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
+                .Where(m => m.Status == "CREATED")
+                .ToList();
+
+            if (!eligibleMembers.Any())
+                return "No eligible team members to send invitations.";
+
+            
+            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+
+            foreach (var member in eligibleMembers)
+            {
+                await _emailService.SendTeamInvitation(
+                    member.FullName,
+                    member.Email,
+                    currentAccount.FullName,
+                    currentAccount.Username,
+                    projectInfo.Name,
+                    projectInfo.ProjectKey,
+                    projectId,
+                    projectDetailsUrl
+                );
+            }
+
+            return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
+        }
+
 
     }
 }
