@@ -53,6 +53,10 @@ public partial class Account
 
     public virtual ICollection<MeetingParticipant> MeetingParticipant { get; set; } = new List<MeetingParticipant>();
 
+    public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestPm { get; set; } = new List<MeetingRescheduleRequest>();
+
+    public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestRequester { get; set; } = new List<MeetingRescheduleRequest>();
+
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
 
     public virtual ICollection<Notification> Notification { get; set; } = new List<Notification>();
@@ -70,8 +74,6 @@ public partial class Account
     public virtual ICollection<Subtask> Subtask { get; set; } = new List<Subtask>();
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
-
-    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
 

@@ -56,5 +56,12 @@ namespace IntelliPM.Repositories.SprintRepos
             _context.Sprint.Remove(sprint);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Sprint>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.Sprint
+                .Where(m => m.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }

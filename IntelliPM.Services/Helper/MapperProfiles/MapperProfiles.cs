@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
@@ -7,20 +7,35 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
+using IntelliPM.Data.DTOs.MeetingLog.Request;
+using IntelliPM.Data.DTOs.MeetingLog.Response;
+using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+using IntelliPM.Data.DTOs.MeetingTranscript.Request;
+using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
+using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
+using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectMetric.Request;
+using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.SubtaskComment.Request;
+using IntelliPM.Data.DTOs.SubtaskComment.Response;
+using IntelliPM.Data.DTOs.SubtaskFile.Request;
+using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
 using IntelliPM.Data.DTOs.Task.Request;
@@ -34,7 +49,11 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
-using IntelliPM.Services.AiServices.TaskPlanningServices; // Thêm namespace cho TaskWithMembers
+using IntelliPM.Services.AiServices.TaskPlanningServices; 
+using IntelliPM.Data.DTOs.MeetingSummary.Request;
+using IntelliPM.Data.DTOs.MeetingSummary.Response;
+using IntelliPM.Data.DTOs.Risk.Request;
+using IntelliPM.Data.DTOs.Risk.Response;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -83,6 +102,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<Project, ProjectDetailsDTO>()
                 .ForMember(dest => dest.Requirements, opt => opt.MapFrom(src => src.Requirement))
                 .ForMember(dest => dest.ProjectMembers, opt => opt.MapFrom(src => src.ProjectMember));
+
+            // ProjectMetric
+            CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
+            CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
@@ -137,6 +163,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<Requirement, RequirementResponseDTO>();
             CreateMap<RequirementResponseDTO, RequirementRequestDTO>();
 
+            //Risk
+            CreateMap<Risk, RiskResponseDTO>()
+                .ForMember(dest => dest.ResponsibleName, opt => opt.MapFrom(src => src.Responsible.FullName))
+                .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
+
+            CreateMap<RiskRequestDTO, Risk>();
+
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -152,12 +185,35 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
 
-            // TaskCheckList
+            // TaskSubtask
             CreateMap<SubtaskRequestDTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<SubtaskRequest1DTO, Subtask>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<Subtask, SubtaskResponseDTO>();
+
+            // ProjectMember
+            CreateMap<ProjectMemberRequestDTO, ProjectMember>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<ProjectMember, ProjectMemberResponseDTO>();
+            CreateMap<ProjectMember, ProjectMemberWithPositionsResponseDTO>()
+              .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
+              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+              .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+              .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+              .ForMember(dest => dest.Picture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null))
+              .ForMember(dest => dest.ProjectPositions, opt => opt.MapFrom(src => src.ProjectPosition)); ;
+
+            // ProjectPosition
+            CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
+
+
 
             // TaskComment
             CreateMap<TaskCommentRequestDTO, TaskComment>()
@@ -165,21 +221,48 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>();
 
+            // SubtaskComment
+            CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<SubtaskComment, SubtaskCommentResponseDTO>();
+
+            CreateMap<MeetingLogRequestDTO, MeetingLog>();
+            CreateMap<MeetingLog, MeetingLogResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account.FullName));
+
+            // Mapping cho MeetingTranscript
+            CreateMap<MeetingTranscriptRequestDTO, MeetingTranscript>();
+            CreateMap<MeetingTranscript, MeetingTranscriptResponseDTO>();
+
+            // MilestoneFeedback
+            CreateMap<MilestoneFeedbackRequestDTO, MilestoneFeedback>();
+            CreateMap<MilestoneFeedback, MilestoneFeedbackResponseDTO>();
             // TaskFile
             CreateMap<TaskFileRequestDTO, TaskFile>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskFile, TaskFileResponseDTO>();
 
+            // SubtaskFile
+            CreateMap<SubtaskFileRequestDTO, SubtaskFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<SubtaskFile, SubtaskFileResponseDTO>();
+
             // TaskAssignment
             CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.AssignedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.CompletedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.Account, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectMember, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
-
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
+
+            //MeetingSummary
+            CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
+            CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
+
         }
     }
 }

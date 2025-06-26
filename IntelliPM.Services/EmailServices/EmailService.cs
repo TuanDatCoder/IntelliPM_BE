@@ -320,6 +320,154 @@ namespace IntelliPM.Services.EmailServices
         }
 
 
+        public async Task SendProjectCreationNotification(string pmFullName, string pmEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(pmEmail));
+            email.Subject = $"[IntelliPM] New Project Requires Your Review: {projectName} ({projectKey})";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>New Project Notification - IntelliPM</title>
+  <style>
+    body {{ font-family: 'Segoe UI', sans-serif; background-color: #f9fafb; margin: 0; padding: 32px 16px; }}
+    .container {{ max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); overflow: hidden; }}
+    .top-bar {{ background-color: #1b6fff; height: 4px; width: 100%; }}
+    .content {{ padding: 32px 24px; text-align: left; }}
+    .logo {{ margin-bottom: 24px; }}
+    .logo img {{ width: 80px; height: auto; }}
+    h1 {{ font-size: 24px; color: #1b1b1f; margin-bottom: 16px; }}
+    p {{ font-size: 15px; line-height: 1.6; color: #333333; margin-bottom: 18px; }}
+    .btn {{ display: inline-block; background-color: #1b6fff; color: #ffffff !important; text-decoration: none; font-weight: 600; padding: 14px 26px; border-radius: 8px; font-size: 15px; margin-top: 8px; box-shadow: 0 4px 14px rgba(27,111,255,0.3); }}
+    .btn:hover {{ background-color: #155ed6; }}
+    .footer {{ background-color: #f4f4f5; text-align: center; padding: 20px; font-size: 13px; color: #777; border-top: 1px solid #ddd; }}
+    .footer p {{ margin: 4px 0; }}
+    .footer a {{ color: #1b6fff; text-decoration: none; }}
+    .footer a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='top-bar'></div>
+    <div class='content'>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
+      <h1>New Project Awaiting Your Review</h1>
+      <p>Dear <strong>{pmFullName}</strong>,</p>
+      <p>I would like to inform you that I, <strong>{creatorFullName}</strong> ({creatorUsername}), have initiated a new project entitled <strong>{projectName}</strong> (Project Key: <strong>{projectKey}</strong>, ID: {projectId}).</p>
+      <p>This project is currently awaiting your review and approval as the assigned Project Manager.</p>
+      <p>Please click the button below to access full project details and proceed with the next steps, including assigning responsibilities, reviewing timelines, and confirming objectives:</p>
+      <a href='{projectDetailsUrl}' class='btn'>Review Project Details</a>
+      <p>If you require any additional information or support, please feel free to contact me directly.</p>
+    </div>
+    <div class='footer'>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+       public async Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
+{
+    var email = new MimeMessage();
+    email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+    email.To.Add(MailboxAddress.Parse(memberEmail));
+    email.Subject = $"[IntelliPM] - You’ve been invited to {projectName} ({projectKey})";
+
+    var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+    email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+    {
+        Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Project Invitation - IntelliPM</title>
+  <style>
+    body {{ font-family: 'Segoe UI', sans-serif; background-color: #ffffff; margin: 0; padding: 32px 16px; }}
+    .container {{ max-width: 640px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px 24px; text-align: center; }}
+    .logo img {{ width: 80px; margin-bottom: 24px; }}
+    h2 {{ font-size: 22px; color: #1b1b1f; margin: 12px 0 24px; }}
+    .btn {{
+        display: inline-block;
+        background-color: #1b6fff;
+        color: #ffffff !important;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 14px 28px;
+        border-radius: 6px;
+        font-size: 15px;
+        margin-top: 16px;
+        box-shadow: 0 4px 14px rgba(27,111,255,0.25);
+    }}
+    .btn:hover {{ background-color: #155ed6; }}
+    .info {{ font-size: 15px; color: #444; margin-top: 32px; }}
+    .footer {{
+        font-size: 13px;
+        color: #777;
+        margin-top: 40px;
+        border-top: 1px solid #ddd;
+        padding-top: 20px;
+    }}
+    .footer a {{ color: #1b6fff; text-decoration: none; }}
+    .footer a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='logo'>
+      <img src='{logoUrl}' alt='IntelliPM Logo'>
+    </div>
+    <h2>{creatorFullName} ({creatorUsername}) has invited you to join<br><strong>{projectName}</strong> ({projectKey})</h2>
+
+    <a href='{projectDetailsUrl}' class='btn'>Join the Project</a>
+
+    <div class='info'>
+      <p>Hello <strong>{memberFullName}</strong>,</p>
+      <p>You have been invited to participate in the above project on IntelliPM. Please click the button above to view the project details and confirm your involvement.</p>
+      <p>If you have any questions, feel free to contact <strong>{creatorFullName}</strong> or the IntelliPM support team.</p>
+    </div>
+
+    <div class='footer'>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+    };
+
+    using var smtp = new SmtpClient();
+    await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+    await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+    await smtp.SendAsync(email);
+    await smtp.DisconnectAsync(true);
+}
 
 
     }
