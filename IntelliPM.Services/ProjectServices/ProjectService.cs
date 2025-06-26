@@ -5,7 +5,11 @@ using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,25 +23,33 @@ namespace IntelliPM.Services.ProjectServices
     public class ProjectService : IProjectService
     {
         private readonly IMapper _mapper;
-        private readonly IProjectRepository _repo;
+        private readonly IProjectRepository _projectRepo;
+        private readonly IDecodeTokenHandler _decodeToken;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IEmailService _emailService; 
+        private readonly IProjectMemberService _projectMemberService;
         private readonly ILogger<ProjectService> _logger;
 
-        public ProjectService(IMapper mapper, IProjectRepository repo, ILogger<ProjectService> logger)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger)
         {
             _mapper = mapper;
-            _repo = repo;
+            _projectRepo = projectRepo;
+            _decodeToken = decodeToken;
+            _accountRepo = accountRepo;
+            _emailService = emailService;
+            _projectMemberService = projectMemberService;
             _logger = logger;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
-            var entities = await _repo.GetAllProjects();
+            var entities = await _projectRepo.GetAllProjects();
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
         public async Task<ProjectResponseDTO> GetProjectById(int id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
@@ -49,7 +61,7 @@ namespace IntelliPM.Services.ProjectServices
             if (string.IsNullOrEmpty(searchTerm) && string.IsNullOrEmpty(projectType) && string.IsNullOrEmpty(status))
                 throw new ArgumentException("At least one search criterion must be provided.");
 
-            var entities = await _repo.SearchProjects(searchTerm, projectType, status);
+            var entities = await _projectRepo.SearchProjects(searchTerm, projectType, status);
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
@@ -65,7 +77,7 @@ namespace IntelliPM.Services.ProjectServices
 
             try
             {
-                await _repo.Add(entity);
+                await _projectRepo.Add(entity);
             }
             catch (DbUpdateException ex)
             {
@@ -81,7 +93,7 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
@@ -90,7 +102,7 @@ namespace IntelliPM.Services.ProjectServices
 
             try
             {
-                await _repo.Update(entity);
+                await _projectRepo.Update(entity);
             }
             catch (Exception ex)
             {
@@ -102,13 +114,13 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task DeleteProject(int id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
             try
             {
-                await _repo.Delete(entity);
+                await _projectRepo.Delete(entity);
             }
             catch (Exception ex)
             {
@@ -118,7 +130,7 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
-            var project = await _repo.GetProjectWithMembersAndRequirements(id);
+            var project = await _projectRepo.GetProjectWithMembersAndRequirements(id);
 
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
@@ -172,6 +184,100 @@ namespace IntelliPM.Services.ProjectServices
 
             return details;
         }
+
+        public async Task<string> SendEmailToProjectManager(int projectId, string token)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            // Tìm Project Manager trong danh sách
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
+            if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
+                throw new ArgumentException("No Project Manager found or email is missing.");
+            if(!pm.Status.Equals("CREATED"))
+                throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
+
+            var projectInfo = await GetProjectById(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+            if (!projectInfo.Status.Equals("PLANNING"))
+                throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
+
+            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+
+            await _emailService.SendProjectCreationNotification(
+                  pm.FullName,
+                  pm.Email,
+                  currentAccount.FullName,
+                  currentAccount.Username,
+                  projectInfo.Name, 
+                  projectInfo.ProjectKey,  
+                  projectId,
+                  projectDetailsUrl
+              );
+
+            return "Email sent successfully to Project Manager.";
+        }
+
+
+        public async Task<string> SendInvitationsToTeamMembers(int projectId, string token)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+
+            var projectInfo = await GetProjectById(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+         
+            var eligibleMembers = membersWithPositions
+                .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
+                .Where(m => m.Status == "CREATED")
+                .ToList();
+
+            if (!eligibleMembers.Any())
+                return "No eligible team members to send invitations.";
+
+            
+            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+
+            foreach (var member in eligibleMembers)
+            {
+                await _emailService.SendTeamInvitation(
+                    member.FullName,
+                    member.Email,
+                    currentAccount.FullName,
+                    currentAccount.Username,
+                    projectInfo.Name,
+                    projectInfo.ProjectKey,
+                    projectId,
+                    projectDetailsUrl
+                );
+            }
+
+            return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
+        }
+
 
     }
 }

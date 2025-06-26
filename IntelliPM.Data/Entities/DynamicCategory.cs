@@ -19,5 +19,9 @@ public partial class DynamicCategory
 
     public int OrderIndex { get; set; }
 
+    public string? IconLink { get; set; }
+
+    public string? Color { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }

@@ -3,8 +3,7 @@
 -- Create database
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
 
--- -- Connect to database
--- \connect SU25_SEP490_IntelliPM;
+-- Connect to database
 
 -- 1. account
 CREATE TABLE account (
@@ -22,11 +21,9 @@ CREATE TABLE account (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     address TEXT NULL,
-    picture VARCHAR(255) NULL
+    picture VARCHAR(255) NULL,
+    date_of_birth DATE NULL
 );
-
-ALTER TABLE account
-ADD COLUMN date_of_birth DATE NULL;
 
 -- 2. refresh_token
 CREATE TABLE refresh_token (
@@ -55,19 +52,20 @@ CREATE TABLE project (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 4. epic
-CREATE TABLE epic (
-    id VARCHAR(255) PRIMARY KEY,
+-- 4. project_member
+CREATE TABLE project_member (
+    id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
     project_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    start_date TIMESTAMPTZ NULL,
-    end_date TIMESTAMPTZ NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    joined_at TIMESTAMPTZ NULL,
+    invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (project_id) REFERENCES project(id)
+    hourly_rate DECIMAL(10, 2) NULL,
+    FOREIGN KEY (account_id) REFERENCES account(id),
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    UNIQUE (account_id, project_id)
 );
+
 
 -- 5. sprint
 CREATE TABLE sprint (
@@ -83,7 +81,37 @@ CREATE TABLE sprint (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 6. milestone
+
+-- 6. epic
+CREATE TABLE epic (
+    id VARCHAR(255) PRIMARY KEY,
+    project_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NULL,
+    reporter_id INT NULL,
+    sprint_id INT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    FOREIGN KEY (reporter_id) REFERENCES project_member(id) ON DELETE SET NULL,
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
+);
+
+-- 7. epic_comment
+CREATE TABLE epic_comment (
+    id SERIAL PRIMARY KEY,
+    epic_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (account_id) REFERENCES account(id) 
+);
+
+-- 8. milestone
 CREATE TABLE milestone (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -99,7 +127,7 @@ CREATE TABLE milestone (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 7. tasks
+-- 9. tasks
 CREATE TABLE tasks (
     id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
@@ -129,42 +157,50 @@ CREATE TABLE tasks (
     priority VARCHAR(50) NULL,
     evaluate VARCHAR(50) NULL,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (reporter_id) REFERENCES account(id),
+    FOREIGN KEY (reporter_id) REFERENCES project_member(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 8. task_assignment
+-- 10. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    account_id INT NOT NULL,
+    project_member_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
     completed_at TIMESTAMPTZ NULL,
-    hourly_rate DECIMAL(10, 2) NULL,
+    planned_hours DECIMAL(8, 2) NULL,
+    actual_hours DECIMAL(8, 2) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
+    FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 9. subtask (replaced task_check_list)
+-- 11. subtask
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
     assigned_by INT NOT NULL,
+	reporter_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
     status VARCHAR(50) NULL,
+	start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
+    priority VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES account(id)
+    FOREIGN KEY (assigned_by) REFERENCES project_member(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id),
+	FOREIGN KEY (reporter_id) REFERENCES project_member(id)
 );
 
--- 10. subtask_file
+-- 12. subtask_file
 CREATE TABLE subtask_file (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -175,7 +211,7 @@ CREATE TABLE subtask_file (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 11. subtask_comment
+-- 13. subtask_comment
 CREATE TABLE subtask_comment (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -186,7 +222,7 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 12. task_comment (renumbered due to subtask changes)
+-- 14. task_comment
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -197,7 +233,7 @@ CREATE TABLE task_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 13. task_dependency (renumbered)
+-- 15. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -209,7 +245,7 @@ CREATE TABLE task_dependency (
     FOREIGN KEY (linked_to) REFERENCES tasks(id)
 );
 
--- 14. task_file (renumbered)
+-- 16. task_file
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -220,7 +256,7 @@ CREATE TABLE task_file (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 15. document
+-- 17. document
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -241,7 +277,7 @@ CREATE TABLE document (
     FOREIGN KEY (updated_by) REFERENCES account(id)
 );
 
--- 16. document_permission
+-- 18. document_permission
 CREATE TABLE document_permission (
     id SERIAL PRIMARY KEY,
     document_id INT NOT NULL,
@@ -252,20 +288,7 @@ CREATE TABLE document_permission (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 17. project_member
-CREATE TABLE project_member (
-    id SERIAL PRIMARY KEY,
-    account_id INT NOT NULL,
-    project_id INT NOT NULL,
-    joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NULL, 
-    FOREIGN KEY (account_id) REFERENCES account(id),
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    UNIQUE (account_id, project_id)
-);
-
--- 18. project_position
+-- 19. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
     project_member_id INT NOT NULL,
@@ -274,7 +297,7 @@ CREATE TABLE project_position (
     FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 19. notification
+-- 20. notification
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     created_by INT NOT NULL,
@@ -288,18 +311,19 @@ CREATE TABLE notification (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 20. recipient_notification
+-- 21. recipient_notification
 CREATE TABLE recipient_notification (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
     notification_id INT NOT NULL,
     status VARCHAR(50) NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (notification_id) REFERENCES notification(id)
 );
 
--- 21. meeting
+-- 22. meeting
 CREATE TABLE meeting (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -314,7 +338,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 22. meeting_document
+-- 23. meeting_document
 CREATE TABLE meeting_document (
     meeting_id INT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -328,7 +352,7 @@ CREATE TABLE meeting_document (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 23. meeting_log
+-- 24. meeting_log
 CREATE TABLE meeting_log (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -339,7 +363,7 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 24. meeting_participant
+-- 25. meeting_participant
 CREATE TABLE meeting_participant (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -352,7 +376,7 @@ CREATE TABLE meeting_participant (
     UNIQUE (meeting_id, account_id)
 );
 
--- 25. meeting_transcript
+-- 26. meeting_transcript
 CREATE TABLE meeting_transcript (
     meeting_id INT PRIMARY KEY,
     transcript_text TEXT NOT NULL,
@@ -360,7 +384,7 @@ CREATE TABLE meeting_transcript (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id)
 );
 
--- 26. meeting_summary
+-- 27. meeting_summary
 CREATE TABLE meeting_summary (
     meeting_transcript_id INT PRIMARY KEY,
     summary_text TEXT NOT NULL,
@@ -368,7 +392,7 @@ CREATE TABLE meeting_summary (
     FOREIGN KEY (meeting_transcript_id) REFERENCES meeting_transcript(meeting_id)
 );
 
--- 27. milestone_feedback
+-- 28. milestone_feedback
 CREATE TABLE milestone_feedback (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -380,7 +404,7 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 28. risk
+-- 29. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     responsible_id INT NOT NULL,
@@ -403,7 +427,7 @@ CREATE TABLE risk (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 29. risk_solution
+-- 30. risk_solution
 CREATE TABLE risk_solution (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -414,7 +438,7 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 30. change_request
+-- 31. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -428,7 +452,7 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 31. project_recommendation
+-- 32. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -440,7 +464,7 @@ CREATE TABLE project_recommendation (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 32. label
+-- 33. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -451,19 +475,22 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 33. task_label
-CREATE TABLE task_label (
+-- 34. work_item_label
+CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
+    task_id VARCHAR(255) NULL,     
+    epic_id VARCHAR(255) NULL,      
+    subtask_id VARCHAR(255) NULL,   
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (label_id) REFERENCES label(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    UNIQUE (label_id, task_id)
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+    UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
-
--- 34. requirement
+-- 35. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -476,7 +503,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 35. project_metric
+-- 36. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -496,7 +523,7 @@ CREATE TABLE project_metric (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 36. system_configuration
+-- 37. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -512,7 +539,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 37. dynamic_category
+-- 38. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -521,28 +548,48 @@ CREATE TABLE dynamic_category (
     description TEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
+    icon_link TEXT NULL,
+    color VARCHAR(7) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
 
--- 38. activity_log
+-- 39. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
-    related_entity_type VARCHAR(100) NOT NULL, -- TASK, PROJECT, COMMENT, FILE, SUBTASK, etc.
-    related_entity_id VARCHAR(255) NULL,       -- ID của entity thay đổi
-    action_type VARCHAR(100) NOT NULL,         -- CREATE, UPDATE, DELETE, STATUS_CHANGE, COMMENT, etc.
-    field_changed VARCHAR(100) NULL,           -- Nếu là UPDATE thì ghi field nào thay đổi
+    related_entity_type VARCHAR(100) NOT NULL,
+    related_entity_id VARCHAR(255) NULL,
+    action_type VARCHAR(100) NOT NULL,
+    field_changed VARCHAR(100) NULL,
     old_value TEXT NULL,
     new_value TEXT NULL,
-    message TEXT NULL,                         -- Tuỳ chọn: mô tả thân thiện
+    message TEXT NULL,
     created_by INT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+);
+
+-- 40. meeting_reschedule_request
+CREATE TABLE meeting_reschedule_request (
+    id SERIAL PRIMARY KEY,
+    meeting_id INT NOT NULL,
+    requester_id INT NOT NULL,
+    requested_date TIMESTAMPTZ NOT NULL,
+    reason TEXT NULL,
+    status VARCHAR(50) NOT NULL,
+    pm_id INT NULL,
+    pm_proposed_date TIMESTAMPTZ NULL,
+    pm_note TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (meeting_id) REFERENCES meeting(id),
+    FOREIGN KEY (requester_id) REFERENCES account(id),
+    FOREIGN KEY (pm_id) REFERENCES account(id)
 );
 --------------------------------------------------------------
 
@@ -589,15 +636,35 @@ VALUES
     ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://example.com/icons/project-d.png', 'COMPLETED'),
     ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-e.png', 'IN_REVIEW');
 
--- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
-INSERT INTO epic (id, project_id, name, description, start_date, end_date, status)
+-- Insert sample data into project_member
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status, hourly_rate)
 VALUES 
-    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS'),
-    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO'),
-    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE'),
-    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS'),
-    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE'),
-    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO');
+    (1, 1, '2025-06-01 00:00:00+07', '2025-05-25 00:00:00+07', 'IN_PROGRESS', 50.00),
+    (2, 1, '2025-06-01 00:00:00+07', '2025-05-26 00:00:00+07', 'IN_PROGRESS', 45.00),
+    (3, 2, '2025-07-01 00:00:00+07', '2025-06-20 00:00:00+07', 'IN_PROGRESS', 40.00),
+    (4, 3, '2025-08-01 00:00:00+07', '2025-07-15 00:00:00+07', 'DONE', 55.00),
+    (5, 4, '2025-09-01 00:00:00+07', '2025-08-20 00:00:00+07', 'IN_PROGRESS', 60.00),
+    (5, 5, '2025-10-01 00:00:00+07', '2025-09-15 00:00:00+07', 'DONE', 60.00);
+
+
+-- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
+INSERT INTO epic (id, project_id, name, description, start_date, end_date, status,reporter_id)
+VALUES 
+    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS',1),
+    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO',2),
+    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE',3),
+    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS',4),
+    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE',5),
+    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO',5);
+
+-- Insert sample data into epic_comment
+INSERT INTO epic_comment (epic_id, account_id, content, created_at)
+VALUES 
+    ('PROJA-1', 1, 'Great progress on Epic 1! Looking forward to the next update.', '2025-06-15 10:00:00+07'),
+    ('PROJA-2', 2, 'Can we discuss the timeline for Epic 2 in the next meeting?', '2025-06-16 14:30:00+07'),
+    ('PROJB-1', 3, 'Epic 3 is complete! Please review the deliverables.', '2025-06-20 09:15:00+07'),
+    ('PROJC-1', 4, 'Need more resources for Epic 4. Please assign additional team members.', '2025-06-22 11:00:00+07'),
+    ('PROJD-1', 5, 'Excellent work on Epic 5! Let’s plan the next steps.', '2025-06-23 15:45:00+07');
 
 -- Insert sample data into sprint
 INSERT INTO sprint (project_id, name, goal, start_date, end_date, status)
@@ -628,15 +695,17 @@ VALUES
     ('PROJD-2', 5, 4, 'PROJD-1', 5,'STORY', TRUE, TRUE, 'Design UI', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'MEDIUM', 'Good', 'IN_PROGRESS'),
     ('PROJE-2', 5, 5, 'PROJE-1', 6, 'TASK', FALSE, TRUE, 'Setup automation tests', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS');
 
--- Insert sample data into task_assignment
-INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, hourly_rate)
+
+
+-- Insert sample data into task_assignment (cập nhật với project_member_id, planned_hours, actual_hours)
+INSERT INTO task_assignment (task_id, project_member_id, status, assigned_at, completed_at, planned_hours, actual_hours)
 VALUES 
-    ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+00', '2025-06-04 00:00:00+00', 50.00),
-    ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+00', NULL, 45.00),
-    ('PROJB-2', 3, 'IN_PROGRESS', '2025-07-01 00:00:00+00', '2025-07-04 00:00:00+00', 40.00),
-    ('PROJC-2', 4, 'IN_PROGRESS', '2025-08-01 00:00:00+00', NULL, 55.00),
-    ('PROJD-2', 5, 'IN_PROGRESS', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 60.00),
-    ('PROJE-2', 5, 'IN_PROGRESS', '2025-10-01 00:00:00+00', NULL, 60.00);
+    ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+07', '2025-06-04 00:00:00+07', 40.00, 38.00),
+    ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+07', NULL, 32.00, 16.00),
+    ('PROJB-2', 3, 'IN_PROGRESS', '2025-07-01 00:00:00+07', '2025-07-04 00:00:00+07', 24.00, 22.00),
+    ('PROJC-2', 4, 'IN_PROGRESS', '2025-08-01 00:00:00+07', NULL, 72.00, 20.00),
+    ('PROJD-2', 5, 'IN_PROGRESS', '2025-09-01 00:00:00+07', '2025-09-03 00:00:00+07', 32.00, 30.00),
+    ('PROJE-2', 6, 'IN_PROGRESS', '2025-10-01 00:00:00+07', NULL, 32.00, 16.00);
 
 
 -- Insert sample data into task_comment
@@ -718,15 +787,6 @@ VALUES
     (4, 4, 'WRITE'),
     (5, 5, 'READ');
 
--- Insert sample data into project_member
-INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
-VALUES 
-    (1, 1, '2025-06-01 00:00:00+00', '2025-05-25 00:00:00+00', 'IN_PROGRESS'),
-    (2, 1, '2025-06-01 00:00:00+00', '2025-05-26 00:00:00+00', 'IN_PROGRESS'),
-    (3, 2, '2025-07-01 00:00:00+00', '2025-06-20 00:00:00+00', 'IN_PROGRESS'),
-    (4, 3, '2025-08-01 00:00:00+00', '2025-07-15 00:00:00+00', 'DONE'),
-    (5, 4, '2025-09-01 00:00:00+00', '2025-08-20 00:00:00+00', 'IN_PROGRESS'),
-    (5, 5, '2025-10-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE');
 
 -- Insert sample data into project_position
 INSERT INTO project_position (project_member_id, position, assigned_at)
@@ -748,13 +808,13 @@ VALUES
     (5, 'DOCUMENT_UPDATE', 'MEDIUM', 'New document added', 'DOCUMENT', 1, FALSE);
 
 -- Insert sample data into recipient_notification
-INSERT INTO recipient_notification (account_id, notification_id, status)
+INSERT INTO recipient_notification (account_id, notification_id, status,is_read )
 VALUES 
-    (1, 1, 'RECEIVED'),
-    (2, 2, 'RECEIVED'),
-    (3, 3, 'READ'),
-    (4, 4, 'RECEIVED'),
-    (5, 5, 'RECEIVED');
+    (1, 1, 'RECEIVED', TRUE),
+    (2, 2, 'RECEIVED', TRUE),
+    (3, 3, 'READ', TRUE),
+    (4, 4, 'RECEIVED', TRUE),
+    (5, 5, 'RECEIVED', TRUE);
 
 -- Insert sample data into meeting
 INSERT INTO meeting (project_id, meeting_topic, meeting_date, meeting_url, status, start_time, end_time, attendees)
@@ -865,7 +925,7 @@ VALUES
     (5, 'DONE', '#00FFFF', 'Completed tasks', 'ACTIVE');
 
 -- Insert sample data into task_label
-INSERT INTO task_label (label_id, task_id)
+INSERT INTO work_item_label (label_id, task_id)
 VALUES 
     (1, 'PROJA-3'),
     (2, 'PROJA-4'),
@@ -902,147 +962,161 @@ VALUES
     ('overtime_hours', '2', '0', '4', '2', 'Maximum overtime hours per day', 'Ensure compliance', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
 
 
-INSERT INTO dynamic_category (category_group, name, label, description, order_index)
+-- Insert sample data into meeting_reschedule_request
+INSERT INTO meeting_reschedule_request (meeting_id, requester_id, requested_date, reason, status, pm_id, pm_proposed_date, pm_note)
 VALUES 
-    ('project_type', 'WEB_APPLICATION', 'Web Application', 'Web application development projects for IT companies', 1),
-    ('project_type', 'MOBILE_APPLICATION', 'Mobile Application', 'Mobile application development projects for IT companies', 2),
-    ('project_type', 'ENTERPRISE_SOFTWARE', 'Enterprise Software', 'Enterprise software development projects for IT companies', 3),
-    ('project_type', 'GAME_DEVELOPMENT', 'Game Development', 'Game development projects for IT companies', 4),
-    ('project_status', 'PLANNING', 'Planning', 'Project is in planning stage', 1),
-    ('project_status', 'IN_PROGRESS', 'In Progress', 'Project is actively in progress', 2),
-    ('project_status', 'ON_HOLD', 'On Hold', 'Project is temporarily paused', 3),
-    ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4),
-    ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5),
-    ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6),
-    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1),
-    ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2),
-    ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3),
-    ('sprint_status', 'FUTURE', 'Future', 'Sprint not started yet', 1),
-    ('sprint_status', 'ACTIVE', 'Active', 'Sprint in progress or planning phase', 2),
-    ('sprint_status', 'COMPLETED', 'Completed', 'Sprint successfully completed', 3),
-    ('account_role', 'PROJECT_MANAGER', 'Project Manager', 'Project manager role', 1),
-    ('account_role', 'TEAM_LEADER', 'Team Leader', 'Team leader role', 2),
-    ('account_role', 'TEAM_MEMBER', 'Team Member', 'Team member role', 3),
-    ('account_role', 'CLIENT', 'Client', 'Client role', 4),
-    ('account_role', 'ADMIN', 'Admin', 'Admin role', 5),
-    ('account_status', 'ACTIVE', 'Active', 'Active user account', 1),
-    ('account_status', 'INACTIVE', 'Inactive', 'Inactive user account', 2),
-    ('account_status', 'VERIFIED', 'Verified', 'Verified user account', 3),
-    ('account_status', 'UNVERIFIED', 'Unverified', 'Unverified user account', 4),
-    ('account_status', 'BANNED', 'Banned', 'Banned user account', 5),
-    ('account_status', 'DELETED', 'Deleted', 'Deleted user account', 6),
-    ('account_position', 'BUSINESS_ANALYST', 'Business Analyst', 'Business analyst position', 1),
-    ('account_position', 'BACKEND_DEVELOPER', 'Backend Developer', 'Backend developer position', 2),
-    ('account_position', 'FRONTEND_DEVELOPER', 'Frontend Developer', 'Frontend developer position', 3),
-    ('account_position', 'TESTER', 'Tester', 'Tester position', 4),
-    ('account_position', 'PROJECT_MANAGER', 'Project Manager', 'Project manager position', 5),
-    ('account_position', 'DESIGNER', 'Designer', 'Designer position', 6),
-    ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7),
-    ('account_position', 'CLIENT', 'Client', 'Client position', 8),
-    ('account_position', 'ADMIN', 'Admin', 'Admin position', 9),
-    ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1),
-    ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2),
-    ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3),
-    ('task_assignment_status', 'COMPLETED', 'Completed', 'User has completed their assigned part', 4),
-    ('task_assignment_status', 'UNASSIGNED', 'Unassigned', 'User is unassigned or removed from task', 5),
-    ('task_assignment_status', 'DELETED', 'Deleted', 'Task assignment record is deleted', 6),
-    ('subtask_status', 'TODO', 'To Do', 'Checklist item to do', 1),
-    ('subtask_status', 'IN_PROGRESS', 'In Progress', 'Checklist item in progress', 2),
-    ('subtask_status', 'DONE', 'Done', 'Checklist item completed', 3),
-    ('task_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1),
-    ('task_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2),
-    ('task_file_status', 'APPROVED', 'Approved', 'File approved', 3),
-    ('task_file_status', 'PENDING', 'Pending', 'File pending', 4),
-    ('task_file_status', 'DELETED', 'Deleted', 'Deleted file', 5),
-	('subtask_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1),
-    ('subtask_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2),
-    ('subtask_file_status', 'APPROVED', 'Approved', 'File approved', 3),
-    ('subtask_file_status', 'PENDING', 'Pending', 'File pending', 4),
-    ('subtask_file_status', 'DELETED', 'Deleted', 'Deleted file', 5),
-    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1),
-    ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2),
-    ('task_status', 'DONE', 'Done', 'Task completed', 3),
-    ('task_type', 'STORY', 'Story', 'User story tasks', 1),
-    ('task_type', 'TASK', 'Task', 'General task', 2),
-    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3),
-    ('document_type', 'PLAN', 'Plan', 'Project plan', 1),
-    ('document_type', 'BRIEF', 'Brief', 'Project brief', 2),
-    ('document_type', 'REPORT', 'Report', 'Project report', 3),
-    ('document_type', 'SPEC', 'Specification', 'Project specification', 4),
-    ('document_type', 'STRATEGY', 'Strategy', 'Project strategy', 5),
-    ('permission_type', 'READ', 'Read', 'Read permission', 1),
-    ('permission_type', 'WRITE', 'Write', 'Write permission', 2),
-    ('notification_type', 'TASK_UPDATE', 'Task Update', 'Task update notification', 1),
-    ('notification_type', 'PROJECT_UPDATE', 'Project Update', 'Project update notification', 2),
-    ('notification_type', 'MEETING_REMINDER', 'Meeting Reminder', 'Meeting reminder notification', 3),
-    ('notification_type', 'RISK_ALERT', 'Risk Alert', 'Risk alert notification', 4),
-    ('notification_type', 'DOCUMENT_UPDATE', 'Document Update', 'Document update notification', 5),
-    ('recipient_notification_status', 'RECEIVED', 'Received', 'Notification received', 1),
-    ('recipient_notification_status', 'READ', 'Read', 'Notification read', 2),
-    ('recipient_notification_status', 'DELETED', 'Deleted', 'Deleted notification', 3),
-    ('meeting_status', 'SCHEDULED', 'Scheduled', 'Meeting scheduled', 1),
-    ('meeting_status', 'COMPLETED', 'Completed', 'Meeting completed', 2),
-    ('meeting_status', 'CANCELLED', 'Cancelled', 'Meeting cancelled', 3),
-    ('meeting_status', 'DELETED', 'Deleted', 'Deleted meeting', 4),
-    ('meeting_participant_status', 'ATTENDED', 'Attended', 'Participant attended', 1),
-    ('meeting_participant_status', 'ABSENT', 'Absent', 'Participant absent', 2),
-    ('meeting_participant_status', 'DELETED', 'Deleted', 'Deleted participant', 3),
-    ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1),
-    ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2),
-    ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3),
-    ('milestone_feedback_status', 'DELETED', 'Deleted', 'Deleted feedback', 4),
-    ('risk_status', 'OPEN', 'Open', 'Risk open', 1),
-    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2),
-    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3),
-    ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1),
-    ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2),
-    ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3),
-    ('risk_type', 'QUALITY', 'Quality', 'Quality risk', 4),
-    ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5),
-    ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1),
-    ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2),
-    ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3),
-    ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4),
-    ('recommendation_type', 'PERFORMANCE', 'Performance', 'Performance recommendation', 1),
-    ('recommendation_type', 'MARKETING', 'Marketing', 'Marketing recommendation', 2),
-    ('recommendation_type', 'RESEARCH', 'Research', 'Research recommendation', 3),
-    ('recommendation_type', 'DESIGN', 'Design', 'Design recommendation', 4),
-    ('recommendation_type', 'TESTING', 'Testing', 'Testing recommendation', 5),
-    ('label_status', 'ACTIVE', 'Active', 'Active label', 1),
-    ('label_status', 'DELETED', 'Deleted', 'Deleted label', 2),
-    ('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional requirement', 1),
-    ('requirement_type', 'NON_FUNCTIONAL', 'Non-Functional', 'Non-functional requirement', 2),
-    ('project_member_status', 'CREATED', 'Created', 'Project member newly created', 1),
-    ('project_member_status', 'INVITED', 'Invited', 'Project member invited to join', 2),
-    ('project_member_status', 'ACTIVE', 'Active', 'Project member active in project', 3),
-    ('project_member_status', 'BANNED', 'Banned', 'Project member banned, no access', 4),
-    ('project_member_status', 'DELETED', 'Deleted', 'Project member deleted from project', 5),
-    ('task_priority', 'HIGHEST', 'Highest', 'Highest priority task', 1),
-    ('task_priority', 'HIGH', 'High', 'High priority task', 2),
-    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority task', 3),
-    ('task_priority', 'LOW', 'Low', 'Low priority task', 4),
-    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority task', 5),
-	('milestone_status', 'PLANNING', 'Planning', 'Milestone is in planning stage', 1),
-    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is in progress', 2),
-    ('milestone_status', 'COMPLETED', 'Completed', 'Milestone has been completed', 3),
-    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 4),
-    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone was cancelled', 5),
-	('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1),
-    ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2),
-    ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3),
-    ('task-dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4),
-    ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 2),
-    ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 3),
-    ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 4),
-    ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 5),
-    ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1),
-    ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2),
-    ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3),
-    ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4),
-    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5);
+    (1, 2, '2025-06-26 14:00:00+07', 'Conflict with another meeting', 'PENDING', 1, NULL, NULL),
+    (2, 3, '2025-07-11 15:00:00+07', 'Need more preparation time', 'APPROVED', 2, '2025-07-11 15:00:00+07', 'Approved with new time'),
+    (3, 4, '2025-08-16 10:00:00+07', 'Team unavailable', 'REJECTED', 3, NULL, 'Reschedule not needed'),
+    (4, 5, '2025-09-13 14:00:00+07', 'Client requested delay', 'PENDING', 4, NULL, NULL),
+    (5, 1, '2025-10-21 12:00:00+07', 'Technical issues', 'APPROVED', 5, '2025-10-21 12:00:00+07', 'Adjusted for technical setup');
 
+-- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
+INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+    ('project_type', 'WEB_APPLICATION', 'Web Application', 'Web application development projects for IT companies', 1, 'https://example.com/icons/web-app.png', '#00FF00'),
+    ('project_type', 'MOBILE_APPLICATION', 'Mobile Application', 'Mobile application development projects for IT companies', 2, 'https://example.com/icons/mobile-app.png', '#FF0000'),
+    ('project_type', 'ENTERPRISE_SOFTWARE', 'Enterprise Software', 'Enterprise software development projects for IT companies', 3, NULL, '#c97cf4'), -- Thêm #c97cf4 vào đây
+    ('project_type', 'GAME_DEVELOPMENT', 'Game Development', 'Game development projects for IT companies', 4, NULL, NULL),
+    ('project_status', 'PLANNING', 'Planning', 'Project is in planning stage', 1, 'https://example.com/icons/planning.png', '#0000FF'),
+    ('project_status', 'IN_PROGRESS', 'In Progress', 'Project is actively in progress', 2, NULL, NULL),
+    ('project_status', 'ON_HOLD', 'On Hold', 'Project is temporarily paused', 3, NULL, NULL),
+    ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
+    ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
+    ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, NULL),
+    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1, 'https://example.com/icons/to-do.png', '#FFA500'),
+    ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2, NULL, NULL),
+    ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3, NULL, NULL),
+    ('sprint_status', 'FUTURE', 'Future', 'Sprint not started yet', 1, NULL, NULL),
+    ('sprint_status', 'ACTIVE', 'Active', 'Sprint in progress or planning phase', 2, NULL, NULL),
+    ('sprint_status', 'COMPLETED', 'Completed', 'Sprint successfully completed', 3, NULL, NULL),
+    ('account_role', 'PROJECT_MANAGER', 'Project Manager', 'Project manager role', 1, 'https://example.com/icons/pm.png', '#800080'),
+    ('account_role', 'TEAM_LEADER', 'Team Leader', 'Team leader role', 2, NULL, NULL),
+    ('account_role', 'TEAM_MEMBER', 'Team Member', 'Team member role', 3, NULL, NULL),
+    ('account_role', 'CLIENT', 'Client', 'Client role', 4, NULL, NULL),
+    ('account_role', 'ADMIN', 'Admin', 'Admin role', 5, NULL, NULL),
+    ('account_status', 'ACTIVE', 'Active', 'Active user account', 1, NULL, NULL),
+    ('account_status', 'INACTIVE', 'Inactive', 'Inactive user account', 2, NULL, NULL),
+    ('account_status', 'VERIFIED', 'Verified', 'Verified user account', 3, NULL, NULL),
+    ('account_status', 'UNVERIFIED', 'Unverified', 'Unverified user account', 4, NULL, NULL),
+    ('account_status', 'BANNED', 'Banned', 'Banned user account', 5, NULL, NULL),
+    ('account_status', 'DELETED', 'Deleted', 'Deleted user account', 6, NULL, NULL),
+    ('account_position', 'BUSINESS_ANALYST', 'Business Analyst', 'Business analyst position', 1, NULL, NULL),
+    ('account_position', 'BACKEND_DEVELOPER', 'Backend Developer', 'Backend developer position', 2, NULL, NULL),
+    ('account_position', 'FRONTEND_DEVELOPER', 'Frontend Developer', 'Frontend developer position', 3, NULL, NULL),
+    ('account_position', 'TESTER', 'Tester', 'Tester position', 4, NULL, NULL),
+    ('account_position', 'PROJECT_MANAGER', 'Project Manager', 'Project manager position', 5, NULL, NULL),
+    ('account_position', 'DESIGNER', 'Designer', 'Designer position', 6, NULL, '#c97cf4'), -- Thêm #c97cf4 vào đây
+    ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7, NULL, NULL),
+    ('account_position', 'CLIENT', 'Client', 'Client position', 8, NULL, NULL),
+    ('account_position', 'ADMIN', 'Admin', 'Admin position', 9, NULL, NULL),
+    ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1, NULL, NULL),
+    ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2, NULL, NULL),
+    ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3, NULL, NULL),
+    ('task_assignment_status', 'COMPLETED', 'Completed', 'User has completed their assigned part', 4, NULL, NULL),
+    ('task_assignment_status', 'UNASSIGNED', 'Unassigned', 'User is unassigned or removed from task', 5, NULL, NULL),
+    ('task_assignment_status', 'DELETED', 'Deleted', 'Task assignment record is deleted', 6, NULL, NULL),
+    ('subtask_status', 'TO_DO', 'To Do', 'Checklist item to do', 1, NULL, NULL),
+    ('subtask_status', 'IN_PROGRESS', 'In Progress', 'Checklist item in progress', 2, NULL, NULL),
+    ('subtask_status', 'DONE', 'Done', 'Checklist item completed', 3, NULL, NULL),
+    ('task_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1, NULL, NULL),
+    ('task_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2, NULL, NULL),
+    ('task_file_status', 'APPROVED', 'Approved', 'File approved', 3, NULL, NULL),
+    ('task_file_status', 'PENDING', 'Pending', 'File pending', 4, NULL, NULL),
+    ('task_file_status', 'DELETED', 'Deleted', 'Deleted file', 5, NULL, NULL),
+    ('subtask_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1, NULL, NULL),
+    ('subtask_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2, NULL, NULL),
+    ('subtask_file_status', 'APPROVED', 'Approved', 'File approved', 3, NULL, NULL),
+    ('subtask_file_status', 'PENDING', 'Pending', 'File pending', 4, NULL, NULL),
+    ('subtask_file_status', 'DELETED', 'Deleted', 'Deleted file', 5, NULL, NULL),
+    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1, NULL, NULL),
+    ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2, NULL, NULL),
+    ('task_status', 'DONE', 'Done', 'Task completed', 3, NULL, NULL),
+    ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://drive.google.com/file/d/1aCfATSVY-FdeeTNLoJl3o3k49NtP9lUg/view?usp=drive_link', NULL),
+    ('task_type', 'TASK', 'Task', 'General task', 2, 'https://drive.google.com/file/d/1ebm-P9XekWL5vOYc2ErwFk5jT-dSkGSD/view?usp=drive_link', NULL),
+    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://drive.google.com/file/d/1b7WqqObZEqSAhFa8QOQN3hLAQqkS99vS/view?usp=drive_link', NULL),
+    ('document_type', 'PLAN', 'Plan', 'Project plan', 1, NULL, NULL),
+    ('document_type', 'BRIEF', 'Brief', 'Project brief', 2, NULL, NULL),
+    ('document_type', 'REPORT', 'Report', 'Project report', 3, NULL, NULL),
+    ('document_type', 'SPEC', 'Specification', 'Project specification', 4, NULL, NULL),
+    ('document_type', 'STRATEGY', 'Strategy', 'Project strategy', 5, NULL, NULL),
+    ('permission_type', 'READ', 'Read', 'Read permission', 1, NULL, NULL),
+    ('permission_type', 'WRITE', 'Write', 'Write permission', 2, NULL, NULL),
+    ('notification_type', 'TASK_UPDATE', 'Task Update', 'Task update notification', 1, NULL, NULL),
+    ('notification_type', 'PROJECT_UPDATE', 'Project Update', 'Project update notification', 2, NULL, NULL),
+    ('notification_type', 'MEETING_REMINDER', 'Meeting Reminder', 'Meeting reminder notification', 3, NULL, NULL),
+    ('notification_type', 'RISK_ALERT', 'Risk Alert', 'Risk alert notification', 4, NULL, NULL),
+    ('notification_type', 'DOCUMENT_UPDATE', 'Document Update', 'Document update notification', 5, NULL, NULL),
+    ('recipient_notification_status', 'RECEIVED', 'Received', 'Notification received', 1, NULL, NULL),
+    ('recipient_notification_status', 'READ', 'Read', 'Notification read', 2, NULL, NULL),
+    ('recipient_notification_status', 'DELETED', 'Deleted', 'Deleted notification', 3, NULL, NULL),
+    ('meeting_status', 'SCHEDULED', 'Scheduled', 'Meeting scheduled', 1, NULL, NULL),
+    ('meeting_status', 'COMPLETED', 'Completed', 'Meeting completed', 2, NULL, NULL),
+    ('meeting_status', 'CANCELLED', 'Cancelled', 'Meeting cancelled', 3, NULL, NULL),
+    ('meeting_status', 'DELETED', 'Deleted', 'Deleted meeting', 4, NULL, NULL),
+    ('meeting_participant_status', 'ATTENDED', 'Attended', 'Participant attended', 1, NULL, NULL),
+    ('meeting_participant_status', 'ABSENT', 'Absent', 'Participant absent', 2, NULL, NULL),
+    ('meeting_participant_status', 'DELETED', 'Deleted', 'Deleted participant', 3, NULL, NULL),
+    ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1, NULL, NULL),
+    ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2, NULL, NULL),
+    ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3, NULL, NULL),
+    ('milestone_feedback_status', 'DELETED', 'Deleted', 'Deleted feedback', 4, NULL, NULL),
+    ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, NULL),
+    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, NULL),
+    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, NULL),
+    ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
+    ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
+    ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
+    ('risk_type', 'QUALITY', 'Quality', 'Quality risk', 4, NULL, NULL),
+    ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5, NULL, NULL),
+    ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1, NULL, NULL),
+    ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
+    ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
+    ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4, NULL, NULL),
+    ('recommendation_type', 'PERFORMANCE', 'Performance', 'Performance recommendation', 1, NULL, NULL),
+    ('recommendation_type', 'MARKETING', 'Marketing', 'Marketing recommendation', 2, NULL, NULL),
+    ('recommendation_type', 'RESEARCH', 'Research', 'Research recommendation', 3, NULL, NULL),
+    ('recommendation_type', 'DESIGN', 'Design', 'Design recommendation', 4, NULL, NULL),
+    ('recommendation_type', 'TESTING', 'Testing', 'Testing recommendation', 5, NULL, NULL),
+    ('label_status', 'ACTIVE', 'Active', 'Active label', 1, NULL, NULL),
+    ('label_status', 'DELETED', 'Deleted', 'Deleted label', 2, NULL, NULL),
+    ('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional requirement', 1, NULL, NULL),
+    ('requirement_type', 'NON_FUNCTIONAL', 'Non-Functional', 'Non-functional requirement', 2, NULL, NULL),
+    ('project_member_status', 'CREATED', 'Created', 'Project member newly created', 1, NULL, NULL),
+    ('project_member_status', 'INVITED', 'Invited', 'Project member invited to join', 2, NULL, NULL),
+    ('project_member_status', 'ACTIVE', 'Active', 'Project member active in project', 3, NULL, NULL),
+    ('project_member_status', 'BANNED', 'Banned', 'Project member banned, no access', 4, NULL, NULL),
+    ('project_member_status', 'DELETED', 'Deleted', 'Project member deleted from project', 5, NULL, NULL),
+    ('task_priority', 'HIGHEST', 'Highest', 'Highest priority task', 1, NULL, NULL),
+    ('task_priority', 'HIGH', 'High', 'High priority task', 2, NULL, NULL),
+    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority task', 3, NULL, NULL),
+    ('task_priority', 'LOW', 'Low', 'Low priority task', 4, NULL, NULL),
+    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority task', 5, NULL, NULL),
+    ('subtask_priority', 'HIGHEST', 'Highest', 'Highest priority subtask', 1, NULL, NULL),
+    ('subtask_priority', 'HIGH', 'High', 'High priority subtask', 2, NULL, NULL),
+    ('subtask_priority', 'MEDIUM', 'Medium', 'Medium priority subtask', 3, NULL, NULL),
+    ('subtask_priority', 'LOW', 'Low', 'Low priority subtask', 4, NULL, NULL),
+    ('subtask_priority', 'LOWEST', 'Lowest', 'Lowest priority subtask', 5, NULL, NULL),
+    ('milestone_status', 'PLANNING', 'Planning', 'Milestone is in planning stage', 1, NULL, NULL),
+    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is in progress', 2, NULL, NULL),
+    ('milestone_status', 'COMPLETED', 'Completed', 'Milestone has been completed', 3, NULL, NULL),
+    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 4, NULL, NULL),
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone was cancelled', 5, NULL, NULL),
+    ('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
+    ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
+    ('task-dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+    ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
+    ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
+    ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
+    ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 4, NULL, NULL),
+    ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1, NULL, NULL),
+    ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
+    ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
+    ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
+    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL);
 
-	-------  INTELLIPM DB ---------
+-------  INTELLIPM DB ---------
 	-- Update 16/06/2025
 
 
@@ -1121,9 +1195,6 @@ VALUES
 (7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'IN_PROGRESS'),
 (8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'IN_PROGRESS'),
 (9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'IN_PROGRESS');
-
--- ✅ Đặt dấu ; KẾT THÚC ở đây để tách lệnh
--- Nếu bạn không có dấu này thì phần `INSERT INTO project_position` sẽ bị coi là phần tiếp của câu trên.
 
 -- Insert project positions
 INSERT INTO project_position (project_member_id, position, assigned_at)

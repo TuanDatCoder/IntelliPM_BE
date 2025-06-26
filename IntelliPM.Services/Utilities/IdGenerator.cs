@@ -29,8 +29,6 @@ namespace IntelliPM.Services.Utilities
             var allTasks = taskRepo != null ? await taskRepo.GetByProjectIdAsync(project.Id) : new List<Tasks>();
             if (taskRepo == null)
             {
-                // Nếu taskRepo là null (như trong EpicService), cần một cách để lấy task
-                // Giả sử có cách nào đó để lấy ITaskRepository, hoặc cần tiêm nó vào EpicService
                 throw new InvalidOperationException("ITaskRepository is required to generate a consistent ID across Tasks and Epics.");
             }
 
