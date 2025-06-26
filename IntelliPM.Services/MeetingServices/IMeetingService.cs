@@ -23,6 +23,8 @@ namespace IntelliPM.Services.MeetingServices
 
         Task<List<MeetingResponseDTO>> GetManagedMeetingsByAccount(int accountId);
 
+        Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto);
+
 
     }
 }
