@@ -18,6 +18,9 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Configuration;
 using static Org.BouncyCastle.Math.EC.ECCurve;
+using IntelliPM.Services.GeminiServices;
+using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -27,19 +30,21 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IProjectMetricRepository _repo;
         private readonly ITaskRepository _taskRepo;
         private readonly IProjectRepository _projectRepo;
+        private readonly ISprintRepository _sprintRepo;
+        private readonly IMilestoneRepository _milestoneRepo;
         private readonly ILogger<ProjectMetricService> _logger;
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _config;
+        private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, HttpClient httpClient, IConfiguration config)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
+            _sprintRepo = sprintRepo;
+            _milestoneRepo = milestoneRepo;
             _logger = logger;
-            _httpClient = httpClient;
-            _config = config;
+            _geminiService = geminiService;
         }
 
         public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy)
@@ -111,124 +116,13 @@ namespace IntelliPM.Services.ProjectMetricServices
             if (project == null || tasks == null || !tasks.Any())
                 throw new Exception("Không đủ dữ liệu để tính toán");
 
-            // Chuẩn bị prompt
-            var prompt = BuildPrompt(project, tasks);
+            // Gọi GeminiService để tính toán
+            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
 
-            // Gửi prompt tới OpenAI (gọi GPT)
-            var resultJson = await CallOpenAIAsync(prompt);
-
-            // Parse kết quả
-            var result = JsonConvert.DeserializeObject<ProjectMetricRequestDTO>(resultJson);
             result.ProjectId = projectId;
             result.CalculatedBy = "AI";
 
             return result;
-        }
-
-        private string BuildPrompt(Project project, List<EntityTask> tasks)
-        {
-            var taskList = JsonConvert.SerializeObject(tasks.Select(t => new {
-                t.Title,
-                t.Description,
-                t.PlannedStartDate,
-                t.PlannedEndDate,
-                t.ActualStartDate,
-                t.ActualEndDate,
-                t.PercentComplete,
-                t.PlannedHours,
-                t.ActualHours,
-                t.PlannedCost,
-                t.ActualCost,
-                t.Status
-            }), Formatting.Indented);
-
-            return $@"
-Dưới đây là thông tin của một dự án phần mềm, bao gồm danh sách các task. Hãy tính các chỉ số quản lý dự án:
-
-Trả về đúng JSON:
-{{
-  ""plannedValue"": 0,
-  ""earnedValue"": 0,
-  ""actualCost"": 0,
-  ""spi"": 0,
-  ""cpi"": 0,
-  ""budgetOverrun"": 0,
-  ""projectedFinishDate"": ""{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}"",
-  ""projectTotalCost"": 0
-}}
-
-Dự án:
-- Tên: {project.Name}
-- Ngân sách: {project.Budget}
-- Bắt đầu: {project.StartDate}
-- Kết thúc: {project.EndDate}
-
-Tasks:
-{taskList}
-";
-        }
-
-        //private async Task<string> CallOpenAIAsync(string prompt)
-        //{
-        //    var requestBody = new
-        //    {
-        //        model = "gpt-4",
-        //        messages = new[]
-        //        {
-        //        new { role = "system", content = "Bạn là một chuyên gia quản lý dự án." },
-        //        new { role = "user", content = prompt }
-        //    }
-        //    };
-
-        //    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
-        //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "YOUR_API_KEY");
-        //    request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-        //    var response = await _httpClient.SendAsync(request);
-        //    response.EnsureSuccessStatusCode();
-
-        //    var content = await response.Content.ReadAsStringAsync();
-        //    var completion = JsonConvert.DeserializeObject<OpenAIResponse>(content);
-
-        //    return completion.Choices[0].Message.Content.Trim();
-        //}
-
-        private async Task<string> CallOpenAIAsync(string prompt)
-        {
-            //var apiKey = _config["OpenAI:ApiKey"]; 
-
-            //_httpClient.DefaultRequestHeaders.Clear();
-            //_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-            var requestBody = new
-            {
-                model = "gpt-4",
-                messages = new[]
-                {
-            new { role = "user", content = prompt }
-        },
-                temperature = 0.2
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"OpenAI call failed: {response.StatusCode} - {error}");
-            }
-
-            var result = await response.Content.ReadAsStringAsync();
-
-            // Extract content from GPT response
-            var json = JObject.Parse(result);
-            var reply = json["choices"]?[0]?["message"]?["content"]?.ToString();
-            if (reply == null)
-                throw new Exception("Empty AI response");
-
-            return reply;
         }
 
         public async Task<List<ProjectMetricResponseDTO>> GetAllAsync()
@@ -250,6 +144,88 @@ Tasks:
         {
             var entities = await _repo.GetByProjectIdAsync(projectId);
             return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
+        }
+
+        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
+        //{
+        //    var project = await _projectRepo.GetByIdAsync(projectId)
+        //        ?? throw new Exception("Project not found");
+
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId); 
+        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);   // để lấy HourlyRate
+
+        //    // Tính Task Cost
+        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+
+        //    // Tính Resource Cost từ TaskAssignment và ProjectMember
+        //    decimal actualResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.ActualHours ?? 0) * hourly;
+        //    });
+
+        //    decimal plannedResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.PlannedHours ?? 0) * hourly;
+        //    });
+
+        //    return new CostDashboardResponseDTO
+        //    {
+        //        ActualTaskCost = actualTaskCost,
+        //        PlannedTaskCost = plannedTaskCost,
+        //        ActualResourceCost = actualResourceCost,
+        //        PlannedResourceCost = plannedResourceCost,
+
+        //        ActualCost = actualTaskCost + actualResourceCost,
+        //        PlannedCost = plannedTaskCost + plannedResourceCost,
+        //        Budget = project.Budget ?? 0
+        //    };
+        //}
+
+        public async Task<List<object>> GetProgressDashboardAsync(int projectId)
+        {
+            var sprints = await _sprintRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(projectId);
+
+            var result = new List<object>();
+
+            foreach (var sprint in sprints)
+            {
+                var sprintTasks = tasks.Where(t => t.SprintId == sprint.Id).ToList();
+                var sprintMilestones = milestones.Where(m => m.SprintId == sprint.Id).ToList(); 
+
+                //var totalItems = sprintTasks.Count + sprintMilestones.Count;
+                var totalItems = sprintTasks.Count;
+                if (totalItems == 0)
+                {
+                    result.Add(new
+                    {
+                        sprintId = sprint.Id,
+                        sprintName = sprint.Name,
+                        percentComplete = 0.0
+                    });
+                    continue;
+                }
+
+                double taskProgress = (double)sprintTasks.Sum(t => t.PercentComplete ?? 0);
+                //double milestoneProgress = sprintMilestones.Sum(m => m.PercentComplete ?? 0);
+
+                //double percentComplete = (taskProgress + milestoneProgress) / totalItems;
+                double percentComplete = taskProgress / totalItems;
+
+                result.Add(new
+                {
+                    sprintId = sprint.Id,
+                    sprintName = sprint.Name,
+                    percentComplete = Math.Round(percentComplete, 2)
+                });
+            }
+
+            return result;
         }
 
         public async Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId)
@@ -301,5 +277,68 @@ Tasks:
                 Cost = costDto
             };
         }
+
+        public async Task<object> GetTaskStatusDashboardAsync(int projectId)
+        {
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            var notStarted = tasks.Count(t => string.Equals(t.Status, "NOT_STARTED", StringComparison.OrdinalIgnoreCase));
+            var inProgress = tasks.Count(t => string.Equals(t.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+            var completed = tasks.Count(t => string.Equals(t.Status, "COMPLETE", StringComparison.OrdinalIgnoreCase));
+
+            return new
+            {
+                notStarted,
+                inProgress,
+                completed
+            };
+        }
+
+        public async Task<object> GetTimeDashboardAsync(int projectId)
+        {
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            if (tasks == null || !tasks.Any())
+                throw new Exception("Project has no tasks");
+
+            var today = DateTime.UtcNow;
+
+            decimal totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
+            decimal plannedCostTillToday = tasks
+                .Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today)
+                .Sum(t => t.PlannedCost ?? 0);
+
+            // Nếu không có PlannedCost, fallback sang số lượng task
+            double plannedCompletion;
+            if (totalPlannedCost > 0)
+            {
+                plannedCompletion = (double)(plannedCostTillToday / totalPlannedCost) * 100;
+            }
+            else
+            {
+                int totalTasks = tasks.Count;
+                int expectedCompletedTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
+                plannedCompletion = totalTasks == 0 ? 0 : (double)expectedCompletedTasks / totalTasks * 100;
+            }
+
+            double actualCompletion = (double)tasks.Average(t => t.PercentComplete ?? 0);
+
+            string status;
+            double diff = actualCompletion - plannedCompletion;
+
+            if (diff > 5)
+                status = "Ahead";
+            else if (diff < -5)
+                status = "Behind";
+            else
+                status = "On Time";
+
+            return new
+            {
+                plannedCompletion = Math.Round(plannedCompletion, 2),
+                actualCompletion = Math.Round(actualCompletion, 2),
+                status
+            };
+        }
+
     }
 }

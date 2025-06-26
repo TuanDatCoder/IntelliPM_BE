@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
@@ -9,7 +10,6 @@ using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
-using IntelliPM.Services.TaskServices;
 using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -138,8 +138,14 @@ namespace IntelliPM.Services.SubtaskServices
 
         public async Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId)
         {
-            var checkList = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-            return _mapper.Map<List<SubtaskResponseDTO>>(checkList);
+            { 
+                var entities = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No subtasks found for Task ID {taskId}.");
+
+                return _mapper.Map<List<SubtaskResponseDTO>>(entities);
+            }
         }
 
         public async Task<SubtaskResponseDTO> UpdateSubtask(string id, SubtaskRequestDTO request)
@@ -157,6 +163,30 @@ namespace IntelliPM.Services.SubtaskServices
             catch (Exception ex)
             {
                 throw new Exception($"Failed to update Subtask: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<SubtaskResponseDTO>(entity);
+        }
+
+        public async Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                throw new ArgumentException("Status cannot be null or empty.");
+
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            entity.Status = status;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _subtaskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change subtask status: {ex.Message}", ex);
             }
 
             return _mapper.Map<SubtaskResponseDTO>(entity);

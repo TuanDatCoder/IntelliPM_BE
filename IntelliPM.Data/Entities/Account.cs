@@ -47,11 +47,17 @@ public partial class Account
 
     public virtual ICollection<Document> DocumentUpdatedByNavigation { get; set; } = new List<Document>();
 
+    public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
+
     public virtual ICollection<MeetingDocument> MeetingDocument { get; set; } = new List<MeetingDocument>();
 
     public virtual ICollection<MeetingLog> MeetingLog { get; set; } = new List<MeetingLog>();
 
     public virtual ICollection<MeetingParticipant> MeetingParticipant { get; set; } = new List<MeetingParticipant>();
+
+    public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestPm { get; set; } = new List<MeetingRescheduleRequest>();
+
+    public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestRequester { get; set; } = new List<MeetingRescheduleRequest>();
 
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
 
@@ -71,9 +77,5 @@ public partial class Account
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
 
-    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
-
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
-
-    public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }

@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace IntelliPM.Data.Entities;
 
 public partial class Subtask
 {
-    [Key]
     public string Id { get; set; } = null!;
 
     public string TaskId { get; set; } = null!;
 
     public int AssignedBy { get; set; }
+
+    public int? ReporterId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -23,17 +23,27 @@ public partial class Subtask
 
     public bool GenerationAiInput { get; set; }
 
+    public string? Priority { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? SprintId { get; set; }
+
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
     public virtual Account AssignedByNavigation { get; set; } = null!;
+
+    public virtual ProjectMember? Reporter { get; set; }
+
+    public virtual Sprint? Sprint { get; set; }
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
 
     public virtual ICollection<SubtaskFile> SubtaskFile { get; set; } = new List<SubtaskFile>();
 
     public virtual Tasks Task { get; set; } = null!;
+
+    public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
 }
