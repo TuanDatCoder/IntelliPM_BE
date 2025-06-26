@@ -320,12 +320,12 @@ namespace IntelliPM.Services.EmailServices
         }
 
 
-        public async Task SendProjectCreationNotification(string pmFullName, string pmEmail, string creatorFullName, string creatorUsername, int projectId, string projectDetailsUrl)
+        public async Task SendProjectCreationNotification(string pmFullName, string pmEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
         {
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
             email.To.Add(MailboxAddress.Parse(pmEmail));
-            email.Subject = "[IntelliPM] - Project Creation Notification";
+            email.Subject = $"[IntelliPM] New Project Requires Your Review: {projectName} ({projectKey})";
 
             var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
 
@@ -337,7 +337,7 @@ namespace IntelliPM.Services.EmailServices
 <head>
   <meta charset='UTF-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>Project Creation Notification - IntelliPM</title>
+  <title>New Project Notification - IntelliPM</title>
   <style>
     body {{ font-family: 'Segoe UI', sans-serif; background-color: #f9fafb; margin: 0; padding: 32px 16px; }}
     .container {{ max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); overflow: hidden; }}
@@ -362,13 +362,13 @@ namespace IntelliPM.Services.EmailServices
       <div class='logo'>
         <img src='{logoUrl}' alt='IntelliPM Logo'>
       </div>
-      <h1>Project Creation Notification 👋</h1>
-      <p>Hi <strong>{pmFullName}</strong>,</p>
-      <p>A new project member, <strong>{creatorFullName}</strong> ({creatorUsername}), has created the entire project with ID {projectId}. Please review the details below:</p>
-      <p>To view the project details, click the button below:</p>
-      <a href='{projectDetailsUrl}' class='btn'>View Project Details</a>
-      <p>This member is now part of the project team. Kindly take necessary actions to manage the project effectively.</p>
-      <p>If you didn’t expect this action, please contact support.</p>
+      <h1>New Project Awaiting Your Review</h1>
+      <p>Dear <strong>{pmFullName}</strong>,</p>
+      <p>I would like to inform you that I, <strong>{creatorFullName}</strong> ({creatorUsername}), have initiated a new project entitled <strong>{projectName}</strong> (Project Key: <strong>{projectKey}</strong>, ID: {projectId}).</p>
+      <p>This project is currently awaiting your review and approval as the assigned Project Manager.</p>
+      <p>Please click the button below to access full project details and proceed with the next steps, including assigning responsibilities, reviewing timelines, and confirming objectives:</p>
+      <a href='{projectDetailsUrl}' class='btn'>Review Project Details</a>
+      <p>If you require any additional information or support, please feel free to contact me directly.</p>
     </div>
     <div class='footer'>
       <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
