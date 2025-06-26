@@ -113,6 +113,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Account>(entity =>
@@ -386,6 +388,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Reporterid).HasColumnName("reporterid");
+            entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -403,6 +406,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.Reporterid)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("epic_reporterid_fkey");
+
+            entity.HasOne(d => d.Sprint).WithMany(p => p.Epic)
+                .HasForeignKey(d => d.SprintId)
+                .HasConstraintName("epic_sprint_id_fkey");
         });
 
         modelBuilder.Entity<EpicComment>(entity =>
@@ -1151,6 +1158,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Priority)
                 .HasMaxLength(50)
                 .HasColumnName("priority");
+            entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
@@ -1168,6 +1176,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.AssignedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("subtask_assigned_by_fkey");
+
+            entity.HasOne(d => d.Sprint).WithMany(p => p.Subtask)
+                .HasForeignKey(d => d.SprintId)
+                .HasConstraintName("subtask_sprint_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Subtask)
                 .HasForeignKey(d => d.TaskId)

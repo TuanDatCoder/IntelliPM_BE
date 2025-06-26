@@ -66,34 +66,8 @@ CREATE TABLE project_member (
     UNIQUE (account_id, project_id)
 );
 
--- 5. epic
-CREATE TABLE epic (
-    id VARCHAR(255) PRIMARY KEY,
-    project_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    start_date TIMESTAMPTZ NULL,
-    end_date TIMESTAMPTZ NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NULL,
-    reporterId INT NULL,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (reporterId) REFERENCES project_member(id) ON DELETE SET NULL
-);
 
--- 6. epic_comment
-CREATE TABLE epic_comment (
-    id SERIAL PRIMARY KEY,
-    epic_id VARCHAR(255) NOT NULL,
-    account_id INT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
-);
-
--- 7. sprint
+-- 5. sprint
 CREATE TABLE sprint (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -105,6 +79,36 @@ CREATE TABLE sprint (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     FOREIGN KEY (project_id) REFERENCES project(id)
+);
+
+
+-- 6. epic
+CREATE TABLE epic (
+    id VARCHAR(255) PRIMARY KEY,
+    project_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NULL,
+    reporterId INT NULL,
+    sprint_id INT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    FOREIGN KEY (reporterId) REFERENCES project_member(id) ON DELETE SET NULL,
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
+);
+
+-- 7. epic_comment
+CREATE TABLE epic_comment (
+    id SERIAL PRIMARY KEY,
+    epic_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
 -- 8. milestone
@@ -186,8 +190,10 @@ CREATE TABLE subtask (
     priority VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES account(id)
+    FOREIGN KEY (assigned_by) REFERENCES account(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
 -- 12. subtask_file
