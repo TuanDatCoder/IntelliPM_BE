@@ -23,7 +23,13 @@ public partial class Epic
 
     public string? Status { get; set; }
 
+    public int? Reporterid { get; set; }
+
+    public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
+
     public virtual Project Project { get; set; } = null!;
+
+    public virtual ProjectMember? Reporter { get; set; }
 
     public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }

@@ -31,6 +31,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Epic> Epic { get; set; }
 
+    public virtual DbSet<EpicComment> EpicComment { get; set; }
+
     public virtual DbSet<Label> Label { get; set; }
 
     public virtual DbSet<Meeting> Meeting { get; set; }
@@ -98,7 +100,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -111,7 +112,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -385,6 +385,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.Reporterid).HasColumnName("reporterid");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -397,6 +398,38 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("epic_project_id_fkey");
+
+            entity.HasOne(d => d.Reporter).WithMany(p => p.Epic)
+                .HasForeignKey(d => d.Reporterid)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("epic_reporterid_fkey");
+        });
+
+        modelBuilder.Entity<EpicComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("epic_comment_pkey");
+
+            entity.ToTable("epic_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.EpicComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("epic_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.EpicComment)
+                .HasForeignKey(d => d.EpicId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("epic_comment_epic_id_fkey");
         });
 
         modelBuilder.Entity<Label>(entity =>

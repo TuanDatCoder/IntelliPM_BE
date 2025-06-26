@@ -17,5 +17,6 @@ namespace IntelliPM.Data.DTOs.Epic.Response
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string? Status { get; set; }
+        public int? Reporterid { get; set; }
     }
 }
