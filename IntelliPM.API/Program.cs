@@ -6,6 +6,7 @@ using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.LabelRepos;
 using IntelliPM.Repositories.MeetingLogRepos;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
@@ -30,6 +31,7 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Repositories.WorkItemLabelRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
@@ -45,6 +47,7 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
+using IntelliPM.Services.LabelServices;
 using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
@@ -67,6 +70,7 @@ using IntelliPM.Services.TaskAssignmentServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.TaskFileServices;
 using IntelliPM.Services.TaskServices;
+using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -114,8 +118,8 @@ builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>(
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
 builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
-
-
+builder.Services.AddScoped<ILabelRepository, LabelRepository>();
+builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -153,6 +157,8 @@ builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
 builder.Services.AddScoped<IRiskService, RiskService>();
 builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
+builder.Services.AddScoped<ILabelService, LabelService>();
+builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 
 
 
