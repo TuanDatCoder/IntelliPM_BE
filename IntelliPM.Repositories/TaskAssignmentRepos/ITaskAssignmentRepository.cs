@@ -16,5 +16,6 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         Task Add(TaskAssignment taskAssignment);
         Task Update(TaskAssignment taskAssignment);
         Task Delete(TaskAssignment taskAssignment);
+        Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId);
     }
 }
