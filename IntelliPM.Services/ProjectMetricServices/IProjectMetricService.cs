@@ -20,5 +20,6 @@ namespace IntelliPM.Services.ProjectMetricServices
         Task<List<object>> GetProgressDashboardAsync(int projectId);
         Task<object> GetTimeDashboardAsync(int projectId);
         Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId);
+        Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(int projectId);
     }
 }
