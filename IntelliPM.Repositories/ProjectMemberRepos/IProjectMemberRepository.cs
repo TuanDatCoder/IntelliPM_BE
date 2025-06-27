@@ -18,6 +18,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         Task Delete(ProjectMember projectMember);
 
         Task<List<ProjectMember>> GetProjectMemberbyProjectId(int projectId);
+        Task<Account?> GetAccountByIdAsync(int accountId);
 
     }
 }
