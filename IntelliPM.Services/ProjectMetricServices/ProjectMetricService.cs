@@ -21,6 +21,8 @@ using static Org.BouncyCastle.Math.EC.ECCurve;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.MilestoneRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -32,10 +34,12 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IProjectRepository _projectRepo;
         private readonly ISprintRepository _sprintRepo;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -43,6 +47,8 @@ namespace IntelliPM.Services.ProjectMetricServices
             _taskRepo = taskRepo;
             _sprintRepo = sprintRepo;
             _milestoneRepo = milestoneRepo;
+            _taskAssignmentRepo = taskAssignmentRepo;
+            _projectMemberRepo = projectMemberRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -146,44 +152,46 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
         }
 
-        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
-        //{
-        //    var project = await _projectRepo.GetByIdAsync(projectId)
-        //        ?? throw new Exception("Project not found");
+        public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId)
+                ?? throw new Exception("Project not found");
 
-        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId); 
-        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);   // để lấy HourlyRate
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
 
-        //    // Tính Task Cost
-        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
-        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+            // Tính Task Cost
+            decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+            decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
 
-        //    // Tính Resource Cost từ TaskAssignment và ProjectMember
-        //    decimal actualResourceCost = taskAssignments.Sum(a =>
-        //    {
-        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
-        //        return (decimal)(a.ActualHours ?? 0) * hourly;
-        //    });
+            // Tính Resource Cost từ TaskAssignment và ProjectMember
+            decimal actualResourceCost = taskAssignments.Sum(a =>
+            {
+                var hourly = projectMembers
+                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                return (decimal)(a.ActualHours ?? 0) * hourly;
+            });
 
-        //    decimal plannedResourceCost = taskAssignments.Sum(a =>
-        //    {
-        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
-        //        return (decimal)(a.PlannedHours ?? 0) * hourly;
-        //    });
+            decimal plannedResourceCost = taskAssignments.Sum(a =>
+            {
+                var hourly = projectMembers
+                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                return (decimal)(a.PlannedHours ?? 0) * hourly;
+            });
 
-        //    return new CostDashboardResponseDTO
-        //    {
-        //        ActualTaskCost = actualTaskCost,
-        //        PlannedTaskCost = plannedTaskCost,
-        //        ActualResourceCost = actualResourceCost,
-        //        PlannedResourceCost = plannedResourceCost,
+            return new CostDashboardResponseDTO
+            {
+                ActualTaskCost = actualTaskCost,
+                PlannedTaskCost = plannedTaskCost,
+                ActualResourceCost = actualResourceCost,
+                PlannedResourceCost = plannedResourceCost,
 
-        //        ActualCost = actualTaskCost + actualResourceCost,
-        //        PlannedCost = plannedTaskCost + plannedResourceCost,
-        //        Budget = project.Budget ?? 0
-        //    };
-        //}
+                ActualCost = actualTaskCost + actualResourceCost,
+                PlannedCost = plannedTaskCost + plannedResourceCost,
+                Budget = project.Budget ?? 0
+            };
+        }
 
         public async Task<List<object>> GetProgressDashboardAsync(int projectId)
         {
