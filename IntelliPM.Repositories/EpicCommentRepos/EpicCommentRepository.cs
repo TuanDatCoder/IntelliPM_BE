@@ -15,19 +15,17 @@ namespace IntelliPM.Repositories.EpicCommentRepos
 
         public EpicCommentRepository(Su25Sep490IntelliPmContext context)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _context = context; 
         }
 
         public async Task Add(EpicComment epicComment)
         {
-            if (epicComment == null) throw new ArgumentNullException(nameof(epicComment));
             await _context.EpicComment.AddAsync(epicComment);
             await _context.SaveChangesAsync();
         }
 
         public async Task Delete(EpicComment epicComment)
         {
-            if (epicComment == null) throw new ArgumentNullException(nameof(epicComment));
             _context.EpicComment.Remove(epicComment);
             await _context.SaveChangesAsync();
         }
@@ -43,7 +41,6 @@ namespace IntelliPM.Repositories.EpicCommentRepos
 
         public async Task<EpicComment?> GetByIdAsync(int id)
         {
-            if (id <= 0) throw new ArgumentException("Invalid ID", nameof(id));
             return await _context.EpicComment
                 .Include(e => e.Epic)
                 .Include(e => e.Account)
@@ -52,7 +49,6 @@ namespace IntelliPM.Repositories.EpicCommentRepos
 
         public async Task Update(EpicComment epicComment)
         {
-            if (epicComment == null) throw new ArgumentNullException(nameof(epicComment));
             _context.EpicComment.Update(epicComment);
             await _context.SaveChangesAsync();
         }

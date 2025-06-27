@@ -27,12 +27,12 @@ namespace IntelliPM.Services.EpicCommentServices
 
         public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, ILogger<EpicCommentService> logger)
         {
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            _repo = repo ?? throw new ArgumentNullException(nameof(repo));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _notificationRepo = notificationRepo ?? throw new ArgumentNullException(nameof(notificationRepo));
-            _epicRepo = epicRepo ?? throw new ArgumentNullException(nameof(epicRepo));
-            _projectMemberRepo = projectMemberRepo ?? throw new ArgumentNullException(nameof(projectMemberRepo));
+            _mapper = mapper;
+            _repo = repo;
+            _logger = logger;
+            _notificationRepo = notificationRepo;
+            _epicRepo = epicRepo;
+            _projectMemberRepo = projectMemberRepo;
         }
 
         public async Task<EpicCommentResponseDTO> CreateEpicComment(EpicCommentRequestDTO request)
