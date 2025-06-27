@@ -69,5 +69,13 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
             _context.TaskAssignment.Remove(taskAssignment);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.TaskAssignment
+                .Include(ta => ta.Task) 
+                .Where(ta => ta.Task.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }
