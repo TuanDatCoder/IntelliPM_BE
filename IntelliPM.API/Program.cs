@@ -18,6 +18,7 @@ using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectMetricRepos;
 using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
@@ -120,6 +121,7 @@ builder.Services.AddScoped<IRiskRepository, RiskRepository>();
 builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
+builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -159,7 +161,6 @@ builder.Services.AddScoped<IRiskService, RiskService>();
 builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
-
 
 
 // ------------------------- HttpClient -----------------------------

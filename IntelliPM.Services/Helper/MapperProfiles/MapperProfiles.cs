@@ -33,6 +33,8 @@ using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
@@ -115,6 +117,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            // ProjectRecommendation
+            CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>()
+            .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task.Title));
 
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
