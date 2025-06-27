@@ -195,5 +195,26 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("workload-dashboard")]
+        public async Task<IActionResult> GetWorkloadDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var data = await _service.GetWorkloadDashboardAsync(projectId);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Workload dashboard loaded successfully",
+                    data
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+
     }
 }

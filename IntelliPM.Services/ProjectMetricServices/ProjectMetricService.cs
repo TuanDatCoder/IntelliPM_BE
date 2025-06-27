@@ -348,5 +348,46 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
+        public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(int projectId)
+        {
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
+
+            var today = DateTime.Today;
+
+            var result = projectMembers.Select(member =>
+            {
+                var assignedTaskIds = taskAssignments
+                    .Where(a => a.AccountId == member.AccountId)
+                    .Select(a => a.TaskId)
+                    .Distinct()
+                    .ToList();
+
+                var memberTasks = tasks.Where(t => assignedTaskIds.Contains(t.Id)).ToList();
+
+                var completed = memberTasks.Count(t => t.PercentComplete == 100);
+                var overdue = memberTasks.Count(t =>
+                    t.PercentComplete < 100 &&
+                    t.PlannedEndDate.HasValue &&
+                    t.PlannedEndDate.Value.Date < today
+                );
+
+                var remaining = memberTasks.Count(t =>
+                    t.PercentComplete < 100 &&
+                    (!t.PlannedEndDate.HasValue || t.PlannedEndDate.Value.Date >= today)
+                );
+
+                return new WorkloadDashboardResponseDTO
+                {
+                    MemberName = member.Account?.FullName ?? "Unknown",
+                    Completed = completed,
+                    Remaining = remaining,
+                    Overdue = overdue
+                };
+            }).ToList();
+
+            return result;
+        }
     }
 }
