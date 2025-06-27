@@ -23,6 +23,7 @@ using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRecommendationRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -36,10 +37,11 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IMilestoneRepository _milestoneRepo;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
+        private readonly IProjectRecommendationRepository _projectRecommendationRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -49,6 +51,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _milestoneRepo = milestoneRepo;
             _taskAssignmentRepo = taskAssignmentRepo;
             _projectMemberRepo = projectMemberRepo;
+            _projectRecommendationRepo = projectRecommendationRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -113,6 +116,54 @@ namespace IntelliPM.Services.ProjectMetricServices
             await _repo.Add(metric);
 
             return _mapper.Map<ProjectMetricResponseDTO>(metric);
+        }
+
+        public async Task<ProjectMetricRequestDTO> CalculateAndSaveProjectMetricsAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            if (result == null)
+                throw new Exception("AI did not return valid project metrics");
+
+            // Lưu ProjectMetric
+            var metric = _mapper.Map<ProjectMetric>(result);
+            metric.CreatedAt = DateTime.UtcNow;
+            metric.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.Add(metric);
+
+            // Lưu các gợi ý nếu có
+            if (result.Suggestions != null && result.Suggestions.Any())
+            {
+                var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
+
+                foreach (var suggestion in result.Suggestions)
+                {
+                    foreach (var related in suggestion.RelatedTasks)
+                    {
+                        var taskTitle = related.TaskTitle?.Trim();
+                        if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
+                            continue; // Bỏ qua nếu không khớp task
+
+                        var rec = new ProjectRecommendation
+                        {
+                            ProjectId = project.Id,
+                            TaskId = allTasks[taskTitle].ToString(),
+                            Type = suggestion.Reason ?? "General",
+                            Recommendation = suggestion.Message,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        await _projectRecommendationRepo.Add(rec);
+                    }
+                }
+            }
+
+            return result;
         }
 
         public async Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId)
