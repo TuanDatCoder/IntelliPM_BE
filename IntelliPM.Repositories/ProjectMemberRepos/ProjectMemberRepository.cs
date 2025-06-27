@@ -77,5 +77,13 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             return await _context.Account
                 .FirstOrDefaultAsync(a => a.Id == accountId);
         }
+
+        public async Task<List<ProjectMember>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMember
+                .Where(pm => pm.ProjectId == projectId)
+                .ToListAsync();
+        }
+
     }
 }
