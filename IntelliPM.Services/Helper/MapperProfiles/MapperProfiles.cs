@@ -29,9 +29,7 @@ using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
-using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
-using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
@@ -40,6 +38,7 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.SubtaskFile.Request;
@@ -225,6 +224,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<Subtask, SubtaskDetailedResponseDTO>()
+                .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
+                .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
