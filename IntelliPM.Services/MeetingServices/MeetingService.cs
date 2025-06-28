@@ -40,7 +40,7 @@ namespace IntelliPM.Services.MeetingServices
         //        meeting.CreatedAt = DateTime.UtcNow;
 
         //        // Lưu vào cơ sở dữ liệu
-        //        await _repo.AddAsync(meeting);
+        //        await _epicRepo.AddAsync(meeting);
         //        await _context.SaveChangesAsync();  // Lưu thay đổi vào cơ sở dữ liệu
 
         //        return _mapper.Map<MeetingResponseDTO>(meeting);  // Trả về MeetingResponseDTO

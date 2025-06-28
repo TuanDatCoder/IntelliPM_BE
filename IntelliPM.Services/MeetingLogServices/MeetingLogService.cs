@@ -72,19 +72,19 @@ public class MeetingLogService : IMeetingLogService
 
     //public async Task<List<MeetingLogResponseDTO>> GetLogsByMeetingIdAsync(int meetingId)
     //{
-    //    var logs = await _repo.GetByMeetingIdAsync(meetingId);
+    //    var logs = await _epicRepo.GetByMeetingIdAsync(meetingId);
     //    return _mapper.Map<List<MeetingLogResponseDTO>>(logs);
     //}
 
     //public async Task<List<MeetingLogResponseDTO>> GetLogsByAccountIdAsync(int accountId)
     //{
-    //    var logs = await _repo.GetByAccountIdAsync(accountId);
+    //    var logs = await _epicRepo.GetByAccountIdAsync(accountId);
     //    return _mapper.Map<List<MeetingLogResponseDTO>>(logs);
     //}
 
     //public async Task<List<MeetingLogResponseDTO>> GetAllLogsAsync()
     //{
-    //    var logs = await _repo.GetAllAsync();
+    //    var logs = await _epicRepo.GetAllAsync();
     //    return _mapper.Map<List<MeetingLogResponseDTO>>(logs);
     //}
 }

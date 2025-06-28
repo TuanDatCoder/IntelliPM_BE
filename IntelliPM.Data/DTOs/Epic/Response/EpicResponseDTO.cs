@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Data.DTOs.WorkItemLabel.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,7 +18,11 @@ namespace IntelliPM.Data.DTOs.Epic.Response
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string? Status { get; set; }
-        public int? Reporterid { get; set; }
+        public int? ReporterId { get; set; }
+        public int? AssignedById { get; set; }
+        public int? SprintId { get; set; }
+
+        
     }
 
 
