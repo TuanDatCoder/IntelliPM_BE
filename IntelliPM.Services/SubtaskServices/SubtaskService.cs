@@ -1,16 +1,22 @@
 ﻿using AutoMapper;
 using Google.Cloud.Storage.V1;
+using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.Subtask.Response;
+using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
+using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -30,8 +36,11 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IGeminiService _geminiService;
         private readonly IEpicRepository _epicRepo;
         private readonly IProjectRepository _projectRepo;
+        private readonly IAccountRepository _accountRepo; 
+        private readonly ISubtaskCommentService _subtaskCommentService;
+        private readonly IWorkItemLabelService _workItemLabelService;
 
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo)
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -40,6 +49,9 @@ namespace IntelliPM.Services.SubtaskServices
             _geminiService = geminiService;
             _epicRepo = epicRepo;
             _projectRepo = projectRepo;
+            _accountRepo = accountRepo;
+            _subtaskCommentService = subtaskCommentService;
+            _workItemLabelService = workItemLabelService;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -191,5 +203,73 @@ namespace IntelliPM.Services.SubtaskServices
 
             return _mapper.Map<SubtaskResponseDTO>(entity);
         }
+
+
+        public async Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            var dto = _mapper.Map<SubtaskDetailedResponseDTO>(entity);
+            await EnrichSubtaskDetailedResponse(dto);
+            return dto;
+        }
+
+        public async Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId)
+        {
+            var entities = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+            if (!entities.Any())
+                throw new KeyNotFoundException($"No subtasks found for Task ID {taskId}.");
+
+            var dtos = _mapper.Map<List<SubtaskDetailedResponseDTO>>(entities);
+            foreach (var dto in dtos)
+            {
+                await EnrichSubtaskDetailedResponse(dto);
+            }
+
+            return dtos;
+        }
+
+        private async Task EnrichSubtaskDetailedResponse(SubtaskDetailedResponseDTO dto)
+        {
+            // Lấy thông tin Reporter
+            if (dto.ReporterId.HasValue)
+            {
+                var reporter = await _accountRepo.GetAccountById(dto.ReporterId.Value);
+                if (reporter != null)
+                {
+                    dto.ReporterFullname = reporter.FullName;
+                    dto.ReporterPicture = reporter.Picture;
+                }
+            }
+
+            // Lấy thông tin AssignedBy
+            if (dto.AssignedBy.HasValue)
+            {
+                var assignedBy = await _accountRepo.GetAccountById(dto.AssignedBy.Value);
+                if (assignedBy != null)
+                {
+                    dto.AssignedByFullname = assignedBy.FullName;
+                    dto.AssignedByPicture = assignedBy.Picture;
+                }
+            }
+
+            // Lấy comment và số lượng
+            var allComments = await _subtaskCommentService.GetAllSubtaskComment();
+            var subtaskComments = allComments.Where(c => c.SubtaskId == dto.Id).ToList();
+            dto.CommentCount = subtaskComments.Count;
+            dto.Comments = _mapper.Map<List<SubtaskCommentResponseDTO>>(subtaskComments);
+
+            // Lấy các label
+            var labels = await _workItemLabelService.GetBySubtaskIdAsync(dto.Id);
+            dto.Labels = (await Task.WhenAll(labels.Select(async l =>
+            {
+                var label = await _workItemLabelService.GetLabelById(l.LabelId);
+                return _mapper.Map<LabelResponseDTO>(label);
+            }))).ToList();
+        }
     }
+
+
 }
