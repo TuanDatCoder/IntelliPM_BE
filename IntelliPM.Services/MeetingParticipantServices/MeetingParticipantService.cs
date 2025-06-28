@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingParticipantRepos;
+using IntelliPM.Repositories.MeetingRepos;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -13,21 +14,51 @@ namespace IntelliPM.Services.MeetingParticipantServices
     {
         private readonly IMeetingParticipantRepository _repo;
         private readonly IMapper _mapper;
+        private readonly IMeetingRepository _meetingRepo;
 
-        public MeetingParticipantService(IMeetingParticipantRepository repo, IMapper mapper)
+
+        public MeetingParticipantService(IMeetingParticipantRepository repo,IMeetingRepository meetingRepo, IMapper mapper)
         {
             _repo = repo;
+            _meetingRepo = meetingRepo;
             _mapper = mapper;
         }
 
+        //public async Task<MeetingParticipantResponseDTO> CreateParticipant(MeetingParticipantRequestDTO dto)
+        //{
+        //    var participant = _mapper.Map<MeetingParticipant>(dto);
+        //    participant.CreatedAt = DateTime.UtcNow;
+
+        //    await _repo.AddAsync(participant);
+        //    return _mapper.Map<MeetingParticipantResponseDTO>(participant);
+        //}
+
+
         public async Task<MeetingParticipantResponseDTO> CreateParticipant(MeetingParticipantRequestDTO dto)
         {
+            // Lấy thông tin meeting để lấy thời gian
+            var meeting = await _meetingRepo.GetByIdAsync(dto.MeetingId);
+            if (meeting == null)
+                throw new Exception("Meeting not found.");
+
+            // Đảm bảo StartTime và EndTime không null
+            if (!meeting.StartTime.HasValue || !meeting.EndTime.HasValue)
+                throw new Exception("Meeting start time or end time is missing.");
+
+            // Kiểm tra trùng lịch
+            bool hasConflict = await _repo.HasTimeConflictAsync(
+                dto.AccountId, meeting.StartTime.Value, meeting.EndTime.Value, meeting.Id);
+            if (hasConflict)
+                throw new Exception("This participant has a conflicting meeting.");
+
+            // Thêm participant như bình thường
             var participant = _mapper.Map<MeetingParticipant>(dto);
             participant.CreatedAt = DateTime.UtcNow;
-
+            participant.Status = "invite";
             await _repo.AddAsync(participant);
             return _mapper.Map<MeetingParticipantResponseDTO>(participant);
         }
+
 
         public async Task<MeetingParticipantResponseDTO> GetParticipantById(int id)
         {
@@ -45,6 +76,14 @@ namespace IntelliPM.Services.MeetingParticipantServices
         {
             var participant = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Participant not found.");
             _mapper.Map(dto, participant);
+            await _repo.UpdateAsync(participant);
+            return _mapper.Map<MeetingParticipantResponseDTO>(participant);
+        }
+
+        public async Task<MeetingParticipantResponseDTO> UpdateParticipantStatus(int id, string newStatus)
+        {
+            var participant = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Participant not found.");
+            participant.Status = newStatus; // "absent" hoặc "present"
             await _repo.UpdateAsync(participant);
             return _mapper.Map<MeetingParticipantResponseDTO>(participant);
         }

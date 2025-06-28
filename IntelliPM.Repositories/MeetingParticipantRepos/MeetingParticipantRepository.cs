@@ -41,5 +41,15 @@ namespace IntelliPM.Repositories.MeetingParticipantRepos
             _context.MeetingParticipant.Remove(participant);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<bool> HasTimeConflictAsync(int accountId, DateTime startTime, DateTime endTime, int? excludeMeetingId = null)
+        {
+            return await _context.MeetingParticipant
+                .Where(mp => mp.AccountId == accountId
+                    && mp.Meeting.StartTime < endTime
+                    && mp.Meeting.EndTime > startTime
+                    && (excludeMeetingId == null || mp.MeetingId != excludeMeetingId))
+                .AnyAsync();
+        }
     }
 }

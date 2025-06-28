@@ -16,9 +16,8 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         Task Add(ProjectMember projectMember);
         Task Update(ProjectMember projectMember);
         Task Delete(ProjectMember projectMember);
-
         Task<List<ProjectMember>> GetProjectMemberbyProjectId(int projectId);
         Task<Account?> GetAccountByIdAsync(int accountId);
-
+        Task<List<ProjectMember>> GetByProjectIdAsync(int projectId);
     }
 }
