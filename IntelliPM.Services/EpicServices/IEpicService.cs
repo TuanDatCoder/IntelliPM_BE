@@ -13,6 +13,8 @@ namespace IntelliPM.Services.EpicServices
         Task<List<EpicResponseDTO>> GetAllEpics();
         Task<EpicResponseDTO> GetEpicById(string id);
         Task<List<EpicResponseDTO>> GetEpicByName(string name);
+        Task<EpicDetailedResponseDTO> GetEpicByIdDetailed(string id);
+        Task<List<EpicDetailedResponseDTO>> GetEpicsByProjectId(int projectId);
         Task<EpicResponseDTO> CreateEpic(EpicRequestDTO request);
         Task<EpicResponseDTO> UpdateEpic(string id, EpicRequestDTO request);
         Task DeleteEpic(string id);

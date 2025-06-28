@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using IntelliPM.Data.Entities;
@@ -133,6 +134,15 @@ namespace IntelliPM.Services.WorkItemLabelServices
         {
             var entities = await _repo.GetByTaskIdAsync(taskId);
             return _mapper.Map<List<WorkItemLabelResponseDTO>>(entities);
+        }
+
+        public async Task<LabelResponseDTO> GetLabelById(int labelId)
+        {
+            var label = await _labelRepo.GetByIdAsync(labelId);
+            if (label == null)
+                throw new KeyNotFoundException($"Label with ID {labelId} not found.");
+
+            return _mapper.Map<LabelResponseDTO>(label);
         }
     }
 }

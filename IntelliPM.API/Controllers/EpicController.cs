@@ -74,6 +74,50 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{id}/detailed")]
+        public async Task<IActionResult> GetByIdDetailed(string id)
+        {
+            try
+            {
+                var epic = await _service.GetEpicByIdDetailed(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Epic detailed retrieved successfully",
+                    Data = epic
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [HttpGet("by-project/{projectId}")]
+        public async Task<IActionResult> GetByProjectId(int projectId)
+        {
+            try
+            {
+                var epics = await _service.GetEpicsByProjectId(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Epics by project retrieved successfully",
+                    Data = epics
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] EpicRequestDTO request)
         {

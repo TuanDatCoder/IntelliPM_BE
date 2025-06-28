@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.WorkItemLabel.Request;
+﻿using IntelliPM.Data.DTOs.Label.Response;
+using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using System;
 using System.Collections.Generic;
@@ -18,5 +19,6 @@ namespace IntelliPM.Services.WorkItemLabelServices
         Task<List<WorkItemLabelResponseDTO>> GetByEpicIdAsync(string? epicId);
         Task<List<WorkItemLabelResponseDTO>> GetBySubtaskIdAsync(string? subtaskId);
         Task<List<WorkItemLabelResponseDTO>> GetByTaskIdAsync(string? taskId);
+        Task<LabelResponseDTO> GetLabelById(int labelId);
     }
 }
