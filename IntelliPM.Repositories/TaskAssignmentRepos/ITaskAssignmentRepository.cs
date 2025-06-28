@@ -17,4 +17,6 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         Task Update(TaskAssignment taskAssignment);
         Task Delete(TaskAssignment taskAssignment);
     }
+
+
 }
