@@ -14,8 +14,6 @@ using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.MeetingLog.Request;
 using IntelliPM.Data.DTOs.MeetingLog.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingSummary.Request;
 using IntelliPM.Data.DTOs.MeetingSummary.Response;
@@ -124,6 +122,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
+
+            CreateMap<Epic, EpicDetailedResponseDTO>()
+                .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.EpicComment))
+                .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()

@@ -86,6 +86,9 @@ CREATE TABLE sprint (
 CREATE TABLE epic (
     id VARCHAR(255) PRIMARY KEY,
     project_id INT NOT NULL,
+	reporter_id INT NULL,
+	assigned_by INT NULL,
+    sprint_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     start_date TIMESTAMPTZ NULL,
@@ -93,9 +96,8 @@ CREATE TABLE epic (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    reporter_id INT NULL,
-    sprint_id INT NULL,
     FOREIGN KEY (project_id) REFERENCES project(id),
+	FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (reporter_id) REFERENCES account(id) ON DELETE SET NULL,
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
@@ -181,7 +183,7 @@ CREATE TABLE task_assignment (
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    assigned_by INT NOT NULL,
+    assigned_by INT NULL,
 	reporter_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,

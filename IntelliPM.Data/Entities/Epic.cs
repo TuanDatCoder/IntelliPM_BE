@@ -9,6 +9,12 @@ public partial class Epic
 
     public int ProjectId { get; set; }
 
+    public int? ReporterId { get; set; }
+
+    public int? AssignedBy { get; set; }
+
+    public int? SprintId { get; set; }
+
     public string Name { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -23,9 +29,7 @@ public partial class Epic
 
     public string? Status { get; set; }
 
-    public int? ReporterId { get; set; }
-
-    public int? SprintId { get; set; }
+    public virtual Account? AssignedByNavigation { get; set; }
 
     public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
 
