@@ -24,5 +24,6 @@ namespace IntelliPM.Services.SubtaskServices
         Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status);
         Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId);
+        Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId);
     }
 }
