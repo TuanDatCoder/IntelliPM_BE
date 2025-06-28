@@ -70,6 +70,12 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
             await _context.SaveChangesAsync();
         }
 
-
+        public async Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.TaskAssignment
+                .Include(ta => ta.Task) 
+                .Where(ta => ta.Task.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }

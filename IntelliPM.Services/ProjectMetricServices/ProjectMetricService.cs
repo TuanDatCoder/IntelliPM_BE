@@ -21,6 +21,9 @@ using static Org.BouncyCastle.Math.EC.ECCurve;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.MilestoneRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRecommendationRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -32,10 +35,13 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IProjectRepository _projectRepo;
         private readonly ISprintRepository _sprintRepo;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
+        private readonly IProjectRecommendationRepository _projectRecommendationRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -43,6 +49,9 @@ namespace IntelliPM.Services.ProjectMetricServices
             _taskRepo = taskRepo;
             _sprintRepo = sprintRepo;
             _milestoneRepo = milestoneRepo;
+            _taskAssignmentRepo = taskAssignmentRepo;
+            _projectMemberRepo = projectMemberRepo;
+            _projectRecommendationRepo = projectRecommendationRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -109,6 +118,54 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<ProjectMetricResponseDTO>(metric);
         }
 
+        public async Task<ProjectMetricRequestDTO> CalculateAndSaveProjectMetricsAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            if (result == null)
+                throw new Exception("AI did not return valid project metrics");
+
+            // Lưu ProjectMetric
+            var metric = _mapper.Map<ProjectMetric>(result);
+            metric.CreatedAt = DateTime.UtcNow;
+            metric.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.Add(metric);
+
+            // Lưu các gợi ý nếu có
+            if (result.Suggestions != null && result.Suggestions.Any())
+            {
+                var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
+
+                foreach (var suggestion in result.Suggestions)
+                {
+                    foreach (var related in suggestion.RelatedTasks)
+                    {
+                        var taskTitle = related.TaskTitle?.Trim();
+                        if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
+                            continue; // Bỏ qua nếu không khớp task
+
+                        var rec = new ProjectRecommendation
+                        {
+                            ProjectId = project.Id,
+                            TaskId = allTasks[taskTitle].ToString(),
+                            Type = suggestion.Reason ?? "General",
+                            Recommendation = suggestion.Message,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        await _projectRecommendationRepo.Add(rec);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public async Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId)
         {
             var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
@@ -146,44 +203,46 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
         }
 
-        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
-        //{
-        //    var project = await _projectRepo.GetByIdAsync(projectId)
-        //        ?? throw new Exception("Project not found");
+        public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId)
+                ?? throw new Exception("Project not found");
 
-        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId); 
-        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);   // để lấy HourlyRate
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
 
-        //    // Tính Task Cost
-        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
-        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+            // Tính Task Cost
+            decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+            decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
 
-        //    // Tính Resource Cost từ TaskAssignment và ProjectMember
-        //    decimal actualResourceCost = taskAssignments.Sum(a =>
-        //    {
-        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
-        //        return (decimal)(a.ActualHours ?? 0) * hourly;
-        //    });
+            // Tính Resource Cost từ TaskAssignment và ProjectMember
+            decimal actualResourceCost = taskAssignments.Sum(a =>
+            {
+                var hourly = projectMembers
+                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                return (decimal)(a.ActualHours ?? 0) * hourly;
+            });
 
-        //    decimal plannedResourceCost = taskAssignments.Sum(a =>
-        //    {
-        //        var hourly = projectMembers.FirstOrDefault(m => m.Id == a.ProjectMemberId)?.HourlyRate ?? 0;
-        //        return (decimal)(a.PlannedHours ?? 0) * hourly;
-        //    });
+            decimal plannedResourceCost = taskAssignments.Sum(a =>
+            {
+                var hourly = projectMembers
+                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                return (decimal)(a.PlannedHours ?? 0) * hourly;
+            });
 
-        //    return new CostDashboardResponseDTO
-        //    {
-        //        ActualTaskCost = actualTaskCost,
-        //        PlannedTaskCost = plannedTaskCost,
-        //        ActualResourceCost = actualResourceCost,
-        //        PlannedResourceCost = plannedResourceCost,
+            return new CostDashboardResponseDTO
+            {
+                ActualTaskCost = actualTaskCost,
+                PlannedTaskCost = plannedTaskCost,
+                ActualResourceCost = actualResourceCost,
+                PlannedResourceCost = plannedResourceCost,
 
-        //        ActualCost = actualTaskCost + actualResourceCost,
-        //        PlannedCost = plannedTaskCost + plannedResourceCost,
-        //        Budget = project.Budget ?? 0
-        //    };
-        //}
+                ActualCost = actualTaskCost + actualResourceCost,
+                PlannedCost = plannedTaskCost + plannedResourceCost,
+                Budget = project.Budget ?? 0
+            };
+        }
 
         public async Task<List<object>> GetProgressDashboardAsync(int projectId)
         {
@@ -340,5 +399,46 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
+        public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(int projectId)
+        {
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
+
+            var today = DateTime.Today;
+
+            var result = projectMembers.Select(member =>
+            {
+                var assignedTaskIds = taskAssignments
+                    .Where(a => a.AccountId == member.AccountId)
+                    .Select(a => a.TaskId)
+                    .Distinct()
+                    .ToList();
+
+                var memberTasks = tasks.Where(t => assignedTaskIds.Contains(t.Id)).ToList();
+
+                var completed = memberTasks.Count(t => t.PercentComplete == 100);
+                var overdue = memberTasks.Count(t =>
+                    t.PercentComplete < 100 &&
+                    t.PlannedEndDate.HasValue &&
+                    t.PlannedEndDate.Value.Date < today
+                );
+
+                var remaining = memberTasks.Count(t =>
+                    t.PercentComplete < 100 &&
+                    (!t.PlannedEndDate.HasValue || t.PlannedEndDate.Value.Date >= today)
+                );
+
+                return new WorkloadDashboardResponseDTO
+                {
+                    MemberName = member.Account?.FullName ?? "Unknown",
+                    Completed = completed,
+                    Remaining = remaining,
+                    Overdue = overdue
+                };
+            }).ToList();
+
+            return result;
+        }
     }
 }
