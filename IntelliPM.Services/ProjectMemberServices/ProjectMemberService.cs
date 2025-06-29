@@ -122,7 +122,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 {
                     ProjectId = pm.ProjectId,
                     ProjectName = pm.Project.Name,
+                    ProjectKey = pm.Project.ProjectKey,
                     ProjectStatus = pm.Project.Status,
+                    IconUrl = pm.Project.IconUrl,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status
@@ -152,7 +154,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 {
                     ProjectId = pm.ProjectId,
                     ProjectName = pm.Project.Name,
+                    ProjectKey = pm.Project.ProjectKey,
                     ProjectStatus = pm.Project.Status,
+                    IconUrl = pm.Project.IconUrl,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status
