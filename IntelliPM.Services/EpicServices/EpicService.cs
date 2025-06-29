@@ -91,8 +91,6 @@ namespace IntelliPM.Services.EpicServices
                 throw new ArgumentException("Project ID must be greater than 0.");
 
             var entities = await _epicRepo.GetByProjectKeyAsync(await _projectRepo.GetProjectKeyAsync(projectId));
-            if (!entities.Any())
-                throw new KeyNotFoundException($"No epics found for Project ID {projectId}.");
 
             var dtos = _mapper.Map<List<EpicDetailedResponseDTO>>(entities);
             foreach (var dto in dtos)
