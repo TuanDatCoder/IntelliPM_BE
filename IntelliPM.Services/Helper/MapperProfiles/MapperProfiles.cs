@@ -15,6 +15,8 @@ using IntelliPM.Data.DTOs.MeetingLog.Request;
 using IntelliPM.Data.DTOs.MeetingLog.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Request;
+using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Response;
 using IntelliPM.Data.DTOs.MeetingSummary.Request;
 using IntelliPM.Data.DTOs.MeetingSummary.Response;
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
@@ -299,6 +301,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
             CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
 
+
+            //MeetngReschedleRequestRepos
+            CreateMap<MeetingRescheduleRequest, MeetingRescheduleRequestResponseDTO>();
+            CreateMap<MeetingRescheduleRequestDTO, MeetingRescheduleRequest>();
+
             // EpicComment Mapping
             CreateMap<EpicCommentRequestDTO, EpicComment>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
@@ -314,6 +321,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<WorkItemLabelRequestDTO, WorkItemLabel>()
                 .ReverseMap();
             CreateMap<WorkItemLabel, WorkItemLabelResponseDTO>();
+
 
         }
     }

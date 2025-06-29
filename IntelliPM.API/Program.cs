@@ -77,6 +77,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using IntelliPM.Services.SubtaskFileServices;
+using IntelliPM.Services.SubtaskCommentServices;
+using IntelliPM.Repositories.SubtaskFileRepos;
+using IntelliPM.Repositories.SubtaskCommentRepos;
+using IntelliPM.Repositories.NotificationRepos;
+using IntelliPM.Repositories.RiskRepos;
+using IntelliPM.Services.RiskServices;
+using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
+using IntelliPM.Services.MeetingRescheduleRequestServices;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,10 +129,16 @@ builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
 builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
+builder.Services.AddScoped<IMeetingRescheduleRequestRepository, MeetingRescheduleRequestRepository>();
+
+
+
+
 builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
+
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -158,9 +175,11 @@ builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>(
 builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();
 builder.Services.AddScoped<IRiskService, RiskService>();
+builder.Services.AddScoped<IMeetingRescheduleRequestService, MeetingRescheduleRequestService>();
 builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
+
 
 
 // ------------------------- HttpClient -----------------------------

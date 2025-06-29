@@ -14,5 +14,7 @@ namespace IntelliPM.Services.EmailServices
         Task SendAccountResetPassword(string fullName, string userEmail, string OTP);
         Task SendProjectCreationNotification(string pmFullName, string pmEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl);
         Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl);
+
+        Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
     }
 }
