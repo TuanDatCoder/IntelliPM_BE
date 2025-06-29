@@ -388,18 +388,18 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-       public async Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
-{
-    var email = new MimeMessage();
-    email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
-    email.To.Add(MailboxAddress.Parse(memberEmail));
-    email.Subject = $"[IntelliPM] - You’ve been invited to {projectName} ({projectKey})";
+        public async Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(memberEmail));
+            email.Subject = $"[IntelliPM] - You’ve been invited to {projectName} ({projectKey})";
 
-    var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
 
-    email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
-    {
-        Text = $@"
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
 <!DOCTYPE html>
 <html lang='en'>
 <head>
@@ -460,15 +460,60 @@ namespace IntelliPM.Services.EmailServices
   </div>
 </body>
 </html>"
-    };
+            };
 
-    using var smtp = new SmtpClient();
-    await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
-    await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-    await smtp.SendAsync(email);
-    await smtp.DisconnectAsync(true);
-}
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
 
+        public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] Invitation: {meetingTopic}";
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+            <h2>Hi {fullName},</h2>
+            <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{startTime:HH:mm dd/MM/yyyy}</b>.</p>
+            <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
+            <p>Please confirm your attendance.</p>
+            <br/>
+            <p>IntelliPM Team</p>"
+                };
+
+                // Log chi tiết email
+                Console.WriteLine("=== Email Sent ===");
+                Console.WriteLine($"To: {toEmail}");
+                Console.WriteLine($"Subject: {email.Subject}");
+                Console.WriteLine("Body:");
+                Console.WriteLine(email.Body.ToString());
+                Console.WriteLine("==================");
+
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send invitation to {toEmail}: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
+                }
+            }
+        }
 
     }
+
+
 }
