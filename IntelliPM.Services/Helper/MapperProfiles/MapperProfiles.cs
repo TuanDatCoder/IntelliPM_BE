@@ -13,6 +13,10 @@ using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
+using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Request;
+using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Response;
+using IntelliPM.Data.DTOs.MeetingSummary.Request;
+using IntelliPM.Data.DTOs.MeetingSummary.Response;
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
@@ -29,6 +33,8 @@ using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
+using IntelliPM.Data.DTOs.Risk.Request;
+using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
@@ -50,10 +56,6 @@ using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.AiServices.TaskPlanningServices; 
-using IntelliPM.Data.DTOs.MeetingSummary.Request;
-using IntelliPM.Data.DTOs.MeetingSummary.Response;
-using IntelliPM.Data.DTOs.Risk.Request;
-using IntelliPM.Data.DTOs.Risk.Response;
 
 namespace IntelliPM.Services.Helper.MapperProfiles
 {
@@ -262,6 +264,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             //MeetingSummary
             CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
             CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
+
+            //MeetngReschedleRequestRepos
+            CreateMap<MeetingRescheduleRequest, MeetingRescheduleRequestResponseDTO>();
+            CreateMap<MeetingRescheduleRequestDTO, MeetingRescheduleRequest>();
 
         }
     }
