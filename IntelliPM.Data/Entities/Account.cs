@@ -47,6 +47,12 @@ public partial class Account
 
     public virtual ICollection<Document> DocumentUpdatedByNavigation { get; set; } = new List<Document>();
 
+    public virtual ICollection<Epic> EpicAssignedByNavigation { get; set; } = new List<Epic>();
+
+    public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
+
+    public virtual ICollection<Epic> EpicReporter { get; set; } = new List<Epic>();
+
     public virtual ICollection<MeetingDocument> MeetingDocument { get; set; } = new List<MeetingDocument>();
 
     public virtual ICollection<MeetingLog> MeetingLog { get; set; } = new List<MeetingLog>();
@@ -71,9 +77,13 @@ public partial class Account
 
     public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
 
-    public virtual ICollection<Subtask> Subtask { get; set; } = new List<Subtask>();
+    public virtual ICollection<Subtask> SubtaskAssignedByNavigation { get; set; } = new List<Subtask>();
 
     public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
+
+    public virtual ICollection<Subtask> SubtaskReporter { get; set; } = new List<Subtask>();
+
+    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
 
