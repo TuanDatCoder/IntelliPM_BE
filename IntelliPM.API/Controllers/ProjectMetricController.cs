@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Services.ProjectMetricServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -175,25 +176,65 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        //[HttpGet("dashboard/cost")]
-        //public async Task<IActionResult> GetCostDashboard([FromQuery] int projectId)
-        //{
-        //    try
-        //    {
-        //        var result = await _service.GetCostDashboardAsync(projectId);
-        //        return Ok(new ApiResponseDTO
-        //        {
-        //            IsSuccess = true,
-        //            Code = 200,
-        //            Message = "Cost dashboard fetched successfully",
-        //            Data = result
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
-        //    }
-        //}
+        [HttpGet("cost-dashboard")]
+        public async Task<IActionResult> GetCostDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _service.GetCostDashboardAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Cost dashboard fetched successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("workload-dashboard")]
+        public async Task<IActionResult> GetWorkloadDashboard([FromQuery] int projectId)
+        {
+            try
+            {
+                var data = await _service.GetWorkloadDashboardAsync(projectId);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Workload dashboard loaded successfully",
+                    data
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("calculate-and-save")]
+        public async Task<IActionResult> CalculateAndSaveMetrics([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _service.CalculateAndSaveProjectMetricsAsync(projectId);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Project metrics calculated and saved successfully",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
 
     }
 }
