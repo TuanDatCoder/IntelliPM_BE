@@ -31,6 +31,8 @@ namespace IntelliPM.Data.DTOs.Task.Response
 
         public string? Status { get; set; }
 
+        public string? Priority { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
