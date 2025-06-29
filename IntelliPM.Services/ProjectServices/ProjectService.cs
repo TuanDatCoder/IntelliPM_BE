@@ -8,8 +8,11 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.ProjectMemberServices;
+using IntelliPM.Services.SubtaskServices;
+using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -29,8 +32,11 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IEmailService _emailService; 
         private readonly IProjectMemberService _projectMemberService;
         private readonly ILogger<ProjectService> _logger;
+        private readonly IEpicService _epicService;
+        private readonly ITaskService _taskService;
+        private readonly ISubtaskService _subtaskService;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -39,6 +45,9 @@ namespace IntelliPM.Services.ProjectServices
             _emailService = emailService;
             _projectMemberService = projectMemberService;
             _logger = logger;
+            _epicService = epicService;
+            _taskService = taskService;
+            _subtaskService = subtaskService;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -127,6 +136,10 @@ namespace IntelliPM.Services.ProjectServices
                 throw new Exception($"Failed to delete project: {ex.Message}", ex);
             }
         }
+
+
+
+
 
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
@@ -278,6 +291,116 @@ namespace IntelliPM.Services.ProjectServices
             return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
         }
 
+        public async Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId)
+        {
+            var workItems = new List<WorkItemResponseDTO>();
 
+            var epics = await _epicService.GetEpicsByProjectId(projectId);
+            foreach (var epic in epics)
+            {
+                var item = new WorkItemResponseDTO
+                {
+                    Type = epic.Type,
+                    Key = epic.Id,
+                    Summary = epic.Name,
+                    Status = epic.Status,
+                    CommentCount = epic.CommentCount,
+                    SprintId = epic.SprintId,
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = epic.AssignedByFullname ?? "Unknown",
+                    Picture = null 
+                }
+            },
+                    DueDate = epic.EndDate,
+                    Labels = epic.Labels.Select(l => l.Name).ToList(),
+                    CreatedAt = epic.CreatedAt,
+                    UpdatedAt = epic.UpdatedAt,
+                    ReporterFullname = epic.ReporterFullname ?? "Unknown",
+                    ReporterPicture = epic.ReporterPicture
+                };
+                workItems.Add(item);
+            }
+
+            var tasks = await _taskService.GetTasksByProjectIdDetailed(projectId);
+            foreach (var task in tasks)
+            {
+                var item = new WorkItemResponseDTO
+                {
+                    Type = task.Type,
+                    Key = task.Id,
+                    Summary = task.Title,
+                    Status = task.Status,
+                    CommentCount = task.CommentCount,
+                    SprintId = task.SprintId,
+                    Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
+                    {
+                        Fullname = a.AccountFullname ?? "Unknown",
+                        Picture = a.AccountPicture 
+                    }).ToList(),
+                    DueDate = task.PlannedEndDate,
+                    Labels = task.Labels.Select(l => l.Name).ToList(),
+                    CreatedAt = task.CreatedAt,
+                    UpdatedAt = task.UpdatedAt,
+                    ReporterFullname = task.ReporterFullname ?? "Unknown",
+                    ReporterPicture = task.ReporterPicture
+                };
+                workItems.Add(item);
+            }
+
+            var subtasks = await _subtaskService.GetSubtasksByProjectIdDetailed(projectId);
+            foreach (var subtask in subtasks)
+            {
+                var item = new WorkItemResponseDTO
+                {
+                    Type = subtask.Type,
+                    Key = subtask.Id,
+                    TaskId = subtask.TaskId,
+                    Summary = subtask.Title,
+                    Status = subtask.Status,
+                    CommentCount = subtask.CommentCount,
+                    SprintId = subtask.SprintId,
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = subtask.AssignedByFullname ?? "Unknown",
+                    Picture = subtask.AssignedByPicture 
+                }
+            },
+                    DueDate = subtask.EndDate,
+                    Labels = subtask.Labels.Select(l => l.Name).ToList(),
+                    CreatedAt = subtask.CreatedAt,
+                    UpdatedAt = subtask.UpdatedAt,
+                    ReporterFullname = subtask.ReporterFullname ?? "Unknown",
+                    ReporterPicture = subtask.ReporterPicture
+                };
+                workItems.Add(item);
+            }
+
+            return workItems.OrderBy(w => w.CreatedAt).ToList();
+        }
+
+        public async Task<bool> CheckProjectKeyExists(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            return project != null;
+        }
+        public async Task<ProjectResponseDTO> GetProjectByKey(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key {projectKey} not found.");
+
+            return _mapper.Map<ProjectResponseDTO>(project);
+        }
     }
 }
