@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
@@ -21,5 +22,8 @@ namespace IntelliPM.Services.SubtaskServices
         Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
         Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId);
         Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status);
+        Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id);
+        Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId);
+        Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId);
     }
 }

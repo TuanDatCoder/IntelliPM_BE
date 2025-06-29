@@ -81,6 +81,37 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpGet("{id}/workitems")]
+        public async Task<IActionResult> GetAllWorkItemsByProjectId(int id)
+        {
+            try
+            {
+                var workItems = await _service.GetAllWorkItemsByProjectId(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Work items retrieved successfully",
+                    Data = workItems
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving work items: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? searchTerm, [FromQuery] string? projectType, [FromQuery] string? status)
         {

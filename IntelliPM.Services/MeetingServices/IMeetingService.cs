@@ -20,6 +20,12 @@ namespace IntelliPM.Services.MeetingServices
         Task CancelMeeting(int id);
 
         Task<List<MeetingResponseDTO>> GetMeetingsByAccount(int accountId);
+
+        Task<List<MeetingResponseDTO>> GetManagedMeetingsByAccount(int accountId);
+
+        Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto);
+
+
     }
 }
 
