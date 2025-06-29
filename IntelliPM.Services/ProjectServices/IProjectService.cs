@@ -19,5 +19,8 @@ namespace IntelliPM.Services.ProjectServices
         Task<ProjectDetailsDTO> GetProjectDetails(int id);
         Task<string> SendEmailToProjectManager(int projectId, string token);
         Task<string> SendInvitationsToTeamMembers(int projectId, string token);
+        Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId);
+        Task<bool> CheckProjectKeyExists(string projectKey);
+        Task<ProjectResponseDTO> GetProjectByKey(string projectKey);
     }
 }
