@@ -306,7 +306,14 @@ namespace IntelliPM.Services.ProjectServices
                     Status = epic.Status,
                     CommentCount = epic.CommentCount,
                     SprintId = epic.SprintId,
-                    Assignees = new List<string> { epic.AssignedByFullname ?? "Unknown" },
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = epic.AssignedByFullname ?? "Unknown",
+                    Picture = null 
+                }
+            },
                     DueDate = epic.EndDate,
                     Labels = epic.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = epic.CreatedAt,
@@ -328,7 +335,11 @@ namespace IntelliPM.Services.ProjectServices
                     Status = task.Status,
                     CommentCount = task.CommentCount,
                     SprintId = task.SprintId,
-                    Assignees = task.TaskAssignments.Select(a => a.AccountFullname ?? "Unknown").ToList(),
+                    Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
+                    {
+                        Fullname = a.AccountFullname ?? "Unknown",
+                        Picture = a.AccountPicture 
+                    }).ToList(),
                     DueDate = task.PlannedEndDate,
                     Labels = task.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = task.CreatedAt,
@@ -351,7 +362,14 @@ namespace IntelliPM.Services.ProjectServices
                     Status = subtask.Status,
                     CommentCount = subtask.CommentCount,
                     SprintId = subtask.SprintId,
-                    Assignees = new List<string> { subtask.AssignedByFullname ?? "Unknown" },
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = subtask.AssignedByFullname ?? "Unknown",
+                    Picture = subtask.AssignedByPicture 
+                }
+            },
                     DueDate = subtask.EndDate,
                     Labels = subtask.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = subtask.CreatedAt,
@@ -364,7 +382,6 @@ namespace IntelliPM.Services.ProjectServices
 
             return workItems.OrderBy(w => w.CreatedAt).ToList();
         }
-
 
         public async Task<bool> CheckProjectKeyExists(string projectKey)
         {
