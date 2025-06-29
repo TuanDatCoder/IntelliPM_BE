@@ -139,5 +139,30 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("by-subtask/{subtaskId}")]
+        public async Task<IActionResult> GetSubtaskCommentBySubtaskId(string subtaskId)
+        {
+            try
+            {
+                var taskComments = await _service.GetSubtaskCommentBySubtaskIdAsync(subtaskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved task comment successfully.",
+                    Data = taskComments
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving task comment: {ex.Message}"
+                });
+            }
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace IntelliPM.Repositories.SubtaskCommentRepos
         Task Add(SubtaskComment subtaskComment);
         Task Update(SubtaskComment subtaskComment);
         Task Delete(SubtaskComment subtaskComment);
+        Task<List<SubtaskComment>> GetSubtaskCommentBySubtaskIdAsync(string subtaskId);
     }
 }
