@@ -5,13 +5,15 @@ using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
+using IntelliPM.Data.DTOs.EpicComment.Request;
+using IntelliPM.Data.DTOs.EpicComment.Response;
+using IntelliPM.Data.DTOs.Label.Request;
+using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.DTOs.MeetingLog.Request;
 using IntelliPM.Data.DTOs.MeetingLog.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Request;
-using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Request;
 using IntelliPM.Data.DTOs.MeetingRescheduleRequest.Response;
@@ -29,8 +31,8 @@ using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
-using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
@@ -38,12 +40,14 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
+using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.SubtaskFile.Request;
 using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
+using IntelliPM.Data.DTOs.Task;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Request;
@@ -54,6 +58,8 @@ using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
+using IntelliPM.Data.DTOs.WorkItemLabel.Request;
+using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.AiServices.TaskPlanningServices; 
 
@@ -112,6 +118,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
+            // ProjectRecommendation
+            CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>()
+            .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task.Title));
+
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -120,6 +130,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Epic, EpicResponseDTO>();
+
+            CreateMap<Epic, EpicDetailedResponseDTO>()
+                .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.EpicComment))
+                .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
@@ -153,6 +172,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.EpicId, opt => opt.Ignore())
                 .ForMember(dest => dest.SprintId, opt => opt.Ignore())
                 .ForMember(dest => dest.Status, opt => opt.Ignore());
+
+            CreateMap<Tasks, TaskDetailedResponseDTO>()
+                .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.TaskAssignments, opt => opt.MapFrom(src => src.TaskAssignment))
+                .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.TaskComment))
+                .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             CreateMap<TaskResponseDTO, Tasks>();
 
@@ -199,6 +226,15 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<Subtask, SubtaskDetailedResponseDTO>()
+                .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
+                .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
+                .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
@@ -257,7 +293,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.AssignedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.CompletedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.ProjectMember, opt => opt.Ignore())
+                .ForMember(dest => dest.Account, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
 
@@ -265,9 +301,27 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();
             CreateMap<MeetingSummaryRequestDTO, MeetingSummary>();
 
+
             //MeetngReschedleRequestRepos
             CreateMap<MeetingRescheduleRequest, MeetingRescheduleRequestResponseDTO>();
             CreateMap<MeetingRescheduleRequestDTO, MeetingRescheduleRequest>();
+
+            // EpicComment Mapping
+            CreateMap<EpicCommentRequestDTO, EpicComment>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ReverseMap();
+            CreateMap<EpicComment, EpicCommentResponseDTO>();
+
+            // Label Mapping
+            CreateMap<LabelRequestDTO, Label>()
+                .ReverseMap();
+            CreateMap<Label, LabelResponseDTO>();
+
+            // WorkItemLabel Mapping
+            CreateMap<WorkItemLabelRequestDTO, WorkItemLabel>()
+                .ReverseMap();
+            CreateMap<WorkItemLabel, WorkItemLabelResponseDTO>();
+
 
         }
     }
