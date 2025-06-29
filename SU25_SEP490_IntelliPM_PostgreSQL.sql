@@ -4,7 +4,6 @@
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
 
 -- Connect to database
--- \connect SU25_SEP490_IntelliPM;
 
 -- 1. account
 CREATE TABLE account (
@@ -53,19 +52,20 @@ CREATE TABLE project (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 4. epic
-CREATE TABLE epic (
-    id VARCHAR(255) PRIMARY KEY,
+-- 4. project_member
+CREATE TABLE project_member (
+    id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
     project_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    start_date TIMESTAMPTZ NULL,
-    end_date TIMESTAMPTZ NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    joined_at TIMESTAMPTZ NULL,
+    invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (project_id) REFERENCES project(id)
+    hourly_rate DECIMAL(10, 2) NULL,
+    FOREIGN KEY (account_id) REFERENCES account(id),
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    UNIQUE (account_id, project_id)
 );
+
 
 -- 5. sprint
 CREATE TABLE sprint (
@@ -81,7 +81,39 @@ CREATE TABLE sprint (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 6. milestone
+
+-- 6. epic
+CREATE TABLE epic (
+    id VARCHAR(255) PRIMARY KEY,
+    project_id INT NOT NULL,
+	reporter_id INT NULL,
+	assigned_by INT NULL,
+    sprint_id INT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NULL,
+    FOREIGN KEY (project_id) REFERENCES project(id),
+	FOREIGN KEY (assigned_by) REFERENCES account(id),
+    FOREIGN KEY (reporter_id) REFERENCES account(id) ON DELETE SET NULL,
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id)
+);
+
+-- 7. epic_comment
+CREATE TABLE epic_comment (
+    id SERIAL PRIMARY KEY,
+    epic_id VARCHAR(255) NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (account_id) REFERENCES account(id) 
+);
+
+-- 8. milestone
 CREATE TABLE milestone (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -97,7 +129,7 @@ CREATE TABLE milestone (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 7. tasks
+-- 9. tasks
 CREATE TABLE tasks (
     id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
@@ -133,54 +165,44 @@ CREATE TABLE tasks (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
-
--- 8. project_member
-CREATE TABLE project_member (
-    id SERIAL PRIMARY KEY,
-    account_id INT NOT NULL,
-    project_id INT NOT NULL,
-    joined_at TIMESTAMPTZ NULL,
-    invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NULL,
-    hourly_rate DECIMAL(10, 2) NULL,
-    FOREIGN KEY (account_id) REFERENCES account(id),
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    UNIQUE (account_id, project_id)
-);
-
-
--- 9. task_assignment
+-- 10. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    project_member_id INT NOT NULL,
+    account_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
     completed_at TIMESTAMPTZ NULL,
     planned_hours DECIMAL(8, 2) NULL,
     actual_hours DECIMAL(8, 2) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (project_member_id) REFERENCES project_member(id)
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 10. subtask
+-- 11. subtask
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    assigned_by INT NOT NULL,
+    assigned_by INT NULL,
+	reporter_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
     status VARCHAR(50) NULL,
+	start_date TIMESTAMPTZ NULL,
+    end_date TIMESTAMPTZ NULL,
     manual_input BOOLEAN NOT NULL DEFAULT FALSE,
     generation_ai_input BOOLEAN NOT NULL DEFAULT FALSE,
     priority VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES account(id)
+    FOREIGN KEY (assigned_by) REFERENCES account(id),
+    FOREIGN KEY (sprint_id) REFERENCES sprint(id),
+	FOREIGN KEY (reporter_id) REFERENCES account(id)
 );
 
--- 11. subtask_file
+-- 12. subtask_file
 CREATE TABLE subtask_file (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -191,7 +213,7 @@ CREATE TABLE subtask_file (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 12. subtask_comment
+-- 13. subtask_comment
 CREATE TABLE subtask_comment (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -202,7 +224,7 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 13. task_comment
+-- 14. task_comment
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -213,7 +235,7 @@ CREATE TABLE task_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 14. task_dependency
+-- 15. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -225,7 +247,7 @@ CREATE TABLE task_dependency (
     FOREIGN KEY (linked_to) REFERENCES tasks(id)
 );
 
--- 15. task_file
+-- 16. task_file
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -236,7 +258,7 @@ CREATE TABLE task_file (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 16. document
+-- 17. document
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -257,7 +279,7 @@ CREATE TABLE document (
     FOREIGN KEY (updated_by) REFERENCES account(id)
 );
 
--- 17. document_permission
+-- 18. document_permission
 CREATE TABLE document_permission (
     id SERIAL PRIMARY KEY,
     document_id INT NOT NULL,
@@ -268,10 +290,7 @@ CREATE TABLE document_permission (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
-
-
-
--- 18. project_position
+-- 19. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
     project_member_id INT NOT NULL,
@@ -280,7 +299,7 @@ CREATE TABLE project_position (
     FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 19. notification
+-- 20. notification
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     created_by INT NOT NULL,
@@ -294,7 +313,7 @@ CREATE TABLE notification (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 20. recipient_notification
+-- 21. recipient_notification
 CREATE TABLE recipient_notification (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
@@ -306,7 +325,7 @@ CREATE TABLE recipient_notification (
     FOREIGN KEY (notification_id) REFERENCES notification(id)
 );
 
--- 21. meeting
+-- 22. meeting
 CREATE TABLE meeting (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -321,7 +340,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 22. meeting_document
+-- 23. meeting_document
 CREATE TABLE meeting_document (
     meeting_id INT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -335,7 +354,7 @@ CREATE TABLE meeting_document (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 23. meeting_log
+-- 24. meeting_log
 CREATE TABLE meeting_log (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -346,7 +365,7 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 24. meeting_participant
+-- 25. meeting_participant
 CREATE TABLE meeting_participant (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -359,7 +378,7 @@ CREATE TABLE meeting_participant (
     UNIQUE (meeting_id, account_id)
 );
 
--- 25. meeting_transcript
+-- 26. meeting_transcript
 CREATE TABLE meeting_transcript (
     meeting_id INT PRIMARY KEY,
     transcript_text TEXT NOT NULL,
@@ -367,7 +386,7 @@ CREATE TABLE meeting_transcript (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id)
 );
 
--- 26. meeting_summary
+-- 27. meeting_summary
 CREATE TABLE meeting_summary (
     meeting_transcript_id INT PRIMARY KEY,
     summary_text TEXT NOT NULL,
@@ -375,7 +394,7 @@ CREATE TABLE meeting_summary (
     FOREIGN KEY (meeting_transcript_id) REFERENCES meeting_transcript(meeting_id)
 );
 
--- 27. milestone_feedback
+-- 28. milestone_feedback
 CREATE TABLE milestone_feedback (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -387,7 +406,7 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 28. risk
+-- 29. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     responsible_id INT NOT NULL,
@@ -410,7 +429,7 @@ CREATE TABLE risk (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 29. risk_solution
+-- 30. risk_solution
 CREATE TABLE risk_solution (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -421,7 +440,7 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 30. change_request
+-- 31. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -435,7 +454,7 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 31. project_recommendation
+-- 32. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -447,7 +466,7 @@ CREATE TABLE project_recommendation (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 32. label
+-- 33. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -458,18 +477,22 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 33. task_label
-CREATE TABLE task_label (
+-- 34. work_item_label
+CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
+    task_id VARCHAR(255) NULL,     
+    epic_id VARCHAR(255) NULL,      
+    subtask_id VARCHAR(255) NULL,   
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (label_id) REFERENCES label(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    UNIQUE (label_id, task_id)
+    FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+    UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
--- 34. requirement
+-- 35. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -482,7 +505,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 35. project_metric
+-- 36. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -502,7 +525,7 @@ CREATE TABLE project_metric (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 36. system_configuration
+-- 37. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -518,7 +541,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 37. dynamic_category
+-- 38. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -533,7 +556,7 @@ CREATE TABLE dynamic_category (
     UNIQUE (category_group, name)
 );
 
--- 38. activity_log
+-- 39. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
@@ -553,7 +576,7 @@ CREATE TABLE activity_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 39. meeting_reschedule_request
+-- 40. meeting_reschedule_request
 CREATE TABLE meeting_reschedule_request (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -615,15 +638,35 @@ VALUES
     ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://example.com/icons/project-d.png', 'COMPLETED'),
     ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-e.png', 'IN_REVIEW');
 
--- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
-INSERT INTO epic (id, project_id, name, description, start_date, end_date, status)
+-- Insert sample data into project_member
+INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status, hourly_rate)
 VALUES 
-    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS'),
-    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO'),
-    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE'),
-    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS'),
-    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE'),
-    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO');
+    (1, 1, '2025-06-01 00:00:00+07', '2025-05-25 00:00:00+07', 'IN_PROGRESS', 50.00),
+    (2, 1, '2025-06-01 00:00:00+07', '2025-05-26 00:00:00+07', 'IN_PROGRESS', 45.00),
+    (3, 2, '2025-07-01 00:00:00+07', '2025-06-20 00:00:00+07', 'IN_PROGRESS', 40.00),
+    (4, 3, '2025-08-01 00:00:00+07', '2025-07-15 00:00:00+07', 'DONE', 55.00),
+    (5, 4, '2025-09-01 00:00:00+07', '2025-08-20 00:00:00+07', 'IN_PROGRESS', 60.00),
+    (5, 5, '2025-10-01 00:00:00+07', '2025-09-15 00:00:00+07', 'DONE', 60.00);
+
+
+-- Insert sample data into epic (sử dụng project_key-số_thứ_tự)
+INSERT INTO epic (id, project_id, name, description, start_date, end_date, status,reporter_id)
+VALUES 
+    ('PROJA-1', 1, 'Epic 1', 'Core features', '2025-06-01 00:00:00+00', '2025-08-01 00:00:00+00', 'IN_PROGRESS',1),
+    ('PROJA-2', 1, 'Epic 2', 'Additional features', '2025-08-01 00:00:00+00', '2025-10-01 00:00:00+00', 'TO_DO',2),
+    ('PROJB-1', 2, 'Epic 3', 'Campaign setup', '2025-07-01 00:00:00+00', '2025-08-01 00:00:00+00', 'DONE',3),
+    ('PROJC-1', 3, 'Epic 4', 'Research phase', '2025-08-01 00:00:00+00', '2025-09-01 00:00:00+00', 'IN_PROGRESS',4),
+    ('PROJD-1', 4, 'Epic 5', 'Design phase', '2025-09-01 00:00:00+00', '2025-09-15 00:00:00+00', 'DONE',5),
+    ('PROJE-1', 5, 'Epic 6', 'Testing phase', '2025-10-01 00:00:00+00', '2025-11-01 00:00:00+00', 'TO_DO',5);
+
+-- Insert sample data into epic_comment
+INSERT INTO epic_comment (epic_id, account_id, content, created_at)
+VALUES 
+    ('PROJA-1', 1, 'Great progress on Epic 1! Looking forward to the next update.', '2025-06-15 10:00:00+07'),
+    ('PROJA-2', 2, 'Can we discuss the timeline for Epic 2 in the next meeting?', '2025-06-16 14:30:00+07'),
+    ('PROJB-1', 3, 'Epic 3 is complete! Please review the deliverables.', '2025-06-20 09:15:00+07'),
+    ('PROJC-1', 4, 'Need more resources for Epic 4. Please assign additional team members.', '2025-06-22 11:00:00+07'),
+    ('PROJD-1', 5, 'Excellent work on Epic 5! Let’s plan the next steps.', '2025-06-23 15:45:00+07');
 
 -- Insert sample data into sprint
 INSERT INTO sprint (project_id, name, goal, start_date, end_date, status)
@@ -654,19 +697,10 @@ VALUES
     ('PROJD-2', 5, 4, 'PROJD-1', 5,'STORY', TRUE, TRUE, 'Design UI', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-05 00:00:00+00', '4 days', '2025-09-01 00:00:00+00', '2025-09-03 00:00:00+00', 100.00, 32.00, 30.00, 4000.00, 3500.00, 3800.00, 3300.00, 0.00, 'MEDIUM', 'Good', 'IN_PROGRESS'),
     ('PROJE-2', 5, 5, 'PROJE-1', 6, 'TASK', FALSE, TRUE, 'Setup automation tests', 'Setup automation tests', '2025-10-01 00:00:00+00', '2025-10-05 00:00:00+00', '4 days', '2025-10-01 00:00:00+00', NULL, 50.00, 32.00, 16.00, 4000.00, 3500.00, 2000.00, 1800.00, 16.00, 'MEDIUM', NULL, 'IN_PROGRESS');
 
--- Insert sample data into project_member
-INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status, hourly_rate)
-VALUES 
-    (1, 1, '2025-06-01 00:00:00+07', '2025-05-25 00:00:00+07', 'IN_PROGRESS', 50.00),
-    (2, 1, '2025-06-01 00:00:00+07', '2025-05-26 00:00:00+07', 'IN_PROGRESS', 45.00),
-    (3, 2, '2025-07-01 00:00:00+07', '2025-06-20 00:00:00+07', 'IN_PROGRESS', 40.00),
-    (4, 3, '2025-08-01 00:00:00+07', '2025-07-15 00:00:00+07', 'DONE', 55.00),
-    (5, 4, '2025-09-01 00:00:00+07', '2025-08-20 00:00:00+07', 'IN_PROGRESS', 60.00),
-    (5, 5, '2025-10-01 00:00:00+07', '2025-09-15 00:00:00+07', 'DONE', 60.00);
 
 
 -- Insert sample data into task_assignment (cập nhật với project_member_id, planned_hours, actual_hours)
-INSERT INTO task_assignment (task_id, project_member_id, status, assigned_at, completed_at, planned_hours, actual_hours)
+INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, planned_hours, actual_hours)
 VALUES 
     ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+07', '2025-06-04 00:00:00+07', 40.00, 38.00),
     ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+07', NULL, 32.00, 16.00),
@@ -893,7 +927,7 @@ VALUES
     (5, 'DONE', '#00FFFF', 'Completed tasks', 'ACTIVE');
 
 -- Insert sample data into task_label
-INSERT INTO task_label (label_id, task_id)
+INSERT INTO work_item_label (label_id, task_id)
 VALUES 
     (1, 'PROJA-3'),
     (2, 'PROJA-4'),

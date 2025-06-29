@@ -15,7 +15,7 @@
 //{
 //    public class MeetingTranscriptService : IMeetingTranscriptService
 //    {
-//        private readonly IMeetingTranscriptRepository _repo;
+//        private readonly IMeetingTranscriptRepository _epicRepo;
 //        private readonly IMapper _mapper;
 //        private readonly ILogger<MeetingTranscriptService> _logger;
 //        private readonly string _voskModelPath = @"E:\DOAN\IntelliPM_BE\VoskModels\vosk-model-small-en-us-0.15";
@@ -25,7 +25,7 @@
 //            IMapper mapper,
 //            ILogger<MeetingTranscriptService> logger)
 //        {
-//            _repo = repo;
+//            _epicRepo = repo;
 //            _mapper = mapper;
 //            _logger = logger;
 //        }
@@ -57,7 +57,7 @@
 //                    TranscriptText = transcript,
 //                    CreatedAt = DateTime.UtcNow
 //                };
-//                var saved = await _repo.AddAsync(entity);
+//                var saved = await _epicRepo.AddAsync(entity);
 
 //                // 5. Log
 //                await LogMeetingActionAsync(dto.MeetingId, "TRANSCRIPT_CREATED");
@@ -73,7 +73,7 @@
 
 //        public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
 //        {
-//            var transcript = await _repo.GetByMeetingIdAsync(meetingId);
+//            var transcript = await _epicRepo.GetByMeetingIdAsync(meetingId);
 
 //            if (transcript == null)
 //            {
@@ -135,7 +135,7 @@
 //{
 //    public class MeetingTranscriptService : IMeetingTranscriptService
 //    {
-//        private readonly IMeetingTranscriptRepository _repo;
+//        private readonly IMeetingTranscriptRepository _epicRepo;
 //        private readonly IMapper _mapper;
 //        private readonly ILogger<MeetingTranscriptService> _logger;
 
@@ -147,7 +147,7 @@
 //            IMapper mapper,
 //            ILogger<MeetingTranscriptService> logger)
 //        {
-//            _repo = repo;
+//            _epicRepo = repo;
 //            _mapper = mapper;
 //            _logger = logger;
 //        }
@@ -179,7 +179,7 @@
 //                    TranscriptText = transcript,
 //                    CreatedAt = DateTime.UtcNow
 //                };
-//                var saved = await _repo.AddAsync(entity);
+//                var saved = await _epicRepo.AddAsync(entity);
 
 //                // 5. Log
 //                await LogMeetingActionAsync(dto.MeetingId, "TRANSCRIPT_CREATED");
@@ -195,7 +195,7 @@
 
 //        public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
 //        {
-//            var transcript = await _repo.GetByMeetingIdAsync(meetingId);
+//            var transcript = await _epicRepo.GetByMeetingIdAsync(meetingId);
 
 //            if (transcript == null)
 //            {
