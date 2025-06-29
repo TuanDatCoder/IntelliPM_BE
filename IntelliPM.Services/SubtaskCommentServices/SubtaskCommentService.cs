@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
+using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -149,6 +150,18 @@ namespace IntelliPM.Services.SubtaskCommentServices
             }
 
             return _mapper.Map<SubtaskCommentResponseDTO>(entity);
+        }
+
+        public async Task<List<SubtaskCommentResponseDTO>> GetSubtaskCommentBySubtaskIdAsync(string subtaskId)
+        {
+            {
+                var entities = await _repo.GetSubtaskCommentBySubtaskIdAsync(subtaskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No subtasks found for Task ID {subtaskId}.");
+
+                return _mapper.Map<List<SubtaskCommentResponseDTO>>(entities);
+            }
         }
     }
 }
