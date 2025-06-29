@@ -137,6 +137,10 @@ namespace IntelliPM.Services.ProjectServices
             }
         }
 
+
+
+
+
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
             var project = await _projectRepo.GetProjectWithMembersAndRequirements(id);
@@ -361,5 +365,25 @@ namespace IntelliPM.Services.ProjectServices
             return workItems.OrderBy(w => w.CreatedAt).ToList();
         }
 
+
+        public async Task<bool> CheckProjectKeyExists(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            return project != null;
+        }
+        public async Task<ProjectResponseDTO> GetProjectByKey(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key {projectKey} not found.");
+
+            return _mapper.Map<ProjectResponseDTO>(project);
+        }
     }
 }
