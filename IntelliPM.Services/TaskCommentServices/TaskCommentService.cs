@@ -153,5 +153,17 @@ namespace IntelliPM.Services.TaskCommentServices
 
             return _mapper.Map<TaskCommentResponseDTO>(entity);
         }
+
+        public async Task<List<TaskCommentResponseDTO>> GetTaskCommentByTaskIdAsync(string taskId)
+        {
+            {
+                var entities = await _repo.GetTaskCommentByTaskIdAsync(taskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No subtasks found for Task ID {taskId}.");
+
+                return _mapper.Map<List<TaskCommentResponseDTO>>(entities);
+            }
+        }
     }
 }

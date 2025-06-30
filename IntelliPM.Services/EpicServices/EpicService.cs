@@ -1,12 +1,17 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
+using IntelliPM.Data.DTOs.EpicComment.Response;
+using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.EpicCommentServices;
 using IntelliPM.Services.Utilities;
+using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -20,33 +25,37 @@ namespace IntelliPM.Services.EpicServices
     public class EpicService : IEpicService
     {
         private readonly IMapper _mapper;
-        private readonly IEpicRepository _repo;
+        private readonly IEpicRepository _epicRepo;
         private readonly IProjectRepository _projectRepo;
         private readonly ITaskRepository _taskRepo;
         private readonly ILogger<EpicService> _logger;
-        private readonly IEpicRepository _epicRepo;
         private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IEpicCommentService _epicCommentService;
+        private readonly IWorkItemLabelService _workItemLabelService;
 
-        public EpicService(IMapper mapper, IEpicRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, IEpicRepository epicRepo, ISubtaskRepository subtaskRepo)
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService)
         {
             _mapper = mapper;
-            _repo = repo;
+            _epicRepo = epicRepo;
             _logger = logger;
             _projectRepo = projectRepo;
             _taskRepo = taskRepo;
-            _epicRepo = epicRepo;
             _subtaskRepo = subtaskRepo;
+            _accountRepo = accountRepo;
+            _epicCommentService = epicCommentService;
+            _workItemLabelService = workItemLabelService;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
         {
-            var entities = await _repo.GetAllEpics();
+            var entities = await _epicRepo.GetAllEpics();
             return _mapper.Map<List<EpicResponseDTO>>(entities);
         }
 
         public async Task<EpicResponseDTO> GetEpicById(string id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _epicRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
@@ -58,11 +67,38 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("Name cannot be null or empty.");
 
-            var entities = await _repo.GetByNameAsync(name);
+            var entities = await _epicRepo.GetByNameAsync(name);
             if (!entities.Any())
                 throw new KeyNotFoundException($"No epics found with name containing '{name}'.");
 
             return _mapper.Map<List<EpicResponseDTO>>(entities);
+        }
+
+        public async Task<EpicDetailedResponseDTO> GetEpicByIdDetailed(string id)
+        {
+            var entity = await _epicRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Epic with ID {id} not found.");
+
+            var dto = _mapper.Map<EpicDetailedResponseDTO>(entity);
+            await EnrichEpicDetailedResponse(dto);
+            return dto;
+        }
+
+        public async Task<List<EpicDetailedResponseDTO>> GetEpicsByProjectId(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _epicRepo.GetByProjectKeyAsync(await _projectRepo.GetProjectKeyAsync(projectId));
+
+            var dtos = _mapper.Map<List<EpicDetailedResponseDTO>>(entities);
+            foreach (var dto in dtos)
+            {
+                await EnrichEpicDetailedResponse(dto);
+            }
+
+            return dtos;
         }
 
         public async Task<EpicResponseDTO> CreateEpic(EpicRequestDTO request)
@@ -85,14 +121,11 @@ namespace IntelliPM.Services.EpicServices
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
             var entity = _mapper.Map<Epic>(request);
-            Console.WriteLine("Generated ID: " + entity.Id);
-            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo); 
-           
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
 
             try
             {
-                Console.WriteLine("Generated Subtask ID: " + entity.Id);
-                await _repo.Add(entity);
+                await _epicRepo.Add(entity);
             }
             catch (DbUpdateException ex)
             {
@@ -108,7 +141,7 @@ namespace IntelliPM.Services.EpicServices
 
         public async Task<EpicResponseDTO> UpdateEpic(string id, EpicRequestDTO request)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _epicRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
@@ -117,7 +150,7 @@ namespace IntelliPM.Services.EpicServices
 
             try
             {
-                await _repo.Update(entity);
+                await _epicRepo.Update(entity);
             }
             catch (Exception ex)
             {
@@ -129,13 +162,13 @@ namespace IntelliPM.Services.EpicServices
 
         public async Task DeleteEpic(string id)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _epicRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
             try
             {
-                await _repo.Delete(entity);
+                await _epicRepo.Delete(entity);
             }
             catch (Exception ex)
             {
@@ -148,7 +181,7 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
 
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _epicRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
@@ -157,7 +190,7 @@ namespace IntelliPM.Services.EpicServices
 
             try
             {
-                await _repo.Update(entity);
+                await _epicRepo.Update(entity);
             }
             catch (Exception ex)
             {
@@ -165,6 +198,47 @@ namespace IntelliPM.Services.EpicServices
             }
 
             return _mapper.Map<EpicResponseDTO>(entity);
+        }
+
+        private async Task EnrichEpicDetailedResponse(EpicDetailedResponseDTO epicDetailedDTO)
+        {
+            // Lấy thông tin Reporter
+            if (epicDetailedDTO.ReporterId.HasValue)
+            {
+                var reporter = await _accountRepo.GetAccountById(epicDetailedDTO.ReporterId.Value);
+                if (reporter != null)
+                {
+                    epicDetailedDTO.ReporterFullname = reporter.FullName;
+                    epicDetailedDTO.ReporterPicture = reporter.Picture;
+                }
+            }
+
+            // Lấy thông tin AssignedBy
+            if (epicDetailedDTO.AssignedById.HasValue)
+            {
+                var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedById.Value);
+                if (assignedBy != null)
+                {
+                    epicDetailedDTO.AssignedByFullname = assignedBy.FullName;
+                    epicDetailedDTO.AssignedByPicture = assignedBy.Picture;
+                }
+            }
+
+            // Lấy comment và số lượng
+            var allComments = await _epicCommentService.GetAllEpicComment();
+            var epicComments = allComments.Where(c => c.EpicId == epicDetailedDTO.Id).ToList();
+            epicDetailedDTO.CommentCount = epicComments.Count;
+            epicDetailedDTO.Comments = _mapper.Map<List<EpicCommentResponseDTO>>(epicComments);
+
+            // Lấy các label
+            var labels = await _workItemLabelService.GetByEpicIdAsync(epicDetailedDTO.Id);
+            epicDetailedDTO.Labels = (await Task.WhenAll(labels.Select(async l =>
+            {
+                var label = await _workItemLabelService.GetLabelById(l.LabelId); 
+                return _mapper.Map<LabelResponseDTO>(label);
+            }))).ToList();
+
+            epicDetailedDTO.Type = "EPIC";
         }
     }
 }

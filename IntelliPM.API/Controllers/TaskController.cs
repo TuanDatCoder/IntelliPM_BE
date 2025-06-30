@@ -76,6 +76,50 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{id}/detailed")]
+        public async Task<IActionResult> GetByIdDetailed(string id)
+        {
+            try
+            {
+                var task = await _service.GetTaskByIdDetailed(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Task detailed retrieved successfully",
+                    Data = task
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [HttpGet("by-project-id/{projectId}/detailed")]
+        public async Task<IActionResult> GetByProjectIdDetailed(int projectId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksByProjectIdDetailed(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Project ID {projectId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaskRequestDTO request)
         {
@@ -300,6 +344,5 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
-
     }
 }

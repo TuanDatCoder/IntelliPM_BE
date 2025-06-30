@@ -1,14 +1,22 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
+using IntelliPM.Data.DTOs.Task;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskAssignment.Response;
+using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.TaskCommentServices; // Giả sử bạn có service này
 using IntelliPM.Services.Utilities;
+using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -26,14 +34,22 @@ namespace IntelliPM.Services.TaskServices
         private readonly IEpicRepository _epicRepo;
         private readonly IProjectRepository _projectRepo;
         private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly ITaskCommentService _taskCommentService; 
+        private readonly IWorkItemLabelService _workItemLabelService;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
             _epicRepo = epicRepo;
             _projectRepo = projectRepo;
             _subtaskRepo = subtaskRepo;
+            _accountRepo = accountRepo;
+            _taskCommentService = taskCommentService;
+            _workItemLabelService = workItemLabelService;
+            _taskAssignmentRepo = taskAssignmentRepository;
         }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
@@ -84,8 +100,6 @@ namespace IntelliPM.Services.TaskServices
 
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-           // entity.CreatedAt = DateTime.UtcNow;
-            //entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -199,6 +213,75 @@ namespace IntelliPM.Services.TaskServices
             }
 
             return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            var dto = _mapper.Map<TaskDetailedResponseDTO>(entity);
+            await EnrichTaskDetailedResponse(dto);
+            return dto;
+        }
+
+        public async Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            var dtos = _mapper.Map<List<TaskDetailedResponseDTO>>(entities);
+            foreach (var dto in dtos)
+            {
+                await EnrichTaskDetailedResponse(dto);
+            }
+
+            return dtos;
+        }
+
+
+
+        private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
+        {
+            // Lấy thông tin Reporter
+            var reporter = await _accountRepo.GetAccountById(dto.ReporterId);
+            if (reporter != null)
+            {
+                dto.ReporterFullname = reporter.FullName;
+                dto.ReporterPicture = reporter.Picture;
+            }
+
+            // Lấy danh sách TaskAssignment và enrich thông tin Account
+            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id); 
+            dto.TaskAssignments = (await Task.WhenAll(assignments.Select(async a =>
+            {
+                var assignmentDto = _mapper.Map<TaskAssignmentResponseDTO>(a);
+                var account = await _accountRepo.GetAccountById(a.AccountId);
+                if (account != null)
+                {
+                    assignmentDto.AccountFullname = account.FullName;
+                    assignmentDto.AccountPicture = account.Picture;
+                }
+                return assignmentDto;
+            }))).ToList();
+
+            // Lấy comment và số lượng
+            var allComments = await _taskCommentService.GetAllTaskComment();
+            var taskComments = allComments.Where(c => c.TaskId == dto.Id).ToList();
+            dto.CommentCount = taskComments.Count;
+            dto.Comments = _mapper.Map<List<TaskCommentResponseDTO>>(taskComments);
+
+            // Lấy các label
+            var labels = await _workItemLabelService.GetByTaskIdAsync(dto.Id);
+            dto.Labels = (await Task.WhenAll(labels.Select(async l =>
+            {
+                var label = await _workItemLabelService.GetLabelById(l.LabelId);
+                return _mapper.Map<LabelResponseDTO>(label);
+            }))).ToList();
+
         }
     }
 }

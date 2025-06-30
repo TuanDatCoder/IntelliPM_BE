@@ -86,6 +86,9 @@ CREATE TABLE sprint (
 CREATE TABLE epic (
     id VARCHAR(255) PRIMARY KEY,
     project_id INT NOT NULL,
+	reporter_id INT NULL,
+	assigned_by INT NULL,
+    sprint_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     start_date TIMESTAMPTZ NULL,
@@ -93,10 +96,9 @@ CREATE TABLE epic (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    reporter_id INT NULL,
-    sprint_id INT NULL,
     FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (reporter_id) REFERENCES project_member(id) ON DELETE SET NULL,
+	FOREIGN KEY (assigned_by) REFERENCES account(id),
+    FOREIGN KEY (reporter_id) REFERENCES account(id) ON DELETE SET NULL,
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
@@ -157,7 +159,7 @@ CREATE TABLE tasks (
     priority VARCHAR(50) NULL,
     evaluate VARCHAR(50) NULL,
     status VARCHAR(50) NULL,
-    FOREIGN KEY (reporter_id) REFERENCES project_member(id),
+    FOREIGN KEY (reporter_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
@@ -167,21 +169,21 @@ CREATE TABLE tasks (
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    project_member_id INT NOT NULL,
+    account_id INT NOT NULL,
     status VARCHAR(50) NULL,
     assigned_at TIMESTAMPTZ NULL,
     completed_at TIMESTAMPTZ NULL,
     planned_hours DECIMAL(8, 2) NULL,
     actual_hours DECIMAL(8, 2) NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (project_member_id) REFERENCES project_member(id)
+    FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
 -- 11. subtask
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
-    assigned_by INT NOT NULL,
+    assigned_by INT NULL,
 	reporter_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NULL,
@@ -195,9 +197,9 @@ CREATE TABLE subtask (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sprint_id INT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (assigned_by) REFERENCES project_member(id),
+    FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-	FOREIGN KEY (reporter_id) REFERENCES project_member(id)
+	FOREIGN KEY (reporter_id) REFERENCES account(id)
 );
 
 -- 12. subtask_file
@@ -698,7 +700,7 @@ VALUES
 
 
 -- Insert sample data into task_assignment (cập nhật với project_member_id, planned_hours, actual_hours)
-INSERT INTO task_assignment (task_id, project_member_id, status, assigned_at, completed_at, planned_hours, actual_hours)
+INSERT INTO task_assignment (task_id, account_id, status, assigned_at, completed_at, planned_hours, actual_hours)
 VALUES 
     ('PROJA-3', 1, 'IN_PROGRESS', '2025-06-01 00:00:00+07', '2025-06-04 00:00:00+07', 40.00, 38.00),
     ('PROJA-4', 2, 'IN_PROGRESS', '2025-06-16 00:00:00+07', NULL, 32.00, 16.00),
@@ -983,10 +985,10 @@ VALUES
     ('project_status', 'ON_HOLD', 'On Hold', 'Project is temporarily paused', 3, NULL, NULL),
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
-    ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, NULL),
-    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1, 'https://example.com/icons/to-do.png', '#FFA500'),
-    ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2, NULL, NULL),
-    ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3, NULL, NULL),
+    ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+    ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1, 'https://example.com/icons/to-do.png', '##dddee1'),
+    ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2, NULL, '#87b1e1'),
+    ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3, NULL, '#b2da73'),
     ('sprint_status', 'FUTURE', 'Future', 'Sprint not started yet', 1, NULL, NULL),
     ('sprint_status', 'ACTIVE', 'Active', 'Sprint in progress or planning phase', 2, NULL, NULL),
     ('sprint_status', 'COMPLETED', 'Completed', 'Sprint successfully completed', 3, NULL, NULL),
@@ -1016,9 +1018,9 @@ VALUES
     ('task_assignment_status', 'COMPLETED', 'Completed', 'User has completed their assigned part', 4, NULL, NULL),
     ('task_assignment_status', 'UNASSIGNED', 'Unassigned', 'User is unassigned or removed from task', 5, NULL, NULL),
     ('task_assignment_status', 'DELETED', 'Deleted', 'Task assignment record is deleted', 6, NULL, NULL),
-    ('subtask_status', 'TO_DO', 'To Do', 'Checklist item to do', 1, NULL, NULL),
-    ('subtask_status', 'IN_PROGRESS', 'In Progress', 'Checklist item in progress', 2, NULL, NULL),
-    ('subtask_status', 'DONE', 'Done', 'Checklist item completed', 3, NULL, NULL),
+	('subtask_status', 'TO_DO', 'To Do', 'subtask_status to do', 1, NULL, '##dddee1'),
+    ('subtask_status', 'IN_PROGRESS', 'In Progress', 'Checklist item in progress', 2, NULL,  '#87b1e1'),
+    ('subtask_status', 'DONE', 'Done', 'Checklist item completed', 3, NULL, '#b2da73'),
     ('task_file_status', 'UPLOADED', 'Uploaded', 'File uploaded', 1, NULL, NULL),
     ('task_file_status', 'IN_REVIEW', 'In Review', 'File under review', 2, NULL, NULL),
     ('task_file_status', 'APPROVED', 'Approved', 'File approved', 3, NULL, NULL),
@@ -1029,9 +1031,9 @@ VALUES
     ('subtask_file_status', 'APPROVED', 'Approved', 'File approved', 3, NULL, NULL),
     ('subtask_file_status', 'PENDING', 'Pending', 'File pending', 4, NULL, NULL),
     ('subtask_file_status', 'DELETED', 'Deleted', 'Deleted file', 5, NULL, NULL),
-    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1, NULL, NULL),
-    ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2, NULL, NULL),
-    ('task_status', 'DONE', 'Done', 'Task completed', 3, NULL, NULL),
+    ('task_status', 'TO_DO', 'To Do', 'Task to do', 1, NULL, '##dddee1'),
+    ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2, NULL, '#87b1e1'),
+    ('task_status', 'DONE', 'Done', 'Task completed', 3, NULL, '#b2da73'),
     ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://drive.google.com/file/d/1aCfATSVY-FdeeTNLoJl3o3k49NtP9lUg/view?usp=drive_link', NULL),
     ('task_type', 'TASK', 'Task', 'General task', 2, 'https://drive.google.com/file/d/1ebm-P9XekWL5vOYc2ErwFk5jT-dSkGSD/view?usp=drive_link', NULL),
     ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://drive.google.com/file/d/1b7WqqObZEqSAhFa8QOQN3hLAQqkS99vS/view?usp=drive_link', NULL),

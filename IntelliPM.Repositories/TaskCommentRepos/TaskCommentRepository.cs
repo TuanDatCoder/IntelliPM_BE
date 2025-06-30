@@ -47,5 +47,13 @@ namespace IntelliPM.Repositories.TaskCommentRepos
             _context.TaskComment.Update(taskComment);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<TaskComment>> GetTaskCommentByTaskIdAsync(string taskId)
+        {
+            return await _context.TaskComment
+                .Where(tf => tf.TaskId == taskId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }
