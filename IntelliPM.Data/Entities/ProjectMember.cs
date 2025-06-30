@@ -24,6 +24,4 @@ public partial class ProjectMember
     public virtual Project Project { get; set; } = null!;
 
     public virtual ICollection<ProjectPosition> ProjectPosition { get; set; } = new List<ProjectPosition>();
-
-    public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 }
