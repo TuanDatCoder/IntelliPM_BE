@@ -150,33 +150,6 @@ namespace IntelliPM.Services.ProjectMetricServices
             }
 
             // Lưu các gợi ý nếu có
-            //if (result.Suggestions != null && result.Suggestions.Any())
-            //{
-            //    var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
-
-            //    foreach (var suggestion in result.Suggestions)
-            //    {
-            //        foreach (var related in suggestion.RelatedTasks)
-            //        {
-            //            var taskTitle = related.TaskTitle?.Trim();
-            //            if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
-            //                continue; // Bỏ qua nếu không khớp task
-
-            //            var rec = new ProjectRecommendation
-            //            {
-            //                ProjectId = project.Id,
-            //                TaskId = allTasks[taskTitle].ToString(),
-            //                Type = suggestion.Label ?? suggestion.Reason ?? "AI",
-            //                Recommendation = suggestion.Message,
-            //                CreatedAt = DateTime.UtcNow
-            //            };
-
-            //            await _projectRecommendationRepo.Add(rec);
-            //        }
-            //    }
-            //}
-
-            // Lưu các gợi ý nếu có
             if (result.Suggestions != null && result.Suggestions.Any())
             {
                 var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
