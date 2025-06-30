@@ -8,5 +8,8 @@ namespace IntelliPM.Services.MeetingSummaryServices
     {
         Task<MeetingSummaryResponseDTO> CreateSummaryAsync(MeetingSummaryRequestDTO dto);
         Task<MeetingSummaryResponseDTO?> GetSummaryByTranscriptIdAsync(int meetingTranscriptId);
+        Task<List<MeetingSummaryResponseDTO>?> GetSummariesByAccountIdAsync(int accountId);
+
+        Task<List<MeetingSummaryResponseDTO>> GetAllMeetingSummariesByAccountIdAsync(int accountId);
     }
 }
