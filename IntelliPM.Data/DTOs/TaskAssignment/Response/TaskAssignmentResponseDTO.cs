@@ -15,5 +15,7 @@ namespace IntelliPM.Data.DTOs.TaskAssignment.Response
         public DateTime? AssignedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public decimal? HourlyRate { get; set; }
+        public string? AccountFullname { get; set; } 
+        public string? AccountPicture { get; set; }
     }
 }
