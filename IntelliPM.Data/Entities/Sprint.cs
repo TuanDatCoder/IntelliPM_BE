@@ -23,9 +23,13 @@ public partial class Sprint
 
     public string? Status { get; set; }
 
+    public virtual ICollection<Epic> Epic { get; set; } = new List<Epic>();
+
     public virtual ICollection<Milestone> Milestone { get; set; } = new List<Milestone>();
 
     public virtual Project Project { get; set; } = null!;
+
+    public virtual ICollection<Subtask> Subtask { get; set; } = new List<Subtask>();
 
     public virtual ICollection<Tasks> Tasks { get; set; } = new List<Tasks>();
 }
