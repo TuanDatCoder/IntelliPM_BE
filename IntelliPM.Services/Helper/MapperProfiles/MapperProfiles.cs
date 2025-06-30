@@ -115,8 +115,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
             CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+                
 
             // ProjectRecommendation
             CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>()

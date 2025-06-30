@@ -113,134 +113,6 @@ Return only valid JSON.";
         }
     }
 
-    //    public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks)
-    //    {
-    //        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
-    //        {
-    //            t.Title,
-    //            t.Description,
-    //            t.PlannedStartDate,
-    //            t.PlannedEndDate,
-    //            t.ActualStartDate,
-    //            t.ActualEndDate,
-    //            t.PercentComplete,
-    //            t.PlannedHours,
-    //            t.ActualHours,
-    //            t.PlannedCost,
-    //            t.ActualCost,
-    //            t.Status
-    //        }), Formatting.Indented);
-
-    //        // Prompt yêu cầu Gemini AI tính toán chỉ số
-    //        //        var prompt = $@"
-    //        //Bạn là một chuyên gia quản lý dự án. Dưới đây là thông tin dự án và danh sách các task, hãy tính toán các chỉ số quản lý sau:
-
-    //        //Trả về đúng định dạng JSON (chỉ JSON, không giải thích):
-    //        //{{
-    //        //  ""plannedValue"": 0,
-    //        //  ""earnedValue"": 0,
-    //        //  ""actualCost"": 0,
-    //        //  ""spi"": 0,
-    //        //  ""cpi"": 0,
-    //        //  ""delayDays"": 0,
-    //        //  ""budgetOverrun"": 0,
-    //        //  ""projectedFinishDate"": ""{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}"",
-    //        //  ""projectTotalCost"": 0
-    //        //}}
-
-    //        //Thông tin dự án:
-    //        //- Tên: {project.Name}
-    //        //- Ngân sách: {project.Budget}
-    //        //- Thời gian bắt đầu: {project.StartDate}
-    //        //- Thời gian kết thúc: {project.EndDate}
-
-    //        //Danh sách task:
-    //        //{taskList}";
-
-    //        var prompt = $@"
-    //Bạn là một chuyên gia quản lý dự án. Dưới đây là thông tin dự án và danh sách các task. 
-
-    //Hãy trả về kết quả dưới dạng một JSON object, bao gồm đầy đủ tất cả các trường sau (không được thiếu bất kỳ trường nào, và đúng định dạng):
-
-    //- plannedValue: Tổng giá trị kế hoạch của các công việc đã lên lịch tính đến hiện tại.
-    //- earnedValue: Tổng giá trị kiếm được theo % hoàn thành của từng task.
-    //- actualCost: Tổng chi phí thực tế.
-    //- spi: Schedule Performance Index = EV / PV
-    //- cpi: Cost Performance Index = EV / AC
-    //- delayDays: Số ngày dự án đang trễ so với kế hoạch (nếu có).
-    //- budgetOverrun: Chi phí vượt ngân sách = AC - PV
-    //- projectedFinishDate: Ngày kết thúc dự kiến nếu giữ nguyên tốc độ hiện tại (định dạng: yyyy-MM-ddTHH:mm:ssZ)
-    //- projectTotalCost: Tổng chi phí ước tính của toàn dự án.
-
-    //**Yêu cầu:** chỉ trả về đúng JSON, không giải thích, không thêm chữ, không định dạng Markdown.
-
-    //Thông tin dự án:
-    //- Tên: {project.Name}
-    //- Ngân sách: {project.Budget}
-    //- Thời gian bắt đầu: {project.StartDate}
-    //- Thời gian kết thúc: {project.EndDate}
-
-    //Danh sách task:
-    //{taskList}
-    //";
-
-    //        var requestData = new
-    //        {
-    //            contents = new[]
-    //            {
-    //            new
-    //            {
-    //                parts = new[]
-    //                {
-    //                    new { text = prompt }
-    //                }
-    //            }
-    //        }
-    //        };
-
-    //        var requestJson = JsonConvert.SerializeObject(requestData);
-    //        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
-
-    //        var response = await _httpClient.PostAsync(_url, content);
-    //        var responseString = await response.Content.ReadAsStringAsync();
-
-    //        if (!response.IsSuccessStatusCode)
-    //            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
-
-    //        if (string.IsNullOrWhiteSpace(responseString))
-    //            throw new Exception("Gemini response is empty.");
-
-    //        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
-    //        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
-
-    //        if (string.IsNullOrEmpty(replyText))
-    //            throw new Exception("Gemini did not return any text response.");
-
-    //        // Xử lý đoạn mã nếu có ```
-    //        if (replyText.StartsWith("```"))
-    //        {
-    //            replyText = replyText.Replace("```json", "")
-    //                                 .Replace("```", "")
-    //                                 .Replace("json", "")
-    //                                 .Trim();
-    //        }
-
-    //        if (!replyText.StartsWith("{"))
-    //            throw new Exception("Gemini reply is not a valid JSON object:\n" + replyText);
-
-    //        try
-    //        {
-    //            var result = JsonConvert.DeserializeObject<ProjectMetricRequestDTO>(replyText);
-    //            result.ProjectId = project.Id;
-    //            result.CalculatedBy = "AI";
-    //            return result;
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            throw new Exception("Error parsing ProjectMetricRequestDTO from Gemini reply:\n" + replyText + "\n" + ex.Message);
-    //        }
-    //    }
-
     public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks)
     {
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
@@ -260,43 +132,52 @@ Return only valid JSON.";
         }), Formatting.Indented);
 
         var prompt = $@"
-Bạn là một chuyên gia quản lý dự án. Dưới đây là thông tin dự án và danh sách các task. 
+        Bạn là một chuyên gia quản lý dự án. Dưới đây là thông tin dự án và danh sách các task. 
 
-Hãy thực hiện:
-1. Hãy trả về kết quả dưới dạng một JSON object, bao gồm đầy đủ tất cả các trường sau (không được thiếu bất kỳ trường nào, và đúng định dạng):
+        Hãy thực hiện:
+        1. Hãy trả về kết quả dưới dạng một JSON object, bao gồm đầy đủ tất cả các trường sau (không được thiếu bất kỳ trường nào, và đúng định dạng):
 
-    - plannedValue: Tổng giá trị kế hoạch của các công việc đã lên lịch tính đến hiện tại.
-    - earnedValue: Tổng giá trị kiếm được theo % hoàn thành của từng task.
-    - actualCost: Tổng chi phí thực tế.
-    - spi: Schedule Performance Index = EV / PV
-    - cpi: Cost Performance Index = EV / AC
-    - delayDays: Số ngày dự án đang trễ so với kế hoạch (nếu có).
-    - budgetOverrun: Chi phí vượt ngân sách = AC - PV
-    - projectedFinishDate: Ngày kết thúc dự kiến nếu giữ nguyên tốc độ hiện tại (định dạng: yyyy-MM-ddTHH:mm:ssZ)
-    - projectTotalCost: Tổng chi phí ước tính của toàn dự án.
+            - plannedValue: Tổng giá trị kế hoạch của các công việc đã lên lịch tính đến hiện tại.
+            - earnedValue: Tổng giá trị kiếm được theo % hoàn thành của từng task.
+            - actualCost: Tổng chi phí thực tế.
+            - spi: Schedule Performance Index = EV / PV
+            - cpi: Cost Performance Index = EV / AC
+            - delayDays: Số ngày dự án đang trễ so với kế hoạch (nếu có).
+            - budgetOverrun: Chi phí vượt ngân sách = AC - PV
+            - projectedFinishDate: Ngày kết thúc dự kiến nếu giữ nguyên tốc độ hiện tại (định dạng: yyyy-MM-ddTHH:mm:ssZ), tính bằng Project.StartDate + EDAC  (EDAC = DAC/SPI là Ước lượng tổng thời gian thực tế để hoàn thành)
+            - projectedTotalCost: Tổng chi phí ước tính để hoàn thành toàn bộ dự án (EAC = BAC / CPI nếu CPI hiện tại giữ nguyên)
 
-**Yêu cầu:** chỉ trả về đúng JSON, không giải thích, không thêm chữ, không định dạng Markdown.
+        **Yêu cầu:** chỉ trả về đúng JSON, không giải thích, không thêm chữ, không định dạng Markdown.
 
-2. Nếu phát hiện:
-- SPI < 1 → dự án đang chậm tiến độ
-- CPI < 1 → dự án vượt chi phí
+        2. Nếu phát hiện:
+        - SPI < 1 → dự án đang chậm tiến độ
+        - CPI < 1 → dự án vượt chi phí
 
-Hãy thêm vào JSON một trường 'suggestions' là mảng các giải pháp cải thiện. Mỗi phần tử trong 'suggestions' cần gồm:
-- message: gợi ý hành động cụ thể
-- reason: lý do đưa ra gợi ý này
-- relatedTasks: danh sách task liên quan (nêu rõ taskTitle, currentPlannedEndDate, currentPercentComplete, suggestedAction nếu có)
+        Hãy thêm vào JSON một trường 'suggestions' là mảng các giải pháp cải thiện. Mỗi phần tử trong 'suggestions' cần gồm:
+        - message: gợi ý hành động cụ thể
+        - reason: lý do đưa ra gợi ý này
+        - label: Từ khóa ngắn gọn mô tả loại gợi ý (ví dụ: “Tiến độ”, “Chi phí”)
+         - relatedTasks: nếu có, là mảng task liên quan — mỗi task chỉ xuất hiện **một lần duy nhất** trong toàn bộ danh sách suggestions.
+        Cấu trúc mỗi phần tử trong relatedTasks:
+        - taskTitle
+        - currentPlannedEndDate
+        - currentPercentComplete
+        - suggestedAction: hành động cụ thể cần thực hiện (VD: tăng nhân lực, kéo dài thời hạn như thế nào ...)
 
-Yêu cầu: chỉ trả về đúng JSON, không giải thích, không thêm chữ, không định dạng Markdown.
+        **Ràng buộc nghiêm ngặt:**
+        - Mỗi task chỉ được xuất hiện **một lần** trong toàn bộ suggestions. Nếu có nhiều đề xuất áp dụng cho một task, hãy gộp lại thành một entry.
+        - Nếu không có task liên quan, **bỏ qua trường relatedTasks**.
+        - Trả về đúng JSON thuần, không markdown, không giải thích.
 
-Thông tin dự án:
-- Tên: {project.Name}
-- Ngân sách: {project.Budget}
-- Thời gian bắt đầu: {project.StartDate}
-- Thời gian kết thúc: {project.EndDate}
+        Thông tin dự án:
+        - Tên: {project.Name}
+        - Ngân sách: {project.Budget}
+        - Thời gian bắt đầu: {project.StartDate}
+        - Thời gian kết thúc: {project.EndDate}
 
-Danh sách task:
-{taskList}
-";
+        Danh sách task:
+        {taskList}
+        ";
 
         var requestData = new
     {
