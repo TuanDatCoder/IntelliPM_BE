@@ -29,12 +29,12 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
             return await _context.ProjectMetric.FindAsync(id);
         }
 
-        public async Task<List<ProjectMetric>> GetByProjectIdAsync(int projectId)
-        {
-            return await _context.ProjectMetric
-                .Where(m => m.ProjectId == projectId)
-                .ToListAsync();
-        }
+        //public async Task<List<ProjectMetric>> GetByProjectIdAsync(int projectId)
+        //{
+        //    return await _context.ProjectMetric
+        //        .Where(m => m.ProjectId == projectId)
+        //        .ToListAsync();
+        //}
 
         public async Task<ProjectMetric?> GetLatestByProjectIdAsync(int projectId)
         {
@@ -44,5 +44,16 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
                 .FirstOrDefaultAsync();
         }
 
+        public async Task Update(ProjectMetric metric)
+        {
+            _context.ProjectMetric.Update(metric);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<ProjectMetric?> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMetric
+                .FirstOrDefaultAsync(pm => pm.ProjectId == projectId);
+        }
     }
 }
