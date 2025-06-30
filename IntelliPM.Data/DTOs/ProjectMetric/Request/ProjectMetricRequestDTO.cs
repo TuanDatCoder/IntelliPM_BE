@@ -39,5 +39,22 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Request
 
         [Range(0, 9999999999999.99, ErrorMessage = "Project Total Cost must be between 0 and 9999999999999.99")]
         public decimal? ProjectTotalCost { get; set; }
+
+        public List<RecommendationSuggestionDTO>? Suggestions { get; set; }
+    }
+
+    public class RecommendationSuggestionDTO
+    {
+        public string Message { get; set; } = null!;
+        public string? Reason { get; set; }
+        public List<RelatedTaskDTO> RelatedTasks { get; set; } = new();
+    }
+
+    public class RelatedTaskDTO
+    {
+        public string TaskTitle { get; set; } = null!;
+        public string? CurrentPlannedEndDate { get; set; }
+        public double? CurrentPercentComplete { get; set; }
+        public string? SuggestedAction { get; set; }
     }
 }

@@ -9,5 +9,7 @@
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public int? Attendees { get; set; }
+
+        public List<int> ParticipantIds { get; set; } = new();
     }
 }

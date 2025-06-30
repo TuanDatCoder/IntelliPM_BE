@@ -11,5 +11,6 @@ namespace IntelliPM.Repositories.MeetingParticipantRepos
         Task<List<MeetingParticipant>> GetByMeetingIdAsync(int meetingId);
         Task UpdateAsync(MeetingParticipant participant);
         Task DeleteAsync(MeetingParticipant participant);
+        Task<bool> HasTimeConflictAsync(int accountId, DateTime startTime, DateTime endTime, int? excludeMeetingId = null);
     }
 }

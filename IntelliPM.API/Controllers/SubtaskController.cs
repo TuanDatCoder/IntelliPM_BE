@@ -58,8 +58,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("{taskId}")]
-        public async Task<IActionResult> Create(string taskId, [FromBody] SubtaskRequest1DTO request)
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] SubtaskRequest1DTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -115,6 +115,48 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("{id}/detailed")]
+        public async Task<IActionResult> GetByIdDetailed(string id)
+        {
+            try
+            {
+                var subtask = await _service.GetSubtaskByIdDetailed(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Subtask detailed retrieved successfully",
+                    Data = subtask
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [HttpGet("by-task/{taskId}/detailed")]
+        public async Task<IActionResult> GetSubtaskByTaskIdDetailed(string taskId)
+        {
+            try
+            {
+                var subtasks = await _service.GetSubtaskByTaskIdDetailed(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Subtasks detailed retrieved successfully",
+                    Data = subtasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+
 
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)

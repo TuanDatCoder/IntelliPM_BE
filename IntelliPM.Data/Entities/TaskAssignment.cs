@@ -9,7 +9,7 @@ public partial class TaskAssignment
 
     public string TaskId { get; set; } = null!;
 
-    public int ProjectMemberId { get; set; }
+    public int AccountId { get; set; }
 
     public string? Status { get; set; }
 
@@ -21,7 +21,7 @@ public partial class TaskAssignment
 
     public decimal? ActualHours { get; set; }
 
-    public virtual ProjectMember ProjectMember { get; set; } = null!;
+    public virtual Account Account { get; set; } = null!;
 
     public virtual Tasks Task { get; set; } = null!;
 }

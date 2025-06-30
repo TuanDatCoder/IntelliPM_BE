@@ -71,5 +71,20 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .Where(tf => tf.ProjectId == projectId)
                 .ToListAsync();
         }
+        public async Task<Account?> GetAccountByIdAsync(int accountId)
+        {
+            if (accountId <= 0) throw new ArgumentException("Invalid Account ID", nameof(accountId));
+            return await _context.Account
+                .FirstOrDefaultAsync(a => a.Id == accountId);
+        }
+
+        public async Task<List<ProjectMember>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMember
+                .Include(pm => pm.Account)
+                .Where(pm => pm.ProjectId == projectId)
+                .ToListAsync();
+        }
+
     }
 }

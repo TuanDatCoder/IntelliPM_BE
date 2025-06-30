@@ -9,7 +9,7 @@ public partial class Subtask
 
     public string TaskId { get; set; } = null!;
 
-    public int AssignedBy { get; set; }
+    public int? AssignedBy { get; set; }
 
     public int? ReporterId { get; set; }
 
@@ -18,6 +18,10 @@ public partial class Subtask
     public string? Description { get; set; }
 
     public string? Status { get; set; }
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
 
     public bool ManualInput { get; set; }
 
@@ -33,9 +37,9 @@ public partial class Subtask
 
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
-    public virtual Account AssignedByNavigation { get; set; } = null!;
+    public virtual Account? AssignedByNavigation { get; set; }
 
-    public virtual ProjectMember? Reporter { get; set; }
+    public virtual Account? Reporter { get; set; }
 
     public virtual Sprint? Sprint { get; set; }
 

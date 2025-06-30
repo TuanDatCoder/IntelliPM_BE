@@ -461,7 +461,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     var assignment = new TaskAssignment
                     {
                         TaskId = task.Id.ToString(),
-                        ProjectMemberId = suitableMember.AccountId,
+                        AccountId = suitableMember.AccountId,
                         Status = "Assigned",
                         AssignedAt = DateTime.UtcNow,
                         PlannedHours = 50.00m
