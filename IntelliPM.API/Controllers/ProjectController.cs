@@ -81,6 +81,41 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+
+
+
+
+        [HttpGet("{id}/workitems")]
+        public async Task<IActionResult> GetAllWorkItemsByProjectId(int id)
+        {
+            try
+            {
+                var workItems = await _service.GetAllWorkItemsByProjectId(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Work items retrieved successfully",
+                    Data = workItems
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving work items: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? searchTerm, [FromQuery] string? projectType, [FromQuery] string? status)
         {
@@ -263,6 +298,70 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error sending invitations: {ex.Message}"
+                });
+            }
+        }
+
+
+        [HttpGet("check-project-key")]
+        public async Task<IActionResult> CheckProjectKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var exists = await _service.CheckProjectKeyExists(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Project key {projectKey} check completed",
+                    Data = new { exists }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking project key: {ex.Message}"
+                });
+            }
+        }
+
+
+        [HttpGet("view-by-key")]
+        public async Task<IActionResult> GetProjectByKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var project = await _service.GetProjectByKey(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Project with key {projectKey} retrieved successfully",
+                    Data = project
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project by key: {ex.Message}"
                 });
             }
         }

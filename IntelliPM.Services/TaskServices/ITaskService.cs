@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.Task.Request;
+﻿using IntelliPM.Data.DTOs.Task;
+using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using System;
 using System.Collections.Generic;
@@ -19,5 +20,7 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
         Task<TaskResponseDTO> ChangeTaskType(string id, string type);
+        Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id);
+        Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId);
     }
 }
