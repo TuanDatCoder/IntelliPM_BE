@@ -319,11 +319,7 @@ namespace IntelliPM.Services.ProjectMetricServices
         public async Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId)
         {
             var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var allMetrics = await _repo.GetAllAsync();
-            var latestMetric = allMetrics
-                .Where(x => x.ProjectId == projectId)
-                .OrderByDescending(x => x.CreatedAt)
-                .FirstOrDefault();
+            var latestMetric = await _repo.GetLatestByProjectIdAsync(projectId);
 
             double plannedDuration = tasks
                 .Where(t => t.PlannedStartDate.HasValue && t.PlannedEndDate.HasValue)
