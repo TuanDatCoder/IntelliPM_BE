@@ -2,6 +2,8 @@
 using IntelliPM.Data.DTOs;
 using IntelliPM.Services.RiskServices;
 using Microsoft.AspNetCore.Mvc;
+using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.TaskRepos;
 
 namespace IntelliPM.API.Controllers
 {
@@ -10,10 +12,14 @@ namespace IntelliPM.API.Controllers
     public class RiskController : ControllerBase
     {
         private readonly IRiskService _riskService;
+        private readonly IProjectRepository _projectRepo;
+        private readonly ITaskRepository _taskRepo;
 
-        public RiskController(IRiskService riskService)
+        public RiskController(IRiskService riskService, IProjectRepository projectRepo, ITaskRepository taskRepo)
         {
             _riskService = riskService;
+            _projectRepo = projectRepo;
+            _taskRepo = taskRepo;
         }
 
         [HttpGet]
@@ -90,6 +96,40 @@ namespace IntelliPM.API.Controllers
                 Message = "Deleted risk successfully"
             });
         }
-    }
 
+        [HttpGet("unapproved-ai-risks")]
+        public async Task<IActionResult> GetUnapprovedAIRisks([FromQuery] int projectId)
+        {
+            var risks = await _riskService.GetUnapprovedAIRisksAsync(projectId);
+            return Ok(new { isSuccess = true, data = risks });
+        }
+
+        //[HttpPost("approve-ai-risk")]
+        //public async Task<IActionResult> ApproveRisk([FromBody] RiskApprovalDTO dto)
+        //{
+        //    await _riskService.ApproveRiskAsync(dto.Risk, dto.Solution);
+        //    return Ok(new { isSuccess = true, message = "Approved and saved successfully." });
+        //}
+
+        [HttpPost("detect-and-save-project-risks")]
+        public async Task<IActionResult> DetectAndSaveProjectRisks([FromQuery] int projectId)
+        {
+            try
+            {
+                var result = await _riskService.DetectAndSaveProjectRisksAsync(projectId);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Project risks detected and saved successfully",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
+            }
+        }
+
+    }
 }

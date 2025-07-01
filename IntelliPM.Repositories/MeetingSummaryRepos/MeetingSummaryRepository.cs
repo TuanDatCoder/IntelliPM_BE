@@ -26,5 +26,23 @@ namespace IntelliPM.Repositories.MeetingSummaryRepos
             return await _context.MeetingSummary
                 .FirstOrDefaultAsync(x => x.MeetingTranscriptId == meetingTranscriptId);
         }
+
+        public async Task<List<MeetingSummary>> GetByAccountIdAsync(int accountId)
+        {
+            // Lấy các meetingId mà account này tham gia
+            var meetingIds = _context.MeetingParticipant
+                .Where(mp => mp.AccountId == accountId)
+                .Select(mp => mp.MeetingId);
+
+            // Lấy transcriptId của các meeting đó
+            var transcriptIds = _context.MeetingTranscript
+    .Where(mt => meetingIds.Contains(mt.MeetingId))
+    .Select(mt => mt.MeetingId);
+
+            // Lấy summary theo transcriptId
+            return await _context.MeetingSummary
+                .Where(ms => transcriptIds.Contains(ms.MeetingTranscriptId))
+                .ToListAsync();
+        }
     }
 }
