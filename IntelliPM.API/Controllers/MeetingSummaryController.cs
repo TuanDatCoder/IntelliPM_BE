@@ -31,5 +31,19 @@ namespace IntelliPM.API.Controllers
                 return NotFound();
             return Ok(result);
         }
+
+        [HttpGet("by-account/{accountId}")]
+        public async Task<IActionResult> GetByAccount(int accountId)
+        {
+            var result = await _service.GetSummariesByAccountIdAsync(accountId);
+            return Ok(result);
+        }
+
+        [HttpGet("all-by-account/{accountId}")]
+        public async Task<IActionResult> GetAllByAccount(int accountId)
+        {
+            var result = await _service.GetAllMeetingSummariesByAccountIdAsync(accountId);
+            return Ok(result);
+        }
     }
 }
