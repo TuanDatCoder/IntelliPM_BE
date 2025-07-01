@@ -104,6 +104,20 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
             return _mapper.Map<MilestoneFeedbackResponseDTO>(feedback);
         }
 
+        public async Task<List<MilestoneFeedbackResponseDTO>> GetRejectedFeedbacksByMeetingIdAsync(int meetingId)
+        {
+            var feedbacks = await _feedbackRepo.GetByMeetingIdAndStatusAsync(meetingId, "Reject");
+            if (feedbacks == null || feedbacks.Count == 0)
+                return new List<MilestoneFeedbackResponseDTO>();
+
+            // Map và gán tên account
+            return feedbacks.Select(fb =>
+            {
+                var dto = _mapper.Map<MilestoneFeedbackResponseDTO>(fb);
+                dto.AccountName = fb.Account?.FullName ?? "Unknown";
+                return dto;
+            }).ToList();
+        }
         public async Task DeleteFeedbackAsync(int id)
         {
             var feedback = await _feedbackRepo.GetByIdAsync(id);
