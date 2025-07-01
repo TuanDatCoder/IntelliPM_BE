@@ -86,6 +86,7 @@ using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Services.RiskServices;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
+using IntelliPM.Repositories.RiskSolutionRepos;
 
 
 
@@ -129,6 +130,7 @@ builder.Services.AddScoped<ISubtaskFileRepository, SubtaskFileRepository>();
 builder.Services.AddScoped<ISubtaskCommentRepository, SubtaskCommentRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
+builder.Services.AddScoped<IRiskSolutionRepository, RiskSolutionRepository>();
 builder.Services.AddScoped<IMeetingRescheduleRequestRepository, MeetingRescheduleRequestRepository>();
 
 
