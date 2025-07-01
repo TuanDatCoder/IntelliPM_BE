@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
+using IntelliPM.Data.DTOs.TaskComment.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,6 @@ namespace IntelliPM.Services.SubtaskCommentServices
         Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request);
         Task<SubtaskCommentResponseDTO> UpdateSubtaskComment(int id, SubtaskCommentRequestDTO request);
         Task DeleteSubtaskComment(int id);
+        Task<List<SubtaskCommentResponseDTO>> GetSubtaskCommentBySubtaskIdAsync(string subtaskId);
     }
 }
