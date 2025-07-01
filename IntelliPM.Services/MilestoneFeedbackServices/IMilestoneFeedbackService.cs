@@ -11,5 +11,6 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
 
         Task<MilestoneFeedbackResponseDTO> UpdateFeedbackAsync(int id, MilestoneFeedbackRequestDTO request);
         Task DeleteFeedbackAsync(int id);
+        Task<List<MilestoneFeedbackResponseDTO>> GetRejectedFeedbacksByMeetingIdAsync(int meetingId);
     }
 }
