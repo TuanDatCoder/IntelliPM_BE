@@ -19,6 +19,7 @@ namespace IntelliPM.Data.DTOs.Project.Response
         public DateTime? EndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string? IconUrl { get; set; }
         public string? Status { get; set; }
     }
 }
