@@ -36,6 +36,13 @@ namespace IntelliPM.Repositories.MilestoneFeedbackRepos
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<MilestoneFeedback>> GetByMeetingIdAndStatusAsync(int meetingId, string status)
+        {
+            return await _context.MilestoneFeedback
+                .Where(fb => fb.MeetingId == meetingId && fb.Status == status)
+                .Include(fb => fb.Account) // Để lấy tên account
+                .ToListAsync();
+        }
         public async Task DeleteAsync(MilestoneFeedback feedback)
         {
             _context.MilestoneFeedback.Remove(feedback);
