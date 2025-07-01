@@ -37,6 +37,8 @@ using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
+using IntelliPM.Data.DTOs.RiskSolution.Request;
+using IntelliPM.Data.DTOs.RiskSolution.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
@@ -115,8 +117,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
             CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+                
 
             // ProjectRecommendation
             CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>()
@@ -198,6 +202,26 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
 
             CreateMap<RiskRequestDTO, Risk>();
+            CreateMap<Risk, RiskRequestDTO>()
+                .ForMember(dest => dest.MitigationPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().MitigationPlan))
+                .ForMember(dest => dest.ContingencyPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().ContingencyPlan));
+
+            //RiskSolution
+            CreateMap<RiskSolution, RiskSolutionResponseDTO>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt.ToLocalTime()))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt.ToLocalTime()));
+
+            CreateMap<RiskSolutionRequestDTO, RiskSolution>();
+            CreateMap<RiskWithSolutionDTO, RiskRequestDTO>();
+
+            CreateMap<RiskWithSolutionDTO, Risk>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            CreateMap<Risk, RiskRequestDTO>();
+
+
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
