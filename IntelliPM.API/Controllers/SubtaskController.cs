@@ -87,6 +87,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("create2")]
+        public async Task<IActionResult> Create2([FromBody] SubtaskRequest2DTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+            try
+            {
+                var result = await _service.Create2Subtask(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Subtask created successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating Subtask: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] SubtaskRequestDTO request)
         {
