@@ -130,11 +130,24 @@ namespace IntelliPM.Services.ProjectMetricServices
                 throw new Exception("AI did not return valid project metrics");
 
             // Lưu ProjectMetric
-            var metric = _mapper.Map<ProjectMetric>(result);
-            metric.CreatedAt = DateTime.UtcNow;
-            metric.UpdatedAt = DateTime.UtcNow;
+            var existing = await _repo.GetByProjectIdAsync(project.Id);
 
-            await _repo.Add(metric);
+            if (existing != null)
+            {
+                _mapper.Map(result, existing);
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                await _repo.Update(existing);
+            }
+            else
+            {
+                var metric = _mapper.Map<ProjectMetric>(result);
+                metric.ProjectId = project.Id;
+                metric.CreatedAt = DateTime.UtcNow;
+                metric.UpdatedAt = DateTime.UtcNow;
+
+                await _repo.Add(metric);
+            }
 
             // Lưu các gợi ý nếu có
             if (result.Suggestions != null && result.Suggestions.Any())
@@ -147,18 +160,34 @@ namespace IntelliPM.Services.ProjectMetricServices
                     {
                         var taskTitle = related.TaskTitle?.Trim();
                         if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
-                            continue; // Bỏ qua nếu không khớp task
+                            continue;
 
-                        var rec = new ProjectRecommendation
+                        var taskId = allTasks[taskTitle].ToString();
+                        var type = suggestion.Label ?? suggestion.Reason ?? "AI";
+                        var recommendationText = related.SuggestedAction ?? suggestion.Message;
+
+                        var existingRec = await _projectRecommendationRepo.GetByProjectIdTaskIdTypeAsync(project.Id, taskId, type);
+
+                        if (existingRec != null)
                         {
-                            ProjectId = project.Id,
-                            TaskId = allTasks[taskTitle].ToString(),
-                            Type = suggestion.Reason ?? "General",
-                            Recommendation = suggestion.Message,
-                            CreatedAt = DateTime.UtcNow
-                        };
+                            existingRec.Recommendation = recommendationText;
+                            existingRec.CreatedAt = DateTime.UtcNow;
 
-                        await _projectRecommendationRepo.Add(rec);
+                            await _projectRecommendationRepo.Update(existingRec);
+                        }
+                        else
+                        {
+                            var rec = new ProjectRecommendation
+                            {
+                                ProjectId = project.Id,
+                                TaskId = taskId,
+                                Type = type,
+                                Recommendation = recommendationText,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            await _projectRecommendationRepo.Add(rec);
+                        }
                     }
                 }
             }
@@ -197,10 +226,10 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<ProjectMetricResponseDTO>(entity);
         }
 
-        public async Task<List<ProjectMetricResponseDTO>> GetByProjectIdAsync(int projectId)
+        public async Task<ProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId)
         {
-            var entities = await _repo.GetByProjectIdAsync(projectId);
-            return _mapper.Map<List<ProjectMetricResponseDTO>>(entities);
+            var entity = await _repo.GetLatestByProjectIdAsync(projectId);
+            return entity != null ? _mapper.Map<ProjectMetricResponseDTO>(entity) : null;
         }
 
         public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)

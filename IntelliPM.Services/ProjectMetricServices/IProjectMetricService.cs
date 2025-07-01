@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace IntelliPM.Services.ProjectMetricServices
     {
         Task<List<ProjectMetricResponseDTO>> GetAllAsync();
         Task<ProjectMetricResponseDTO> GetByIdAsync(int id);
-        Task<List<ProjectMetricResponseDTO>> GetByProjectIdAsync(int projectId);
+        Task<ProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId);
         Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId);
         Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy);
         Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId);

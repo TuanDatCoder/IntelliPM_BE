@@ -11,6 +11,8 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
     {
         Task<List<ProjectRecommendation>> GetByProjectIdAsync(int projectId);
         Task Add(ProjectRecommendation recommendation);
+        Task Update(ProjectRecommendation recommendation);
+        Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type);
     }
 
 }
