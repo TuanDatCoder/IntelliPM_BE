@@ -5,6 +5,7 @@ using IntelliPM.Data.DTOs.Meeting.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -18,17 +19,22 @@ namespace IntelliPM.Services.MeetingServices
         private readonly IMeetingParticipantRepository _meetingParticipantRepo;
         private readonly Su25Sep490IntelliPmContext _context;
         private readonly IMapper _mapper;
+        private readonly IEmailService _emailService;
 
         public MeetingService(
             IMeetingRepository repo,
             IMeetingParticipantRepository meetingParticipantRepo,
             IMapper mapper,
-            Su25Sep490IntelliPmContext context)
+            Su25Sep490IntelliPmContext context,
+             IEmailService emailService
+            )
+
         {
             _repo = repo;
             _meetingParticipantRepo = meetingParticipantRepo;
             _mapper = mapper;
             _context = context;
+            _emailService = emailService;
         }
 
         //public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
@@ -273,8 +279,61 @@ namespace IntelliPM.Services.MeetingServices
                 await _context.SaveChangesAsync();
 
                 // Thêm participant vào bảng MeetingParticipant
+                //foreach (var participantId in dto.ParticipantIds)
+                //{
+
+                //    var account = await _context.Account.FindAsync(participantId);
+                //    if (account != null)
+                //    {
+                //        await _emailService.SendMeetingInvitation(
+                //            account.Email,
+                //            account.FullName,
+                //            meeting.MeetingTopic,
+                //            meeting.StartTime.Value,
+                //            meeting.MeetingUrl
+                //        );
+                //    }
+                //    var participant = new MeetingParticipant
+                //    {
+                //        MeetingId = meeting.Id,
+                //        AccountId = participantId,
+                //        Role = "Attendee",
+                //        Status = "Active",
+                //        CreatedAt = DateTime.UtcNow
+                //    };
+                //    await _meetingParticipantRepo.AddAsync(participant);
+                //}
                 foreach (var participantId in dto.ParticipantIds)
                 {
+                    var account = await _context.Account.FindAsync(participantId);
+                    if (account == null)
+                    {
+                        Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(account.Email))
+                    {
+                        Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            await _emailService.SendMeetingInvitation(
+                                account.Email,
+                                account.FullName ?? "User",
+                                meeting.MeetingTopic,
+                                meeting.StartTime ?? DateTime.UtcNow,
+                                meeting.MeetingUrl ?? ""
+                            );
+                        }
+                        catch (Exception emailEx)
+                        {
+                            Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
+                        }
+                    }
+
                     var participant = new MeetingParticipant
                     {
                         MeetingId = meeting.Id,
@@ -285,7 +344,6 @@ namespace IntelliPM.Services.MeetingServices
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
                 }
-
                 // Tạo MeetingLog cho người tạo (participant đầu tiên)
                 if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
                 {
@@ -354,8 +412,38 @@ namespace IntelliPM.Services.MeetingServices
                 await _context.SaveChangesAsync();
 
                 // Thêm participant vào bảng MeetingParticipant
+             
                 foreach (var participantId in dto.ParticipantIds)
                 {
+                    var account = await _context.Account.FindAsync(participantId);
+                    if (account == null)
+                    {
+                        Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(account.Email))
+                    {
+                        Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            await _emailService.SendMeetingInvitation(
+                                account.Email,
+                                account.FullName ?? "User",
+                                meeting.MeetingTopic,
+                                meeting.StartTime ?? DateTime.UtcNow,
+                                meeting.MeetingUrl ?? ""
+                            );
+                        }
+                        catch (Exception emailEx)
+                        {
+                            Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
+                        }
+                    }
+
                     var participant = new MeetingParticipant
                     {
                         MeetingId = meeting.Id,
@@ -366,7 +454,6 @@ namespace IntelliPM.Services.MeetingServices
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
                 }
-
                 // Tạo MeetingLog cho người tạo (participant đầu tiên)
                 if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
                 {
