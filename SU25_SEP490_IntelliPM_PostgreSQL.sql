@@ -471,7 +471,7 @@ CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    color_code VARCHAR(7) NULL,
+    color_code VARCHAR(10) NULL,
     description TEXT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     FOREIGN KEY (project_id) REFERENCES project(id)
@@ -551,7 +551,7 @@ CREATE TABLE dynamic_category (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     icon_link TEXT NULL,
-    color VARCHAR(7) NULL,
+    color VARCHAR(10) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
