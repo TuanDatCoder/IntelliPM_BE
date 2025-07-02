@@ -221,16 +221,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt.ToLocalTime()));
 
             CreateMap<RiskSolutionRequestDTO, RiskSolution>();
-            CreateMap<RiskWithSolutionDTO, RiskRequestDTO>();
-
-            CreateMap<RiskWithSolutionDTO, Risk>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-
-            CreateMap<Risk, RiskRequestDTO>();
-
-
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
