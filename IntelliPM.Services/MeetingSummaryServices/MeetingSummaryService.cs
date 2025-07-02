@@ -166,45 +166,6 @@ namespace IntelliPM.Services.MeetingSummaryServices
             return result;
         }
 
-        //public async Task<List<MeetingSummaryResponseDTO>> GetAllMeetingSummariesByAccountIdAsync(int accountId)
-        //{
-        //    // Lấy tất cả meetingId mà account này tham gia
-        //    var meetingIds = await _context.MeetingParticipant
-        //        .Where(mp => mp.AccountId == accountId)
-        //        .Select(mp => mp.MeetingId)
-        //        .ToListAsync();
-
-        //    // Lấy tất cả transcript của các meeting này
-        //    var transcripts = await _context.MeetingTranscript
-        //        .Where(mt => meetingIds.Contains(mt.MeetingId))
-        //        .ToListAsync();
-
-        //    // Lấy tất cả summary của các transcript này
-        //    var transcriptIds = transcripts.Select(t => t.MeetingId).ToList();
-        //    var summaries = await _context.MeetingSummary
-        //        .Where(ms => transcriptIds.Contains(ms.MeetingTranscriptId))
-        //        .ToListAsync();
-
-        //    var result = new List<MeetingSummaryResponseDTO>();
-
-        //    foreach (var meetingId in meetingIds)
-        //    {
-        //        var transcript = transcripts.FirstOrDefault(t => t.MeetingId == meetingId);
-        //        var summary = transcript != null
-        //            ? summaries.FirstOrDefault(s => s.MeetingTranscriptId == transcript.MeetingId)
-        //            : null;
-
-        //        var dto = new MeetingSummaryResponseDTO
-        //        {
-        //            MeetingTranscriptId = transcript?.MeetingId ?? meetingId,
-        //            SummaryText = summary?.SummaryText ?? "Chờ cập nhật",
-        //            TranscriptText = transcript?.TranscriptText ?? "Chờ cập nhật",
-        //            CreatedAt = summary?.CreatedAt ?? DateTime.MinValue
-        //        };
-        //        result.Add(dto);
-        //    }
-
-        //    return result;
-        //}
+        
     }
 }
