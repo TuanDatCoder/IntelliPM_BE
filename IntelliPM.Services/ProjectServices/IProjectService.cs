@@ -22,5 +22,6 @@ namespace IntelliPM.Services.ProjectServices
         Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId);
         Task<bool> CheckProjectKeyExists(string projectKey);
         Task<ProjectResponseDTO> GetProjectByKey(string projectKey);
+        Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey);
     }
 }
