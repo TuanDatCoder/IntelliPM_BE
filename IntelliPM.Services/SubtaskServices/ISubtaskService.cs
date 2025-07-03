@@ -17,6 +17,7 @@ namespace IntelliPM.Services.SubtaskServices
         Task<List<SubtaskResponseDTO>> GetAllSubtaskList();
         Task<SubtaskResponseDTO> GetSubtaskById(string id);
         Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request);
+        Task<SubtaskResponseDTO> Create2Subtask(SubtaskRequest2DTO request);
         Task<SubtaskResponseDTO> UpdateSubtask(string id, SubtaskRequestDTO request);
         Task DeleteSubtask(string id);
         Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
@@ -25,5 +26,7 @@ namespace IntelliPM.Services.SubtaskServices
         Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId);
+        Task<List<SubtaskResponseDTO>> SaveGeneratedSubtasks(List<SubtaskRequest2DTO> previews);
+
     }
 }

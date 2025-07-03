@@ -331,7 +331,7 @@ Summary:";
         var prompt = $@"
 Bạn là một chuyên gia quản lý rủi ro. Dưới đây là thông tin dự án phần mềm và danh sách các task.
 
-Hãy phân tích và dự đoán các rủi ro tổng thể có thể xảy ra trong dự án này (không đi sâu vào chi tiết từng task).
+Hãy phân tích và dự đoán 3 rủi ro tổng thể có thể xảy ra trong dự án này (không đi sâu vào chi tiết từng task).
 
 Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một rủi ro tiềm ẩn của dự án và các giải pháp đi kèm như sau:
 
@@ -406,8 +406,19 @@ Danh sách task:
 
         try
         {
-            var risksWithSolutions = JsonConvert.DeserializeObject<List<RiskWithSolutionDTO>>(replyText);
-            var risks = _mapper.Map<List<RiskRequestDTO>>(risksWithSolutions);
+            var risks = JsonConvert.DeserializeObject<List<RiskRequestDTO>>(replyText);
+            if (risks == null || risks.Count == 0)
+                throw new Exception("Không tìm thấy rủi ro nào từ phản hồi Gemini.");
+
+            foreach (var risk in risks)
+            {
+                risk.ProjectId = project.Id;
+                risk.ResponsibleId = 1;
+                risk.TaskId = null;
+                risk.GeneratedBy = "AI";
+                risk.RiskScope = "Project"; 
+                risk.IsApproved = false;
+            }
             return risks;
         }
         catch (Exception ex)
