@@ -61,6 +61,32 @@ namespace IntelliPM.Services.DynamicCategoryServices
             return _mapper.Map<List<DynamicCategoryResponseDTO>>(entities);
         }
 
+
+
+        public async Task<List<DynamicCategoryResponseDTO>> GetDynamicCategoryByCategoryGroup(string categoryGroup)
+        {
+            List<DynamicCategory> entities;
+
+            // Nếu không nhập gì, trả về toàn bộ danh sách
+            if (string.IsNullOrEmpty(categoryGroup))
+            {
+                entities = await _repo.GetDynamicCategories();
+            }
+            else
+            {
+                entities = await _repo.GetByCategoryGroupAsync(categoryGroup);
+            }
+
+            if (!entities.Any())
+            {
+                throw new KeyNotFoundException("No matching dynamic categories found.");
+            }
+
+            return _mapper.Map<List<DynamicCategoryResponseDTO>>(entities);
+        }
+
+
+
         public async Task<DynamicCategoryResponseDTO> CreateDynamicCategory(DynamicCategoryRequestDTO request)
         {
             if (request == null)
