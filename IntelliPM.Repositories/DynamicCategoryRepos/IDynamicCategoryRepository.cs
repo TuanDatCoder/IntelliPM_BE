@@ -10,6 +10,7 @@ namespace IntelliPM.Repositories.DynamicCategoryRepos
         Task<List<DynamicCategory>> GetDynamicCategories();
         Task<DynamicCategory> GetByIdAsync(int id);
         Task<List<DynamicCategory>> GetByNameOrCategoryGroupAsync(string name, string categoryGroup);
+        Task<List<DynamicCategory>> GetByCategoryGroupAsync(string categoryGroup);
         Task Add(DynamicCategory dynamicCategory);
         Task Update(DynamicCategory dynamicCategory);
         Task Delete(DynamicCategory dynamicCategory);
