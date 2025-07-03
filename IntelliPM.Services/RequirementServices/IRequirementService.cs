@@ -18,7 +18,7 @@ namespace IntelliPM.Services.RequirementServices
         Task DeleteRequirement(int id);
         Task<RequirementResponseDTO> ChangeRequirementPriority(int id, string priority);
 
-        Task<List<RequirementResponseDTO>> CreateListRequirement(List<RequirementRequestDTO> requests);
+       Task<List<RequirementResponseDTO>> CreateListRequirement(int projectId, List<RequirementBulkRequestDTO> requests);
 
     }
 }
