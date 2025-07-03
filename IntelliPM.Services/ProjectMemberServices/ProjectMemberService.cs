@@ -3,9 +3,6 @@ using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
-using IntelliPM.Data.DTOs.Task.Request;
-using IntelliPM.Data.DTOs.Task.Response;
-using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -14,7 +11,6 @@ using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -122,7 +118,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 {
                     ProjectId = pm.ProjectId,
                     ProjectName = pm.Project.Name,
+                    ProjectKey = pm.Project.ProjectKey,
                     ProjectStatus = pm.Project.Status,
+                    IconUrl = pm.Project.IconUrl,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status
@@ -152,7 +150,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 {
                     ProjectId = pm.ProjectId,
                     ProjectName = pm.Project.Name,
+                    ProjectKey = pm.Project.ProjectKey,
                     ProjectStatus = pm.Project.Status,
+                    IconUrl = pm.Project.IconUrl,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status

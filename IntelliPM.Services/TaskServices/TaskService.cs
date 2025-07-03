@@ -232,8 +232,6 @@ namespace IntelliPM.Services.TaskServices
                 throw new ArgumentException("Project ID must be greater than 0.");
 
             var entities = await _taskRepo.GetByProjectIdAsync(projectId);
-            if (!entities.Any())
-                throw new KeyNotFoundException($"No tasks found for Project ID {projectId}.");
 
             var dtos = _mapper.Map<List<TaskDetailedResponseDTO>>(entities);
             foreach (var dto in dtos)
@@ -243,6 +241,8 @@ namespace IntelliPM.Services.TaskServices
 
             return dtos;
         }
+
+
 
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {

@@ -1,23 +1,33 @@
 ﻿using AutoMapper;
+using FirebaseAdmin.Messaging;
+using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Response;
+using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,8 +45,11 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IEpicService _epicService;
         private readonly ITaskService _taskService;
         private readonly ISubtaskService _subtaskService;
+        private readonly ISprintRepository _sprintRepo;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IMilestoneRepository _milestoneRepo;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -48,6 +61,9 @@ namespace IntelliPM.Services.ProjectServices
             _epicService = epicService;
             _taskService = taskService;
             _subtaskService = subtaskService;
+            _sprintRepo = sprintRepo;
+            _taskRepo = taskRepo;
+            _milestoneRepo = milestoneRepo;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -74,8 +90,20 @@ namespace IntelliPM.Services.ProjectServices
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
-        public async Task<ProjectResponseDTO> CreateProject(ProjectRequestDTO request)
+        public async Task<ProjectResponseDTO> CreateProject(string token, ProjectRequestDTO request)
         {
+            if (string.IsNullOrEmpty(token))
+                throw new ArgumentException("Token is required.", nameof(token));
+
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new ApiException(HttpStatusCode.Unauthorized, "Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new ApiException(HttpStatusCode.NotFound, "User not found.");
+
+
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
@@ -83,6 +111,9 @@ namespace IntelliPM.Services.ProjectServices
                 throw new ArgumentException("Project name is required.", nameof(request.Name));
 
             var entity = _mapper.Map<Project>(request);
+            entity.CreatedBy = currentAccount.Id;
+            entity.IconUrl = "https://res.cloudinary.com/dcv4x7oen/image/upload/v1751353454/project2_abr0nj.png";
+            entity.Status = "PLANNING";
 
             try
             {
@@ -136,6 +167,10 @@ namespace IntelliPM.Services.ProjectServices
                 throw new Exception($"Failed to delete project: {ex.Message}", ex);
             }
         }
+
+
+
+
 
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
@@ -302,7 +337,14 @@ namespace IntelliPM.Services.ProjectServices
                     Status = epic.Status,
                     CommentCount = epic.CommentCount,
                     SprintId = epic.SprintId,
-                    Assignees = new List<string> { epic.AssignedByFullname ?? "Unknown" },
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = epic.AssignedByFullname ?? "Unknown",
+                    Picture = null 
+                }
+            },
                     DueDate = epic.EndDate,
                     Labels = epic.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = epic.CreatedAt,
@@ -324,7 +366,11 @@ namespace IntelliPM.Services.ProjectServices
                     Status = task.Status,
                     CommentCount = task.CommentCount,
                     SprintId = task.SprintId,
-                    Assignees = task.TaskAssignments.Select(a => a.AccountFullname ?? "Unknown").ToList(),
+                    Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
+                    {
+                        Fullname = a.AccountFullname ?? "Unknown",
+                        Picture = a.AccountPicture 
+                    }).ToList(),
                     DueDate = task.PlannedEndDate,
                     Labels = task.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = task.CreatedAt,
@@ -347,7 +393,14 @@ namespace IntelliPM.Services.ProjectServices
                     Status = subtask.Status,
                     CommentCount = subtask.CommentCount,
                     SprintId = subtask.SprintId,
-                    Assignees = new List<string> { subtask.AssignedByFullname ?? "Unknown" },
+                    Assignees = new List<AssigneeDTO>
+            {
+                new AssigneeDTO
+                {
+                    Fullname = subtask.AssignedByFullname ?? "Unknown",
+                    Picture = subtask.AssignedByPicture 
+                }
+            },
                     DueDate = subtask.EndDate,
                     Labels = subtask.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = subtask.CreatedAt,
@@ -359,6 +412,109 @@ namespace IntelliPM.Services.ProjectServices
             }
 
             return workItems.OrderBy(w => w.CreatedAt).ToList();
+        }
+
+        public async Task<bool> CheckProjectKeyExists(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            return project != null;
+        }
+        public async Task<ProjectResponseDTO> GetProjectByKey(string projectKey)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key {projectKey} not found.");
+
+            return _mapper.Map<ProjectResponseDTO>(project);
+        }
+
+        public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null) return null;
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
+            var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+
+            return new ProjectViewDTO
+            {
+                Id = project.Id,
+                ProjectKey = project.ProjectKey,
+                Name = project.Name,
+                Description = project.Description,
+                Budget = project.Budget,
+                ProjectType = project.ProjectType,
+                CreatedBy = project.CreatedBy,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                CreatedAt = project.CreatedAt,
+                UpdatedAt = project.UpdatedAt,
+                IconUrl = project.IconUrl,
+                Status = project.Status,
+
+                Sprints = sprints.Select(s => new SprintResponseDTO
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Goal = s.Goal,
+                    StartDate = s.StartDate,
+                    EndDate = s.EndDate,
+                    Status = s.Status,
+                    CreatedAt = s.CreatedAt,
+                    UpdatedAt = s.UpdatedAt,
+                }).ToList(),
+                Tasks = tasks.Select(t => new TaskResponseDTO
+                {
+                    Id = t.Id,
+                    ReporterId = t.ReporterId,
+                    ProjectId = t.ProjectId,
+                    EpicId = t.EpicId,
+                    SprintId = t.SprintId,
+                    Type = t.Type,
+                    ManualInput = t.ManualInput,
+                    GenerationAiInput = t.GenerationAiInput,
+                    Title = t.Title,
+                    Description = t.Description,
+                    PlannedStartDate = t.PlannedStartDate,
+                    PlannedEndDate = t.PlannedEndDate,
+                    ActualStartDate = t.ActualStartDate,
+                    ActualEndDate = t.ActualEndDate,
+                    Duration = t.Duration,
+                    PercentComplete = t.PercentComplete,
+                    PlannedHours = t.PlannedHours,
+                    ActualHours = t.ActualHours,
+                    RemainingHours = t.RemainingHours,
+                    PlannedCost = t.PlannedCost,
+                    PlannedResourceCost = t.PlannedResourceCost,
+                    ActualCost = t.ActualCost,
+                    ActualResourceCost = t.ActualResourceCost,
+                    Evaluate = t.Evaluate,
+                    Status = t.Status,
+                    Priority = t.Priority,
+                    CreatedAt = t.CreatedAt,
+                    UpdatedAt = t.UpdatedAt,
+                }).ToList(),
+                Milestones = milestones.Select(m => new MilestoneResponseDTO
+                {
+                    Id = m.Id,
+                    ProjectId = m.ProjectId,
+                    SprintId = m.SprintId,
+                    Name = m.Name,
+                    Description = m.Description,
+                    StartDate = m.StartDate,
+                    EndDate = m.EndDate,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
+                    Status = m.Status,
+                }).ToList()
+            };
         }
 
     }

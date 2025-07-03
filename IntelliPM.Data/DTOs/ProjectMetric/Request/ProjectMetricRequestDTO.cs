@@ -38,7 +38,7 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Request
         public DateTime? ProjectedFinishDate { get; set; }
 
         [Range(0, 9999999999999.99, ErrorMessage = "Project Total Cost must be between 0 and 9999999999999.99")]
-        public decimal? ProjectTotalCost { get; set; }
+        public decimal? ProjectedTotalCost { get; set; }
 
         public List<RecommendationSuggestionDTO>? Suggestions { get; set; }
     }
@@ -47,6 +47,7 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Request
     {
         public string Message { get; set; } = null!;
         public string? Reason { get; set; }
+        public string? Label { get; set; }
         public List<RelatedTaskDTO> RelatedTasks { get; set; } = new();
     }
 
