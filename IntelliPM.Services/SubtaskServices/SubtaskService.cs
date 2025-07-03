@@ -76,6 +76,9 @@ namespace IntelliPM.Services.SubtaskServices
             return checklists;
         }
 
+        
+
+
         public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request)
         {
             if (request == null)
@@ -114,6 +117,22 @@ namespace IntelliPM.Services.SubtaskServices
             }
 
             return _mapper.Map<SubtaskResponseDTO>(entity);
+        }
+
+        public async Task<List<SubtaskResponseDTO>> SaveGeneratedSubtasks(List<SubtaskRequest2DTO> previews)
+        {
+            if (previews == null || previews.Count == 0)
+                throw new ArgumentException("No preview subtasks provided");
+
+            var result = new List<SubtaskResponseDTO>();
+
+            foreach (var request in previews)
+            {
+                var created = await Create2Subtask(request);
+                result.Add(created);
+            }
+
+            return result;
         }
 
         public async Task<SubtaskResponseDTO> Create2Subtask(SubtaskRequest2DTO request)
