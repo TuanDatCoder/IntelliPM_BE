@@ -58,8 +58,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("{taskId}")]
-        public async Task<IActionResult> Create(string taskId, [FromBody] SubtaskRequest1DTO request)
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] SubtaskRequest1DTO request)
         {
             if (!ModelState.IsValid)
             {
@@ -68,6 +68,35 @@ namespace IntelliPM.API.Controllers
             try
             {
                 var result = await _service.CreateSubtask(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Subtask created successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating Subtask: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("create2")]
+        public async Task<IActionResult> Create2([FromBody] SubtaskRequest2DTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+            try
+            {
+                var result = await _service.Create2Subtask(request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -243,5 +272,34 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("save-from-preview")]
+        public async Task<IActionResult> SaveGeneratedSubtasks([FromBody] List<SubtaskRequest2DTO> selected)
+        {
+            if (selected == null || selected.Count == 0)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "No subtasks selected" });
+
+            try
+            {
+                var result = await _service.SaveGeneratedSubtasks(selected);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Selected subtasks saved successfully",
+                    Data = result // chứa list có Id / Key
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error saving subtasks: {ex.Message}"
+                });
+            }
+        }
+
     }
 }

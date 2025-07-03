@@ -33,6 +33,10 @@ namespace IntelliPM.Data.DTOs.Risk.Request
         public string? SeverityLevel { get; set; }
 
         public bool IsApproved { get; set; }
+
+        public string? MitigationPlan { get; set; }
+
+        public string? ContingencyPlan { get; set; }
     }
 
 }

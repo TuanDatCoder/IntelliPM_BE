@@ -20,8 +20,19 @@ namespace IntelliPM.Repositories.RiskRepos
 
         public async Task AddAsync(Risk risk)
         {
-            await _context.Risk.AddAsync(risk);
+            _context.Risk.AddAsync(risk);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task ApproveRiskAsync(int riskId)
+        {
+            var risk = await _context.Risk.FindAsync(riskId);
+            if (risk != null)
+            {
+                risk.IsApproved = true;
+                risk.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task DeleteAsync(Risk risk)
@@ -46,7 +57,16 @@ namespace IntelliPM.Repositories.RiskRepos
         public async Task<List<Risk>> GetByProjectIdAsync(int projectId)
         {
             return await _context.Risk
+                .Include(r => r.RiskSolution)
                 .Where(m => m.ProjectId == projectId)
+                .ToListAsync();
+        }
+
+        public async Task<List<Risk>> GetUnapprovedAIRisksByProjectIdAsync(int projectId)
+        {
+            return await _context.Risk
+                .Where(r => r.ProjectId == projectId && r.GeneratedBy == "AI" && !r.IsApproved)
+                .Include(r => r.RiskSolution)
                 .ToListAsync();
         }
 

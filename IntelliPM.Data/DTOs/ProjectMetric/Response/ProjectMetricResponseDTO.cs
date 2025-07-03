@@ -20,7 +20,7 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public int? DelayDays { get; set; }
         public decimal? BudgetOverrun { get; set; }
         public DateTime? ProjectedFinishDate { get; set; }
-        public decimal? ProjectTotalCost { get; set; }
+        public decimal? ProjectedTotalCost { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
