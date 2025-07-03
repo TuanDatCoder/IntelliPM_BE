@@ -21,14 +21,16 @@ namespace IntelliPM.Repositories.SubtaskRepos
         public async Task<List<Subtask>> GetAllSubtask()
         {
             return await _context.Subtask
-                .OrderBy(t => t.Id)
+                .Include(t => t.AssignedByNavigation) // chỉ include navigation property
                 .ToListAsync();
         }
+
 
         public async Task<Subtask?> GetByIdAsync(string id)
         {
             return await _context.Subtask
-                .Include(s => s.Task) 
+                .Include(s => s.Task)
+                .Include(s => s.AssignedByNavigation) 
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
@@ -54,6 +56,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         {
             return await _context.Subtask
                 .Where(tf => tf.TaskId == taskId)
+                .Include(t => t.AssignedByNavigation)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }

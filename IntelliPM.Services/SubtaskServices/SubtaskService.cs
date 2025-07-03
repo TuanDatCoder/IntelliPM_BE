@@ -76,6 +76,9 @@ namespace IntelliPM.Services.SubtaskServices
             return checklists;
         }
 
+        
+
+
         public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request)
         {
             if (request == null)
@@ -113,6 +116,75 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new Exception($"Failed to create subtask: {ex.Message}", ex);
             }
 
+            return _mapper.Map<SubtaskResponseDTO>(entity);
+        }
+
+        public async Task<List<SubtaskResponseDTO>> SaveGeneratedSubtasks(List<SubtaskRequest2DTO> previews)
+        {
+            if (previews == null || previews.Count == 0)
+                throw new ArgumentException("No preview subtasks provided");
+
+            var result = new List<SubtaskResponseDTO>();
+
+            foreach (var request in previews)
+            {
+                var created = await Create2Subtask(request);
+                result.Add(created);
+            }
+
+            return result;
+        }
+
+        public async Task<SubtaskResponseDTO> Create2Subtask(SubtaskRequest2DTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            if (string.IsNullOrEmpty(request.Title))
+                throw new ArgumentException("Subtask title is required.", nameof(request.Title));
+
+            // Lấy thông tin Task để kiểm tra tồn tại
+            var task = await _taskRepo.GetByIdAsync(request.TaskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {request.TaskId} not found.");
+
+            // Lấy Project để lấy ProjectKey cho ID Generator
+            var project = await _projectRepo.GetByIdAsync(task.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {task.ProjectId} not found.");
+
+            var projectKey = project.ProjectKey;
+
+            // Map từ DTO sang Entity
+            var entity = _mapper.Map<Subtask>(request);
+
+            // Tạo ID dạng FLOWER1-6,...
+            entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+
+            // Set mặc định
+            entity.Status = "TO_DO";
+            entity.Priority = "MEDIUM";
+            entity.AssignedBy = null;
+            entity.ManualInput = true;
+            entity.GenerationAiInput = false;
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            // Lưu vào DB
+            try
+            {
+                await _subtaskRepo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to create subtask due to DB error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create subtask: {ex.Message}", ex);
+            }
+
+            // Trả về DTO
             return _mapper.Map<SubtaskResponseDTO>(entity);
         }
 
