@@ -9,15 +9,18 @@ using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -74,8 +77,20 @@ namespace IntelliPM.Services.ProjectServices
             return _mapper.Map<List<ProjectResponseDTO>>(entities);
         }
 
-        public async Task<ProjectResponseDTO> CreateProject(ProjectRequestDTO request)
+        public async Task<ProjectResponseDTO> CreateProject(string token, ProjectRequestDTO request)
         {
+            if (string.IsNullOrEmpty(token))
+                throw new ArgumentException("Token is required.", nameof(token));
+
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new ApiException(HttpStatusCode.Unauthorized, "Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new ApiException(HttpStatusCode.NotFound, "User not found.");
+
+
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
@@ -83,6 +98,9 @@ namespace IntelliPM.Services.ProjectServices
                 throw new ArgumentException("Project name is required.", nameof(request.Name));
 
             var entity = _mapper.Map<Project>(request);
+            entity.CreatedBy = currentAccount.Id;
+            entity.IconUrl = "https://res.cloudinary.com/dcv4x7oen/image/upload/v1751353454/project2_abr0nj.png";
+            entity.Status = "PLANNING";
 
             try
             {

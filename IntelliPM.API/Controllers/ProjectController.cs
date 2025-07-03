@@ -141,9 +141,16 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER")]
         public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
         {
+
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
@@ -151,7 +158,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateProject(request);
+                var result = await _service.CreateProject(token,request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,

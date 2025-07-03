@@ -39,6 +39,14 @@ namespace IntelliPM.Repositories.DynamicCategoryRepos
                 .OrderBy(dc => dc.OrderIndex)
                 .ToListAsync();
         }
+        public async Task<List<DynamicCategory>> GetByCategoryGroupAsync(string categoryGroup)
+        {
+            return await _context.DynamicCategory
+                .Where(dc => dc.IsActive &&
+                             (string.IsNullOrEmpty(categoryGroup) || dc.CategoryGroup == categoryGroup))
+                .OrderBy(dc => dc.OrderIndex)
+                .ToListAsync();
+        }
 
         public async Task Add(DynamicCategory dynamicCategory)
         {
