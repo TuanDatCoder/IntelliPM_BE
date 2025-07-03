@@ -14,5 +14,7 @@ namespace IntelliPM.Repositories.TaskCommentRepos
         Task Add(TaskComment taskComment);
         Task Update(TaskComment taskComment);
         Task Delete(TaskComment taskComment);
+        Task<List<TaskComment>> GetTaskCommentByTaskIdAsync(string taskId);
+
     }
 }

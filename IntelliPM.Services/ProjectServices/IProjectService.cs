@@ -13,12 +13,15 @@ namespace IntelliPM.Services.ProjectServices
         Task<List<ProjectResponseDTO>> GetAllProjects();
         Task<ProjectResponseDTO> GetProjectById(int id);
         Task<List<ProjectResponseDTO>> SearchProjects(string searchTerm, string? projectType, string? status);
-        Task<ProjectResponseDTO> CreateProject(ProjectRequestDTO request);
+        Task<ProjectResponseDTO> CreateProject(string token, ProjectRequestDTO request);
         Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request);
         Task DeleteProject(int id);
         Task<ProjectDetailsDTO> GetProjectDetails(int id);
         Task<string> SendEmailToProjectManager(int projectId, string token);
         Task<string> SendInvitationsToTeamMembers(int projectId, string token);
         Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId);
+        Task<bool> CheckProjectKeyExists(string projectKey);
+        Task<ProjectResponseDTO> GetProjectByKey(string projectKey);
+        Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey);
     }
 }
