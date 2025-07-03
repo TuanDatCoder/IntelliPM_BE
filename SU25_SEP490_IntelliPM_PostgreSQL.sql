@@ -599,9 +599,9 @@ CREATE TABLE meeting_reschedule_request (
 INSERT INTO account (username, full_name, email, password, role, position, phone, gender, google_id, status, address, picture)
 VALUES 
     ('admin', 'Nguyen Van Admin', 'admin@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'ADMIN', 'ADMIN', '0901234567', 'MALE', 'googleID1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_LEADER', 'TEAM_LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('teamLeader', 'Nguyen Van A', 'teamleader@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_LEADER', 'TEAM_LEADER', '0901234567', 'MALE', 'google1', 'VERIFIED', 'Ha Noi', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518375/z6546708478561_a4d16f85e1617d0f8cfa1524f44e51f6_thpbov.jpg'),
     ('client', 'Nguyen Van KH', 'client@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'CLIENT', 'CLIENT', '0901234567', 'MALE', 'google2', 'VERIFIED', 'Ha Noi', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
-    ('projectManager', 'Tran Thi B', 'projectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT_MANAGER', 'PROJECT_MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
+    ('projectManager', 'Tran Thi B', 'projectmanager@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'PROJECT_MANAGER', 'PROJECT_MANAGER', '0907654321', 'MALE', 'google3', 'VERIFIED', 'Ho Chi Minh', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518452/z5320227395399_017_a673556c6dc7718c178654828bdbba1d_qtszvc.jpg'),
     ('teamMemberFE', 'Le Van C', 'teammemberfe@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0912345678', 'MALE', NULL, 'VERIFIED', 'Da Nang', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('teamMemberFE2', 'Pham Van D', 'teamMemberfe2@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0923456789', 'MALE', 'google4', 'VERIFIED', 'Can Tho', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
     ('teamMemberFE3', 'Hoang Van E', 'teamMemberfe3@gmail.com', '8776f108e247ab1e2b323042c049c266407c81fbad41bde1e8dfc1bb66fd267e', 'TEAM_MEMBER', 'FRONTEND_DEVELOPER', '0934567890', 'MALE', 'google5', 'VERIFIED', 'Hai Phong', 'https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219'),
@@ -632,11 +632,11 @@ VALUES
 -- Insert sample data into project (gán project_key + icon_url)
 INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url, status)
 VALUES 
-    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-a.png', 'IN_PROGRESS'),
-    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'https://example.com/icons/project-b.png', 'PLANNING'),
-    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'https://example.com/icons/project-c.png', 'ON_HOLD'),
-    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://example.com/icons/project-d.png', 'COMPLETED'),
-    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://example.com/icons/project-e.png', 'IN_REVIEW');
+    ('PROJA', 'Project A', 'Development project', 1000000.00, 'WEB_APPLICATION', 1, '2025-06-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517835/iconProject2_qawavf.svg', 'IN_PROGRESS'),
+    ('PROJB', 'Project B', 'Marketing campaign', 500000.00, 'WEB_APPLICATION', 2, '2025-07-01 00:00:00+00', '2025-09-01 00:00:00+00', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517982/iconProject3_c2v4bp.svg', 'PLANNING'),
+    ('PROJC', 'Project C', 'Research project', 750000.00, 'WEB_APPLICATION', 3, '2025-08-01 00:00:00+00', '2025-11-01 00:00:00+00', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518033/iconProject4_lfhkgf.svg', 'ON_HOLD'),
+    ('PROJD', 'Project D', 'UI/UX Design', 300000.00, 'WEB_APPLICATION', 4, '2025-09-01 00:00:00+00', '2025-10-01 00:00:00+00', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517675/iconProject1_fkaeja.svg', 'COMPLETED'),
+    ('PROJE', 'Project E', 'Testing project', 400000.00, 'WEB_APPLICATION', 5, '2025-10-01 00:00:00+00', '2025-12-01 00:00:00+00', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517835/iconProject2_qawavf.svg', 'IN_REVIEW');
 
 -- Insert sample data into project_member
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status, hourly_rate)
@@ -986,6 +986,13 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
+    ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
+	('requirement_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
+    ('requirement_priority', 'HIGH', 'High', 'High priority requirement', 2, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517070/high_new_urjrrl.svg', '#f15c75'),
+    ('requirement_priority', 'MEDIUM', 'Medium', 'Medium priority requirement', 3, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517013/medium_new_iobtik.svg', '#f79232'),
+    ('requirement_priority', 'LOW', 'Low', 'Low priority requirement', 4, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516829/low_new_uldiwt.svg', '#707070'),
+    ('requirement_priority', 'LOWEST', 'Lowest', 'Lowest priority requirement', 5, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516920/lowest_new_q8dvr8.svg', '#999'),
     ('epic_status', 'TO_DO', 'To Do', 'Epic not started yet', 1, 'https://example.com/icons/to-do.png', '##dddee1'),
     ('epic_status', 'IN_PROGRESS', 'In Progress', 'Epic is in progress', 2, NULL, '#87b1e1'),
     ('epic_status', 'DONE', 'Done', 'Epic has been completed', 3, NULL, '#b2da73'),
@@ -1082,18 +1089,16 @@ VALUES
     ('recommendation_type', 'TESTING', 'Testing', 'Testing recommendation', 5, NULL, NULL),
     ('label_status', 'ACTIVE', 'Active', 'Active label', 1, NULL, NULL),
     ('label_status', 'DELETED', 'Deleted', 'Deleted label', 2, NULL, NULL),
-    ('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional requirement', 1, NULL, NULL),
-    ('requirement_type', 'NON_FUNCTIONAL', 'Non-Functional', 'Non-functional requirement', 2, NULL, NULL),
     ('project_member_status', 'CREATED', 'Created', 'Project member newly created', 1, NULL, NULL),
     ('project_member_status', 'INVITED', 'Invited', 'Project member invited to join', 2, NULL, NULL),
     ('project_member_status', 'ACTIVE', 'Active', 'Project member active in project', 3, NULL, NULL),
     ('project_member_status', 'BANNED', 'Banned', 'Project member banned, no access', 4, NULL, NULL),
     ('project_member_status', 'DELETED', 'Deleted', 'Project member deleted from project', 5, NULL, NULL),
-    ('task_priority', 'HIGHEST', 'Highest', 'Highest priority task', 1, NULL, NULL),
-    ('task_priority', 'HIGH', 'High', 'High priority task', 2, NULL, NULL),
-    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority task', 3, NULL, NULL),
-    ('task_priority', 'LOW', 'Low', 'Low priority task', 4, NULL, NULL),
-    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority task', 5, NULL, NULL),
+	('task_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
+    ('task_priority', 'HIGH', 'High', 'High priority requirement', 2, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517070/high_new_urjrrl.svg', '#f15c75'),
+    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority requirement', 3, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517013/medium_new_iobtik.svg', '#f79232'),
+    ('task_priority', 'LOW', 'Low', 'Low priority requirement', 4, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516829/low_new_uldiwt.svg', '#707070'),
+    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority requirement', 5, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516920/lowest_new_q8dvr8.svg', '#999'),
     ('subtask_priority', 'HIGHEST', 'Highest', 'Highest priority subtask', 1, NULL, NULL),
     ('subtask_priority', 'HIGH', 'High', 'High priority subtask', 2, NULL, NULL),
     ('subtask_priority', 'MEDIUM', 'Medium', 'Medium priority subtask', 3, NULL, NULL),
@@ -1125,9 +1130,9 @@ VALUES
 	-- Update 19/06/2025
 	
 -- Chèn dữ liệu mẫu cho dự án Online Flower Shop
-INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url,status)
 VALUES 
-    ('FLOWER1', 'Online Flower Shop', 'Phát triển một website thương mại điện tử để bán hoa tươi trực tuyến, cung cấp các tính năng như danh mục sản phẩm (hoa theo dịp, hoa bó, hoa chậu), giỏ hàng, thanh toán trực tuyến, và quản lý đơn hàng. Website sẽ có giao diện thân thiện, tích hợp hệ thống khuyến mãi, và hỗ trợ giao hàng nhanh trong 24 giờ.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'IN_PROGRESS');
+    ('FLOWER1', 'Online Flower Shop', 'Phát triển một website thương mại điện tử để bán hoa tươi trực tuyến, cung cấp các tính năng như danh mục sản phẩm (hoa theo dịp, hoa bó, hoa chậu), giỏ hàng, thanh toán trực tuyến, và quản lý đơn hàng. Website sẽ có giao diện thân thiện, tích hợp hệ thống khuyến mãi, và hỗ trợ giao hàng nhanh trong 24 giờ.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518181/iconProject5_xejcga.svg','IN_PROGRESS');
 
 -- Chèn dữ liệu mẫu cho project_member (ít nhất 10 thành viên)
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
@@ -1171,7 +1176,7 @@ VALUES
 	------------------------------------------------------------------------------------------
 	-- Insert sample data for the project "Online Course Platform"
 -- Insert project
-INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, status)
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url,status)
 VALUES 
 (
     'COURSE',
@@ -1182,6 +1187,7 @@ VALUES
     1,
     '2025-06-20 00:00:00+07',
     '2025-12-20 00:00:00+07',
+	'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518212/iconProject6_nd1hhy.svg',
     'IN_PROGRESS'
 );
 
