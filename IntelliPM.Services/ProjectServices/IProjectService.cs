@@ -13,7 +13,7 @@ namespace IntelliPM.Services.ProjectServices
         Task<List<ProjectResponseDTO>> GetAllProjects();
         Task<ProjectResponseDTO> GetProjectById(int id);
         Task<List<ProjectResponseDTO>> SearchProjects(string searchTerm, string? projectType, string? status);
-        Task<ProjectResponseDTO> CreateProject(ProjectRequestDTO request);
+        Task<ProjectResponseDTO> CreateProject(string token, ProjectRequestDTO request);
         Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request);
         Task DeleteProject(int id);
         Task<ProjectDetailsDTO> GetProjectDetails(int id);

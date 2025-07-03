@@ -98,9 +98,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ProjectType, opt => opt.MapFrom(src => src.ProjectType))
-                .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy))
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
                 .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget));
@@ -195,6 +193,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Requirement, RequirementResponseDTO>();
             CreateMap<RequirementResponseDTO, RequirementRequestDTO>();
+            CreateMap<RequirementBulkRequestDTO, RequirementRequestDTO>();
+
 
             //Risk
             CreateMap<Risk, RiskResponseDTO>()
