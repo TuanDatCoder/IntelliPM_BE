@@ -118,6 +118,11 @@ namespace IntelliPM.Services.MeetingSummaryServices
                 .Select(mp => mp.MeetingId)
                 .ToListAsync();
 
+            // Lấy thông tin các cuộc họp
+            var meetings = await _context.Meeting
+                .Where(m => meetingIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id, m => m.MeetingTopic);
+
             // Lấy tất cả transcript của các meeting này
             var transcripts = await _context.MeetingTranscript
                 .Where(mt => meetingIds.Contains(mt.MeetingId))
@@ -129,6 +134,11 @@ namespace IntelliPM.Services.MeetingSummaryServices
                 .Where(ms => transcriptIds.Contains(ms.MeetingTranscriptId))
                 .ToListAsync();
 
+            // Lấy trạng thái milestone feedback
+            var feedbacks = await _context.MilestoneFeedback
+                .Where(fb => meetingIds.Contains(fb.MeetingId))
+                .ToListAsync();
+
             var result = new List<MeetingSummaryResponseDTO>();
 
             foreach (var meetingId in meetingIds)
@@ -138,17 +148,24 @@ namespace IntelliPM.Services.MeetingSummaryServices
                     ? summaries.FirstOrDefault(s => s.MeetingTranscriptId == transcript.MeetingId)
                     : null;
 
+                // Lấy trạng thái APPROVED
+                var isApproved = feedbacks.Any(fb => fb.MeetingId == meetingId && fb.Status == "approved");
+
                 var dto = new MeetingSummaryResponseDTO
                 {
                     MeetingTranscriptId = transcript?.MeetingId ?? meetingId,
                     SummaryText = summary?.SummaryText ?? "Chờ cập nhật",
                     TranscriptText = transcript?.TranscriptText ?? "Chờ cập nhật",
-                    CreatedAt = summary?.CreatedAt ?? DateTime.MinValue
+                    CreatedAt = summary?.CreatedAt ?? DateTime.MinValue,
+                    MeetingTopic = meetings.TryGetValue(meetingId, out var topic) ? topic : "Chờ cập nhật",
+                    IsApproved = isApproved
                 };
                 result.Add(dto);
             }
 
             return result;
         }
+
+        
     }
 }
