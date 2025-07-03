@@ -272,5 +272,34 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("save-from-preview")]
+        public async Task<IActionResult> SaveGeneratedSubtasks([FromBody] List<SubtaskRequest2DTO> selected)
+        {
+            if (selected == null || selected.Count == 0)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "No subtasks selected" });
+
+            try
+            {
+                var result = await _service.SaveGeneratedSubtasks(selected);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Selected subtasks saved successfully",
+                    Data = result // chứa list có Id / Key
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error saving subtasks: {ex.Message}"
+                });
+            }
+        }
+
     }
 }
