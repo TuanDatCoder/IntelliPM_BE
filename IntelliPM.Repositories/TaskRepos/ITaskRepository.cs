@@ -13,6 +13,7 @@ namespace IntelliPM.Repositories.TaskRepos
         Task<Tasks?> GetByIdAsync(string id);
         Task<List<Tasks>> GetByTitleAsync(string title);
         Task<List<Tasks>> GetByProjectIdAsync(int projectId);
+        Task<List<Tasks>> GetByEpicIdAsync(string epicId);
         Task Add(Tasks task);
         Task Update(Tasks task);
         Task Delete(Tasks task);
