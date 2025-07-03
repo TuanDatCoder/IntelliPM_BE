@@ -64,6 +64,13 @@ namespace IntelliPM.Repositories.TaskRepos
                 .ToListAsync();
         }
 
+        public async Task<List<Tasks>> GetByEpicIdAsync(string epicId)
+        {
+            return await _context.Tasks
+                .Where(t => t.EpicId == epicId)
+                .ToListAsync();
+        }
+
         public async Task<string> GetProjectKeyByTaskIdAsync(string taskId)
         {
             var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
