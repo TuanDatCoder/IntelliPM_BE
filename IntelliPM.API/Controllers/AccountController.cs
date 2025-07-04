@@ -186,5 +186,26 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{email}")]
+        public async Task<IActionResult> GetById(string email)
+        {
+            try
+            {
+                var category = await _accountService.GetAccountByEmail(email);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Account retrieved successfully",
+                    Data = category
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+
     }
 }
