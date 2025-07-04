@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
@@ -11,12 +10,7 @@ using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.ProjectMemberServices
 {
@@ -238,7 +232,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             if (requests == null || !requests.Any())
                 throw new ArgumentException("Request list cannot be null or empty.");
 
-        
+
             var checkCurrent = await _projectMemberRepo.GetByAccountAndProjectAsync(currentAccount.Id, projectId);
             if (checkCurrent == null)
             {
@@ -272,39 +266,42 @@ namespace IntelliPM.Services.ProjectMemberServices
             foreach (var request in requests)
             {
                 var existingMember = await _projectMemberRepo.GetByAccountAndProjectAsync(request.AccountId, projectId);
-                if (existingMember != null)
-                    throw new InvalidOperationException($"Account ID {request.AccountId} is already a member of Project ID {projectId}.");
-
-                var memberEntity = new ProjectMember
+                if (existingMember == null)
                 {
-                    AccountId = request.AccountId,
-                    ProjectId = projectId,
-                    JoinedAt = request.AccountId == currentAccount.Id ? DateTime.UtcNow : null,
-                    InvitedAt = DateTime.UtcNow,
-                    Status = "CREATED"
-                };
-                await _projectMemberRepo.Add(memberEntity);
-
-                var positionEntities = new List<ProjectPosition>();
-                foreach (var position in request.Positions)
-                {
-                    if (string.IsNullOrEmpty(position))
-                        throw new ArgumentException("Position cannot be null or empty.", nameof(position));
-
-                    var positionEntity = new ProjectPosition
+                    var memberEntity = new ProjectMember
                     {
-                        ProjectMemberId = memberEntity.Id,
-                        Position = position,
-                        AssignedAt = DateTime.UtcNow
+                        AccountId = request.AccountId,
+                        ProjectId = projectId,
+                        JoinedAt = request.AccountId == currentAccount.Id ? DateTime.UtcNow : null,
+                        InvitedAt = DateTime.UtcNow,
+                        Status = "CREATED"
                     };
-                    await _projectPositionRepo.Add(positionEntity);
-                    positionEntities.Add(positionEntity);
+                    await _projectMemberRepo.Add(memberEntity);
+
+                    var positionEntities = new List<ProjectPosition>();
+                    foreach (var position in request.Positions)
+                    {
+                        if (string.IsNullOrEmpty(position))
+                            throw new ArgumentException("Position cannot be null or empty.", nameof(position));
+
+                        var positionEntity = new ProjectPosition
+                        {
+                            ProjectMemberId = memberEntity.Id,
+                            Position = position,
+                            AssignedAt = DateTime.UtcNow
+                        };
+                        await _projectPositionRepo.Add(positionEntity);
+                        positionEntities.Add(positionEntity);
+                    }
+
+                    var updatedMember = await _projectMemberRepo.GetByIdAsync(memberEntity.Id);
+                    var response = _mapper.Map<ProjectMemberWithPositionsResponseDTO>(updatedMember);
+                    response.ProjectPositions = _mapper.Map<List<ProjectPositionResponseDTO>>(positionEntities);
+                    memberResponses.Add(response);
+
                 }
 
-                var updatedMember = await _projectMemberRepo.GetByIdAsync(memberEntity.Id);
-                var response = _mapper.Map<ProjectMemberWithPositionsResponseDTO>(updatedMember);
-                response.ProjectPositions = _mapper.Map<List<ProjectPositionResponseDTO>>(positionEntities);
-                memberResponses.Add(response);
+
             }
 
             return memberResponses;
@@ -312,7 +309,7 @@ namespace IntelliPM.Services.ProjectMemberServices
 
         public async Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId)
         {
-          
+
             var members = await _projectMemberRepo.GetAllProjectMembers(projectId);
             if (members == null || !members.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
@@ -332,7 +329,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                     response.FullName = account.FullName;
                     response.Username = account.Username;
                     response.Picture = account.Picture;
-                    response.Email = account.Email; 
+                    response.Email = account.Email;
                 }
 
                 responses.Add(response);
@@ -344,5 +341,5 @@ namespace IntelliPM.Services.ProjectMemberServices
     }
 }
 
-    
+
 
