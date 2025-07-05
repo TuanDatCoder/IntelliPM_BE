@@ -116,7 +116,8 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost("bulk")]
-        public async Task<IActionResult> CreateBulk(int projectId, [FromBody] List<RequirementRequestDTO> requests)
+        [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
+        public async Task<IActionResult> CreateBulk(int projectId, [FromBody] List<RequirementBulkRequestDTO> requests)
         {
             if (!ModelState.IsValid)
             {
@@ -130,15 +131,8 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                foreach (var request in requests)
-                {
-                    if (request.ProjectId != projectId)
-                    {
-                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID in request does not match URL." });
-                    }
-                }
-
-                var result = await _service.CreateListRequirement(requests);
+        
+                var result = await _service.CreateListRequirement(projectId, requests);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,

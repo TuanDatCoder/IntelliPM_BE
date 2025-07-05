@@ -121,11 +121,10 @@ namespace IntelliPM.Services.RiskServices
 
             foreach (var riskDto in risks)
             {
-                // Dùng AutoMapper hoặc mapping thủ công tay
                 var riskEntity = _mapper.Map<Risk>(riskDto);
                 riskEntity.ProjectId = project.Id;
                 riskEntity.TaskId = null;
-                riskEntity.ResponsibleId = 1; // đã cho null được
+                riskEntity.ResponsibleId = 1; // đổi lại có thể cho null được
                 riskEntity.RiskScope = "Project";
                 riskEntity.GeneratedBy = "AI";
                 riskEntity.Status = "Pending";
@@ -135,7 +134,7 @@ namespace IntelliPM.Services.RiskServices
 
                 await _riskRepo.AddAsync(riskEntity);
 
-                var solutionEntity = new RiskSolution
+            var solutionEntity = new RiskSolution
                 {
                     RiskId = riskEntity.Id,
                     MitigationPlan = riskDto.MitigationPlan,
@@ -147,13 +146,100 @@ namespace IntelliPM.Services.RiskServices
                 await _riskSolutionRepo.AddAsync(solutionEntity);
 
                 var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
+                savedDto.MitigationPlan = riskDto.MitigationPlan;
+                savedDto.ContingencyPlan = riskDto.ContingencyPlan;
+
                 savedRisks.Add(savedDto);
             }
 
             return savedRisks;
         }
 
+        public async Task<List<RiskRequestDTO>> DetectProjectRisksAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId)
+                ?? throw new Exception("Project not found");
 
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var risks = await _geminiService.DetectProjectRisksAsync(project, tasks);
+
+            return risks ?? new List<RiskRequestDTO>();
+        }
+
+        public async Task<List<RiskRequestDTO>> SaveProjectRisksAsync(List<RiskRequestDTO> risks)
+        {
+            var saved = new List<RiskRequestDTO>();
+
+            foreach (var dto in risks)
+            {
+                var riskEntity = _mapper.Map<Risk>(dto);
+                riskEntity.Id = 0; // reset nếu dùng lại dto
+                riskEntity.ProjectId = dto.ProjectId;
+                riskEntity.Status = "Approved";
+                riskEntity.GeneratedBy = "AI";
+                riskEntity.IsApproved = true;
+                riskEntity.CreatedAt = DateTime.UtcNow;
+                riskEntity.UpdatedAt = DateTime.UtcNow;
+
+                try
+                {
+                    await _riskRepo.AddAsync(riskEntity);
+
+                    var solution = new RiskSolution
+                    {
+                        RiskId = riskEntity.Id, // <-- nếu Id vẫn = 0 => lỗi
+                        MitigationPlan = dto.MitigationPlan,
+                        ContingencyPlan = dto.ContingencyPlan,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _riskSolutionRepo.AddAsync(solution);
+                    var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
+                    savedDto.MitigationPlan = solution.MitigationPlan;
+                    savedDto.ContingencyPlan = solution.ContingencyPlan;
+
+                    saved.Add(savedDto);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Lỗi khi lưu Risk hoặc RiskSolution:\n" + ex.InnerException?.Message ?? ex.Message);
+                }
+
+
+                //await _riskRepo.AddAsync(riskEntity);
+                //if (riskEntity.Id == 0)
+                //    throw new Exception("Risk entity ID not set after save.");
+
+                //var solution = new RiskSolution
+                //{
+                //    RiskId = riskEntity.Id,
+                //    MitigationPlan = dto.MitigationPlan,
+                //    ContingencyPlan = dto.ContingencyPlan,
+                //    CreatedAt = DateTime.UtcNow,
+                //    UpdatedAt = DateTime.UtcNow
+                //};
+
+                //await _riskSolutionRepo.AddAsync(solution);
+
+                //var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
+                //savedDto.MitigationPlan = solution.MitigationPlan;
+                //savedDto.ContingencyPlan = solution.ContingencyPlan;
+
+                //saved.Add(savedDto);
+            }
+
+            return saved;
+        }
+
+        public async Task<List<RiskResponseDTO>> GetByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
+
+            return _mapper.Map<List<RiskResponseDTO>>(risks);
+        }
     }
 
 }

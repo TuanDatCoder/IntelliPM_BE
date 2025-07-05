@@ -98,9 +98,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ProjectType, opt => opt.MapFrom(src => src.ProjectType))
-                .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy))
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
                 .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget));
@@ -195,16 +193,27 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Requirement, RequirementResponseDTO>();
             CreateMap<RequirementResponseDTO, RequirementRequestDTO>();
+            CreateMap<RequirementBulkRequestDTO, RequirementRequestDTO>();
+
 
             //Risk
+            //CreateMap<Risk, RiskResponseDTO>()
+            //    .ForMember(dest => dest.ResponsibleName, opt => opt.MapFrom(src => src.Responsible.FullName))
+            //    .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
+
+            //CreateMap<RiskRequestDTO, Risk>();
+            //CreateMap<Risk, RiskRequestDTO>()
+            //    .ForMember(dest => dest.MitigationPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().MitigationPlan))
+            //    .ForMember(dest => dest.ContingencyPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().ContingencyPlan));
+
             CreateMap<Risk, RiskResponseDTO>()
                 .ForMember(dest => dest.ResponsibleName, opt => opt.MapFrom(src => src.Responsible.FullName))
                 .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
-
-            CreateMap<RiskRequestDTO, Risk>();
-            CreateMap<Risk, RiskRequestDTO>()
-                .ForMember(dest => dest.MitigationPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().MitigationPlan))
-                .ForMember(dest => dest.ContingencyPlan, opt => opt.MapFrom(src => src.RiskSolution.FirstOrDefault().ContingencyPlan));
+            CreateMap<RiskRequestDTO, Risk>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
             //RiskSolution
             CreateMap<RiskSolution, RiskSolutionResponseDTO>()
@@ -212,16 +221,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt.ToLocalTime()));
 
             CreateMap<RiskSolutionRequestDTO, RiskSolution>();
-            CreateMap<RiskWithSolutionDTO, RiskRequestDTO>();
-
-            CreateMap<RiskWithSolutionDTO, Risk>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-
-            CreateMap<Risk, RiskRequestDTO>();
-
-
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
@@ -238,18 +237,28 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<MeetingParticipant, MeetingParticipantResponseDTO>();
 
-            // TaskSubtask
+            // Subtask
             CreateMap<SubtaskRequestDTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-            CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<Subtask, SubtaskResponseDTO>()
+    .ForMember(dest => dest.AssignedByName,
+        opt => opt.MapFrom(src => src.AssignedByNavigation != null
+            ? src.AssignedByNavigation.FullName
+            : null));
+
 
             CreateMap<SubtaskRequest1DTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-            CreateMap<Subtask, SubtaskResponseDTO>();
+
+            CreateMap<SubtaskRequest2DTO, Subtask>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
             CreateMap<Subtask, SubtaskDetailedResponseDTO>()
                 .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
