@@ -71,6 +71,28 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpGet("by-category-group")]
+        public async Task<IActionResult> GetByCategoryGroup([FromQuery] string categoryGroup)
+        {
+            try
+            {
+                var categories = await _dynamicCategoryService.GetDynamicCategoryByCategoryGroup(categoryGroup);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Dynamic categories retrieved successfully",
+                    Data = categories
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] DynamicCategoryRequestDTO request)
         {
