@@ -35,17 +35,56 @@ namespace IntelliPM.API.Controllers
             });
         }
 
-        [HttpGet("by-project")]
+        [HttpGet("by-project-id")]
         public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
         {
-            var result = await _riskService.GetByProjectIdAsync(projectId);
-            return Ok(new ApiResponseDTO
+            try
             {
-                IsSuccess = true,
-                Code = 200,
-                Message = "Fetched risks by project",
-                Data = result
-            });
+                var result = await _riskService.GetByProjectIdAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Fetched risks by project",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+        [HttpGet("by-project-key")]
+        public async Task<IActionResult> GetByProjectKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _riskService.GetByProjectKeyAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Fetched risks by project",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}",
+                    Data = null
+                });
+            }
         }
 
         [HttpGet("{id}")]
@@ -130,6 +169,62 @@ namespace IntelliPM.API.Controllers
                 return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
             }
         }
+
+        [HttpGet("view-project-risks")]
+        public async Task<IActionResult> ViewProjectRisks([FromQuery] int projectId)
+        {
+            try
+            {
+                var risks = await _riskService.DetectProjectRisksAsync(projectId);
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Project risks detected successfully",
+                    data = risks
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("save-approved-risks")]
+        public async Task<IActionResult> SaveApprovedRisks([FromBody] List<RiskRequestDTO> risks)
+        {
+            try
+            {
+                if (risks == null || !risks.Any())
+                    return BadRequest(new { isSuccess = false, message = "Empty risk list" });
+
+                var saved = await _riskService.SaveProjectRisksAsync(risks);
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Risks saved successfully",
+                    data = saved
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 500,
+                    message = ex.Message
+                });
+            }
+        }
+
 
     }
 }

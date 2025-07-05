@@ -191,6 +191,17 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<List<TaskResponseDTO>>(entities);
         }
 
+        public async Task<List<TaskResponseDTO>> GetTasksByEpicIdAsync(string epicId)
+        {
+
+            var entities = await _taskRepo.GetByEpicIdAsync(epicId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No tasks found for epic ID {epicId}.");
+
+            return _mapper.Map<List<TaskResponseDTO>>(entities);
+        }
+
         public async Task<TaskResponseDTO> ChangeTaskType(string id, string type)
         {
             if (string.IsNullOrEmpty(type))

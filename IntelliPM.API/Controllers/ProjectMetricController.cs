@@ -41,11 +41,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("health-dashboard")]
-        public async Task<IActionResult> GetProjectHealth([FromQuery] int projectId)
+        public async Task<IActionResult> GetProjectHealth([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.GetProjectHealthAsync(projectId);
+                var result = await _service.GetProjectHealthAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -117,11 +117,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("tasks-dashboard")]
-        public async Task<IActionResult> GetTaskStatusDashboard([FromQuery] int projectId)
+        public async Task<IActionResult> GetTaskStatusDashboard([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.GetTaskStatusDashboardAsync(projectId);
+                var result = await _service.GetTaskStatusDashboardAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -137,11 +137,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("progress-dashboard")]
-        public async Task<IActionResult> GetProgressDashboard([FromQuery] int projectId)
+        public async Task<IActionResult> GetProgressDashboard([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.GetProgressDashboardAsync(projectId);
+                var result = await _service.GetProgressDashboardAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -157,11 +157,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("time-dashboard")]
-        public async Task<IActionResult> GetTimeDashboard([FromQuery] int projectId)
+        public async Task<IActionResult> GetTimeDashboard([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.GetTimeDashboardAsync(projectId);
+                var result = await _service.GetTimeDashboardAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -177,11 +177,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("cost-dashboard")]
-        public async Task<IActionResult> GetCostDashboard([FromQuery] int projectId)
+        public async Task<IActionResult> GetCostDashboard([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.GetCostDashboardAsync(projectId);
+                var result = await _service.GetCostDashboardAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -197,11 +197,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("workload-dashboard")]
-        public async Task<IActionResult> GetWorkloadDashboard([FromQuery] int projectId)
+        public async Task<IActionResult> GetWorkloadDashboard([FromQuery] string projectKey)
         {
             try
             {
-                var data = await _service.GetWorkloadDashboardAsync(projectId);
+                var data = await _service.GetWorkloadDashboardAsync(projectKey);
                 return Ok(new
                 {
                     isSuccess = true,
@@ -216,12 +216,12 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("calculate-and-save")]
-        public async Task<IActionResult> CalculateAndSaveMetrics([FromQuery] int projectId)
+        [HttpPost("calculate-metrics-by-ai")]
+        public async Task<IActionResult> CalculateAndSaveMetrics([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.CalculateAndSaveProjectMetricsAsync(projectId);
+                var result = await _service.CalculateProjectMetricsByAIAsync(projectKey);
                 return Ok(new
                 {
                     isSuccess = true,

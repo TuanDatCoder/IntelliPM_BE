@@ -11,6 +11,7 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public string Id { get; set; } = null!;
         public string TaskId { get; set; } = null!;
         public int AssignedBy { get; set; }
+        public string? AssignedByName { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public int? ReporterId { get; set; }
