@@ -90,6 +90,7 @@ using IntelliPM.Repositories.RiskSolutionRepos;
 
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -182,6 +183,7 @@ builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
+
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>

@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
+using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Services.DocumentServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -78,6 +79,21 @@ namespace IntelliPM.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("{documentId}/share")]
+        public async Task<IActionResult> ShareDocument(int documentId, [FromBody] ShareDocumentRequestDTO req)
+        {
+            try
+            {
+                var result = await _documentService.ShareDocumentByEmail(documentId, req);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
 
 
     }
