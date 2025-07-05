@@ -15,6 +15,8 @@ namespace IntelliPM.Data.DTOs.DynamicCategory.Response
         public string Description { get; set; }
         public bool IsActive { get; set; }
         public int OrderIndex { get; set; }
+        public string? IconLink { get; set; }
+        public string? Color { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

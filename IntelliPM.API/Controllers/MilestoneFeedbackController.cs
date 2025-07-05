@@ -51,5 +51,12 @@ namespace IntelliPM.API.Controllers
             await _service.DeleteFeedbackAsync(id);
             return NoContent();
         }
+
+        [HttpGet("meeting/{meetingId}/rejected-feedbacks")]
+        public async Task<IActionResult> GetRejectedFeedbacks(int meetingId)
+        {
+            var result = await _service.GetRejectedFeedbacksByMeetingIdAsync(meetingId);
+            return Ok(result);
+        }
     }
 }

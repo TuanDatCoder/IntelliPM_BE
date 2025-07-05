@@ -8,5 +8,7 @@
         public string FeedbackText { get; set; } = null!;
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public string? AccountName { get; set; }
     }
 }

@@ -22,5 +22,8 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskResponseDTO> ChangeTaskType(string id, string type);
         Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id);
         Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId);
+
+        Task<List<TaskResponseDTO>> GetTasksByEpicIdAsync(string epicId);
+
     }
 }

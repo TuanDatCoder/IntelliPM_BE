@@ -8,6 +8,7 @@ namespace IntelliPM.Repositories.MilestoneFeedbackRepos
         Task<MilestoneFeedback?> GetByMeetingIdAsync(int meetingId);
 
         Task<MilestoneFeedback?> GetByIdAsync(int id);
+        Task<List<MilestoneFeedback>> GetByMeetingIdAndStatusAsync(int meetingId, string status);
         Task UpdateAsync(MilestoneFeedback feedback);
         Task DeleteAsync(MilestoneFeedback feedback);
     }
