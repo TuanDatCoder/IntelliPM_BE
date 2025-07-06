@@ -16,5 +16,7 @@ namespace IntelliPM.Data.DTOs.Document.Request
         public string? Content { get; set; }
         public string? FileUrl { get; set; }
         public int CreatedBy { get; set; }
+
+        public string? Prompt { get; set; }
     }
 }

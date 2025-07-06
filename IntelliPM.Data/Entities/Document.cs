@@ -40,4 +40,7 @@ public partial class Document
     public virtual Tasks? Task { get; set; }
 
     public virtual Account? UpdatedByNavigation { get; set; }
+
+    public string Status { get; set; } = "Draft"; // Enum: Draft, PendingApproval, Approved, Rejected
+
 }
