@@ -94,6 +94,33 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("{documentId}/submit-approval")]
+        public async Task<IActionResult> SubmitForApproval(int documentId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out var approverId))
+                return BadRequest("Invalid approver ID");
+
+            var result = await _documentService.SubmitForApproval(documentId);
+            return Ok(result);
+        }
+
+
+        [HttpPost("{documentId}/approve")]
+        public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
+        {
+            var result = await _documentService.UpdateApprovalStatus(documentId, req);
+            return Ok(result);
+        }
+
+
+
+
 
 
     }
