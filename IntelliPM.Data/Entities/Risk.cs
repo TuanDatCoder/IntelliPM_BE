@@ -7,7 +7,7 @@ public partial class Risk
 {
     public int Id { get; set; }
 
-    public int ResponsibleId { get; set; }
+    public int? ResponsibleId { get; set; }
 
     public int ProjectId { get; set; }
 
@@ -39,7 +39,7 @@ public partial class Risk
 
     public virtual Project Project { get; set; } = null!;
 
-    public virtual Account Responsible { get; set; } = null!;
+    public virtual Account? Responsible { get; set; }
 
     public virtual ICollection<RiskSolution> RiskSolution { get; set; } = new List<RiskSolution>();
 
