@@ -232,6 +232,14 @@ namespace IntelliPM.Services.RiskServices
             return saved;
         }
 
+        public async Task<List<RiskResponseDTO>> GetByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
+
+            return _mapper.Map<List<RiskResponseDTO>>(risks);
+        }
     }
 
 }
