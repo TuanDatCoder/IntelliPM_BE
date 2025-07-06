@@ -16,5 +16,8 @@ namespace IntelliPM.Services.EmailServices
         Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl);
 
         Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
+
+        Task SendShareDocumentEmail(string toEmail, string documentTitle, string message, string link);
+
     }
 }

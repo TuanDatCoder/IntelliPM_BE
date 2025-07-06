@@ -8,6 +8,7 @@ namespace IntelliPM.Data.DTOs.Document.Request
 {
     public class UpdateDocumentRequest
     {
+        public string? Title { get; set; }
         public string? Content { get; set; }
         public string? FileUrl { get; set; }
         public int UpdatedBy { get; set; }
