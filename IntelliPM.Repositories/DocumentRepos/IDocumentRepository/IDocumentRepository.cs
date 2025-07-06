@@ -15,6 +15,14 @@ namespace IntelliPM.Repositories.DocumentRepos
         Task AddAsync(Document doc);
         Task UpdateAsync(Document doc);
         Task SaveChangesAsync();
+
+        Task<List<Document>> GetByUserIdAsync(int userId);
+
+        Task<List<Document>> GetByStatusAsync(string status);
+
+        Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId);
+
+
     }
 
 }
