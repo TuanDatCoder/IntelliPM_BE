@@ -513,6 +513,31 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
+        public async Task SendShareDocumentEmail(string toEmail, string documentTitle, string message, string link)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(toEmail));
+            email.Subject = $"[IntelliPM] Document Shared: {documentTitle}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+        <h2>📄 {documentTitle}</h2>
+        <p>{message}</p>
+        <p>👉 <a href='{link}' target='_blank'>Click here to view the document</a></p>
+        <br/>
+        <p>Sent via <b>IntelliPM</b></p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+
     }
 
 
