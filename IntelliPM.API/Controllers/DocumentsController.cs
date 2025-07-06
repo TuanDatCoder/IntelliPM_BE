@@ -1,4 +1,4 @@
-﻿using IntelliPM.Data.DTOs.Document.Request;
+using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Services.DocumentServices;
@@ -141,10 +141,5 @@ namespace IntelliPM.API.Controllers
             var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
             return Ok(result);
         }
-
-
-
-
-
     }
 }
