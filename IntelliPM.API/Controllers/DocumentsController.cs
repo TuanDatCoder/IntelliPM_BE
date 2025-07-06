@@ -130,6 +130,17 @@ namespace IntelliPM.API.Controllers
         }
 
 
+        [HttpGet("project/{projectId}/status/{status}")]
+        public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+
+        {
+            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                return BadRequest("Invalid status");
+
+            var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
+            return Ok(result);
+        }
 
 
 
