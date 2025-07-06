@@ -1,4 +1,4 @@
-﻿using IntelliPM.Data.DTOs.Document.Request;
+using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Services.DocumentServices;
@@ -94,7 +94,52 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("{documentId}/submit-approval")]
+        public async Task<IActionResult> SubmitForApproval(int documentId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out var approverId))
+                return BadRequest("Invalid approver ID");
+
+            var result = await _documentService.SubmitForApproval(documentId);
+            return Ok(result);
+        }
 
 
+        [HttpPost("{documentId}/approve")]
+        public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
+        {
+            var result = await _documentService.UpdateApprovalStatus(documentId, req);
+            return Ok(result);
+        }
+
+        [HttpGet("status/{status}")]
+        public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
+        {
+            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                return BadRequest("Invalid status");
+
+            var result = await _documentService.GetDocumentsByStatus(status);
+            return Ok(result);
+        }
+
+
+        [HttpGet("project/{projectId}/status/{status}")]
+        public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+
+        {
+            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                return BadRequest("Invalid status");
+
+            var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
+            return Ok(result);
+        }
     }
 }
