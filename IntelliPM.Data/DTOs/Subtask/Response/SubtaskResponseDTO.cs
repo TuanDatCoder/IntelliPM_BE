@@ -15,6 +15,7 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public int? ReporterId { get; set; }
+        public string? ReporterName { get; set; }
         public string? Status { get; set; }
         public string? Priority { get; set; }
         public bool ManualInput { get; set; }
