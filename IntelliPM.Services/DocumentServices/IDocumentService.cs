@@ -26,10 +26,10 @@ namespace IntelliPM.Services.DocumentServices
 
         Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req);
 
-        Task<DocumentResponseDTO> SubmitForApproval(int documentId);
-        Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request);
-        Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status);
-        Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId);
+        //Task<DocumentResponseDTO> SubmitForApproval(int documentId);
+        //Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request);
+        //Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status);
+        //Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId);
 
 
 
