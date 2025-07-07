@@ -92,6 +92,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
         [HttpGet("{meetingId}")]
         public async Task<IActionResult> GetTranscriptByMeetingId(int meetingId)
         {
