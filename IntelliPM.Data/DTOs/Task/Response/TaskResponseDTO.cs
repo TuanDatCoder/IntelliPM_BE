@@ -11,6 +11,8 @@ namespace IntelliPM.Data.DTOs.Task.Response
 
         public int ProjectId { get; set; }
 
+        public string? ProjectName { get; set; }
+
         public string? EpicId { get; set; }
 
         public int? SprintId { get; set; }
