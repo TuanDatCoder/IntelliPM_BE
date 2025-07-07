@@ -102,6 +102,7 @@ namespace IntelliPM.Services.SubtaskServices
             entity.Status = "TO-DO";
             entity.ManualInput = true;
             entity.GenerationAiInput = false;
+            entity.Priority = "MEDIUM";
 
             try
             {
