@@ -29,5 +29,29 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
 
         public async Task SaveChangesAsync()
             => await _context.SaveChangesAsync();
+
+        public async Task<List<Document>> GetByUserIdAsync(int userId)
+        {
+            return await _context.Document
+                .Where(d => d.CreatedBy == userId && d.IsActive)
+                .ToListAsync();
+        }
+
+        //public async Task<List<Document>> GetByStatusAsync(string status)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d. == status && d.IsActive)
+        //        .ToListAsync();
+        //}
+
+        //public async Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.Status == status && d.ProjectId == projectId && d.IsActive)
+        //        .ToListAsync();
+        //}
+
+
+
     }
 }

@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.SprintServices;
@@ -28,6 +30,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         private readonly ITaskService _taskService;
         private readonly IEpicService _epicService;
         private readonly ISprintService _sprintService;
+        private readonly IProjectMemberService _projectMemberService;
         private readonly IMapper _mapper;
         private readonly ILogger<TaskPlanningService> _logger;
         private readonly HttpClient _httpClient;
@@ -40,6 +43,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             ITaskService taskService,
             IEpicService epicService,
             ISprintService sprintService,
+            IProjectMemberService projectMemberService,
             IMapper mapper,
             ILogger<TaskPlanningService> logger,
             IConfiguration configuration,
@@ -50,10 +54,10 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
             _epicService = epicService ?? throw new ArgumentNullException(nameof(epicService));
             _sprintService = sprintService ?? throw new ArgumentNullException(nameof(sprintService));
+            _projectMemberService = projectMemberService ?? throw new ArgumentNullException(nameof(projectMemberService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
         }
 
@@ -64,6 +68,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
             var result = new List<object>();
 
+            // Retrieve project details
             var projectResponse = await _projectService.GetProjectById(projectId);
             if (projectResponse == null)
             {
@@ -74,6 +79,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             var startDate = projectResponse.StartDate ?? DateTime.UtcNow;
             var endDate = projectResponse.EndDate ?? startDate.AddMonths(6);
 
+            // Retrieve requirements
             var requirements = await _requirementService.GetAllRequirements(projectId);
             if (requirements == null || !requirements.Any())
             {
@@ -81,6 +87,23 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             }
             var requirementRequests = _mapper.Map<List<RequirementRequestDTO>>(requirements);
 
+            // Retrieve project members and filter out CLIENT, PROJECT_MANAGER, ADMIN
+            List<ProjectMemberWithPositionsResponseDTO> projectMembers;
+            try
+            {
+                projectMembers = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+                var excludedPositions = new HashSet<string> { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
+                projectMembers = projectMembers
+                    .Where(m => m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
+                    .ToList();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning("No project members found for Project ID {ProjectId}: {Message}", projectId, ex.Message);
+                projectMembers = new List<ProjectMemberWithPositionsResponseDTO>();
+            }
+
+            // Generate epic tasks
             var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirementRequests, projectKey);
 
             foreach (var epic in epicTasks)
@@ -111,11 +134,14 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         Title = task.Title,
                         Description = task.Description,
                         ProjectId = projectId,
-                        ReporterId = 2 // Default ReporterId is 2
+                        ReporterId = 2 
                     };
                     var savedTaskResponse = await _taskService.CreateTask(taskRequest);
                     tasks.Add(_mapper.Map<Tasks>(savedTaskResponse));
+
+                    task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers);
                 }
+
                 result.Add(new
                 {
                     Type = "Epic",
@@ -134,13 +160,69 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                             Description = t.Description,
                             StartDate = t.StartDate,
                             EndDate = t.EndDate,
-                            SuggestedRole = t.SuggestedRole
+                            SuggestedRole = t.SuggestedRole,
+                            AssignedMembers = t.AssignedMembers.Select(m => new
+                            {
+                                AccountId = m.AccountId,
+                                Picture = m.Picture,
+                                FullName = m.FullName
+                            }).ToList()
                         }).ToList()
                     }
                 });
             }
 
             return result;
+        }
+
+        private List<TaskMemberDTO> AssignMembersToTask(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers)
+        {
+            var assignedMembers = new List<TaskMemberDTO>();
+            var random = new Random();
+
+            // Map SuggestedRole to project positions
+            var matchingPositions = new List<string>();
+            switch (suggestedRole?.ToLower())
+            {
+                case "designer":
+                    matchingPositions.Add("DESIGNER");
+                    break;
+                case "developer":
+                    matchingPositions.Add("FRONTEND_DEVELOPER");
+                    matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+                case "tester":
+                    matchingPositions.Add("TESTER");
+                    break;
+                default:
+                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}", suggestedRole);
+                    return assignedMembers; // Return empty list for unknown roles
+            }
+
+            // Filter members with matching positions
+            var eligibleMembers = projectMembers
+                .Where(m => m.ProjectPositions.Any(p => matchingPositions.Contains(p.Position)))
+                .ToList();
+
+            // Assign 1-2 members randomly
+            int membersToAssign = random.Next(1, 3); // Randomly choose 1 or 2
+            if (eligibleMembers.Count == 0)
+            {
+                _logger.LogWarning("No eligible members found for role: {SuggestedRole}", suggestedRole);
+                return assignedMembers;
+            }
+
+            // Shuffle and take up to membersToAssign
+            var selectedMembers = eligibleMembers.OrderBy(x => random.Next()).Take(membersToAssign).ToList();
+
+            assignedMembers.AddRange(selectedMembers.Select(m => new TaskMemberDTO
+            {
+                AccountId = m.AccountId,
+                Picture = m.Picture,
+                FullName = m.FullName
+            }));
+
+            return assignedMembers;
         }
 
         private ProjectResponseDTO GenerateFallbackProjectResponse(int projectId)
@@ -237,11 +319,11 @@ Return ONLY a valid JSON array: [{{""epicId"": ""<id>"", ""title"": ""<title>"",
 
                 for (int i = 0; i < aiEpicTasks.Count; i++)
                 {
-                    aiEpicTasks[i].EpicId = $"{projectKey}-${i + 1}";
+                    aiEpicTasks[i].EpicId = $"{projectKey}-{i + 1}";
                     aiEpicTasks[i].AIGenerated = true;
                     for (int j = 0; j < aiEpicTasks[i].Tasks.Count; j++)
                     {
-                        aiEpicTasks[i].Tasks[j].TaskId = $"{projectKey}-${i + 1}-${j + 1}";
+                        aiEpicTasks[i].Tasks[j].TaskId = $"{projectKey}-{i + 1}-{j + 1}";
                     }
                 }
 
@@ -314,5 +396,13 @@ Return ONLY a valid JSON array: [{{""epicId"": ""<id>"", ""title"": ""<title>"",
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string SuggestedRole { get; set; }
+        public List<TaskMemberDTO> AssignedMembers { get; set; }
+    }
+
+    public class TaskMemberDTO
+    {
+        public int AccountId { get; set; }
+        public string Picture { get; set; }
+        public string FullName { get; set; }
     }
 }
