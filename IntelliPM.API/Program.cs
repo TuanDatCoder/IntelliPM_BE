@@ -90,6 +90,7 @@ using IntelliPM.Repositories.RiskSolutionRepos;
 
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -181,7 +182,7 @@ builder.Services.AddScoped<IMeetingRescheduleRequestService, MeetingRescheduleRe
 builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
-
+builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 
 
 // ------------------------- HttpClient -----------------------------
@@ -304,6 +305,10 @@ app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+app.UseDefaultFiles();   
+app.UseStaticFiles();
 
 app.MapControllers();
 app.Run();

@@ -21,6 +21,8 @@ namespace IntelliPM.Data.DTOs.Document.Response
         public int? UpdatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+
+
     }
 
 }
