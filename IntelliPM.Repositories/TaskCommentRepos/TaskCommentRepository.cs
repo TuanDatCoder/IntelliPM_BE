@@ -33,12 +33,14 @@ namespace IntelliPM.Repositories.TaskCommentRepos
         {
             return await _context.TaskComment
                 .OrderBy(t => t.Id)
+                .Include(t => t.Account)
                 .ToListAsync();
         }
 
         public async Task<TaskComment?> GetByIdAsync(int id)
         {
             return await _context.TaskComment
+                .Include(t => t.Account)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
