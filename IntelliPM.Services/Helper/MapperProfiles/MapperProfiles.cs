@@ -281,7 +281,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
-            CreateMap<SubtaskComment, SubtaskCommentResponseDTO>();
+
+            CreateMap<SubtaskComment, SubtaskCommentResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null));
 
             CreateMap<MeetingLogRequestDTO, MeetingLog>();
             CreateMap<MeetingLog, MeetingLogResponseDTO>()
