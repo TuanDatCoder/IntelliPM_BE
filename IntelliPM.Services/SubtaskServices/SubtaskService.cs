@@ -240,6 +240,7 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
             _mapper.Map(request, entity);
+            entity.AssignedBy = null;
 
             try
             {
