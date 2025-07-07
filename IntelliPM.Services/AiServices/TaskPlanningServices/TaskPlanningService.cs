@@ -92,7 +92,6 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             try
             {
                 projectMembers = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
-                // Filter out members whose only position is CLIENT, PROJECT_MANAGER, or ADMIN
                 var excludedPositions = new HashSet<string> { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
                 projectMembers = projectMembers
                     .Where(m => m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
