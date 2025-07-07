@@ -1,26 +1,24 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
-using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Task.Request;
-using IntelliPM.Data.DTOs.Task.Response;
-using IntelliPM.Data.DTOs.TaskAssignment.Request;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.EpicServices;
+using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
+using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.SprintServices;
-using IntelliPM.Services.TaskAssignmentServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Services.AiServices.TaskPlanningServices
@@ -28,29 +26,39 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
     public class TaskPlanningService : ITaskPlanningService
     {
         private readonly IProjectService _projectService;
-        private readonly ITaskAssignmentService _taskAssignmentService;
+        private readonly IRequirementService _requirementService;
         private readonly ITaskService _taskService;
         private readonly IEpicService _epicService;
         private readonly ISprintService _sprintService;
+        private readonly IProjectMemberService _projectMemberService;
         private readonly IMapper _mapper;
         private readonly ILogger<TaskPlanningService> _logger;
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
+        private const string _apiKey = "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+        private readonly string _url;
 
-        public TaskPlanningService(IProjectService projectService, ITaskAssignmentService taskAssignmentService,
-            ITaskService taskService, IEpicService epicService, ISprintService sprintService,
-            IMapper mapper, ILogger<TaskPlanningService> logger, IConfiguration configuration, HttpClient httpClient)
+        public TaskPlanningService(
+            IProjectService projectService,
+            IRequirementService requirementService,
+            ITaskService taskService,
+            IEpicService epicService,
+            ISprintService sprintService,
+            IProjectMemberService projectMemberService,
+            IMapper mapper,
+            ILogger<TaskPlanningService> logger,
+            IConfiguration configuration,
+            HttpClient httpClient)
         {
             _projectService = projectService ?? throw new ArgumentNullException(nameof(projectService));
-            _taskAssignmentService = taskAssignmentService ?? throw new ArgumentNullException(nameof(taskAssignmentService));
+            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
             _epicService = epicService ?? throw new ArgumentNullException(nameof(epicService));
             _sprintService = sprintService ?? throw new ArgumentNullException(nameof(sprintService));
+            _projectMemberService = projectMemberService ?? throw new ArgumentNullException(nameof(projectMemberService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _httpClient.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
-            _apiKey = configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY is not set in configuration.");
+            _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
         }
 
         public async Task<List<object>> GenerateTaskPlan(int projectId)
@@ -60,136 +68,165 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
             var result = new List<object>();
 
-            var projectDetails = await _projectService.GetProjectDetails(projectId);
-            if (projectDetails == null)
+            // Retrieve project details
+            var projectResponse = await _projectService.GetProjectById(projectId);
+            if (projectResponse == null)
             {
-                _logger.LogWarning("No project details found for ProjectId {ProjectId}. Using fallback data.", projectId);
-                projectDetails = GenerateFallbackProjectDetailsResponse(projectId);
+                projectResponse = GenerateFallbackProjectResponse(projectId);
             }
 
-            var projectKey = projectDetails.ProjectKey ?? $"PROJ-{projectId}";
-            var startDate = projectDetails.StartDate ?? DateTime.UtcNow;
-            var endDate = projectDetails.EndDate ?? startDate.AddMonths(6);
+            var projectKey = projectResponse.ProjectKey ?? $"PROJ-{projectId}";
+            var startDate = projectResponse.StartDate ?? DateTime.UtcNow;
+            var endDate = projectResponse.EndDate ?? startDate.AddMonths(6);
 
-            var requirements = projectDetails.Requirements?.Select(r => _mapper.Map<RequirementRequestDTO>(r)).ToList() ?? new List<RequirementRequestDTO>();
-            _logger.LogInformation("Mapped requirements count: {Count}", requirements?.Count ?? 0);
-
-            if (!requirements.Any())
+            // Retrieve requirements
+            var requirements = await _requirementService.GetAllRequirements(projectId);
+            if (requirements == null || !requirements.Any())
             {
+                requirements = _mapper.Map<List<RequirementResponseDTO>>(GenerateFallbackRequirementsResponse(projectId));
+            }
+            var requirementRequests = _mapper.Map<List<RequirementRequestDTO>>(requirements);
 
-                requirements = GenerateFallbackRequirementsResponse(projectId);
+            // Retrieve project members and filter out CLIENT, PROJECT_MANAGER, ADMIN
+            List<ProjectMemberWithPositionsResponseDTO> projectMembers;
+            try
+            {
+                projectMembers = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+                var excludedPositions = new HashSet<string> { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
+                projectMembers = projectMembers
+                    .Where(m => m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
+                    .ToList();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning("No project members found for Project ID {ProjectId}: {Message}", projectId, ex.Message);
+                projectMembers = new List<ProjectMemberWithPositionsResponseDTO>();
             }
 
-            var projectMembers = projectDetails.ProjectMembers?.Select(pm => new ProjectMemberDTO
-            {
-                Id = pm.Id,
-                AccountId = pm.AccountId,
-                ProjectId = pm.ProjectId,
-                JoinedAt = pm.JoinedAt,
-                InvitedAt = pm.InvitedAt,
-                Status = pm.Status,
-                FullName = pm.FullName,
-                Picture = pm.Picture,
-                ProjectPosition = pm.ProjectPositions?.Select(pp => new ProjectPositionDTO
-                {
-                    Id = pp.Id,
-                    ProjectMemberId = pp.ProjectMemberId,
-                    Position = pp.Position
-                }).ToList() ?? new List<ProjectPositionDTO>()
-            }).ToList() ?? new List<ProjectMemberDTO>();
-            _logger.LogInformation("Mapped project members count: {Count}", projectMembers?.Count ?? 0);
-
-            if (!projectMembers.Any())
-            {
-                _logger.LogWarning("No project members found for ProjectId {ProjectId}. Using fallback data.", projectId);
-                projectMembers = GenerateFallbackMembersResponse(projectId);
-            }
-
-            var positions = projectMembers.SelectMany(pm => pm.ProjectPosition).ToList();
-            if (!positions.Any())
-            {
-                _logger.LogWarning("No positions found for ProjectId {ProjectId}. Using fallback data.", projectId);
-                positions = GenerateFallbackPositionsResponse(projectId);
-            }
-
-            var epics = CreateEpicsResponse(startDate, endDate, projectId, requirements, projectKey);
-
-            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirements, projectMembers, positions, projectKey);
+            // Generate epic tasks
+            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirementRequests, projectKey);
 
             foreach (var epic in epicTasks)
             {
+                if (string.IsNullOrWhiteSpace(epic.Title))
+                {
+                    epic.Title = $"Unnamed Epic - {epic.EpicId ?? "Unknown"}";
+                }
+                if (string.IsNullOrWhiteSpace(epic.Description))
+                {
+                    epic.Description = $"Default description for {epic.EpicId ?? "Unknown"}";
+                }
+
+                var tasks = new List<Tasks>();
                 foreach (var task in epic.Tasks)
                 {
-                    if (!task.Members.Any())
+                    if (string.IsNullOrWhiteSpace(task.Title))
                     {
-                        task.Members = AssignMembersToTaskResponse(positions, task.SuggestedRole);
+                        task.Title = $"Unnamed Task - {task.TaskId ?? "Unknown"}";
                     }
-                    // Thêm fullName và picture cho từng member
-                    foreach (var member in task.Members)
+                    if (string.IsNullOrWhiteSpace(task.Description))
                     {
-                        var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
-                        if (projectMember != null)
-                        {
-                            member.FullName = projectMember.FullName;
-                            member.Picture = projectMember.Picture;
-                        }
+                        task.Description = $"Default description for {task.TaskId ?? "Unknown"}";
                     }
-                }
-            }
 
-            var savedTasks = new List<Tasks>();
-            foreach (var epic in epicTasks)
-            {
-                foreach (var task in epic.Tasks)
-                {
-                    var taskRequest = _mapper.Map<TaskRequestDTO>(task);
-                    taskRequest.ProjectId = projectId;
-                    taskRequest.ReporterId = 1;
-                    var savedTaskResponse = await _taskService.CreateTask(taskRequest);
-                    var savedTask = _mapper.Map<Tasks>(savedTaskResponse);
-                    savedTasks.Add(savedTask);
-                }
-            }
-
-            var assignments = AssignTasksToMembersResponse(savedTasks, projectMembers, positions);
-
-            result.AddRange(epicTasks.Select((e, index) => new
-            {
-                Type = "Epic",
-                Data = new
-                {
-                    EpicId = $"{projectKey}-{index + 1}",
-                    ProjectId = projectId,
-                    Title = e.Title,
-                    Description = e.Description,
-                    StartDate = e.StartDate,
-                    EndDate = e.EndDate,
-                    Tasks = e.Tasks.Select((t, taskIndex) => new
+                    var taskRequest = new TaskRequestDTO
                     {
-                        TaskId = $"{projectKey}-{index + 1}-{taskIndex + 1}",
-                        Title = t.Title,
-                        Description = t.Description,
-                        Milestone = t.Milestone,
-                        StartDate = t.StartDate,
-                        EndDate = t.EndDate,
-                        SuggestedRole = t.SuggestedRole,
-                        Members = t.Members.Select(m => new
+                        Title = task.Title,
+                        Description = task.Description,
+                        ProjectId = projectId,
+                        ReporterId = 2 
+                    };
+               
+
+                    task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers);
+                }
+
+                result.Add(new
+                {
+                    Type = "Epic",
+                    AIGenerated = epic.AIGenerated,
+                    Data = new
+                    {
+                        EpicId = $"{projectKey}-{result.Count + 1}",
+                        Title = epic.Title,
+                        Description = epic.Description,
+                        StartDate = epic.StartDate,
+                        EndDate = epic.EndDate,
+                        Tasks = epic.Tasks.Select((t, taskIndex) => new
                         {
-                            AccountId = m.AccountId,
-                            Position = m.Position,
-                            FullName = m.FullName,
-                            Picture = m.Picture
+                            TaskId = $"{projectKey}-{result.Count + 1}-{taskIndex + 1}",
+                            Title = t.Title,
+                            Description = t.Description,
+                            StartDate = t.StartDate,
+                            EndDate = t.EndDate,
+                            SuggestedRole = t.SuggestedRole,
+                            AssignedMembers = t.AssignedMembers.Select(m => new
+                            {
+                                AccountId = m.AccountId,
+                                Picture = m.Picture,
+                                FullName = m.FullName
+                            }).ToList()
                         }).ToList()
-                    }).ToList()
-                }
-            }));
+                    }
+                });
+            }
 
             return result;
         }
 
-        private ProjectDetailsDTO GenerateFallbackProjectDetailsResponse(int projectId)
+        private List<TaskMemberDTO> AssignMembersToTask(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers)
         {
-            return new ProjectDetailsDTO
+            var assignedMembers = new List<TaskMemberDTO>();
+            var random = new Random();
+
+            // Map SuggestedRole to project positions
+            var matchingPositions = new List<string>();
+            switch (suggestedRole?.ToLower())
+            {
+                case "designer":
+                    matchingPositions.Add("DESIGNER");
+                    break;
+                case "developer":
+                    matchingPositions.Add("FRONTEND_DEVELOPER");
+                    matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+                case "tester":
+                    matchingPositions.Add("TESTER");
+                    break;
+                default:
+                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}", suggestedRole);
+                    return assignedMembers; // Return empty list for unknown roles
+            }
+
+            // Filter members with matching positions
+            var eligibleMembers = projectMembers
+                .Where(m => m.ProjectPositions.Any(p => matchingPositions.Contains(p.Position)))
+                .ToList();
+
+            // Assign 1-2 members randomly
+            int membersToAssign = random.Next(1, 3); // Randomly choose 1 or 2
+            if (eligibleMembers.Count == 0)
+            {
+                _logger.LogWarning("No eligible members found for role: {SuggestedRole}", suggestedRole);
+                return assignedMembers;
+            }
+
+            // Shuffle and take up to membersToAssign
+            var selectedMembers = eligibleMembers.OrderBy(x => random.Next()).Take(membersToAssign).ToList();
+
+            assignedMembers.AddRange(selectedMembers.Select(m => new TaskMemberDTO
+            {
+                AccountId = m.AccountId,
+                Picture = m.Picture,
+                FullName = m.FullName
+            }));
+
+            return assignedMembers;
+        }
+
+        private ProjectResponseDTO GenerateFallbackProjectResponse(int projectId)
+        {
+            return new ProjectResponseDTO
             {
                 Id = projectId,
                 ProjectKey = $"PROJ-{projectId}",
@@ -199,16 +236,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 StartDate = DateTime.UtcNow,
-                EndDate = DateTime.UtcNow.AddMonths(6),
-                Requirements = new List<RequirementResponseDTO>
-                {
-                    new RequirementResponseDTO { Id = 1, ProjectId = projectId, Title = "Fallback Requirement 1", Priority = "MEDIUM" }
-                },
-                ProjectMembers = new List<ProjectMemberWithPositionsResponseDTO>
-                {
-                    new ProjectMemberWithPositionsResponseDTO { Id = 1, AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png", ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "PROJECT_MANAGER" } } },
-                    new ProjectMemberWithPositionsResponseDTO { Id = 2, AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png", ProjectPositions = new List<ProjectPositionResponseDTO> { new ProjectPositionResponseDTO { Position = "BACKEND_DEVELOPER" } } }
-                }
+                EndDate = DateTime.UtcNow.AddMonths(6)
             };
         }
 
@@ -220,215 +248,91 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             };
         }
 
-        private List<object> CreateEpicsResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, string projectKey)
+        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, string projectKey)
         {
-            var epics = new List<object>();
-            var epicCount = 5;
-
-            for (int i = 0; i < epicCount; i++)
+            var projectResponse = await _projectService.GetProjectById(projectId);
+            if (projectResponse == null)
             {
-                var epicStart = startDate.AddDays(i * 28);
-                var epicEnd = i == epicCount - 1 ? endDate : epicStart.AddDays(27);
-                epics.Add(new
-                {
-                    EpicId = $"{projectKey}-{i + 1}",
-                    ProjectId = projectId,
-                    Title = $"Epic {i + 1}: {requirements[i % requirements.Count].Title}",
-                    Description = $"Epic for {requirements[i % requirements.Count].Description}",
-                    StartDate = epicStart,
-                    EndDate = epicEnd
-                });
-            }
-            return epics;
-        }
-
-        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions, string projectKey)
-        {
-            var projectDetails = await _projectService.GetProjectDetails(projectId);
-            if (projectDetails == null)
-            {
-                _logger.LogWarning("No project details found for ProjectId {ProjectId} in GenerateEpicTasksFromAIResponse.", projectId);
-                projectDetails = GenerateFallbackProjectDetailsResponse(projectId);
+                projectResponse = GenerateFallbackProjectResponse(projectId);
             }
 
-            var projectName = projectDetails.Name;
-            var projectType = projectDetails.ProjectType;
+            var projectName = projectResponse.Name;
+            var projectType = projectResponse.ProjectType;
             var startDateStr = startDate.ToString("yyyy-MM-dd");
             var endDateStr = endDate.ToString("yyyy-MM-dd");
 
-            var requirementsText = string.Join(", ", projectDetails.Requirements?.Select(r => r.Title) ?? new List<string>());
-            var memberNames = string.Join(", ", projectDetails.ProjectMembers?.Where(pm => pm.AccountId != 1 && pm.AccountId != 4).Select(pm => pm.AccountId.ToString() ?? $"Account {pm.Id}") ?? new List<string>());
-            var roles = string.Join(", ", projectDetails.ProjectMembers?.Where(pm => pm.AccountId != 1 && pm.AccountId != 4).SelectMany(pm => pm.ProjectPositions?.Select(pp => $"{pp.Position} (Account ID: {pm.AccountId})") ?? new List<string>()) ?? new List<string>());
+            var requirementsText = string.Join(" | ", requirements.Select(r => $"{r.Title}: {r.Description}"));
 
-            var prompt = $"Generate a task plan for a software project with ID {projectId}. " +
-                         $"Project Name: '{projectName}'. Project Type: '{projectType}'. " +
-                         $"Requirements: {requirementsText}. Duration: {startDateStr} to {endDateStr}. " +
-                         $"Team Members (excluding Admin and PM who do not code): {memberNames}. Roles and Positions: {roles}. " +
-                         $"Use Agile/Scrum methodology with 2-week sprints. " +
-                         $"Create exactly 5 Epics based on requirements. For each Epic, generate 5-10 tasks with functions: 'Design', 'Development', 'Testing', 'Documentation', 'Review'. " +
-                         $"Each task must have 'title', 'description', 'milestone' (e.g., 'Sprint 1'), 'startDate' (YYYY-MM-DD), 'endDate' (YYYY-MM-DD), 'suggestedRole', and 'assignedMembers' (1-3 members per task from available roles, ensuring even distribution among Frontend Developers, Backend Developers, Testers, Designers, and Team Leader; exclude Admin and PM from coding tasks). " +
-                         $"Titles should be concise and action-oriented (e.g., 'Develop Login Page'). Distribute tasks evenly: 5+ tasks for Frontend Developers, 5+ for Backend Developers, 3+ for Testers, 3+ for Designers, 2+ for Team Leader. " +
-                         $"Dates within {startDateStr} to {endDateStr}. Return ONLY a valid JSON array with structure: " +
-                         $"[{{\"epicId\": \"<id>\", \"title\": \"<title>\", \"description\": \"<desc>\", \"startDate\": \"<date>\", \"endDate\": \"<date>\", \"tasks\": [{{ \"title\": \"<title>\", \"description\": \"<desc>\", \"milestone\": \"<milestone>\", \"startDate\": \"<date>\", \"endDate\": \"<date>\", \"suggestedRole\": \"<role>\", \"assignedMembers\": [{{ \"accountId\": <id>, \"position\": \"<pos>\" }}] }}]}}]. " +
-                         "No markdown or text outside JSON.";
+            var prompt = $@"⚠️ Task titles MUST be 100% unique across all Epics; no repetition or generic terms like 'Task X for...'
+Generate a task plan for a project with ID {projectId}. Project Name: '{projectName}'. Project Type: '{projectType}'.
+Requirements: {requirementsText}. Duration: {startDateStr} to {endDateStr}.
+Create {requirements.Count} Epics based on requirements.
+For each Epic, generate a unique 'title' and 'description'.
+For each Epic, generate 5 tasks with unique 'title' and 'description' tailored to the Epic.
+Include 'startDate' and 'endDate' (YYYY-MM-DD) within the project duration, and 'suggestedRole' (e.g., 'Designer', 'Developer', 'Tester') for each task.
+Return ONLY a valid JSON array: [{{""epicId"": ""<id>"", ""title"": ""<title>"", ""description"": ""<desc>"", ""startDate"": ""<date>"", ""endDate"": ""<date>"", ""tasks"": [{{""title"": ""<title>"", ""description"": ""<desc>"", ""startDate"": ""<date>"", ""endDate"": ""<date>"", ""suggestedRole"": ""<role>""}}]}}].";
 
-            var requestBody = new
+            var requestData = new
             {
                 contents = new[] { new { parts = new[] { new { text = prompt } } } },
-                generationConfig = new { maxOutputTokens = 3000, temperature = 0.7 }
+                generationConfig = new { maxOutputTokens = 5000, temperature = 0.7 }
             };
+
+            var requestJson = JsonConvert.SerializeObject(requestData);
+            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(_url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Gemini API Error: {StatusCode}\nResponse: {ResponseString}", response.StatusCode, responseString);
+                throw new Exception($"Gemini API Error: {response.StatusCode}");
+            }
+
+            if (string.IsNullOrWhiteSpace(responseString))
+            {
+                _logger.LogError("Gemini response is empty.");
+                throw new Exception("Gemini response is empty.");
+            }
+
+            var parsedResponse = JsonConvert.DeserializeObject<GeminiResponseDTO>(responseString);
+            var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+            if (string.IsNullOrEmpty(replyText))
+            {
+                _logger.LogError("Gemini did not return any text response.");
+                throw new Exception("Gemini did not return any text response.");
+            }
+
+            replyText = CleanJsonResponse(replyText);
 
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"models/gemini-1.5-flash:generateContent?key={_apiKey}", content);
-                response.EnsureSuccessStatusCode();
-
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("Gemini API raw response: {Response}", jsonResponse);
-
-                var aiResponse = JsonSerializer.Deserialize<GeminiResponseDTO>(jsonResponse);
-                if (aiResponse?.candidates == null || !aiResponse.candidates.Any() ||
-                    aiResponse.candidates[0]?.content?.parts == null || !aiResponse.candidates[0].content.parts.Any())
+                var aiEpicTasks = JsonConvert.DeserializeObject<List<EpicWithTasksDTO>>(replyText);
+                if (aiEpicTasks == null || !aiEpicTasks.Any())
                 {
-                    _logger.LogWarning("No valid content from Gemini API.");
-                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
+                    _logger.LogError("No valid epic tasks from Gemini reply: {ReplyText}", replyText);
+                    throw new Exception("No valid epic tasks from Gemini reply.");
                 }
 
-                var epicTasksJson = aiResponse.candidates[0].content.parts[0].text;
-                var cleanedJson = CleanJsonResponse(epicTasksJson);
-
-                if (string.IsNullOrWhiteSpace(cleanedJson) || cleanedJson == "[]")
-                {
-                    _logger.LogWarning("No valid tasks from Gemini. Using fallback.");
-                    return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
-                }
-
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var aiEpicTasks = JsonSerializer.Deserialize<List<EpicWithTasksDTO>>(cleanedJson, options) ?? new List<EpicWithTasksDTO>();
-
-                // Thay đổi epicId và taskId
                 for (int i = 0; i < aiEpicTasks.Count; i++)
                 {
                     aiEpicTasks[i].EpicId = $"{projectKey}-{i + 1}";
+                    aiEpicTasks[i].AIGenerated = true;
                     for (int j = 0; j < aiEpicTasks[i].Tasks.Count; j++)
                     {
                         aiEpicTasks[i].Tasks[j].TaskId = $"{projectKey}-{i + 1}-{j + 1}";
                     }
                 }
 
-                // Điền fullName và picture cho từng member
-                foreach (var epic in aiEpicTasks)
-                {
-                    foreach (var task in epic.Tasks)
-                    {
-                        foreach (var member in task.Members)
-                        {
-                            var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
-                            if (projectMember != null)
-                            {
-                                member.FullName = projectMember.FullName;
-                                member.Picture = projectMember.Picture;
-                            }
-                        }
-                    }
-                }
-
-                _logger.LogInformation("Generated epic tasks count: {Count}", aiEpicTasks.Count);
                 return aiEpicTasks;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GenerateEpicTasksFromAIResponse");
-                return GenerateFallbackEpicTasksResponse(startDate, endDate, requirements, projectMembers, positions, projectKey);
+                _logger.LogError("Error deserializing epic tasks from Gemini reply: {ReplyText}\n{ErrorMessage}", replyText, ex.Message);
+                throw new Exception("Error deserializing epic tasks from Gemini reply.", ex);
             }
-        }
-
-        private List<ProjectMemberDTO> GenerateFallbackMembersResponse(int projectId)
-        {
-            return new List<ProjectMemberDTO>
-            {
-                new ProjectMemberDTO { AccountId = 1, ProjectId = projectId, FullName = "Fallback Admin", Picture = "https://fallback.com/admin.png" },
-                new ProjectMemberDTO { AccountId = 2, ProjectId = projectId, FullName = "Fallback Dev", Picture = "https://fallback.com/dev.png" }
-            };
-        }
-
-        private List<ProjectPositionDTO> GenerateFallbackPositionsResponse(int projectId)
-        {
-            return new List<ProjectPositionDTO>
-            {
-                new ProjectPositionDTO { ProjectMemberId = 1, Id = projectId, Position = "PROJECT_MANAGER" },
-                new ProjectPositionDTO { ProjectMemberId = 2, Id = projectId, Position = "BACKEND_DEVELOPER" }
-            };
-        }
-
-        private List<EpicWithTasksDTO> GenerateFallbackEpicTasksResponse(DateTime startDate, DateTime endDate, List<RequirementRequestDTO> requirements, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions, string projectKey)
-        {
-            var epicTasks = new List<EpicWithTasksDTO>();
-            var epicCount = 5;
-
-            for (int i = 0; i < epicCount; i++)
-            {
-                var epicStart = startDate.AddDays(i * 28);
-                var epicEnd = i == epicCount - 1 ? endDate : epicStart.AddDays(27);
-                var epic = new EpicWithTasksDTO
-                {
-                    EpicId = $"{projectKey}-{i + 1}",
-                    Title = $"Epic {i + 1}: {requirements[i % requirements.Count].Title}",
-                    Description = $"Epic for {requirements[i % requirements.Count].Description}",
-                    StartDate = epicStart,
-                    EndDate = epicEnd,
-                    Tasks = new List<TaskWithMembersDTO>()
-                };
-
-                var taskCount = new Random().Next(5, 11);
-                for (int j = 0; j < taskCount; j++)
-                {
-                    var taskStart = epicStart.AddDays(j * (28 / taskCount));
-                    var taskEnd = j == taskCount - 1 ? epicEnd : taskStart.AddDays((28 / taskCount) - 1);
-                    var suggestedRole = GetSuggestedRoleResponse(j, positions);
-                    var task = new TaskWithMembersDTO
-                    {
-                        TaskId = $"{projectKey}-{i + 1}-{j + 1}",
-                        Title = $"Task {j + 1} for {requirements[i % requirements.Count].Title}",
-                        Description = $"Task {j + 1} description for {requirements[i % requirements.Count].Title}",
-                        Milestone = $"Sprint {i + 1}",
-                        StartDate = taskStart,
-                        EndDate = taskEnd,
-                        SuggestedRole = suggestedRole,
-                        Members = AssignMembersToTaskResponse(positions, suggestedRole).Take(new Random().Next(1, 4)).ToList()
-                    };
-                    // Điền fullName và picture cho fallback
-                    foreach (var member in task.Members)
-                    {
-                        var projectMember = projectMembers.FirstOrDefault(pm => pm.AccountId == member.AccountId);
-                        if (projectMember != null)
-                        {
-                            member.FullName = projectMember.FullName;
-                            member.Picture = projectMember.Picture;
-                        }
-                    }
-                    epic.Tasks.Add(task);
-                }
-                epicTasks.Add(epic);
-            }
-            _logger.LogInformation("Generated fallback epic tasks: {Count}", epicTasks.Count);
-            return epicTasks;
-        }
-
-        private string GetSuggestedRoleResponse(int index, List<ProjectPositionDTO> positions)
-        {
-            var roles = positions.Select(p => p.Position).Distinct().Where(r => r != "ADMIN" && r != "PROJECT_MANAGER").ToArray();
-            if (!roles.Any()) roles = new[] { "FRONTEND_DEVELOPER", "BACKEND_DEVELOPER", "TESTER", "DESIGNER", "TEAM_LEADER" };
-            return roles[index % roles.Length];
-        }
-
-        private List<MemberAssignmentDTO> AssignMembersToTaskResponse(List<ProjectPositionDTO> positions, string suggestedRole)
-        {
-            return positions
-                .Where(p => p.Position.ToLower().Contains(suggestedRole.ToLower().Replace(" ", "")) && p.Position != "ADMIN" && p.Position != "PROJECT_MANAGER")
-                .Select(p => new MemberAssignmentDTO { AccountId = p.ProjectMemberId, Position = p.Position })
-                .ToList();
         }
 
         private string CleanJsonResponse(string rawJson)
@@ -436,53 +340,39 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             if (string.IsNullOrWhiteSpace(rawJson)) return "[]";
             var cleaned = rawJson.Trim();
             if (cleaned.StartsWith("```json")) cleaned = cleaned.Substring(7).Trim();
-            if (cleaned.StartsWith("```")) cleaned = cleaned.Substring(3).Trim();
             if (cleaned.EndsWith("```")) cleaned = cleaned.Substring(0, cleaned.Length - 3).Trim();
-            if (!cleaned.EndsWith("]")) cleaned += "]";
             if (!cleaned.StartsWith("[")) cleaned = "[" + cleaned;
-            try { JsonSerializer.Deserialize<object>(cleaned); return cleaned; }
-            catch { _logger.LogWarning("Invalid JSON: {RawJson}", rawJson); return "[]"; }
-        }
-
-        private List<TaskAssignment> AssignTasksToMembersResponse(List<Tasks> tasks, List<ProjectMemberDTO> projectMembers, List<ProjectPositionDTO> positions)
-        {
-            var assignments = new List<TaskAssignment>();
-            var roleMap = positions.ToDictionary(p => p.ProjectMemberId, p => p.Position.ToLower());
-
-            foreach (var task in tasks)
+            if (!cleaned.EndsWith("]")) cleaned += "]";
+            try
             {
-                var suitableMember = projectMembers
-                    .Where(m => roleMap.ContainsKey(m.AccountId) && roleMap[m.AccountId] != "admin" && roleMap[m.AccountId] != "project_manager")
-                    .OrderBy(m => Guid.NewGuid())
-                    .FirstOrDefault(m => IsSuitableForRoleResponse(roleMap[m.AccountId], task.Title));
-
-                if (suitableMember != null)
-                {
-                    var assignment = new TaskAssignment
-                    {
-                        TaskId = task.Id.ToString(),
-                        AccountId = suitableMember.AccountId,
-                        Status = "Assigned",
-                        AssignedAt = DateTime.UtcNow,
-                        PlannedHours = 50.00m
-                    };
-                    assignments.Add(assignment);
-                    _taskAssignmentService.CreateTaskAssignment(_mapper.Map<TaskAssignmentRequestDTO>(assignment)).GetAwaiter().GetResult();
-                }
+                JsonConvert.DeserializeObject<object>(cleaned);
+                return cleaned;
             }
-            return assignments;
+            catch
+            {
+                _logger.LogWarning("Invalid JSON response, returning empty array: {RawJson}", rawJson);
+                return "[]";
+            }
         }
 
-        private bool IsSuitableForRoleResponse(string position, string taskTitle)
+        private class GeminiResponseDTO
         {
-            position = position.ToLower();
-            taskTitle = taskTitle.ToLower();
-            return (position.Contains("be") && taskTitle.Contains("develop"))
-                || (position.Contains("fe") && taskTitle.Contains("design"))
-                || (position.Contains("tester") && taskTitle.Contains("test"))
-                || (position.Contains("designer") && taskTitle.Contains("design"))
-                || (position.Contains("tl") && taskTitle.Contains("plan"))
-                || (position.Contains("developer") && taskTitle.Contains("develop"));
+            public List<Candidate> candidates { get; set; }
+
+            public class Candidate
+            {
+                public Content content { get; set; }
+            }
+
+            public class Content
+            {
+                public List<Part> parts { get; set; }
+            }
+
+            public class Part
+            {
+                public string text { get; set; }
+            }
         }
     }
 
@@ -493,6 +383,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         public string Description { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public bool AIGenerated { get; set; }
         public List<TaskWithMembersDTO> Tasks { get; set; }
     }
 
@@ -501,59 +392,16 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         public string TaskId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public string Milestone { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string SuggestedRole { get; set; }
-        public List<MemberAssignmentDTO> Members { get; set; }
+        public List<TaskMemberDTO> AssignedMembers { get; set; }
     }
 
-    public class MemberAssignmentDTO
+    public class TaskMemberDTO
     {
         public int AccountId { get; set; }
-        public string Position { get; set; }
-        public string FullName { get; set; }
         public string Picture { get; set; }
-    }
-
-    public class GeminiResponseDTO
-    {
-        public List<GeminiCandidateDTO> candidates { get; set; }
-    }
-
-    public class GeminiCandidateDTO
-    {
-        public GeminiContentDTO content { get; set; }
-        public string finishReason { get; set; }
-    }
-
-    public class GeminiContentDTO
-    {
-        public List<GeminiPartDTO> parts { get; set; }
-    }
-
-    public class GeminiPartDTO
-    {
-        public string text { get; set; }
-    }
-
-    public class ProjectMemberDTO
-    {
-        public int Id { get; set; }
-        public int AccountId { get; set; }
-        public int ProjectId { get; set; }
-        public DateTime? JoinedAt { get; set; }
-        public DateTime InvitedAt { get; set; }
-        public string Status { get; set; }
         public string FullName { get; set; }
-        public string Picture { get; set; }
-        public List<ProjectPositionDTO> ProjectPosition { get; set; }
-    }
-
-    public class ProjectPositionDTO
-    {
-        public int Id { get; set; }
-        public int ProjectMemberId { get; set; }
-        public string Position { get; set; }
     }
 }

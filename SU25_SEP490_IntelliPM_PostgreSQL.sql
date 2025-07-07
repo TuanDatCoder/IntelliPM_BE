@@ -409,7 +409,7 @@ CREATE TABLE milestone_feedback (
 -- 29. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
-    responsible_id INT NOT NULL,
+    responsible_id INT NULL,
     project_id INT NOT NULL,
     task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
@@ -1128,50 +1128,47 @@ VALUES
 
 
 	-- Update 19/06/2025
-	
--- Chèn dữ liệu mẫu cho dự án Online Flower Shop
-INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url,status)
+-- Insert sample data for the project "Online Flower Shop"
+INSERT INTO project (project_key, name, description, budget, project_type, created_by, start_date, end_date, icon_url, status)
 VALUES 
-    ('FLOWER1', 'Online Flower Shop', 'Phát triển một website thương mại điện tử để bán hoa tươi trực tuyến, cung cấp các tính năng như danh mục sản phẩm (hoa theo dịp, hoa bó, hoa chậu), giỏ hàng, thanh toán trực tuyến, và quản lý đơn hàng. Website sẽ có giao diện thân thiện, tích hợp hệ thống khuyến mãi, và hỗ trợ giao hàng nhanh trong 24 giờ.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518181/iconProject5_xejcga.svg','IN_PROGRESS');
+    ('FLOWER', 'Online Flower Shop', 'Develop an e-commerce website for selling fresh flowers online, featuring product categories (occasion flowers, bouquets, potted plants), a shopping cart, online payment, and order management. The website will have a user-friendly interface, integrated promotion system, and support fast delivery within 24 hours.', 1500000.00, 'WEB_APPLICATION', 1, '2025-06-19 00:00:00+07', '2025-12-19 00:00:00+07', 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751518181/iconProject5_xejcga.svg', 'IN_PROGRESS');
 
--- Chèn dữ liệu mẫu cho project_member (ít nhất 10 thành viên)
+-- Insert sample data for project_member (at least 10 members)
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-    (1, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
-    (2, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
-    (4, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
-    (5, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (6, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (7, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (8, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (9, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (12, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
-    (19, (SELECT id FROM project WHERE project_key = 'FLOWER1'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
+    (1, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
+    (2, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
+    (4, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
+    (5, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (6, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (7, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
+    (8, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (9, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
+    (12, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
+    (19, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
 
--- Chèn dữ liệu mẫu cho project_position
+-- Insert sample data for project_position
 INSERT INTO project_position (project_member_id, position, assigned_at)
 VALUES 
-    ((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'ADMIN', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TEAM_LEADER', '2024-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'PROJECT_MANAGER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 12 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'TESTER', '2025-06-19 00:00:00+07'),
-    ((SELECT id FROM project_member WHERE account_id = 19 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER1')), 'DESIGNER', '2025-06-19 00:00:00+07');
+    ((SELECT id FROM project_member WHERE account_id = 1 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'ADMIN', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 2 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'TEAM_LEADER', '2024-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 4 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'PROJECT_MANAGER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 5 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 6 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 7 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'FRONTEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 8 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 9 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'BACKEND_DEVELOPER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 12 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'TESTER', '2025-06-19 00:00:00+07'),
+    ((SELECT id FROM project_member WHERE account_id = 19 AND project_id = (SELECT id FROM project WHERE project_key = 'FLOWER')), 'DESIGNER', '2025-06-19 00:00:00+07');
 
--- Chèn dữ liệu mẫu cho requirement
+-- Insert sample data for requirement
 INSERT INTO requirement (project_id, title, type, description, priority)
 VALUES 
-    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'User Registration', 'FUNCTIONAL', 'Người dùng có thể đăng ký tài khoản với email và mật khẩu.', 'HIGH'),
-    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Product Catalog', 'FUNCTIONAL', 'Hiển thị danh mục sản phẩm bao gồm hoa theo dịp, hoa bó, và hoa chậu với hình ảnh và giá cả.', 'HIGH'),
-    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Shopping Cart', 'FUNCTIONAL', 'Cho phép người dùng thêm sản phẩm vào giỏ hàng và chỉnh sửa số lượng.', 'MEDIUM'),
-    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Payment Integration', 'NON_FUNCTIONAL', 'Tích hợp thanh toán trực tuyến qua MoMo và thẻ tín dụng với bảo mật SSL.', 'HIGH'),
-    ((SELECT id FROM project WHERE project_key = 'FLOWER1'), 'Order Management', 'FUNCTIONAL', 'Hệ thống quản lý đơn hàng cho admin và theo dõi trạng thái giao hàng.', 'MEDIUM');
-
-
+    ((SELECT id FROM project WHERE project_key = 'FLOWER'), 'User Registration', 'FUNCTIONAL', 'Users can register an account using email and password.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER'), 'Product Catalog', 'FUNCTIONAL', 'Display a product catalog including occasion flowers, bouquets, and potted plants with images and prices.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER'), 'Shopping Cart', 'FUNCTIONAL', 'Allow users to add products to a shopping cart and edit quantities.', 'MEDIUM'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER'), 'Payment Integration', 'NON_FUNCTIONAL', 'Integrate online payment via MoMo and credit cards with SSL security.', 'HIGH'),
+    ((SELECT id FROM project WHERE project_key = 'FLOWER'), 'Order Management', 'FUNCTIONAL', 'Provide an order management system for admins and track delivery status.', 'MEDIUM');
 
 	------------------------------------------------------------------------------------------
 	-- Insert sample data for the project "Online Course Platform"

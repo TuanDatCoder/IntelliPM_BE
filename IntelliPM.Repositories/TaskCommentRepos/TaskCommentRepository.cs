@@ -33,12 +33,14 @@ namespace IntelliPM.Repositories.TaskCommentRepos
         {
             return await _context.TaskComment
                 .OrderBy(t => t.Id)
+                .Include(t => t.Account)
                 .ToListAsync();
         }
 
         public async Task<TaskComment?> GetByIdAsync(int id)
         {
             return await _context.TaskComment
+                .Include(t => t.Account)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
@@ -52,6 +54,7 @@ namespace IntelliPM.Repositories.TaskCommentRepos
         {
             return await _context.TaskComment
                 .Where(tf => tf.TaskId == taskId)
+                .Include(t => t.Account)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
