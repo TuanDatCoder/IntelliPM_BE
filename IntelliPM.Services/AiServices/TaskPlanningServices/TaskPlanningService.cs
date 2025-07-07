@@ -136,8 +136,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         ProjectId = projectId,
                         ReporterId = 2 
                     };
-                    var savedTaskResponse = await _taskService.CreateTask(taskRequest);
-                    tasks.Add(_mapper.Map<Tasks>(savedTaskResponse));
+               
 
                     task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers);
                 }
