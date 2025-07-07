@@ -4,6 +4,7 @@ using IntelliPM.Services.ProjectServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using IntelliPM.Data.Entities;
 
 namespace IntelliPM.API.Controllers
 {
@@ -141,9 +142,16 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER")]
         public async Task<IActionResult> Create([FromBody] ProjectRequestDTO request)
         {
+
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
@@ -151,7 +159,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateProject(request);
+                var result = await _service.CreateProject(token,request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -354,6 +362,44 @@ namespace IntelliPM.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project by key: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("by-project-key")]
+        public async Task<IActionResult> GetProjectViewByKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _service.GetProjectViewByKeyAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Project with key {projectKey} retrieved successfully",
+                    Data = result
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = "Project not found"
+                });
             }
             catch (Exception ex)
             {

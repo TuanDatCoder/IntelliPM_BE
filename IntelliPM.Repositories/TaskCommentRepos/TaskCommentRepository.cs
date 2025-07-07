@@ -52,6 +52,7 @@ namespace IntelliPM.Repositories.TaskCommentRepos
         {
             return await _context.TaskComment
                 .Where(tf => tf.TaskId == taskId)
+                .Include(t => t.Account)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
