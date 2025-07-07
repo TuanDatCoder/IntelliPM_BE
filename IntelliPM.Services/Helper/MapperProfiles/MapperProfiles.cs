@@ -141,6 +141,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.EpicComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
+            CreateMap<EpicWithTaskRequestDTO, Epic>()
+            .ForMember(dest => dest.Tasks, opt => opt.Ignore());
+            CreateMap<EpicTaskAssignedMembersRequestDTO, Tasks>();
+            CreateMap<TaskAssignedMembersRequestDTO, TaskAssignment>(); 
+
+
+
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
