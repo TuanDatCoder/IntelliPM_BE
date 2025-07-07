@@ -161,7 +161,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // Task
             CreateMap<TaskRequestDTO, Tasks>();
-            CreateMap<Tasks, TaskResponseDTO>();
+
+            CreateMap<Tasks, TaskResponseDTO>()
+                .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null));
 
             CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
