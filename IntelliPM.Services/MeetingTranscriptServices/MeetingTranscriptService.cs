@@ -91,25 +91,139 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         //        throw;
         //    }
         //}
+        //public async Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // 1. Save MP3
+        //        string uploadDir = Path.Combine("uploads");
+        //        Directory.CreateDirectory(uploadDir);
+        //        string mp3Path = Path.Combine(uploadDir, $"{dto.MeetingId}.mp3");
+        //        await using (var fs = new FileStream(mp3Path, FileMode.Create))
+        //        {
+        //            await dto.AudioFile.CopyToAsync(fs);
+        //        }
+
+        //        // 2. Convert MP3 to WAV
+        //        string wavPath = Path.ChangeExtension(mp3Path, ".wav");
+        //        AudioConverter.ConvertMp3ToWav(mp3Path, wavPath);
+
+        //        // 3. Generate transcript using Vosk
+        //        string transcript = await GenerateTranscriptAsync(wavPath);
+
+        //        // XÓA FILE SAU KHI XỬ LÝ
+        //        try
+        //        {
+        //            if (File.Exists(mp3Path))
+        //                File.Delete(mp3Path);
+        //            if (File.Exists(wavPath))
+        //                File.Delete(wavPath);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogWarning(ex, "Không thể xóa file tạm sau khi xử lý.");
+        //        }
+
+        //        // 4. Save transcript to DB
+        //        var entity = new MeetingTranscript
+        //        {
+        //            MeetingId = dto.MeetingId,
+        //            TranscriptText = transcript,
+        //            CreatedAt = DateTime.UtcNow
+        //        };
+        //        var saved = await _repo.AddAsync(entity);
+
+        //        // 5. Summarize transcript using Gemini (GPT)
+        //        string summary = await _geminiService.SummarizeTextAsync(transcript);
+
+        //        // 6. Save summary to DB
+        //        var summaryEntity = new MeetingSummary
+        //        {
+        //            MeetingTranscriptId = saved.MeetingId,
+        //            SummaryText = summary,
+        //            CreatedAt = DateTime.UtcNow
+        //        };
+        //        await _summaryRepo.AddAsync(summaryEntity);
+
+        //        // 7. Log
+        //        await LogMeetingActionAsync(dto.MeetingId, "TRANSCRIPT_CREATED");
+
+        //        return _mapper.Map<MeetingTranscriptResponseDTO>(saved);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "UploadTranscriptAsync failed");
+        //        throw;
+        //    }
+        //}
+
         public async Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto)
         {
             try
             {
                 // 1. Save MP3
                 string uploadDir = Path.Combine("uploads");
-                Directory.CreateDirectory(uploadDir);
-                string mp3Path = Path.Combine(uploadDir, $"{dto.MeetingId}.mp3");
-                await using (var fs = new FileStream(mp3Path, FileMode.Create))
+                string absUploadDir = Path.GetFullPath(uploadDir);
+                _logger.LogInformation("Upload directory (absolute): {AbsUploadDir}", absUploadDir);
+
+                try
                 {
-                    await dto.AudioFile.CopyToAsync(fs);
+                    Directory.CreateDirectory(uploadDir);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không thể tạo thư mục uploads: {AbsUploadDir}", absUploadDir);
+                    throw;
+                }
+
+                string mp3Path = Path.Combine(uploadDir, $"{dto.MeetingId}.mp3");
+                _logger.LogInformation("MP3 path: {Mp3Path}", mp3Path);
+
+                try
+                {
+                    await using (var fs = new FileStream(mp3Path, FileMode.Create))
+                    {
+                        await dto.AudioFile.CopyToAsync(fs);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không thể ghi file MP3: {Mp3Path}", mp3Path);
+                    throw;
                 }
 
                 // 2. Convert MP3 to WAV
                 string wavPath = Path.ChangeExtension(mp3Path, ".wav");
-                AudioConverter.ConvertMp3ToWav(mp3Path, wavPath);
+                _logger.LogInformation("WAV path: {WavPath}", wavPath);
+
+                try
+                {
+                    AudioConverter.ConvertMp3ToWav(mp3Path, wavPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không thể convert MP3 sang WAV: {Mp3Path} -> {WavPath}", mp3Path, wavPath);
+                    throw;
+                }
 
                 // 3. Generate transcript using Vosk
-                string transcript = await GenerateTranscriptAsync(wavPath);
+                _logger.LogInformation("Vosk model path: {VoskModelPath}", _voskModelPath);
+                if (!Directory.Exists(_voskModelPath))
+                {
+                    _logger.LogError("Vosk model directory does not exist: {VoskModelPath}", _voskModelPath);
+                    throw new DirectoryNotFoundException($"Vosk model directory does not exist: {_voskModelPath}");
+                }
+
+                string transcript;
+                try
+                {
+                    transcript = await GenerateTranscriptAsync(wavPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không thể tạo transcript từ WAV: {WavPath}", wavPath);
+                    throw;
+                }
 
                 // XÓA FILE SAU KHI XỬ LÝ
                 try
@@ -134,7 +248,16 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 var saved = await _repo.AddAsync(entity);
 
                 // 5. Summarize transcript using Gemini (GPT)
-                string summary = await _geminiService.SummarizeTextAsync(transcript);
+                string summary;
+                try
+                {
+                    summary = await _geminiService.SummarizeTextAsync(transcript);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không thể tạo summary từ transcript.");
+                    summary = "Không thể tạo summary tự động.";
+                }
 
                 // 6. Save summary to DB
                 var summaryEntity = new MeetingSummary
@@ -152,12 +275,10 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "UploadTranscriptAsync failed");
+                _logger.LogError(ex, "UploadTranscriptAsync failed. Chi tiết lỗi: {Error}", ex.ToString());
                 throw;
             }
         }
-
-
 
         public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
         {
