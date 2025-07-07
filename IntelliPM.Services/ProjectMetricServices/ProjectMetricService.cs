@@ -24,6 +24,7 @@ using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -38,10 +39,11 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IProjectRecommendationRepository _projectRecommendationRepo;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -52,6 +54,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _taskAssignmentRepo = taskAssignmentRepo;
             _projectMemberRepo = projectMemberRepo;
             _projectRecommendationRepo = projectRecommendationRepo;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -118,12 +121,12 @@ namespace IntelliPM.Services.ProjectMetricServices
             return _mapper.Map<ProjectMetricResponseDTO>(metric);
         }
 
-        public async Task<ProjectMetricRequestDTO> CalculateAndSaveProjectMetricsAsync(int projectId)
+        public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsByAIAsync(string projectKey)
         {
-            var project = await _projectRepo.GetByIdAsync(projectId)
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
 
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
 
             var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
             if (result == null)
@@ -183,7 +186,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                                 TaskId = taskId,
                                 Type = type,
                                 Recommendation = recommendationText,
-                                CreatedAt = DateTime.UtcNow
+                                CreatedAt = DateTime.UtcNow,
                             };
 
                             await _projectRecommendationRepo.Add(rec);
@@ -232,14 +235,14 @@ namespace IntelliPM.Services.ProjectMetricServices
             return entity != null ? _mapper.Map<ProjectMetricResponseDTO>(entity) : null;
         }
 
-        public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(int projectId)
+        public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
         {
-            var project = await _projectRepo.GetByIdAsync(projectId)
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
 
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
-            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
 
             // Tính Task Cost
             decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
@@ -249,14 +252,14 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal actualResourceCost = taskAssignments.Sum(a =>
             {
                 var hourly = projectMembers
-                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                    .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
                 return (decimal)(a.ActualHours ?? 0) * hourly;
             });
 
             decimal plannedResourceCost = taskAssignments.Sum(a =>
             {
                 var hourly = projectMembers
-                    .FirstOrDefault(m => m.ProjectId == projectId && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+                    .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
                 return (decimal)(a.PlannedHours ?? 0) * hourly;
             });
 
@@ -273,11 +276,13 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
-        public async Task<List<object>> GetProgressDashboardAsync(int projectId)
+        public async Task<List<object>> GetProgressDashboardAsync(string projectKey)
         {
-            var sprints = await _sprintRepo.GetByProjectIdAsync(projectId);
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(projectId);
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
 
             var result = new List<object>();
 
@@ -316,10 +321,12 @@ namespace IntelliPM.Services.ProjectMetricServices
             return result;
         }
 
-        public async Task<ProjectHealthDTO> GetProjectHealthAsync(int projectId)
+        public async Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey)
         {
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var latestMetric = await _repo.GetLatestByProjectIdAsync(projectId);
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var latestMetric = await _repo.GetLatestByProjectIdAsync(project.Id);
 
             double plannedDuration = tasks
                 .Where(t => t.PlannedStartDate.HasValue && t.PlannedEndDate.HasValue)
@@ -362,27 +369,45 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
-        public async Task<object> GetTaskStatusDashboardAsync(int projectId)
+        public async Task<object> GetTaskStatusDashboardAsync(string projectKey)
         {
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var statusCategories = await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("", "task_status");
 
-            var notStarted = tasks.Count(t => string.Equals(t.Status, "NOT_STARTED", StringComparison.OrdinalIgnoreCase));
-            var inProgress = tasks.Count(t => string.Equals(t.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
-            var completed = tasks.Count(t => string.Equals(t.Status, "COMPLETE", StringComparison.OrdinalIgnoreCase));
+            //var notStarted = tasks.Count(t => string.Equals(t.Status, "NOT_STARTED", StringComparison.OrdinalIgnoreCase));
+            //var inProgress = tasks.Count(t => string.Equals(t.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+            //var completed = tasks.Count(t => string.Equals(t.Status, "COMPLETE", StringComparison.OrdinalIgnoreCase));
+
+            //return new
+            //{
+            //    notStarted,
+            //    inProgress,
+            //    completed
+            //};
+
+            var statusCounts = statusCategories
+                .Select(c => new
+                {
+                    key = c.Id,
+                    name = c.Name,
+                    count = tasks.Count(t => string.Equals(t.Status, c.Name, StringComparison.OrdinalIgnoreCase))
+                })
+                .ToList();
 
             return new
             {
-                notStarted,
-                inProgress,
-                completed
+                statusCounts,
             };
         }
 
-        public async Task<object> GetTimeDashboardAsync(int projectId)
+        public async Task<object> GetTimeDashboardAsync(string projectKey)
         {
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            if (tasks == null || !tasks.Any())
-                throw new Exception("Project has no tasks");
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id)
+                ?? throw new Exception("Project has no tasks");
 
             var today = DateTime.UtcNow;
 
@@ -424,11 +449,13 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
-        public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(int projectId)
+        public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(string projectKey)
         {
-            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(projectId);
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(projectId);
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
 
             var today = DateTime.Today;
 

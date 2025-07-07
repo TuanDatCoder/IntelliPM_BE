@@ -22,14 +22,9 @@ namespace IntelliPM.Data.DTOs.Project.Request
         [MaxLength(50, ErrorMessage = "Project type cannot exceed 50 characters")]
         public string ProjectType { get; set; } = null!;
 
-        [Required(ErrorMessage = "Created by is required")]
-        public int CreatedBy { get; set; }
-
         public DateTime? StartDate { get; set; }
 
         public DateTime? EndDate { get; set; }
 
-        [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
-        public string? Status { get; set; }
     }
 }

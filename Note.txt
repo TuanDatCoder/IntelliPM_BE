@@ -14,6 +14,9 @@ Các tài khoản trong DB
 dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force --no-pluralize
 
 
+dotnet ef dbcontext scaffold "Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force --no-pluralize
+
+
 --------------------------------------------------------------------------------------
 3/ DBcontext 
  public static string GetConnectionString(string connectionStringName)

@@ -11,6 +11,7 @@ namespace IntelliPM.Services.DynamicCategoryServices
         Task<List<DynamicCategoryResponseDTO>> GetAllDynamicCategories();
         Task<DynamicCategoryResponseDTO> GetDynamicCategoryById(int id);
         Task<List<DynamicCategoryResponseDTO>> GetDynamicCategoryByNameOrCategoryGroup(string name, string categoryGroup);
+        Task<List<DynamicCategoryResponseDTO>> GetDynamicCategoryByCategoryGroup(string categoryGroup);
         Task<DynamicCategoryResponseDTO> CreateDynamicCategory(DynamicCategoryRequestDTO request);
         Task<DynamicCategoryResponseDTO> UpdateDynamicCategory(int id, DynamicCategoryRequestDTO request);
         Task DeleteDynamicCategory(int id);
