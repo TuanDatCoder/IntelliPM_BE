@@ -340,6 +340,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("check-project-name")]
+        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName)
+        {
+            try
+            {
+                var exists = await _service.CheckProjectNameExists(projectName);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Project name {projectName} check completed",
+                    Data = new { exists }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking project key: {ex.Message}"
+                });
+            }
+        }
+
 
         [HttpGet("view-by-key")]
         public async Task<IActionResult> GetProjectByKey([FromQuery] string projectKey)
