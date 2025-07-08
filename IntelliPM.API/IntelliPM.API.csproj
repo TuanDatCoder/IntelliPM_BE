@@ -22,17 +22,17 @@
     <ProjectReference Include="..\IntelliPM.Services\IntelliPM.Services.csproj" />
   </ItemGroup>
 
- <ItemGroup>
-    <Content Include="VoskModels\**\*.*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-	
-<ItemGroup>
-    <Content Include="runtimes\**\*.*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+	<ItemGroup>
+		<Content Include="VoskModels\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="runtimes\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
 
 </Project>
