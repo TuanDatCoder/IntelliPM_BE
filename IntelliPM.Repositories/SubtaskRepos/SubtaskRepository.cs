@@ -21,7 +21,8 @@ namespace IntelliPM.Repositories.SubtaskRepos
         public async Task<List<Subtask>> GetAllSubtask()
         {
             return await _context.Subtask
-                .Include(t => t.AssignedByNavigation) // chỉ include navigation property
+                .Include(v => v.Reporter)
+                .Include(t => t.AssignedByNavigation) 
                 .ToListAsync();
         }
 
@@ -30,6 +31,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         {
             return await _context.Subtask
                 .Include(s => s.Task)
+                .Include(v => v.Reporter)
                 .Include(s => s.AssignedByNavigation) 
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
@@ -57,6 +59,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
             return await _context.Subtask
                 .Where(tf => tf.TaskId == taskId)
                 .Include(t => t.AssignedByNavigation)
+                .Include(v => v.Reporter)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }

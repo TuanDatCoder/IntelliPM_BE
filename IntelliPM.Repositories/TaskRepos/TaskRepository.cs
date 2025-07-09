@@ -22,6 +22,7 @@ namespace IntelliPM.Repositories.TaskRepos
         {
             return await _context.Tasks
                 .Include(v => v.Project)
+                .Include(a => a.Reporter)
                 .OrderBy(t => t.Id)
                 .ToListAsync();
         }
@@ -30,6 +31,7 @@ namespace IntelliPM.Repositories.TaskRepos
         {
             return await _context.Tasks
                 .Include(v => v.Project)
+                .Include(a => a.Reporter)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 

@@ -312,6 +312,138 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/title")]
+        public async Task<IActionResult> ChangeTitle(string id, [FromBody] string title)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskTitle(id, title);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task title updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task title: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/description")]
+        public async Task<IActionResult> ChangeDescription(string id, [FromBody] string description)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskDescription(id, description);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task description updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task description: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/planned-end-date")]
+        public async Task<IActionResult> ChangePlannedEndDate(string id, [FromBody] DateTime plannedEndDate)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPlannedEndDate(id, plannedEndDate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task plannedEndDate updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task plannedEndDate: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/planned-start-date")]
+        public async Task<IActionResult> ChangePlannedStartDate(string id, [FromBody] DateTime plannedStartDate)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPlannedStartDate(id, plannedStartDate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task plannedStartDate updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task plannedStartDate: {ex.Message}"
+                });
+            }
+        }
+
         [HttpGet("by-project-id")]
         public async Task<IActionResult> GetByProjectId(int projectId)
         {
