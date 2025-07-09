@@ -183,6 +183,7 @@ builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
+builder.Services.AddHttpClient();
 
 
 // ------------------------- HttpClient -----------------------------
