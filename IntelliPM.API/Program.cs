@@ -80,6 +80,7 @@ using System.Text;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 
 
 
@@ -134,6 +135,7 @@ builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
+builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 
 
 //--------------------------SERVICES---------------------------------
