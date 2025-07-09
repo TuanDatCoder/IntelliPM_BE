@@ -404,3 +404,5 @@ appsettings.Development.json
 ApiEndpoints.json
 IntelliPM.API.OpenApiFiles.cache
 apphost.exe
+appsettings.json
+appsettings.Development.json
