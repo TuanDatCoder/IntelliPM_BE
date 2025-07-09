@@ -253,8 +253,6 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-
-
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {
             // Lấy thông tin Reporter
@@ -293,6 +291,93 @@ namespace IntelliPM.Services.TaskServices
                 return _mapper.Map<LabelResponseDTO>(label);
             }))).ToList();
 
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title)
+        {
+            if (string.IsNullOrEmpty(title))
+                throw new ArgumentException("Title cannot be null or empty.");
+
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Title with task ID {id} not found.");
+
+            entity.Title = title;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.PlannedStartDate = plannedStartDate;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.PlannedEndDate = plannedEndDate;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task Planned EndDate: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskDescription(string id, string description)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.Description = description;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task Description: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
         }
     }
 }
