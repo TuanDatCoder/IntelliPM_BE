@@ -41,9 +41,10 @@ namespace IntelliPM.Services.Utilities
 
             // Kết hợp tất cả ID từ cả epic và task
             var allIds = new List<string>();
-            allIds.AddRange(allEpics.Select(e => e.Id));
-            allIds.AddRange(allTasks.Select(t => t.Id));
-            allIds.AddRange(allSubtasks.Select(s => s.Id));
+            allIds.AddRange(allEpics.Select(e => e.Id).Where(id => !string.IsNullOrEmpty(id)));
+            allIds.AddRange(allTasks.Select(t => t.Id).Where(id => !string.IsNullOrEmpty(id)));
+            allIds.AddRange(allSubtasks.Select(s => s.Id).Where(id => !string.IsNullOrEmpty(id)));
+
 
             // Tìm số lớn nhất hiện tại từ tất cả ID
             int maxNumber = 0;

@@ -141,6 +141,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.EpicComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
+            CreateMap<EpicWithTaskRequestDTO, Epic>()
+            .ForMember(dest => dest.Tasks, opt => opt.Ignore());
+            CreateMap<EpicTaskAssignedMembersRequestDTO, Tasks>();
+            CreateMap<TaskAssignedMembersRequestDTO, TaskAssignment>(); 
+
+
+
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -198,7 +205,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // Risk
             CreateMap<Risk, RiskResponseDTO>()
-                .ForMember(dest => dest.ResponsibleName, opt => opt.MapFrom(src => src.Responsible.FullName))
+                .ForMember(dest => dest.ResponsibleFullName, opt => opt.MapFrom(src => src.Responsible.FullName))
+                .ForMember(dest => dest.ResponsibleUserName, opt => opt.MapFrom(src => src.Responsible.Username))
+                .ForMember(dest => dest.ResponsiblePicture, opt => opt.MapFrom(src => src.Responsible.Picture))
                 .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
             CreateMap<RiskRequestDTO, Risk>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

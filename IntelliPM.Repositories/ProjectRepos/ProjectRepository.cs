@@ -82,6 +82,12 @@ namespace IntelliPM.Repositories.ProjectRepos
             return await _context.Project.FirstOrDefaultAsync(p => p.ProjectKey == projectKey)
                 ?? null;
         }
+        public async Task<Project> GetProjectByNameAsync(string projectName)
+        {
+            return await _context.Project.FirstOrDefaultAsync(p => p.Name == projectName)
+                ?? null;
+        }
+        //
 
 
         public async Task<Project> GetProjectWithMembersAndRequirements(int projectId)

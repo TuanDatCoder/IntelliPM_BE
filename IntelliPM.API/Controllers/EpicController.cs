@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Services.EpicServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -237,5 +238,77 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("with-tasks/{projectId}")]
+        [Authorize] 
+        public async Task<IActionResult> CreateEpicWithTasks(int projectId, [FromBody] EpicWithTaskRequestDTO request)
+        {
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Invalid request data"
+                });
+            }
+
+            try
+            {
+              
+               
+                var result = await _service.CreateEpicWithTaskAndAssignment(projectId, token, request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Epic with tasks and assignments created successfully",
+                    Data = result
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 401,
+                    Message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating epic with tasks: {ex.Message}"
+                });
+            }
+        }
+
     }
 }
