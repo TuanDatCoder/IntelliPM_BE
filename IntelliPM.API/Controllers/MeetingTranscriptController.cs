@@ -48,6 +48,13 @@
 //    }
 //}
 
+
+
+
+
+
+/*
+
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Services.MeetingTranscriptServices;
@@ -114,3 +121,4 @@ namespace IntelliPM.API.Controllers
         }
     }
 }
+*/
