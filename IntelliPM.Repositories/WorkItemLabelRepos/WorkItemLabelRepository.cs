@@ -35,6 +35,7 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         public async Task<List<WorkItemLabel>> GetAllWorkItemLabelAsync()
         {
             return await _context.WorkItemLabel
+                .Include(w => w.Label)
                 .Include(w => w.Epic)
                 .Include(w => w.Label)
                 .Include(w => w.Subtask)
@@ -47,6 +48,7 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         {
             if (id <= 0) throw new ArgumentException("Invalid ID", nameof(id));
             return await _context.WorkItemLabel
+                .Include(w => w.Label)
                 .Include(w => w.Epic)
                 .Include(w => w.Label)
                 .Include(w => w.Subtask)
@@ -65,6 +67,7 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         {
             if (string.IsNullOrEmpty(epicId)) return await GetAllWorkItemLabelAsync();
             return await _context.WorkItemLabel
+                .Include(w => w.Label)
                 .Include(w => w.Epic)
                 .Include(w => w.Label)
                 .Include(w => w.Subtask)
@@ -77,6 +80,7 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         {
             if (string.IsNullOrEmpty(subtaskId)) return await GetAllWorkItemLabelAsync();
             return await _context.WorkItemLabel
+                .Include(w => w.Label)
                 .Include(w => w.Epic)
                 .Include(w => w.Label)
                 .Include(w => w.Subtask)
@@ -89,6 +93,7 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         {
             if (string.IsNullOrEmpty(taskId)) return await GetAllWorkItemLabelAsync();
             return await _context.WorkItemLabel
+                .Include(w => w.Label)
                 .Include(w => w.Epic)
                 .Include(w => w.Label)
                 .Include(w => w.Subtask)

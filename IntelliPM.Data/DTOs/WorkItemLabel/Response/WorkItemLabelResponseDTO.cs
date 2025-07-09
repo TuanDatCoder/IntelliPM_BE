@@ -10,6 +10,7 @@ namespace IntelliPM.Data.DTOs.WorkItemLabel.Response
     {
         public int Id { get; set; }
         public int LabelId { get; set; }
+        public string? LabelName { get; set; }
         public string? TaskId { get; set; }
         public string? EpicId { get; set; }
         public string? SubtaskId { get; set; }
