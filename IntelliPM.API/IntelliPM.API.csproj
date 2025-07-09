@@ -4,7 +4,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-  <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -23,17 +22,7 @@
   </ItemGroup>
 
 
-	<ItemGroup>
-		<Content Include="VoskModels\**\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
 
-	<ItemGroup>
-		<Content Include="runtimes\**\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
 	
 	
 

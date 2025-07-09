@@ -1,5 +1,4 @@
 ﻿
-/***
 //using AutoMapper;
 //using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 //using IntelliPM.Data.DTOs.MeetingTranscript.Response;
@@ -354,7 +353,7 @@
 //        }
 //    }
 //}
-
+/*
 using AutoMapper;
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
