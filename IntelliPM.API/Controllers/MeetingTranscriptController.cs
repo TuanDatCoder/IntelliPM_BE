@@ -48,6 +48,13 @@
 //    }
 //}
 
+
+
+
+
+
+/*
+
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Services.MeetingTranscriptServices;
@@ -92,6 +99,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
         [HttpGet("{meetingId}")]
         public async Task<IActionResult> GetTranscriptByMeetingId(int meetingId)
         {
@@ -113,3 +121,4 @@ namespace IntelliPM.API.Controllers
         }
     }
 }
+*/
