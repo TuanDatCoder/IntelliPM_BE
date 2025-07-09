@@ -1,4 +1,5 @@
-﻿//using AutoMapper;
+﻿
+//using AutoMapper;
 //using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 //using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 //using IntelliPM.Data.Entities;
@@ -352,7 +353,7 @@
 //        }
 //    }
 //}
-
+/*
 using AutoMapper;
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
@@ -533,3 +534,4 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         // }
     }
 }
+*/

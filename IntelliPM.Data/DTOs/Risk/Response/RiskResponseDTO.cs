@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Data.DTOs.Account.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +13,11 @@ namespace IntelliPM.Data.DTOs.Risk.Response
 
         public int ResponsibleId { get; set; }
 
-        public string ResponsibleName { get; set; } = null!;
+        public string ResponsibleFullName { get; set; } = null!;
+
+        public string ResponsibleUserName { get; set; } = null!;
+
+        public string? ResponsiblePicture { get; set; }
 
         public int ProjectId { get; set; }
 
