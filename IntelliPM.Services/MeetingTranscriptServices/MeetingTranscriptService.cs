@@ -6,7 +6,7 @@ using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
 using IntelliPM.Services.GeminiServices;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection; // ✅ CHUẨN cho IHttpClientFactory
+using Microsoft.Extensions.DependencyInjection; 
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
 using System;
