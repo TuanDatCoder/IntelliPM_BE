@@ -11,6 +11,8 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Request
     {
         public int AssignedBy { get; set; }
 
+        public string? Priority { get; set; }
+
         public string Title { get; set; } = null!;
 
         public string? Description { get; set; }

@@ -25,12 +25,12 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("by-task/{taskId}")]
-        public async Task<IActionResult> GetFilesByTaskId(string taskId)
+        [HttpGet("by-subtask/{subtaskId}")]
+        public async Task<IActionResult> GetFilesBySubtask(string subtaskId)
         {
             try
             {
-                var files = await _service.GetFilesBySubtaskIdAsync(taskId);
+                var files = await _service.GetFilesBySubtaskIdAsync(subtaskId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

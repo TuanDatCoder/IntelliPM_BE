@@ -32,6 +32,7 @@ namespace IntelliPM.Repositories.SubtaskCommentRepos
         public async Task<List<SubtaskComment>> GetAllSubtaskComment()
         {
             return await _context.SubtaskComment
+                .Include(tf => tf.Account)
                 .OrderBy(t => t.Id)
                 .ToListAsync();
         }
@@ -39,6 +40,7 @@ namespace IntelliPM.Repositories.SubtaskCommentRepos
         public async Task<SubtaskComment?> GetByIdAsync(int id)
         {
             return await _context.SubtaskComment
+                .Include(tf => tf.Account)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
@@ -52,6 +54,7 @@ namespace IntelliPM.Repositories.SubtaskCommentRepos
         {
             return await _context.SubtaskComment
                 .Where(tf => tf.SubtaskId == subtaskId)
+                .Include(tf => tf.Account)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
