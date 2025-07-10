@@ -1,4 +1,5 @@
 ﻿
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using System;
 
 namespace IntelliPM.Data.DTOs.Task.Response
@@ -64,5 +65,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
+
+        public List<TaskDependencyResponseDTO>? Dependencies { get; set; }
     }
 }
