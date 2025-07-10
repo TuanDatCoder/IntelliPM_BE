@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Data.DTOs.TaskDependency.Request;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace IntelliPM.Data.DTOs.Task.Request
@@ -29,5 +30,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         public string? Status { get; set; }
+
+        public List<TaskDependencyRequestDTO>? Dependencies { get; set; }
     }
 }
