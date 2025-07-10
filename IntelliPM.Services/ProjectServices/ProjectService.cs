@@ -8,11 +8,13 @@ using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
@@ -48,8 +50,9 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ISprintRepository _sprintRepo;
         private readonly ITaskRepository _taskRepo;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly ITaskDependencyRepository _taskDependencyRepo;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -64,6 +67,7 @@ namespace IntelliPM.Services.ProjectServices
             _sprintRepo = sprintRepo;
             _taskRepo = taskRepo;
             _milestoneRepo = milestoneRepo;
+            _taskDependencyRepo = taskDependencyRepo;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -167,10 +171,6 @@ namespace IntelliPM.Services.ProjectServices
                 throw new Exception($"Failed to delete project: {ex.Message}", ex);
             }
         }
-
-
-
-
 
         public async Task<ProjectDetailsDTO> GetProjectDetails(int id)
         {
@@ -453,6 +453,21 @@ namespace IntelliPM.Services.ProjectServices
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+            var dependencies = await _taskDependencyRepo.GetByProjectIdAsync(project.Id);
+
+            var dependenciesGrouped = dependencies
+                .GroupBy(d => d.TaskId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(dep => new TaskDependencyResponseDTO
+                    {
+                        Id = dep.Id,
+                        TaskId = dep.TaskId,
+                        LinkedFrom = dep.LinkedFrom,
+                        LinkedTo = dep.LinkedTo,
+                        Type = dep.Type
+                    }).ToList()
+                );
 
             return new ProjectViewDTO
             {
@@ -511,6 +526,7 @@ namespace IntelliPM.Services.ProjectServices
                     Priority = t.Priority,
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
+                    Dependencies = dependenciesGrouped.ContainsKey(t.Id) ? dependenciesGrouped[t.Id] : new List<TaskDependencyResponseDTO>()
                 }).ToList(),
                 Milestones = milestones.Select(m => new MilestoneResponseDTO
                 {
