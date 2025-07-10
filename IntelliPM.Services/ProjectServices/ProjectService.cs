@@ -456,18 +456,18 @@ namespace IntelliPM.Services.ProjectServices
             var dependencies = await _taskDependencyRepo.GetByProjectIdAsync(project.Id);
 
             var dependenciesGrouped = dependencies
-    .GroupBy(d => d.TaskId)
-    .ToDictionary(
-        g => g.Key,
-        g => g.Select(dep => new TaskDependencyResponseDTO
-        {
-            Id = dep.Id,
-            TaskId = dep.TaskId,
-            LinkedFrom = dep.LinkedFrom,
-            LinkedTo = dep.LinkedTo,
-            Type = dep.Type
-        }).ToList()
-    );
+                .GroupBy(d => d.TaskId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(dep => new TaskDependencyResponseDTO
+                    {
+                        Id = dep.Id,
+                        TaskId = dep.TaskId,
+                        LinkedFrom = dep.LinkedFrom,
+                        LinkedTo = dep.LinkedTo,
+                        Type = dep.Type
+                    }).ToList()
+                );
 
             return new ProjectViewDTO
             {
