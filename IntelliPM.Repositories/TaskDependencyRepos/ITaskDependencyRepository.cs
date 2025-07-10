@@ -10,6 +10,7 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
     public interface ITaskDependencyRepository
     {
         Task<List<TaskDependency>> GetByProjectIdAsync(int projectId);
+        Task<List<TaskDependency>> GetByTaskIdAsync(string taskId);
     }
 
 }
