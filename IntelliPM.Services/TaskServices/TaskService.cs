@@ -151,6 +151,24 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
+            if (request.Dependencies != null)
+            {
+                // Xóa hết các dependency cũ liên quan đến task này
+                await _taskDependencyRepo.DeleteByTaskIdAsync(id);
+
+                // Tạo danh sách mới
+                var newDeps = request.Dependencies.Select(d => new TaskDependency
+                {
+                    TaskId = id,
+                    LinkedFrom = d.LinkedFrom,
+                    LinkedTo = d.LinkedTo,
+                    Type = d.Type
+                }).ToList();
+
+                // Lưu lại
+                await _taskDependencyRepo.AddRangeAsync(newDeps);
+            }
+
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
