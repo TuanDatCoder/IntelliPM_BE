@@ -99,19 +99,16 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(int projectId, [FromBody] ProjectMemberRequestDTO request)
+        public async Task<IActionResult> Create(int projectId, [FromBody] ProjectMemberNoProjectIdRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
             }
 
-            if (request.ProjectId != projectId)
-                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID in request does not match URL." });
-
             try
             {
-                var result = await _service.AddProjectMember(request);
+                var result = await _service.CreateProjectMember(projectId,request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,

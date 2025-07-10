@@ -10,7 +10,6 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/project-member/{projectMemberId}/[controller]")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
     public class ProjectPositionController : ControllerBase
     {
         private readonly IProjectPositionService _service;
@@ -57,19 +56,16 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add(int projectMemberId, [FromBody] ProjectPositionRequestDTO request)
+        public async Task<IActionResult> Add(int projectMemberId, [FromBody] ProjectPositionNoMemberIdRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
             }
 
-            if (request.ProjectMemberId != projectMemberId)
-                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project member ID in request does not match URL." });
-
             try
             {
-                var result = await _service.AddProjectPosition(request);
+                var result = await _service.CreateProjectPosition( projectMemberId,request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -128,15 +124,13 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int projectMemberId, int id, [FromBody] ProjectPositionRequestDTO request)
+        public async Task<IActionResult> Update(int projectMemberId, int id, ProjectPositionNoMemberIdRequestDTO request)
         {
             try
             {
-                var position = await _service.GetProjectPositionById(id);
-                if (position.ProjectMemberId != projectMemberId)
-                    return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project member ID does not match." });
+                
 
-                var updated = await _service.UpdateProjectPosition(id, request);
+                var updated = await _service.UpdateProjectPosition(id, projectMemberId, request);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
