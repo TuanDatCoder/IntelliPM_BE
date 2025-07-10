@@ -17,6 +17,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectMemberResponseDTO>> GetAllProjectMembers(int projectId);
         Task<ProjectMemberResponseDTO> GetProjectMemberById(int id);
         Task<ProjectMemberResponseDTO> AddProjectMember(ProjectMemberRequestDTO request);
+        Task<ProjectMemberResponseDTO> CreateProjectMember(int ProjectId,ProjectMemberNoProjectIdRequestDTO request);
         Task DeleteProjectMember(int id);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
