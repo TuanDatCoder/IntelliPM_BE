@@ -24,9 +24,18 @@ namespace IntelliPM.API.Controllers
         [HttpPost]
         public async Task<ActionResult<DocumentResponseDTO>> Create([FromBody] DocumentRequestDTO request)
         {
-            var result = await _documentService.CreateDocument(request);
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
+
+            var result = await _documentService.CreateDocument(request, userId); 
             return Ok(result);
         }
+
 
         [HttpPut("{id}")]
         public async Task<ActionResult<DocumentResponseDTO>> Update(int id, [FromBody] UpdateDocumentRequest request)
@@ -141,5 +150,34 @@ namespace IntelliPM.API.Controllers
             var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
             return Ok(result);
         }
+
+        [HttpPost("{id}/generate-ai-content")]
+        public async Task<IActionResult> GenerateAIContent(int id, [FromBody] string prompt)
+        {
+            try
+            {
+                var content = await _documentService.GenerateAIContent(id, prompt);
+                return Ok(new { content });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("ask-ai")]
+        public async Task<IActionResult> AskAI([FromBody] string prompt)
+        {
+            try
+            {
+                var result = await _documentService.GenerateFreeAIContent(prompt);
+                return Ok(new { content = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }

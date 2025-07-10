@@ -51,6 +51,31 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToListAsync();
         }
 
+        public async Task<List<Document>> GetByEpicIdAsync(string epicId)
+        {
+            return await _context.Document
+                .Where(d => d.EpicId == epicId && d.IsActive)
+                .ToListAsync();
+        }
+        public async Task<List<Document>> GetByTaskIdAsync(string taskId)
+        {
+            return await _context.Document
+                .Where(d => d.TaskId == taskId && d.IsActive)
+                .ToListAsync();
+        }
+        public async Task<List<Document>> GetBySubtaskIdAsync(string subtaskId)
+        {
+            return await _context.Document
+                .Where(d => d.SubTaskId == subtaskId && d.IsActive)
+                .ToListAsync();
+        }
+
+        public async Task<List<Document>> GetByProjectAndTaskAsync(int projectId, string taskId)
+        {
+            return await _context.Document
+                .Where(d => d.ProjectId == projectId && d.TaskId == taskId && d.IsActive)
+                .ToListAsync();
+        }
 
 
     }

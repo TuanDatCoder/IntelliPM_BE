@@ -277,39 +277,75 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
-            entity.Property(e => e.Template).HasColumnName("template");
+
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
                 .HasColumnName("title");
+            entity.Property(e => e.Template).HasColumnName("template");
             entity.Property(e => e.Type)
                 .HasMaxLength(100)
                 .HasColumnName("type");
+
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
 
-            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
+            // 🆕 Các cột quan hệ đa hình
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
+
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+
+            entity.Property(e => e.SubTaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValue("Draft")
+                .HasColumnName("Status");
+
+            // Foreign Keys
+            entity.HasOne(d => d.CreatedByNavigation)
+                .WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_created_by_fkey");
 
-            entity.HasOne(d => d.Project).WithMany(p => p.Document)
+            entity.HasOne(d => d.UpdatedByNavigation)
+                .WithMany(p => p.DocumentUpdatedByNavigation)
+                .HasForeignKey(d => d.UpdatedBy)
+                .HasConstraintName("document_updated_by_fkey");
+
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Document)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_project_id_fkey");
 
-            entity.HasOne(d => d.Task).WithMany(p => p.Document)
+            entity.HasOne(d => d.Task)
+                .WithMany(p => p.Document)
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("document_task_id_fkey");
 
-            entity.HasOne(d => d.UpdatedByNavigation).WithMany(p => p.DocumentUpdatedByNavigation)
-                .HasForeignKey(d => d.UpdatedBy)
-                .HasConstraintName("document_updated_by_fkey");
+           
+            entity.HasOne(d => d.Epic)
+                .WithMany()
+                .HasForeignKey(d => d.EpicId)
+                .HasConstraintName("document_epic_id_fkey")
+                .OnDelete(DeleteBehavior.Restrict);
+     
+            entity.HasOne(d => d.SubTask)
+                .WithMany()
+                .HasForeignKey(d => d.SubTaskId)
+                .HasConstraintName("document_subtask_id_fkey")
+                .OnDelete(DeleteBehavior.Restrict);
         });
+
 
         modelBuilder.Entity<DocumentPermission>(entity =>
         {
