@@ -27,5 +27,12 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
                     .Contains(d.TaskId))
                 .ToListAsync();
         }
+
+        public async Task<List<TaskDependency>> GetByTaskIdAsync(string taskId)
+        {
+            return await _context.TaskDependency
+                .Where(d => d.TaskId == taskId)
+                .ToListAsync();
+        }
     }
 }
