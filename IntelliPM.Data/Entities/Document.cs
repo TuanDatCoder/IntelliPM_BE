@@ -43,4 +43,11 @@ public partial class Document
 
     public string Status { get; set; } = "Draft"; // Enum: Draft, PendingApproval, Approved, Rejected
 
+    public string? EpicId { get; set; }
+    public string? SubTaskId { get; set; }
+
+    public virtual Epic? Epic { get; set; }
+    public virtual Subtask? SubTask { get; set; }
+
+
 }
