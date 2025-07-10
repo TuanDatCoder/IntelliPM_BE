@@ -13,8 +13,8 @@ namespace IntelliPM.Services.RequirementServices
         Task<List<RequirementResponseDTO>> GetAllRequirements(int projectId);
         Task<RequirementResponseDTO> GetRequirementById(int id);
         Task<List<RequirementResponseDTO>> GetRequirementByTitle(string title);
-        Task<RequirementResponseDTO> CreateRequirement(RequirementRequestDTO request);
-        Task<RequirementResponseDTO> UpdateRequirement(int id, RequirementRequestDTO request);
+        Task<RequirementResponseDTO> CreateRequirement(int projectId, RequirementNoProjectRequestDTO request);
+        Task<RequirementResponseDTO> UpdateRequirement(int id, int projectId, RequirementNoProjectRequestDTO request);
         Task DeleteRequirement(int id);
         Task<RequirementResponseDTO> ChangeRequirementPriority(int id, string priority);
 
