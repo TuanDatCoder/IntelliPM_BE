@@ -20,9 +20,12 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
         Task<TaskResponseDTO> ChangeTaskType(string id, string type);
+        Task<TaskResponseDTO> ChangeTaskTitle(string id, string title);
+        Task<TaskResponseDTO> ChangeTaskDescription(string id, string description);
+        Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate);
+        Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate);
         Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id);
         Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId);
-
         Task<List<TaskResponseDTO>> GetTasksByEpicIdAsync(string epicId);
 
     }

@@ -53,7 +53,7 @@ using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MeetingSummaryServices;
-//using IntelliPM.Services.MeetingTranscriptServices;
+using IntelliPM.Services.MeetingTranscriptServices;
 using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.ProjectMemberServices;
@@ -77,16 +77,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using IntelliPM.Services.SubtaskFileServices;
-using IntelliPM.Services.SubtaskCommentServices;
-using IntelliPM.Repositories.SubtaskFileRepos;
-using IntelliPM.Repositories.SubtaskCommentRepos;
-using IntelliPM.Repositories.NotificationRepos;
-using IntelliPM.Repositories.RiskRepos;
-using IntelliPM.Services.RiskServices;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 
 
 
@@ -141,6 +135,7 @@ builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
+builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -173,7 +168,7 @@ builder.Services.AddScoped<ISprintService, SprintService>();
 builder.Services.AddScoped<IProjectMetricService, ProjectMetricService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IMeetingLogService, MeetingLogService>();
-//builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
+builder.Services.AddScoped<IMeetingTranscriptService, MeetingTranscriptService>();
 builder.Services.AddScoped<IMilestoneFeedbackService, MilestoneFeedbackService>();
 builder.Services.AddScoped<ISubtaskFileService, SubtaskFileService>();
 builder.Services.AddScoped<ISubtaskCommentService, SubtaskCommentService>();

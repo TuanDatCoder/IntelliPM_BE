@@ -1,4 +1,5 @@
 ﻿
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using System;
 
 namespace IntelliPM.Data.DTOs.Task.Response
@@ -8,6 +9,8 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public string Id { get; set; } = null!;
 
         public int ReporterId { get; set; }
+
+        public string? ReporterName { get; set; }
 
         public int ProjectId { get; set; }
 
@@ -62,5 +65,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
+
+        public List<TaskDependencyResponseDTO>? Dependencies { get; set; }
     }
 }

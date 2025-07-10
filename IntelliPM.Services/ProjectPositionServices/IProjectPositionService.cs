@@ -13,8 +13,9 @@ namespace IntelliPM.Services.ProjectPositionServices
     {
         Task<List<ProjectPositionResponseDTO>> GetAllProjectPositions(int projectMemberId);
         Task<ProjectPositionResponseDTO> GetProjectPositionById(int id);
+        Task<ProjectPositionResponseDTO> CreateProjectPosition(int projectMemberId, ProjectPositionNoMemberIdRequestDTO request);
+        Task<ProjectPositionResponseDTO> UpdateProjectPosition(int id, int projectMemberId, ProjectPositionNoMemberIdRequestDTO request);
         Task<ProjectPositionResponseDTO> AddProjectPosition(ProjectPositionRequestDTO request);
-        Task<ProjectPositionResponseDTO> UpdateProjectPosition(int id, ProjectPositionRequestDTO request);
         Task DeleteProjectPosition(int id);
         Task<List<ProjectPosition>> GetAllByProjectId(int projectId);
         
