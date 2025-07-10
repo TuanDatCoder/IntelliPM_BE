@@ -59,6 +59,8 @@ using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
+using IntelliPM.Data.DTOs.TaskDependency.Request;
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
@@ -172,7 +174,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             CreateMap<Tasks, TaskResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
-                .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
+                .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
+                .ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
 
             CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
@@ -194,6 +197,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
             CreateMap<TaskResponseDTO, Tasks>();
+
+            // Task Dependency
+            CreateMap<TaskDependencyRequestDTO, TaskDependency>();
+            CreateMap<TaskDependency, TaskDependencyResponseDTO>();
+
 
             // Requirement
             CreateMap<RequirementRequestDTO, Requirement>()
