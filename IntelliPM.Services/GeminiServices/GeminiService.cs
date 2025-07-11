@@ -10,6 +10,7 @@ using FirebaseAdmin.Messaging;
 using System.Threading.Tasks;
 using IntelliPM.Data.DTOs.Risk.Request;
 using AutoMapper;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 
 public class GeminiService : IGeminiService
 {
@@ -424,6 +425,246 @@ Danh sách task:
         catch (Exception ex)
         {
             throw new Exception("Error parsing RiskDTO from Gemini reply:\n" + replyText + "\n" + ex.Message);
+        }
+    }
+
+    public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(
+    Project project,
+    ProjectMetric metric,
+    List<Tasks> tasks,
+    List<Sprint> sprints,
+    List<Milestone> milestones)
+    {
+        if (metric.Spi >= 1 && metric.Cpi >= 1)
+            return new List<AIRecommendationDTO>(); // Không cần gợi ý nếu dự án đang ổn
+
+        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
+        {
+            t.Id,
+            t.Title,
+            t.Description,
+            t.PlannedStartDate,
+            t.PlannedEndDate,
+            t.ActualStartDate,
+            t.ActualEndDate,
+            t.PercentComplete,
+            t.PlannedHours,
+            t.ActualHours,
+            t.PlannedCost,
+            t.ActualCost,
+            t.Status,
+            t.Priority
+        }), Formatting.Indented);
+
+        var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
+        {
+            s.Id,
+            s.Name,
+            s.Goal,
+            s.StartDate,
+            s.EndDate,
+            s.Status
+        }), Formatting.Indented);
+
+        var milestoneList = JsonConvert.SerializeObject(milestones.Select(m => new
+        {
+            m.Id,
+            m.Name,
+            m.Description,
+            m.StartDate,
+            m.EndDate,
+            m.Status
+        }), Formatting.Indented);
+
+//        var prompt = $@"
+//Bạn là một chuyên gia quản lý dự án có kinh nghiệm. Dưới đây là thông tin chi tiết của một dự án phần mềm bao gồm các task, sprint, milestone và các chỉ số đo lường hiệu suất.
+
+//Dự án đang có chỉ số hiệu suất không tốt:
+//- SPI (Schedule Performance Index) = {metric.Spi}
+//- CPI (Cost Performance Index) = {metric.Cpi}
+
+//Hãy phân tích toàn bộ dữ liệu và đề xuất 3 giải pháp cụ thể và khả thi nhất để giúp cải thiện tình trạng hiện tại. Trong mỗi giải pháp, yêu cầu nêu rõ:
+
+//1. **Mục tiêu đề xuất** (giảm chi phí, đẩy nhanh tiến độ, tăng hiệu suất,...)
+//2. **Nguyên nhân cụ thể** đang gây ra vấn đề (dẫn chứng từ task/sprint/milestone cụ thể)
+//3. **Hành động chi tiết cần làm**: ví dụ
+//    - Thay đổi trường nào trong task nào (ví dụ: tăng `plannedHours` cho task ID `PROJA-3`)
+//    - Thêm nhân sự gì vào task nào (ví dụ: thêm 1 Dev vào task `PROJA-5`)
+//    - Rút ngắn thời gian hoặc chuyển task sang sprint khác
+//    - Gộp task hoặc điều chỉnh phạm vi task
+//    - Thay đổi milestone cụ thể
+
+//4. **Tác động kỳ vọng sau thay đổi** (giúp cải thiện tiến độ bao nhiêu %, giảm chi phí bao nhiêu,...)
+
+//Trả về dưới dạng JSON array với mỗi phần tử như sau:
+
+//[
+//  {{
+//    recommendation: string,         // Mô tả ngắn gọn đề xuất
+//    details: string,                // Diễn giải rõ nguyên nhân, hành động cần làm
+//    type: string,                   // Schedule | Cost | Scope | Resource
+//    affectedTasks: string[],        // Danh sách các Task ID bị ảnh hưởng (nếu có)
+//    suggestedTask:string,           // Task ID cần chỉnh sửa
+//    expectedImpact: string          // Ví dụ: ""Dự kiến rút ngắn tiến độ 5 ngày"", ""Giảm chi phí 15%""
+//    suggestedChanges: object        // Các trường cần thay đổi trong task, ví dụ:
+//                                    // {{ ""plannedEndDate"": ""2025-08-01"", ""percentComplete"": 70, ""addResources"": ""Thêm 1 frontend"" }}
+//  }}
+//]
+
+//**Yêu cầu nghiêm ngặt:**
+//- Phân tích phải dựa vào dữ liệu cụ thể của task, sprint, milestone.
+//- Hạn chế đưa ra các đề xuất chung chung không rõ hành động.
+//- Không trả lời dưới dạng markdown, không thêm giải thích bên ngoài JSON.
+
+//Thông tin dự án:
+//- Tên: {project.Name}
+//- Ngân sách: {project.Budget}
+//- Thời gian bắt đầu: {project.StartDate}
+//- Thời gian kết thúc: {project.EndDate}
+
+//Dữ liệu metric:
+//- PV: {metric.PlannedValue}
+//- EV: {metric.EarnedValue}
+//- AC: {metric.ActualCost}
+//- SPI: {metric.Spi}
+//- CPI: {metric.Cpi}
+//- Delay (ngày): {metric.DelayDays}
+//- Budget overrun: {metric.BudgetOverrun}
+//- Projected Finish: {metric.ProjectedFinishDate}
+
+//Danh sách task:
+//{taskList}
+
+//Danh sách sprint:
+//{sprintList}
+
+//Danh sách milestone:
+//{milestoneList}
+//";
+        var prompt = $@"
+You are an experienced project management expert. Below is the detailed information of a software project including tasks, sprints, milestones, and key performance metrics.
+
+The project is currently underperforming:
+- SPI (Schedule Performance Index) = {metric.Spi}
+- CPI (Cost Performance Index) = {metric.Cpi}
+
+Please analyze all data and propose **3 specific and feasible recommendations** to help improve the current situation. Each recommendation must include:
+
+1. **Goal of the recommendation** (e.g., reduce cost, speed up progress, increase efficiency, etc.)
+2. **Specific root cause** of the issue (cite concrete evidence from a task/sprint/milestone)
+3. **Detailed action steps** to take, such as:
+    - Change which fields in which task (e.g., increase `plannedHours` for task ID `PROJA-3`)
+    - Add specific personnel to which task (e.g., assign 1 developer to task `PROJA-5`)
+    - Shorten duration or move a task to another sprint
+    - Merge tasks or adjust task scope
+    - Modify specific milestones
+
+4. **Expected impact** of the proposed changes (e.g., ""Estimated to shorten timeline by 5 days"", ""Reduce cost by 15%"", etc.)
+
+Return the result as a **JSON array**, where each item has the following structure:
+
+[
+  {{
+    recommendation: string,         // Short description of the recommendation
+    details: string,                // Explanation of the root cause and actions to take
+    type: string,                   // One of: Schedule | Cost | Scope | Resource
+    affectedTasks: string[],        // List of affected task IDs (if any)
+    suggestedTask: string,          // The task ID where action is proposed
+    expectedImpact: string,         // e.g., ""Estimated to improve schedule by 5 days""
+    suggestedChanges: object        // Fields to update in the task, e.g.,
+                                    // {{ ""plannedEndDate"": ""2025-08-01"", ""percentComplete"": 70, ""addResources"": ""Add 1 frontend developer"" }}
+  }}
+]
+
+**Strict Requirements:**
+- The analysis **must be based on specific data** from tasks, sprints, and milestones.
+- **Avoid vague or generic recommendations** without clear actions.
+- **Do not** return in markdown format, and **do not** include any explanation outside the JSON.
+
+Project Information:
+- Name: {project.Name}
+- Budget: {project.Budget}
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
+
+Metric Data:
+- PV: {metric.PlannedValue}
+- EV: {metric.EarnedValue}
+- AC: {metric.ActualCost}
+- SPI: {metric.Spi}
+- CPI: {metric.Cpi}
+- Delay (days): {metric.DelayDays}
+- Budget overrun: {metric.BudgetOverrun}
+- Projected Finish Date: {metric.ProjectedFinishDate}
+
+Task List:
+{taskList}
+
+Sprint List:
+{sprintList}
+
+Milestone List:
+{milestoneList}
+
+All output must be written in English.
+";
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[] { new { text = prompt } }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+
+        if (string.IsNullOrWhiteSpace(responseString))
+            throw new Exception("Gemini response is empty.");
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+            throw new Exception("Gemini did not return any text response.");
+
+        if (replyText.StartsWith("```") && replyText.Contains("json"))
+        {
+            replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+        }
+
+        if (!replyText.StartsWith("["))
+            throw new Exception("Gemini reply is not a valid JSON array:\n" + replyText);
+
+        try
+        {
+            var aiRecommendations = JsonConvert.DeserializeObject<List<AIRecommendationDTO>>(replyText);
+            if (aiRecommendations == null || aiRecommendations.Count == 0)
+                throw new Exception("Không nhận được gợi ý nào từ AI.");
+
+            //var results = aiRecommendations.Select(r => new ProjectRecommendation
+            //{
+            //    ProjectId = project.Id,
+            //    TaskId = null,
+            //    Recommendation = r.Recommendation,
+            //    Type = r.Type,
+            //    CreatedAt = DateTime.UtcNow
+            //}).ToList();
+
+            return aiRecommendations;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error parsing ProjectRecommendation from Gemini reply:\n" + replyText + "\n" + ex.Message);
         }
     }
 
