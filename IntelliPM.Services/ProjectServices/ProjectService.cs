@@ -24,6 +24,7 @@ using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
@@ -51,8 +52,11 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ITaskRepository _taskRepo;
         private readonly IMilestoneRepository _milestoneRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
+        private readonly IConfiguration _config;
+        private readonly string _backendUrl;
+        private readonly string _forntendUrl;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, IConfiguration config)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -68,6 +72,10 @@ namespace IntelliPM.Services.ProjectServices
             _taskRepo = taskRepo;
             _milestoneRepo = milestoneRepo;
             _taskDependencyRepo = taskDependencyRepo;
+            _config = config;
+            #pragma warning disable CS8601
+            _backendUrl = config["Environment:BE_URL"];
+            _forntendUrl = config["Environment:FE_URL"];
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -256,7 +264,7 @@ namespace IntelliPM.Services.ProjectServices
             if (!projectInfo.Status.Equals("PLANNING"))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
 
-            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+            var projectDetailsUrl = $"{_forntendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
             await _emailService.SendProjectCreationNotification(
                   pm.FullName,
@@ -271,6 +279,54 @@ namespace IntelliPM.Services.ProjectServices
 
             return "Email sent successfully to Project Manager.";
         }
+
+
+        public async Task<string> SendEmailToLeaderReject(int projectId, string token, string reason)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            // Tìm Project Manager trong danh sách
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "TEAM_LEADER") && (m.Status == "ACTIVE"));
+
+            if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
+                throw new ArgumentException("No Project Manager found or email is missing.");
+           
+
+            var projectInfo = await GetProjectById(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+            if (!projectInfo.Status.Equals("PLANNING"))
+                throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
+
+            await ChangeTaskStatus(projectId, "CANCELLED");
+
+            var projectDetailsUrl = $"{_forntendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
+
+            await _emailService.SendProjectReject(
+                  pm.FullName,
+                  pm.Email,
+                  currentAccount.FullName,
+                  currentAccount.Username,
+                  projectInfo.Name,
+                  projectInfo.ProjectKey,
+                  projectId,
+                  projectDetailsUrl,
+                  reason
+              );
+
+            return "Email sent successfully to Project Manager.";
+        }
+
 
 
         public async Task<string> SendInvitationsToTeamMembers(int projectId, string token)
@@ -322,14 +378,44 @@ namespace IntelliPM.Services.ProjectServices
             return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
         }
 
+
+
+
+        public async Task<ProjectResponseDTO> ChangeTaskStatus(int id, string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                throw new ArgumentException("Status cannot be null or empty.");
+
+            var entity = await _projectRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Project with ID {id} not found.");
+
+            entity.Status = status;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _projectRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task status: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<ProjectResponseDTO>(entity);
+        }
+
+
+
         public async Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId)
         {
             var workItems = new List<WorkItemResponseDTO>();
 
+           
             var epics = await _epicService.GetEpicsByProjectId(projectId);
             foreach (var epic in epics)
             {
-                var item = new WorkItemResponseDTO
+                workItems.Add(new WorkItemResponseDTO
                 {
                     Type = epic.Type,
                     Key = epic.Id,
@@ -342,7 +428,7 @@ namespace IntelliPM.Services.ProjectServices
                 new AssigneeDTO
                 {
                     Fullname = epic.AssignedByFullname ?? "Unknown",
-                    Picture = null 
+                    Picture = null
                 }
             },
                     DueDate = epic.EndDate,
@@ -351,14 +437,13 @@ namespace IntelliPM.Services.ProjectServices
                     UpdatedAt = epic.UpdatedAt,
                     ReporterFullname = epic.ReporterFullname ?? "Unknown",
                     ReporterPicture = epic.ReporterPicture
-                };
-                workItems.Add(item);
+                });
             }
 
             var tasks = await _taskService.GetTasksByProjectIdDetailed(projectId);
             foreach (var task in tasks)
             {
-                var item = new WorkItemResponseDTO
+                workItems.Add(new WorkItemResponseDTO
                 {
                     Type = task.Type,
                     Key = task.Id,
@@ -369,7 +454,7 @@ namespace IntelliPM.Services.ProjectServices
                     Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
                     {
                         Fullname = a.AccountFullname ?? "Unknown",
-                        Picture = a.AccountPicture 
+                        Picture = a.AccountPicture
                     }).ToList(),
                     DueDate = task.PlannedEndDate,
                     Labels = task.Labels.Select(l => l.Name).ToList(),
@@ -377,14 +462,14 @@ namespace IntelliPM.Services.ProjectServices
                     UpdatedAt = task.UpdatedAt,
                     ReporterFullname = task.ReporterFullname ?? "Unknown",
                     ReporterPicture = task.ReporterPicture
-                };
-                workItems.Add(item);
+                });
             }
 
+            
             var subtasks = await _subtaskService.GetSubtasksByProjectIdDetailed(projectId);
             foreach (var subtask in subtasks)
             {
-                var item = new WorkItemResponseDTO
+                workItems.Add(new WorkItemResponseDTO
                 {
                     Type = subtask.Type,
                     Key = subtask.Id,
@@ -398,7 +483,7 @@ namespace IntelliPM.Services.ProjectServices
                 new AssigneeDTO
                 {
                     Fullname = subtask.AssignedByFullname ?? "Unknown",
-                    Picture = subtask.AssignedByPicture 
+                    Picture = subtask.AssignedByPicture
                 }
             },
                     DueDate = subtask.EndDate,
@@ -407,14 +492,14 @@ namespace IntelliPM.Services.ProjectServices
                     UpdatedAt = subtask.UpdatedAt,
                     ReporterFullname = subtask.ReporterFullname ?? "Unknown",
                     ReporterPicture = subtask.ReporterPicture
-                };
-                workItems.Add(item);
+                });
             }
 
             return workItems.OrderBy(w => w.CreatedAt).ToList();
         }
 
-     
+
+
         public async Task<ProjectResponseDTO> GetProjectByKey(string projectKey)
         {
             if (string.IsNullOrEmpty(projectKey))
