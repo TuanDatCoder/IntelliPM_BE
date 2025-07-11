@@ -33,6 +33,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<EpicComment> EpicComment { get; set; }
 
+    public virtual DbSet<EpicFile> EpicFile { get; set; }
+
     public virtual DbSet<Label> Label { get; set; }
 
     public virtual DbSet<Meeting> Meeting { get; set; }
@@ -266,6 +268,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
             entity.Property(e => e.FileUrl)
                 .HasMaxLength(1024)
                 .HasColumnName("file_url");
@@ -273,6 +278,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
             entity.Property(e => e.TaskId)
                 .HasMaxLength(255)
                 .HasColumnName("task_id");
@@ -293,10 +301,18 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_created_by_fkey");
 
+            entity.HasOne(d => d.Epic).WithMany(p => p.Document)
+                .HasForeignKey(d => d.EpicId)
+                .HasConstraintName("document_epic_id_fkey");
+
             entity.HasOne(d => d.Project).WithMany(p => p.Document)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_project_id_fkey");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.Document)
+                .HasForeignKey(d => d.SubtaskId)
+                .HasConstraintName("document_subtask_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Document)
                 .HasForeignKey(d => d.TaskId)
@@ -441,6 +457,35 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.EpicId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("epic_comment_epic_id_fkey");
+        });
+
+        modelBuilder.Entity<EpicFile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("epic_file_pkey");
+
+            entity.ToTable("epic_file");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.Title)
+                .HasMaxLength(255)
+                .HasColumnName("title");
+            entity.Property(e => e.UrlFile)
+                .HasMaxLength(1024)
+                .HasColumnName("url_file");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.EpicFile)
+                .HasForeignKey(d => d.EpicId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("epic_file_epic_id_fkey");
         });
 
         modelBuilder.Entity<Label>(entity =>
@@ -680,12 +725,17 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.ToTable("milestone");
 
+            entity.HasIndex(e => e.Key, "milestone_key_key").IsUnique();
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.Key)
+                .HasMaxLength(255)
+                .HasColumnName("key");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
@@ -1035,6 +1085,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
             entity.Property(e => e.GeneratedBy)
                 .HasMaxLength(100)
                 .HasColumnName("generated_by");
@@ -1360,6 +1411,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.LinkedTo)
                 .HasMaxLength(255)
                 .HasColumnName("linked_to");
+            entity.Property(e => e.MilestoneId).HasColumnName("milestone_id");
             entity.Property(e => e.TaskId)
                 .HasMaxLength(255)
                 .HasColumnName("task_id");
@@ -1377,9 +1429,12 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("task_dependency_linked_to_fkey");
 
+            entity.HasOne(d => d.Milestone).WithMany(p => p.TaskDependency)
+                .HasForeignKey(d => d.MilestoneId)
+                .HasConstraintName("task_dependency_milestone_id_fkey");
+
             entity.HasOne(d => d.Task).WithMany(p => p.TaskDependencyTask)
                 .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("task_dependency_task_id_fkey");
         });
 

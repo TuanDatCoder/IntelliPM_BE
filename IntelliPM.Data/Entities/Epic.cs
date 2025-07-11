@@ -31,7 +31,11 @@ public partial class Epic
 
     public virtual Account? AssignedByNavigation { get; set; }
 
+    public virtual ICollection<Document> Document { get; set; } = new List<Document>();
+
     public virtual ICollection<EpicComment> EpicComment { get; set; } = new List<EpicComment>();
+
+    public virtual ICollection<EpicFile> EpicFile { get; set; } = new List<EpicFile>();
 
     public virtual Project Project { get; set; } = null!;
 
