@@ -179,5 +179,31 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("find-by-key")]
+        public async Task<ActionResult<DocumentResponseDTO>> GetByKey(
+            [FromQuery] int projectId,
+            [FromQuery] string? epicId,
+            [FromQuery] string? taskId,
+            [FromQuery] string? subTaskId)
+        {
+            var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
+            if (result == null)
+                return NotFound("Document not found");
+
+            return Ok(result);
+        }
+
+        [HttpGet("mapping")]
+        public async Task<IActionResult> GetDocumentMapping([FromQuery] int projectId, [FromQuery] int userId)
+        {
+            var mapping = await _documentService.GetUserDocumentMappingAsync(projectId, userId);
+            return Ok(mapping);
+        }
+
+
+
+
+
+
     }
 }

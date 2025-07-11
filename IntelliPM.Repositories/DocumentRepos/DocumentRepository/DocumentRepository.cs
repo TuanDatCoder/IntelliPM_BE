@@ -77,6 +77,35 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToListAsync();
         }
 
+        public async Task<Document?> GetByKeyAsync(int projectId, string? epicId, string? taskId, string? subTaskId)
+        {
+            string? keyId = epicId ?? taskId ?? subTaskId;
+
+            if (keyId == null)
+                return null;
+
+            return await _context.Document
+                .Where(d => d.ProjectId == projectId &&
+                            d.TaskId == keyId &&
+                            d.IsActive)
+                .FirstOrDefaultAsync();
+        }
+        public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
+        {
+            var docs = await _context.Document
+                .Where(d => d.ProjectId == projectId && d.CreatedBy == userId)
+                .ToListAsync();
+
+            return docs
+                .Where(d => d.EpicId != null || d.TaskId != null || d.SubTaskId != null)
+                .ToDictionary(
+                    d => d.EpicId ?? d.TaskId ?? d.SubTaskId!,
+                    d => d.Id
+                );
+        }
+
+
+
 
     }
 }

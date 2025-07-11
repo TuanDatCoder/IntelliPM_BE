@@ -30,6 +30,13 @@ namespace IntelliPM.Repositories.DocumentRepos
    
         Task<List<Document>> GetByProjectAndTaskAsync(int projectId, string taskId);
 
+        Task<Document?> GetByKeyAsync(int projectId, string? epicId, string? taskId, string? subTaskId);
+
+        Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId);
+
+
+
+
     }
 
 }

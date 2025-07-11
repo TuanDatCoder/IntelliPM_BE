@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
+using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Services.EmailServices;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http;
@@ -375,16 +376,37 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             return response;
         }
 
+        public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
+        {
+            var doc = await _repo.GetByKeyAsync(projectId, epicId, taskId, subTaskId);
+            if (doc == null) return null;
 
+            return new DocumentResponseDTO
+            {
+                Id = doc.Id,
+                ProjectId = doc.ProjectId,
+                TaskId = doc.TaskId,
+                Title = doc.Title,
+                Type = doc.Type,
+                Template = doc.Template,
+                Content = doc.Content,
+                FileUrl = doc.FileUrl,
+                IsActive = doc.IsActive,
+                CreatedBy = doc.CreatedBy,
+                UpdatedBy = doc.UpdatedBy,
+                CreatedAt = doc.CreatedAt,
+                UpdatedAt = doc.UpdatedAt
+            };
+        }
 
+        public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
+        {
+            return await _repo.GetUserDocumentMappingAsync(projectId, userId);
+        }
 
 
 
 
 
     }
-
-
-
-
 }
