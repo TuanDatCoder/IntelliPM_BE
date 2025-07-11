@@ -81,6 +81,7 @@ using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
+using IntelliPM.Services.ProjectRecommendationServices;
 
 
 
@@ -178,6 +179,7 @@ builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
 
 
 // ------------------------- HttpClient -----------------------------
