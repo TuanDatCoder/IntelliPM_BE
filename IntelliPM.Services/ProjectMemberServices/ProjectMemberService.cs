@@ -73,6 +73,8 @@ namespace IntelliPM.Services.ProjectMemberServices
 
             var entity = _mapper.Map<ProjectMember>(request);
             entity.ProjectId = projectId;
+            entity.Status = "CREATED";
+
             try
             {
                 await _projectMemberRepo.Add(entity);
