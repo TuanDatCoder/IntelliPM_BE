@@ -7,7 +7,9 @@ public partial class TaskDependency
 {
     public int Id { get; set; }
 
-    public string TaskId { get; set; } = null!;
+    public int? MilestoneId { get; set; }
+
+    public string? TaskId { get; set; }
 
     public string LinkedFrom { get; set; } = null!;
 
@@ -19,5 +21,7 @@ public partial class TaskDependency
 
     public virtual Tasks LinkedToNavigation { get; set; } = null!;
 
-    public virtual Tasks Task { get; set; } = null!;
+    public virtual Milestone? Milestone { get; set; }
+
+    public virtual Tasks? Task { get; set; }
 }

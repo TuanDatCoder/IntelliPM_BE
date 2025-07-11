@@ -39,6 +39,8 @@ public partial class Subtask
 
     public virtual Account? AssignedByNavigation { get; set; }
 
+    public virtual ICollection<Document> Document { get; set; } = new List<Document>();
+
     public virtual Account? Reporter { get; set; }
 
     public virtual Sprint? Sprint { get; set; }
