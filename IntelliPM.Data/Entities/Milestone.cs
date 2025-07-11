@@ -7,6 +7,8 @@ public partial class Milestone
 {
     public int Id { get; set; }
 
+    public string Key { get; set; } = null!;
+
     public int ProjectId { get; set; }
 
     public int? SprintId { get; set; }
@@ -28,4 +30,6 @@ public partial class Milestone
     public virtual Project Project { get; set; } = null!;
 
     public virtual Sprint? Sprint { get; set; }
+
+    public virtual ICollection<TaskDependency> TaskDependency { get; set; } = new List<TaskDependency>();
 }

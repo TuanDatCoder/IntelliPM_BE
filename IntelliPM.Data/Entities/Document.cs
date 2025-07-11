@@ -11,6 +11,10 @@ public partial class Document
 
     public string? TaskId { get; set; }
 
+    public string? EpicId { get; set; }
+
+    public string? SubtaskId { get; set; }
+
     public string Title { get; set; } = null!;
 
     public string? Type { get; set; }
@@ -35,7 +39,11 @@ public partial class Document
 
     public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
 
+    public virtual Epic? Epic { get; set; }
+
     public virtual Project Project { get; set; } = null!;
+
+    public virtual Subtask? Subtask { get; set; }
 
     public virtual Tasks? Task { get; set; }
 
