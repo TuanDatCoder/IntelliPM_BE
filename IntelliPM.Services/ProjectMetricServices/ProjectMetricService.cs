@@ -25,6 +25,7 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using Google.Cloud.Storage.V1;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -491,6 +492,15 @@ namespace IntelliPM.Services.ProjectMetricServices
             }).ToList();
 
             return result;
+        }
+
+        public async Task<ProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var entity = await _repo.GetLatestByProjectIdAsync(project.Id);
+
+            return _mapper.Map<ProjectMetricResponseDTO>(entity);
         }
     }
 }
