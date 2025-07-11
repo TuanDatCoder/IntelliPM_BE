@@ -10,7 +10,7 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
     {
         public string TaskId { get; set; } = null!;
 
-        public int AssignedBy { get; set; }
+        public int? AssignedBy { get; set; }
 
         public string Title { get; set; } = null!;
 
