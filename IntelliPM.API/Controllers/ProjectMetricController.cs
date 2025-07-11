@@ -36,8 +36,53 @@ namespace IntelliPM.API.Controllers
         [HttpGet("by-project-id")]
         public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
         {
-            var result = await _service.GetByProjectIdAsync(projectId);
-            return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Success", Data = result });
+            try
+            {
+                var result = await _service.GetByProjectIdAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Success",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+        [HttpGet("by-project-key")]
+        public async Task<IActionResult> GetByProjectKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _service.GetByProjectKeyAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Success",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}",
+                    Data = null
+                });
+            }
         }
 
         [HttpGet("health-dashboard")]
