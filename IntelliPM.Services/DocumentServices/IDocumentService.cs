@@ -36,6 +36,16 @@ namespace IntelliPM.Services.DocumentServices
         Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status);
         Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId);
 
+        Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId);
+
+        Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId);
+
+
+
+
+
+
+
 
 
 
