@@ -21,6 +21,9 @@ namespace IntelliPM.Repositories.EpicRepos
         public async Task<List<Epic>> GetAllEpics()
         {
             return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.AssignedByNavigation)
                 .OrderBy(e => e.Id)
                 .ToListAsync();
         }
@@ -28,12 +31,18 @@ namespace IntelliPM.Repositories.EpicRepos
         public async Task<Epic?> GetByIdAsync(string id)
         {
             return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.AssignedByNavigation)
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
         public async Task<List<Epic>> GetByNameAsync(string name)
         {
             return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.AssignedByNavigation)
                 .Where(e => e.Name.Contains(name))
                 .OrderBy(e => e.Id)
                 .ToListAsync();
@@ -42,6 +51,9 @@ namespace IntelliPM.Repositories.EpicRepos
         public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey) 
         {
             return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.AssignedByNavigation)
                 .Where(e => e.Project != null && e.Project.ProjectKey == projectKey)
                 .ToListAsync();
         }

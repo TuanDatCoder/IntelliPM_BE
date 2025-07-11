@@ -217,9 +217,9 @@ namespace IntelliPM.Services.EpicServices
             }
 
             // Lấy thông tin AssignedBy
-            if (epicDetailedDTO.AssignedById.HasValue)
+            if (epicDetailedDTO.AssignedBy.HasValue)
             {
-                var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedById.Value);
+                var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedBy.Value);
                 if (assignedBy != null)
                 {
                     epicDetailedDTO.AssignedByFullname = assignedBy.FullName;
