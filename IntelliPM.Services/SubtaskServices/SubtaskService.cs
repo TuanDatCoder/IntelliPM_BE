@@ -102,6 +102,7 @@ namespace IntelliPM.Services.SubtaskServices
             entity.Status = "TO-DO";
             entity.ManualInput = true;
             entity.GenerationAiInput = false;
+            entity.Priority = "MEDIUM";
 
             try
             {
@@ -239,6 +240,9 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
             _mapper.Map(request, entity);
+
+            if(request.AssignedBy == 0) 
+            entity.AssignedBy = null;
 
             try
             {

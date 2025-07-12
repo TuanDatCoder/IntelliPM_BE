@@ -1,0 +1,208 @@
+
+================================================================================
+PROJECT OVERVIEW - EduTrack360
+================================================================================
+
+🆔 Project Key: EDUTRACK  
+📛 Project Name: EduTrack360 – Online Learning Management System  
+💬 Description:
+  EduTrack360 is a modern web-based Learning Management System (LMS) designed 
+  for schools, universities, and online education platforms. It provides tools 
+  for managing courses, assignments, live classes, attendance, exams, and grading.
+
+  The platform supports different user roles (Admin, Instructor, Student), and 
+  provides separate dashboards with tailored functionalities. Students can 
+  enroll in courses, attend live sessions via Zoom integration, and complete 
+  assignments/quizzes online.
+
+  Key features include:
+  - Role-based web portal for Admin, Instructor, and Student
+  - Course lifecycle management: creation, enrollment, progress tracking
+  - Live class integration with Zoom API
+  - Interactive quiz builder and real-time grading
+  - Responsive and accessible UI (WCAG standard)
+  - Modular backend using Node.js & PostgreSQL
+
+💰 Budget: 1,200,000 VND  
+📂 Project Type: WEB_APPLICATION  
+📅 Start Date: 2025-07-05  
+📅 End Date:   2025-12-30  
+
+--------------------------------------------------------------------------------
+👥 Project Members & Roles:
+
+  1. teamleader@gmail.com      → TEAM_LEADER
+  2. tuandatdq03@gmail.com     → PROJECT_MANAGER
+  3. client@gmail.com       → CLIENT
+  4. tuandatdinhquoc@gmail.com  → FRONTEND_DEVELOPER
+  5. teamMemberbe3@gmail.com  → BACKEND_DEVELOPER
+  6. teamMemberbe2@gmail.com     → BACKEND_DEVELOPER
+  8. teamMemberds2@gmail.com       → DESIGNER
+  9. teamMemberds3@gmail.com    → DESIGNER
+
+  All members joined: 2025-07-05  
+  Invited between: 2025-06-26 → 2025-07-01
+
+--------------------------------------------------------------------------------
+📋 Project Requirements:
+
+  1. Course Management
+     → Type: FUNCTIONAL  
+     → Desc: Instructors can create, edit, and organize online courses  
+     → Priority: HIGH
+
+  2. Student Enrollment System
+     → Type: FUNCTIONAL  
+     → Desc: Students can search and register for available courses  
+     → Priority: HIGH
+
+  3. Live Class Integration (Zoom API)
+     → Type: FUNCTIONAL  
+     → Desc: Instructors can schedule and launch Zoom classes from dashboard  
+     → Priority: HIGH
+
+  4. Quiz Builder and Auto-Grading
+     → Type: FUNCTIONAL  
+     → Desc: Instructors create quizzes; system auto-scores responses  
+     → Priority: HIGH
+
+  5. Assignment Submission
+     → Type: FUNCTIONAL  
+     → Desc: Students upload assignments; instructors review and grade  
+     → Priority: MEDIUM
+
+  6. Attendance Tracking
+     → Type: FUNCTIONAL  
+     → Desc: Track attendance for each live session or class  
+     → Priority: MEDIUM
+
+  7. Role-Based Dashboard
+     → Type: NON_FUNCTIONAL  
+     → Desc: Each role sees tailored UI and features  
+     → Priority: HIGH
+
+  8. Responsive Web UI
+     → Type: NON_FUNCTIONAL  
+     → Desc: Platform works seamlessly on desktop, tablet, and mobile  
+     → Priority: HIGH
+
+  9. WCAG Accessibility Compliance
+     → Type: NON_FUNCTIONAL  
+     → Desc: Support for keyboard navigation, contrast, screen readers  
+     → Priority: MEDIUM
+
+ 10. System Scalability for Multi-Tenant Support
+     → Type: NON_FUNCTIONAL  
+     → Desc: Architecture allows future onboarding of multiple schools/orgs  
+     → Priority: MEDIUM
+
+================================================================================
+
+
+
+
+
+
+
+
+
+
+================================================================================
+PROJECT OVERVIEW - SmartHome360
+================================================================================
+
+🆔 Project Key: SMARTHOME  
+📛 Project Name: SmartHome360 – Intelligent IoT Management System  
+💬 Description:
+  SmartHome360 is an integrated IoT platform that allows users to manage 
+  and automate their smart home devices via a single, intuitive interface.
+  The system supports real-time device control, automation rules, energy 
+  tracking, and integration with voice assistants like Google Assistant and Alexa.
+  
+  Key features include:
+  - Role-based access (Admin, Technician, User)
+  - Mobile-first responsive UI
+  - Real-time updates via WebSocket
+  - MQTT protocol for device communication
+  - Scalable microservices backend (PostgreSQL, Node.js)
+
+💰 Budget: 1,500,000 VND  
+📂 Project Type: IOT_PLATFORM  
+📅 Start Date: 2025-07-01  
+📅 End Date:   2025-12-31  
+
+
+--------------------------------------------------------------------------------
+👥 Project Members & Roles:
+
+  1. teamleader@gmail.com  → Teamlead
+  2. tuandatdq03@gmail.com  → PROJECT_MANAGER
+  3. client@gmail.com  → Client
+  4. dinhhoangdat789@gmail.com  → FRONTEND_DEVELOPER
+  5. tuandatdq03@gmail.com  → FRONTEND_DEVELOPER
+  6. dinhhoangdat789@gmail.com  → FRONTEND_DEVELOPER
+  7. tuandatdq03@gmail.com  → FRONTEND_DEVELOPER
+  8. teammemberds@gmail.com  → DEsigner
+  9. teamMemberds2@gmail.com  → UX_UI_DESIGNER
+
+  All members joined: 2025-07-01  
+  Invited between: 2025-06-25 → 2025-06-29
+
+
+
+--------------------------------------------------------------------------------
+📋 Project Requirements:
+
+  1. Device Registration and Sync
+     → Type: FUNCTIONAL
+     → Desc: Add smart devices using QR or local scan
+     → Priority: HIGH
+
+  2. Real-Time Device Control
+     → Type: FUNCTIONAL
+     → Desc: Instant control from dashboard to devices
+     → Priority: HIGH
+
+  3. Rule-Based Automation Engine
+     → Type: FUNCTIONAL
+     → Desc: Schedule behaviors based on time or condition
+     → Priority: HIGH
+
+  4. Energy Usage Tracking
+     → Type: FUNCTIONAL
+     → Desc: Track power usage historically and in real-time
+     → Priority: MEDIUM
+
+  5. User Access Management
+     → Type: FUNCTIONAL
+     → Desc: Role-based control per device or room
+     → Priority: HIGH
+
+  6. Voice Assistant Integration
+     → Type: NON_FUNCTIONAL
+     → Desc: Works with Google Assistant / Alexa
+     → Priority: MEDIUM
+
+  7. Mobile App Responsiveness
+     → Type: NON_FUNCTIONAL
+     → Desc: UI optimized for phones and tablets
+     → Priority: HIGH
+
+  8. Device Offline Notifications
+     → Type: FUNCTIONAL
+     → Desc: Alerts when devices go offline
+     → Priority: HIGH
+
+  9. WebSocket-Based Live Updates
+     → Type: NON_FUNCTIONAL
+     → Desc: Real-time UI state changes without refresh
+     → Priority: HIGH
+
+ 10. System Scalability via Microservices
+     → Type: NON_FUNCTIONAL
+     → Desc: Modular design for future expansion
+     → Priority: MEDIUM
+
+
+
+================================================================================

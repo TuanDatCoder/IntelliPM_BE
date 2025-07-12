@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Services.MeetingTranscriptServices;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.API.Controllers
 {
@@ -10,10 +11,14 @@ namespace IntelliPM.API.Controllers
     public class MeetingTranscriptController : ControllerBase
     {
         private readonly IMeetingTranscriptService _service;
+        private readonly ILogger<MeetingTranscriptController> _logger;
 
-        public MeetingTranscriptController(IMeetingTranscriptService service)
+        public MeetingTranscriptController(
+            IMeetingTranscriptService service,
+            ILogger<MeetingTranscriptController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -26,10 +31,17 @@ namespace IntelliPM.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error in UploadTranscript: " + ex.Message);
-                return StatusCode(500, new { message = "An error occurred while uploading the transcript." });
+                _logger.LogError(ex, "Error in UploadTranscript: {Message}", ex.Message);
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while uploading the transcript.",
+                    error = ex.Message,
+                    stack = ex.StackTrace
+                });
             }
         }
+
 
         [HttpGet("{meetingId}")]
         public async Task<IActionResult> GetTranscriptByMeetingId(int meetingId)
@@ -41,8 +53,13 @@ namespace IntelliPM.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error in GetTranscriptByMeetingId: " + ex.Message);
-                return StatusCode(500, new { message = "An error occurred while retrieving the transcript." });
+                _logger.LogError(ex, "Error in GetTranscriptByMeetingId: {Message}", ex.Message);
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while retrieving the transcript.",
+                    error = ex.Message
+                });
             }
         }
     }
