@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.ProjectMetric.Request
 {
-    public class ProjectMetricRequestDTO
+    public class ProjectMetricRecommendationDTO
     {
         [Required(ErrorMessage = "Project ID is required")]
         public int ProjectId { get; set; }
@@ -40,22 +40,22 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Request
         [Range(0, 9999999999999.99, ErrorMessage = "Project Total Cost must be between 0 and 9999999999999.99")]
         public decimal? ProjectedTotalCost { get; set; }
 
-        //public List<RecommendationSuggestionDTO>? Suggestions { get; set; }
+        public List<RecommendationSuggestionDTO>? Suggestions { get; set; }
     }
 
-    //public class RecommendationSuggestionDTO
-    //{
-    //    public string Message { get; set; } = null!;
-    //    public string? Reason { get; set; }
-    //    public string? Label { get; set; }
-    //    public List<RelatedTaskDTO> RelatedTasks { get; set; } = new();
-    //}
+    public class RecommendationSuggestionDTO
+    {
+        public string Message { get; set; } = null!;
+        public string? Reason { get; set; }
+        public string? Label { get; set; }
+        public List<RelatedTaskDTO> RelatedTasks { get; set; } = new();
+    }
 
-    //public class RelatedTaskDTO
-    //{
-    //    public string TaskTitle { get; set; } = null!;
-    //    public string? CurrentPlannedEndDate { get; set; }
-    //    public double? CurrentPercentComplete { get; set; }
-    //    public string? SuggestedAction { get; set; }
-    //}
+    public class RelatedTaskDTO
+    {
+        public string TaskTitle { get; set; } = null!;
+        public string? CurrentPlannedEndDate { get; set; }
+        public double? CurrentPercentComplete { get; set; }
+        public string? SuggestedAction { get; set; }
+    }
 }
