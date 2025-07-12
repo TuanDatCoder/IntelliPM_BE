@@ -1,10 +1,13 @@
-﻿
-using IntelliPM.Data.DTOs.TaskDependency.Response;
+﻿using IntelliPM.Data.DTOs.TaskDependency.Response;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.Task.Response
 {
-    public class TaskResponseDTO
+    public class TaskUpdateResponseDTO
     {
         public string Id { get; set; } = null!;
 
@@ -41,32 +44,18 @@ namespace IntelliPM.Data.DTOs.Task.Response
 
         public string? Duration { get; set; }
 
-        public decimal? PercentComplete { get; set; }
 
         public decimal? PlannedHours { get; set; }
 
-        public decimal? ActualHours { get; set; }
-
-        public decimal? RemainingHours { get; set; }
-
-        public decimal? PlannedCost { get; set; }
-
-        public decimal? PlannedResourceCost { get; set; }
-
-        public decimal? ActualCost { get; set; }
-
-        public decimal? ActualResourceCost { get; set; }
 
         public string? Priority { get; set; }
 
         public string? Status { get; set; }
 
-        public string? Evaluate { get; set; }
 
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
 
-        public List<TaskDependencyResponseDTO>? Dependencies { get; set; }
     }
 }
