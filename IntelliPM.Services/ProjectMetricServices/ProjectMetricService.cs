@@ -26,6 +26,7 @@ using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using Google.Cloud.Storage.V1;
+using IntelliPM.Services.ChatGPTServices;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -43,8 +44,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
+        private readonly IChatGPTService _chatGPTService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService)
         {
             _mapper = mapper;
             _repo = repo;
@@ -58,6 +60,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _logger = logger;
             _geminiService = geminiService;
+            _chatGPTService = chatGPTService;
         }
 
         public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy)
@@ -129,7 +132,11 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
 
-            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            //var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            //if (result == null)
+            //    throw new Exception("AI did not return valid project metrics");
+
+            var result = await _chatGPTService.CalculateProjectMetricsAsync(project, tasks);
             if (result == null)
                 throw new Exception("AI did not return valid project metrics");
 
@@ -154,47 +161,47 @@ namespace IntelliPM.Services.ProjectMetricServices
             }
 
             // Lưu các gợi ý nếu có
-            if (result.Suggestions != null && result.Suggestions.Any())
-            {
-                var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
+            //if (result.Suggestions != null && result.Suggestions.Any())
+            //{
+            //    var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
 
-                foreach (var suggestion in result.Suggestions)
-                {
-                    foreach (var related in suggestion.RelatedTasks)
-                    {
-                        var taskTitle = related.TaskTitle?.Trim();
-                        if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
-                            continue;
+            //    foreach (var suggestion in result.Suggestions)
+            //    {
+            //        foreach (var related in suggestion.RelatedTasks)
+            //        {
+            //            var taskTitle = related.TaskTitle?.Trim();
+            //            if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
+            //                continue;
 
-                        var taskId = allTasks[taskTitle].ToString();
-                        var type = suggestion.Label ?? suggestion.Reason ?? "AI";
-                        var recommendationText = related.SuggestedAction ?? suggestion.Message;
+            //            var taskId = allTasks[taskTitle].ToString();
+            //            var type = suggestion.Label ?? suggestion.Reason ?? "AI";
+            //            var recommendationText = related.SuggestedAction ?? suggestion.Message;
 
-                        var existingRec = await _projectRecommendationRepo.GetByProjectIdTaskIdTypeAsync(project.Id, taskId, type);
+            //            var existingRec = await _projectRecommendationRepo.GetByProjectIdTaskIdTypeAsync(project.Id, taskId, type);
 
-                        if (existingRec != null)
-                        {
-                            existingRec.Recommendation = recommendationText;
-                            existingRec.CreatedAt = DateTime.UtcNow;
+            //            if (existingRec != null)
+            //            {
+            //                existingRec.Recommendation = recommendationText;
+            //                existingRec.CreatedAt = DateTime.UtcNow;
 
-                            await _projectRecommendationRepo.Update(existingRec);
-                        }
-                        else
-                        {
-                            var rec = new ProjectRecommendation
-                            {
-                                ProjectId = project.Id,
-                                TaskId = taskId,
-                                Type = type,
-                                Recommendation = recommendationText,
-                                CreatedAt = DateTime.UtcNow,
-                            };
+            //                await _projectRecommendationRepo.Update(existingRec);
+            //            }
+            //            else
+            //            {
+            //                var rec = new ProjectRecommendation
+            //                {
+            //                    ProjectId = project.Id,
+            //                    TaskId = taskId,
+            //                    Type = type,
+            //                    Recommendation = recommendationText,
+            //                    CreatedAt = DateTime.UtcNow,
+            //                };
 
-                            await _projectRecommendationRepo.Add(rec);
-                        }
-                    }
-                }
-            }
+            //                await _projectRecommendationRepo.Add(rec);
+            //            }
+            //        }
+            //    }
+            //}
 
             return result;
         }

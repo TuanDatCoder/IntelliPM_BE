@@ -28,7 +28,8 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
 
         public async Task Add(ProjectRecommendation recommendation)
         {
-            _context.Set<ProjectRecommendation>().Add(recommendation);
+            //_context.Set<ProjectRecommendation>().Add(recommendation);
+            _context.ProjectRecommendation.Add(recommendation);
             await _context.SaveChangesAsync();
         }
 
