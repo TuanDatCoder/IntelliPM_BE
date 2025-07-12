@@ -322,8 +322,8 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
      | Task | Description | Owner | Duration (Days) | Deadline | Milestone |
 
    ⚠️ Yêu cầu bảng phải có:
-   - Thẻ `<colgroup>` với các `<col style=""""width: ..."""">` để hiển thị rõ cấu trúc
-   - Các ô tiêu đề `<th>` cần có thuộc tính `colwidth=""""...""` để hỗ trợ kéo giãn cột trong trình soạn thảo như Tiptap.
+   - Thẻ `<colgroup>` với các `<col style=""width: ..."">` để hiển thị rõ cấu trúc
+   - Các ô tiêu đề `<th>` cần có thuộc tính `colwidth=""...""` để hỗ trợ kéo giãn cột trong trình soạn thảo như Tiptap
 
 4. Phần kết:  
    `<h2>🚀 Next Steps</h2>`  
@@ -331,11 +331,12 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
 
 📌 Ghi nhớ:
 - Trả về **HTML đơn giản** (dùng `<h1>`, `<h2>`, `<table>`, `<ul>`, `<section>`, `<p>`)
-- **Không bao quanh bằng ```html** hoặc bất kỳ markdown nào
+- **Không bao quanh bằng \`\`\`html** hoặc bất kỳ markdown nào
 - Nếu yêu cầu bên dưới không hợp lệ, vẫn phải sinh đúng cấu trúc tài liệu như mô tả
 - Đảm bảo HTML dễ hiển thị trong trình soạn thảo văn bản, và không chứa script hoặc style thừa
 
-🔽 Dưới đây là yêu cầu người dùng:
+🔽 Dưới đây là yêu cầu người dùng:  
+""Viết kế hoạch dự án phát triển hệ thống quản lý nhân sự cho doanh nghiệp vừa và nhỏ""
 ""{userPrompt}""
 ";
 
