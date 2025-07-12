@@ -351,6 +351,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Account, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
+            CreateMap<TaskAssignmentQuickRequestDTO, TaskAssignment>();
+
 
             // Thêm mapping từ TaskAssignment sang TaskAssignmentRequestDTO
             CreateMap<TaskAssignment, TaskAssignmentRequestDTO>()
