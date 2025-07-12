@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+﻿using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +11,6 @@ namespace IntelliPM.Services.ProjectRecommendationServices
     public interface IProjectRecommendationService
     {
         Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(string projectKey);
+        Task CreateAsync(ProjectRecommendationRequestDTO dto);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
 using IntelliPM.Services.ProjectRecommendationServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,20 @@ namespace IntelliPM.API.Controllers
                     Message = $"Internal Server Error: {ex.Message}",
                     Data = null
                 });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] ProjectRecommendationRequestDTO request)
+        {
+            try
+            {
+                await _service.CreateAsync(request);
+                return Ok(new { isSuccess = true, message = "Recommendation saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { isSuccess = false, message = ex.Message });
             }
         }
 
