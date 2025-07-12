@@ -388,6 +388,82 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
+
+        public async Task SendProjectReject(string leaderFullName, string leaderEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl, string reason)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(leaderEmail));
+            email.Subject = $"[IntelliPM] Project Rejected: {projectName} ({projectKey})";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Project Rejection Notification - IntelliPM</title>
+  <style>
+    body {{ font-family: 'Segoe UI', sans-serif; background-color: #f9fafb; margin: 0; padding: 32px 16px; }}
+    .container {{ max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); overflow: hidden; }}
+    .top-bar {{ background-color: #ff6b6b; height: 4px; width: 100%; }}
+    .content {{ padding: 32px 24px; text-align: left; }}
+    .logo {{ margin-bottom: 24px; }}
+    .logo img {{ width: 80px; height: auto; }}
+    h1 {{ font-size: 24px; color: #1b1b1f; margin-bottom: 16px; font-weight: 700; }}
+    h2 {{ font-size: 18px; color: #1b1b1f; margin: 16px 0 8px; font-weight: 600; }}
+    p {{ font-size: 15px; line-height: 1.6; color: #333333; margin-bottom: 16px; }}
+    .reason-box {{ background-color: #fff3f3; border-left: 4px solid #ff6b6b; padding: 16px; margin: 16px 0; border-radius: 4px; }}
+    .reason-box p {{ margin: 0; font-size: 15px; color: #333333; line-height: 1.6; font-style: normal; }}
+    .btn {{ display: inline-block; background: linear-gradient(to right, #ff6b6b, #e63946); color: #ffffff !important; text-decoration: none; font-weight: 600; padding: 14px 26px; border-radius: 8px; font-size: 15px; margin: 16px 0; box-shadow: 0 4px 14px rgba(255,107,107,0.3); }}
+    .btn:hover {{ background: linear-gradient(to right, #e63946, #d32f2f); }}
+    .footer {{ background-color: #f4f4f5; text-align: center; padding: 20px; font-size: 13px; color: #777; border-top: 1px solid #ddd; }}
+    .footer p {{ margin: 4px 0; }}
+    .footer a {{ color: #ff6b6b; text-decoration: none; }}
+    .footer a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='top-bar'></div>
+    <div class='content'>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
+      <h1>Project Rejection Notification</h1>
+      <p>Dear <strong>{leaderFullName}</strong>,</p>
+      <p>We regret to inform you that the project <strong>{projectName}</strong> (Project Key: <strong>{projectKey}</strong>, ID: {projectId}) has been rejected by <strong>{creatorFullName}</strong> ({creatorUsername}).</p>
+      <h2>Reason for Rejection</h2>
+      <div class='reason-box'>
+        <p>{reason}</p>
+      </div>
+      <p>As the Team Leader, you can review the project details to understand the context of this decision:</p>
+      <a href='{projectDetailsUrl}' class='btn'>View Project Details</a>
+      <p>If you have any questions or need further clarification, please contact <strong>{creatorFullName}</strong> directly.</p>
+    </div>
+    <div class='footer'>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+
         public async Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl)
         {
             var email = new MimeMessage();

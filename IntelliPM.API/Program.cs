@@ -77,16 +77,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using IntelliPM.Services.SubtaskFileServices;
-using IntelliPM.Services.SubtaskCommentServices;
-using IntelliPM.Repositories.SubtaskFileRepos;
-using IntelliPM.Repositories.SubtaskCommentRepos;
-using IntelliPM.Repositories.NotificationRepos;
-using IntelliPM.Repositories.RiskRepos;
-using IntelliPM.Services.RiskServices;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
+using IntelliPM.Services.ProjectRecommendationServices;
+using IntelliPM.Services.ChatGPTServices;
 
 
 
@@ -141,6 +137,7 @@ builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
+builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -183,6 +180,7 @@ builder.Services.AddScoped<IEpicCommentService, EpicCommentService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
 
 
 // ------------------------- HttpClient -----------------------------
@@ -191,6 +189,7 @@ builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
 });
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddHttpClient<IChatGPTService, ChatGPTService>();
 
 
 
@@ -305,6 +304,10 @@ app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+app.UseDefaultFiles();   
+app.UseStaticFiles();
 
 app.MapControllers();
 app.Run();

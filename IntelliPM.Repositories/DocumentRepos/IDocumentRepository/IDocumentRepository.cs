@@ -18,9 +18,9 @@ namespace IntelliPM.Repositories.DocumentRepos
 
         Task<List<Document>> GetByUserIdAsync(int userId);
 
-        Task<List<Document>> GetByStatusAsync(string status);
+        //Task<List<Document>> GetByStatusAsync(string status);
 
-        Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId);
+        //Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId);
 
     
         Task<List<Document>> GetByEpicIdAsync(string epicId);

@@ -274,6 +274,46 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("{projectId}/send-email-reject-to-leader")]
+        [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
+        public async Task<IActionResult> SendEmailToLeader(int projectId, [FromBody] ProjectRejectionRequestDTO request)
+        {
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = "Authorization token is required."
+                });
+
+            try
+            {
+                var result = await _service.SendEmailToLeaderReject(projectId, token, request.Reason);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = result,
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = $"Error sending email: {ex.Message}"
+                });
+            }
+        }
+
+
+
+
+
         [HttpPost("{projectId}/send-invitations")]
         [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
         public async Task<IActionResult> SendInvitationsToTeamMembers(int projectId)
@@ -322,6 +362,35 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = true,
                     Code = (int)HttpStatusCode.OK,
                     Message = $"Project key {projectKey} check completed",
+                    Data = new { exists }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking project key: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("check-project-name")]
+        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName)
+        {
+            try
+            {
+                var exists = await _service.CheckProjectNameExists(projectName);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Project name {projectName} check completed",
                     Data = new { exists }
                 });
             }
@@ -408,6 +477,41 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error retrieving project by key: {ex.Message}"
+                });
+            }
+        }
+
+
+
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskStatus(id, status);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating project status: {ex.Message}"
                 });
             }
         }

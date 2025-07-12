@@ -8,16 +8,14 @@ using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.EpicCommentServices;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Services.EpicServices
@@ -33,8 +31,11 @@ namespace IntelliPM.Services.EpicServices
         private readonly IAccountRepository _accountRepo;
         private readonly IEpicCommentService _epicCommentService;
         private readonly IWorkItemLabelService _workItemLabelService;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        private readonly IDecodeTokenHandler _decodeToken;
 
-        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService)
+
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken)
         {
             _mapper = mapper;
             _epicRepo = epicRepo;
@@ -45,6 +46,8 @@ namespace IntelliPM.Services.EpicServices
             _accountRepo = accountRepo;
             _epicCommentService = epicCommentService;
             _workItemLabelService = workItemLabelService;
+            _taskAssignmentRepo = taskAssignmentRepo;
+            _decodeToken = decodeToken;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -214,9 +217,9 @@ namespace IntelliPM.Services.EpicServices
             }
 
             // Lấy thông tin AssignedBy
-            if (epicDetailedDTO.AssignedById.HasValue)
+            if (epicDetailedDTO.AssignedBy.HasValue)
             {
-                var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedById.Value);
+                var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedBy.Value);
                 if (assignedBy != null)
                 {
                     epicDetailedDTO.AssignedByFullname = assignedBy.FullName;
@@ -224,21 +227,116 @@ namespace IntelliPM.Services.EpicServices
                 }
             }
 
-            // Lấy comment và số lượng
+      
             var allComments = await _epicCommentService.GetAllEpicComment();
             var epicComments = allComments.Where(c => c.EpicId == epicDetailedDTO.Id).ToList();
             epicDetailedDTO.CommentCount = epicComments.Count;
             epicDetailedDTO.Comments = _mapper.Map<List<EpicCommentResponseDTO>>(epicComments);
 
-            // Lấy các label
             var labels = await _workItemLabelService.GetByEpicIdAsync(epicDetailedDTO.Id);
             epicDetailedDTO.Labels = (await Task.WhenAll(labels.Select(async l =>
             {
-                var label = await _workItemLabelService.GetLabelById(l.LabelId); 
+                var label = await _workItemLabelService.GetLabelById(l.LabelId);
                 return _mapper.Map<LabelResponseDTO>(label);
             }))).ToList();
 
             epicDetailedDTO.Type = "EPIC";
         }
+
+
+        public async Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request)
+        {
+
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            if (string.IsNullOrEmpty(request.Title))
+                throw new ArgumentException("Epic Title is required.", nameof(request.Title));
+
+            if (request.StartDate > request.EndDate)
+                throw new ArgumentException("Epic EndDate must be after StartDate.", nameof(request.EndDate));
+
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.", nameof(projectId));
+
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+            var projectKey = await _projectRepo.GetProjectKeyAsync(projectId);
+            if (string.IsNullOrEmpty(projectKey))
+                throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
+
+            foreach (var task in request.Tasks)
+            {
+                var accountIds = task.AssignedMembers.Select(m => m.AccountId).ToList();
+            }
+
+            var epicEntity = _mapper.Map<Epic>(request);
+            epicEntity.ProjectId = projectId;
+            epicEntity.ReporterId = currentAccount.Id;
+            epicEntity.Name = request.Title;
+            epicEntity.Status = "TO_DO";
+            epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+
+            try
+            {
+                await _epicRepo.Add(epicEntity);
+
+                foreach (var task in request.Tasks)
+                {
+                    var taskEntity = _mapper.Map<Tasks>(task);
+                    taskEntity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+                    taskEntity.ReporterId = currentAccount.Id;
+                    taskEntity.ProjectId = projectId;
+                    taskEntity.EpicId = epicEntity.Id;
+                    taskEntity.Type = "TASK";
+                    taskEntity.PlannedStartDate = task.StartDate;
+                    taskEntity.PlannedEndDate = task.EndDate;
+                    taskEntity.Status = "TO_DO";
+
+                    await _taskRepo.Add(taskEntity);
+
+                    foreach (var member in task.AssignedMembers)
+                    {
+                        var account = await _accountRepo.GetAccountById(member.AccountId);
+                        if (account == null)
+                            throw new KeyNotFoundException($"Member with AccountId {member.AccountId} not found for task ID {taskEntity.Id}.");
+
+                        var taskAssignmentEntity = new TaskAssignment
+                        {
+                            TaskId = taskEntity.Id,
+                            AccountId = member.AccountId,
+                            Status = "ASSIGNED"
+                        };
+
+                        await _taskAssignmentRepo.Add(taskAssignmentEntity);
+                    }
+                }
+
+          
+                return $"Created epic with ID: {epicEntity.Id}";
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to create epic or tasks: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create epic or tasks: {ex.Message}", ex);
+            }
+        }
+
+
+
+
     }
 }

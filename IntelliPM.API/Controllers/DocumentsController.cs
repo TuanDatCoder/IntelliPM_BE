@@ -103,50 +103,51 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [Authorize]
-        [HttpPost("{documentId}/submit-approval")]
-        public async Task<IActionResult> SubmitForApproval(int documentId)
-        {
-            var userIdClaim = User.FindFirst("accountId")?.Value;
+        //[Authorize]
+        //[HttpPost("{documentId}/submit-approval")]
+        //public async Task<IActionResult> SubmitForApproval(int documentId)
+        //{
+        //    var userIdClaim = User.FindFirst("accountId")?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Unauthorized();
+        //    if (string.IsNullOrEmpty(userIdClaim))
+        //        return Unauthorized();
 
-            if (!int.TryParse(userIdClaim, out var approverId))
-                return BadRequest("Invalid approver ID");
+        //    if (!int.TryParse(userIdClaim, out var approverId))
+        //        return BadRequest("Invalid approver ID");
 
-            var result = await _documentService.SubmitForApproval(documentId);
-            return Ok(result);
-        }
-
-
-        [HttpPost("{documentId}/approve")]
-        public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
-        {
-            var result = await _documentService.UpdateApprovalStatus(documentId, req);
-            return Ok(result);
-        }
-
-        [HttpGet("status/{status}")]
-        public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
-        {
-            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-                return BadRequest("Invalid status");
-
-            var result = await _documentService.GetDocumentsByStatus(status);
-            return Ok(result);
-        }
+        //    var result = await _documentService.SubmitForApproval(documentId);
+        //    return Ok(result);
+        //}
 
 
-        [HttpGet("project/{projectId}/status/{status}")]
-        public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+        //[HttpPost("{documentId}/approve")]
+        //public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
+        //{
+        //    var result = await _documentService.UpdateApprovalStatus(documentId, req);
+        //    return Ok(result);
+        //}
 
-        {
-            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-                return BadRequest("Invalid status");
+        //[HttpGet("status/{status}")]
+        //public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
+        //{
+        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+        //        return BadRequest("Invalid status");
 
+        //    var result = await _documentService.GetDocumentsByStatus(status);
+        //    return Ok(result);
+        //}
+
+
+        //[HttpGet("project/{projectId}/status/{status}")]
+        //public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+
+        //{
+        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+        //        return BadRequest("Invalid status");
+
+<<<<<<< HEAD
             var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
             return Ok(result);
         }
@@ -205,5 +206,10 @@ namespace IntelliPM.API.Controllers
 
 
 
+=======
+        //    var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
+        //    return Ok(result);
+        //}
+>>>>>>> 88a20d3b63f11edd53d14344f50219a495adaf60
     }
 }

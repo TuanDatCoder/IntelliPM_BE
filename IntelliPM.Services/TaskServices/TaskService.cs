@@ -7,12 +7,14 @@ using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.TaskCommentServices; // Giả sử bạn có service này
 using IntelliPM.Services.Utilities;
@@ -22,6 +24,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -38,8 +41,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskCommentService _taskCommentService; 
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        private readonly ITaskDependencyRepository _taskDependencyRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -50,6 +54,7 @@ namespace IntelliPM.Services.TaskServices
             _taskCommentService = taskCommentService;
             _workItemLabelService = workItemLabelService;
             _taskAssignmentRepo = taskAssignmentRepository;
+            _taskDependencyRepo = taskDependencyRepo;
         }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
@@ -64,7 +69,18 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            return _mapper.Map<TaskResponseDTO>(entity);
+            var dto = _mapper.Map<TaskResponseDTO>(entity);
+            var dependencies = await _taskDependencyRepo.GetByTaskIdAsync(id);
+            dto.Dependencies = dependencies.Select(d => new TaskDependencyResponseDTO
+            {
+                Id = d.Id,
+                TaskId = d.TaskId,
+                LinkedFrom = d.LinkedFrom,
+                LinkedTo = d.LinkedTo,
+                Type = d.Type
+            }).ToList();
+
+            return dto;
         }
 
         public async Task<List<TaskResponseDTO>> GetTaskByTitle(string title)
@@ -133,6 +149,24 @@ namespace IntelliPM.Services.TaskServices
             catch (Exception ex)
             {
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
+            }
+
+            if (request.Dependencies != null)
+            {
+                // Xóa hết các dependency cũ liên quan đến task này
+                await _taskDependencyRepo.DeleteByTaskIdAsync(id);
+
+                // Tạo danh sách mới
+                var newDeps = request.Dependencies.Select(d => new TaskDependency
+                {
+                    TaskId = id,
+                    LinkedFrom = d.LinkedFrom,
+                    LinkedTo = d.LinkedTo,
+                    Type = d.Type
+                }).ToList();
+
+                // Lưu lại
+                await _taskDependencyRepo.AddRangeAsync(newDeps);
             }
 
             return _mapper.Map<TaskResponseDTO>(entity);
@@ -253,8 +287,6 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-
-
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {
             // Lấy thông tin Reporter
@@ -293,6 +325,93 @@ namespace IntelliPM.Services.TaskServices
                 return _mapper.Map<LabelResponseDTO>(label);
             }))).ToList();
 
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title)
+        {
+            if (string.IsNullOrEmpty(title))
+                throw new ArgumentException("Title cannot be null or empty.");
+
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Title with task ID {id} not found.");
+
+            entity.Title = title;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.PlannedStartDate = plannedStartDate;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.PlannedEndDate = plannedEndDate;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task Planned EndDate: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskDescription(string id, string description)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+
+            entity.Description = description;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task Description: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
         }
     }
 }
