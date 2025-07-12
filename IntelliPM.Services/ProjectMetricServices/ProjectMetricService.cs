@@ -26,6 +26,7 @@ using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using Google.Cloud.Storage.V1;
+using IntelliPM.Services.ChatGPTServices;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -43,8 +44,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
+        private readonly IChatGPTService _chatGPTService;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService)
         {
             _mapper = mapper;
             _repo = repo;
@@ -58,6 +60,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _logger = logger;
             _geminiService = geminiService;
+            _chatGPTService = chatGPTService;
         }
 
         public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy)
@@ -129,7 +132,11 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
 
-            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            //var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
+            //if (result == null)
+            //    throw new Exception("AI did not return valid project metrics");
+
+            var result = await _chatGPTService.CalculateProjectMetricsAsync(project, tasks);
             if (result == null)
                 throw new Exception("AI did not return valid project metrics");
 
