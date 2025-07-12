@@ -154,47 +154,47 @@ namespace IntelliPM.Services.ProjectMetricServices
             }
 
             // Lưu các gợi ý nếu có
-            if (result.Suggestions != null && result.Suggestions.Any())
-            {
-                var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
+            //if (result.Suggestions != null && result.Suggestions.Any())
+            //{
+            //    var allTasks = tasks.ToDictionary(t => t.Title?.Trim(), t => t.Id);
 
-                foreach (var suggestion in result.Suggestions)
-                {
-                    foreach (var related in suggestion.RelatedTasks)
-                    {
-                        var taskTitle = related.TaskTitle?.Trim();
-                        if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
-                            continue;
+            //    foreach (var suggestion in result.Suggestions)
+            //    {
+            //        foreach (var related in suggestion.RelatedTasks)
+            //        {
+            //            var taskTitle = related.TaskTitle?.Trim();
+            //            if (string.IsNullOrEmpty(taskTitle) || !allTasks.ContainsKey(taskTitle))
+            //                continue;
 
-                        var taskId = allTasks[taskTitle].ToString();
-                        var type = suggestion.Label ?? suggestion.Reason ?? "AI";
-                        var recommendationText = related.SuggestedAction ?? suggestion.Message;
+            //            var taskId = allTasks[taskTitle].ToString();
+            //            var type = suggestion.Label ?? suggestion.Reason ?? "AI";
+            //            var recommendationText = related.SuggestedAction ?? suggestion.Message;
 
-                        var existingRec = await _projectRecommendationRepo.GetByProjectIdTaskIdTypeAsync(project.Id, taskId, type);
+            //            var existingRec = await _projectRecommendationRepo.GetByProjectIdTaskIdTypeAsync(project.Id, taskId, type);
 
-                        if (existingRec != null)
-                        {
-                            existingRec.Recommendation = recommendationText;
-                            existingRec.CreatedAt = DateTime.UtcNow;
+            //            if (existingRec != null)
+            //            {
+            //                existingRec.Recommendation = recommendationText;
+            //                existingRec.CreatedAt = DateTime.UtcNow;
 
-                            await _projectRecommendationRepo.Update(existingRec);
-                        }
-                        else
-                        {
-                            var rec = new ProjectRecommendation
-                            {
-                                ProjectId = project.Id,
-                                TaskId = taskId,
-                                Type = type,
-                                Recommendation = recommendationText,
-                                CreatedAt = DateTime.UtcNow,
-                            };
+            //                await _projectRecommendationRepo.Update(existingRec);
+            //            }
+            //            else
+            //            {
+            //                var rec = new ProjectRecommendation
+            //                {
+            //                    ProjectId = project.Id,
+            //                    TaskId = taskId,
+            //                    Type = type,
+            //                    Recommendation = recommendationText,
+            //                    CreatedAt = DateTime.UtcNow,
+            //                };
 
-                            await _projectRecommendationRepo.Add(rec);
-                        }
-                    }
-                }
-            }
+            //                await _projectRecommendationRepo.Add(rec);
+            //            }
+            //        }
+            //    }
+            //}
 
             return result;
         }

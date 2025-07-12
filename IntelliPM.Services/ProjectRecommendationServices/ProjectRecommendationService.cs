@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -43,6 +45,20 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             _projectRecommendationRepo = projectRecommendationRepo;
             _logger = logger;
             _geminiService = geminiService;
+        }
+
+        public async Task CreateAsync(ProjectRecommendationRequestDTO dto)
+        {
+            var entity = new ProjectRecommendation
+            {
+                ProjectId = dto.ProjectId,
+                TaskId = dto.TaskId,
+                Type = dto.Type,
+                Recommendation = dto.Recommendation,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _projectRecommendationRepo.Add(entity);
         }
 
         public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(string projectKey)
