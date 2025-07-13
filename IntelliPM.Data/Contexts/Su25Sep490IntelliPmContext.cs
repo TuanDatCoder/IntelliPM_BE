@@ -117,7 +117,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Account>(entity =>
@@ -893,6 +892,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
+            entity.Property(e => e.WorkingHoursPerDay)
+                .HasDefaultValue(8)
+                .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
                 .HasForeignKey(d => d.AccountId)
