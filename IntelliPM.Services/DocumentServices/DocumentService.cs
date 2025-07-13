@@ -6,10 +6,9 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Services.EmailServices;
 using Microsoft.Extensions.Configuration;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 namespace IntelliPM.Services.DocumentServices
 {
     public class DocumentService : IDocumentService
@@ -46,54 +45,31 @@ namespace IntelliPM.Services.DocumentServices
             return ToResponse(doc);
         }
 
-        public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req)
+        public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
-            string content = req.Content;
+            int count =
+          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-           
-            if (!string.IsNullOrWhiteSpace(req.Prompt))
+            if (count > 1)
             {
-                var prompt = $@"
-{req.Prompt}
-
-Hãy tạo một tài liệu HTML trình bày kế hoạch dự án theo cấu trúc sau:
-
-1. Tiêu đề chính: 📊 Project Plan with Timeline
-2. Phần giới thiệu: 📅 Project Overview — gồm 1 đoạn giới thiệu ngắn.
-3. Nội dung chính: gồm 4 Phase (Giai đoạn) sau. Mỗi Phase phải có tiêu đề riêng (ví dụ: Phase 1: Initiation), và dưới đó là bảng trình bày các công việc theo định dạng:
-
-| Task | Description | Owner | Duration | Deadline | Milestone |
-
-Mỗi Phase phải có ít nhất 3 dòng dữ liệu, với thông tin hợp lý, dễ hiểu.
-
-4. Phần cuối: 🚀 Next Steps — danh sách các hành động tiếp theo dưới dạng danh sách gạch đầu dòng.
-
-Yêu cầu:
-- Trả về HTML đơn giản. Nếu có bảng <table>, hãy thêm <colgroup> với chiều rộng (width) cho từng cột để hỗ trợ hiển thị đẹp và resize được trong trình soạn thảo.
-- Dùng các thẻ HTML đơn giản: <h1>, <h2>, <p>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <ul>, <li>.
-- Cho phép sử dụng emoji như 📊, 📅, 🚀 ở phần tiêu đề nếu phù hợp.
-- Nội dung cần có cấu trúc rõ ràng, dễ chèn vào editor như Tiptap.
-
-Hãy đảm bảo HTML dễ đọc và đẹp khi render trên trình duyệt.
-";
-
-                content = await GenerateContentWithGemini(prompt);
-                if (string.IsNullOrWhiteSpace(content))
-                {
-                    content = req.Content ?? ""; // fallback nếu Gemini không trả kết quả
-                }
+                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
             }
+
 
             var doc = new Document
             {
                 ProjectId = req.ProjectId,
+                EpicId = req.EpicId,
                 TaskId = req.TaskId,
+                SubtaskId = req.SubTaskId,
                 Title = req.Title,
                 Type = req.Type,
                 Template = req.Template,
-                Content = content,
+                Content = req.Content,
                 FileUrl = req.FileUrl,
-                CreatedBy = req.CreatedBy,
+                CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsActive = true
@@ -107,11 +83,12 @@ Hãy đảm bảo HTML dễ đọc và đẹp khi render trên trình duyệt.
             catch (Exception ex)
             {
                 Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
-                throw;
+                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
             }
 
             return ToResponse(doc);
         }
+
 
 
 
@@ -217,7 +194,9 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             {
                 Id = doc.Id,
                 ProjectId = doc.ProjectId,
+                EpicId = doc.EpicId,
                 TaskId = doc.TaskId,
+                SubtaskId = doc.SubtaskId,
                 Title = doc.Title,
                 Type = doc.Type,
                 Template = doc.Template,
@@ -264,56 +243,168 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             };
         }
 
-        //public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
-        //    if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
+        public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null) throw new Exception("Document not found");
+            if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
 
-        //    doc.Status = "PendingApproval";
-        //    doc.UpdatedAt = DateTime.UtcNow;
+            doc.Status = "PendingApproval";
+            doc.UpdatedAt = DateTime.UtcNow;
 
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
 
-        //    return ToResponse(doc);
-        //}
+            return ToResponse(doc);
+        }
 
-        //public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
+        public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null) throw new Exception("Document not found");
 
-        //    if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
+            if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
 
-        //    if (request.Status != "Approved" && request.Status != "Rejected")
-        //        throw new Exception("Invalid approval status");
+            if (request.Status != "Approved" && request.Status != "Rejected")
+                throw new Exception("Invalid approval status");
 
-        //    doc.Status = request.Status;
-        //    doc.UpdatedAt = DateTime.UtcNow;
+            doc.Status = request.Status;
+            doc.UpdatedAt = DateTime.UtcNow;
 
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
 
-        //    return ToResponse(doc);
-        //}
+            return ToResponse(doc);
+        }
 
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
-        //{
-        //    var docs = await _repo.GetByStatusAsync(status);
-        //    return docs.Select(ToResponse).ToList();
-        //}
+        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
+        {
+            var docs = await _repo.GetByStatusAsync(status);
+            return docs.Select(ToResponse).ToList();
+        }
 
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
-        //{
-        //    var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
-        //    return docs.Select(ToResponse).ToList();
-        //}
+        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
+        {
+            var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
+            return docs.Select(ToResponse).ToList();
+        }
+
+        private bool IsPromptValid(string prompt)
+        {
+            if (string.IsNullOrWhiteSpace(prompt)) return false;
+            if (prompt.Length < 10) return false;
+            return Regex.IsMatch(prompt, @"[a-zA-ZÀ-ỹ0-9]");
+        }
+
+        private bool IsValidProjectPlanHtml(string content)
+        {
+            return content.Contains("<h1>📊 Project Plan") && content.Contains("<table");
+        }
+
+        private string BuildProjectPlanPrompt(string userPrompt)
+        {
+            return $@"
+Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qua nội dung không liên quan** và luôn sinh ra một **tài liệu kế hoạch dự án (Project Plan)** có cấu trúc HTML rõ ràng như sau:
+
+1. Tiêu đề chính: `<h1>📊 Project Plan with Timeline</h1>`
+
+2. Phần giới thiệu:  
+   `<h2>📅 Project Overview</h2>`  
+   Một đoạn mô tả ngắn về mục tiêu và phạm vi dự án trong thẻ `<p>`.
+
+3. Các giai đoạn (Phases):  
+   Sinh **4 phase** tương ứng với 4 `<section>`, mỗi phase gồm:
+   - Tiêu đề `<h2>Phase X: [Tên Phase]</h2>`
+   - Một bảng `<table>` có đầy đủ các cột:
+     | Task | Description | Owner | Duration (Days) | Deadline | Milestone |
+
+   ⚠️ Yêu cầu bảng phải có:
+   - Thẻ `<colgroup>` với các `<col style=""width: ..."">` để hiển thị rõ cấu trúc
+   - Các ô tiêu đề `<th>` cần có thuộc tính `colwidth=""...""` để hỗ trợ kéo giãn cột trong trình soạn thảo như Tiptap
+
+4. Phần kết:  
+   `<h2>🚀 Next Steps</h2>`  
+   Một danh sách `<ul>` các bước tiếp theo để triển khai dự án.
+
+📌 Ghi nhớ:
+- Trả về **HTML đơn giản** (dùng `<h1>`, `<h2>`, `<table>`, `<ul>`, `<section>`, `<p>`)
+- **Không bao quanh bằng \`\`\`html** hoặc bất kỳ markdown nào
+- Nếu yêu cầu bên dưới không hợp lệ, vẫn phải sinh đúng cấu trúc tài liệu như mô tả
+- Đảm bảo HTML dễ hiển thị trong trình soạn thảo văn bản, và không chứa script hoặc style thừa
+
+🔽 Dưới đây là yêu cầu người dùng:  
+""Viết kế hoạch dự án phát triển hệ thống quản lý nhân sự cho doanh nghiệp vừa và nhỏ""
+""{userPrompt}""
+";
+
+        }
+        public async Task<string> GenerateAIContent(int documentId, string prompt)
+        {
+            if (!IsPromptValid(prompt))
+                throw new Exception("Prompt không hợp lệ. Vui lòng mô tả rõ hơn về nội dung bạn muốn tạo.");
+
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null) throw new Exception("Document not found");
+
+            var fullPrompt = BuildProjectPlanPrompt(prompt);
+            var content = await GenerateContentWithGemini(fullPrompt);
+
+            if (string.IsNullOrWhiteSpace(content) || !IsValidProjectPlanHtml(content))
+                throw new Exception("AI không thể tạo nội dung hợp lệ từ prompt. Hãy nhập mô tả chi tiết hơn về kế hoạch dự án.");
+
+            doc.Content = content;
+            doc.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
+
+            return content;
+        }
+
+        public async Task<string> GenerateFreeAIContent(string prompt)
+        {
+            if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
+                throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
+
+            var response = await GenerateContentWithGemini(prompt);
+
+            if (string.IsNullOrWhiteSpace(response))
+                throw new Exception("AI không thể trả lời yêu cầu.");
+
+            return response;
+        }
+
+        public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
+        {
+            var doc = await _repo.GetByKeyAsync(projectId, epicId, taskId, subTaskId);
+            if (doc == null) return null;
+
+            return new DocumentResponseDTO
+            {
+                Id = doc.Id,
+                ProjectId = doc.ProjectId,
+                TaskId = doc.TaskId,
+                Title = doc.Title,
+                Type = doc.Type,
+                Template = doc.Template,
+                Content = doc.Content,
+                FileUrl = doc.FileUrl,
+                IsActive = doc.IsActive,
+                CreatedBy = doc.CreatedBy,
+                UpdatedBy = doc.UpdatedBy,
+                CreatedAt = doc.CreatedAt,
+                UpdatedAt = doc.UpdatedAt
+            };
+        }
+
+        public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
+        {
+            return await _repo.GetUserDocumentMappingAsync(projectId, userId);
+        }
+
 
 
 
 
     }
-
-
 }

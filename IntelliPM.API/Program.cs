@@ -82,6 +82,7 @@ using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Services.ProjectRecommendationServices;
+using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Services.EpicFileServices;
 
@@ -192,6 +193,7 @@ builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
 });
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddHttpClient<IChatGPTService, ChatGPTService>();
 
 
 
