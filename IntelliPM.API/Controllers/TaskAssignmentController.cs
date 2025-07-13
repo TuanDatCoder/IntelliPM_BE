@@ -226,6 +226,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpDelete("account/{accountId}")]
+        public async Task<IActionResult> DeleteAccountByTask(string taskId, int accountId)
+        {
+            try
+            {
+                await _service.DeleteByTaskAndAccount(taskId, accountId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task assignment deleted successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting task assignment: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(string taskId, int id, [FromBody] string status)
         {

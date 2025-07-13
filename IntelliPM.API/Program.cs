@@ -82,6 +82,8 @@ using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Services.ProjectRecommendationServices;
+using IntelliPM.Repositories.EpicFileRepos;
+using IntelliPM.Services.EpicFileServices;
 
 
 
@@ -102,6 +104,7 @@ builder.Services.AddScoped<IDynamicCategoryRepository, DynamicCategoryRepository
 builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IEpicRepository, EpicRepository>();
+builder.Services.AddScoped<IEpicFileRepository, EpicFileRepository>();
 builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
@@ -151,6 +154,7 @@ builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IEpicService, EpicService>();
+builder.Services.AddScoped<IEpicFileService, EpicFileService>();
 builder.Services.AddScoped<IMilestoneService, MilestoneService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
