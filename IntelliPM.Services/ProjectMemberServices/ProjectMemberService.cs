@@ -73,6 +73,8 @@ namespace IntelliPM.Services.ProjectMemberServices
 
             var entity = _mapper.Map<ProjectMember>(request);
             entity.ProjectId = projectId;
+            entity.Status = "CREATED";
+
             try
             {
                 await _projectMemberRepo.Add(entity);
@@ -312,7 +314,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                         ProjectId = projectId,
                         JoinedAt = request.AccountId == currentAccount.Id ? DateTime.UtcNow : null,
                         InvitedAt = DateTime.UtcNow,
-                        Status = "CREATED"
+                        Status = request.AccountId == currentAccount.Id ? "ACTIVE" : "CREATED"
                     };
                     await _projectMemberRepo.Add(memberEntity);
 

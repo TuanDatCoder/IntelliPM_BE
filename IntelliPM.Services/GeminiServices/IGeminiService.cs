@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs.ProjectMetric.Request;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.Entities;
 using System;
@@ -15,6 +16,6 @@ namespace IntelliPM.Services.GeminiServices
         Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
         Task<string> SummarizeTextAsync(string transcriptText);
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);
+        Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(Project project, ProjectMetric metric, List<Tasks> tasks, List<Sprint> sprints, List<Milestone> milestones);
     }
-
 }

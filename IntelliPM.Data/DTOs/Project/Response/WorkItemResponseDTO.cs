@@ -26,7 +26,7 @@ namespace IntelliPM.Data.DTOs.Project.Response
 
     public class AssigneeDTO
     {
-        public string Fullname { get; set; } = "Unknown"; // Mặc định là "Unknown" nếu không có
-        public string? Picture { get; set; } // Có thể null nếu không có ảnh
+        public string Fullname { get; set; } = "Unknown"; 
+        public string? Picture { get; set; } 
     }
 }
