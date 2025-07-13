@@ -16,6 +16,8 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         public int? SprintId { get; set; }
 
+        [Required]
+        [RegularExpression("BUG|TASK|STORY", ErrorMessage = "Type must be BUG, TASK, or STORY")]
         public string? Type { get; set; }
 
         [Required(ErrorMessage = "Task title is required")]
