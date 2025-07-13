@@ -216,7 +216,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-            CreateMap<Requirement, RequirementResponseDTO>();
+
+            CreateMap<TaskAssignment, TaskAssignmentResponseDTO>()
+                .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
+
             CreateMap<RequirementNoProjectRequestDTO, Requirement>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.ProjectId, opt => opt.Ignore())
@@ -360,9 +364,6 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
             CreateMap<TaskAssignmentQuickRequestDTO, TaskAssignment>();
-
-
-            // Thêm mapping từ TaskAssignment sang TaskAssignmentRequestDTO
             CreateMap<TaskAssignment, TaskAssignmentRequestDTO>()
                 .ForMember(dest => dest.TaskId, opt => opt.MapFrom(src => src.TaskId))
                 .ForMember(dest => dest.AccountId, opt => opt.MapFrom(src => src.AccountId))
