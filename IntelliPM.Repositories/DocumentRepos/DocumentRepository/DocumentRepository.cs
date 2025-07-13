@@ -37,19 +37,19 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToListAsync();
         }
 
-        //public async Task<List<Document>> GetByStatusAsync(string status)
-        //{
-        //    return await _context.Document
-        //        .Where(d => d. == status && d.IsActive)
-        //        .ToListAsync();
-        //}
+        public async Task<List<Document>> GetByStatusAsync(string status)
+        {
+            return await _context.Document
+                .Where(d => d.Status == status && d.IsActive)
+                .ToListAsync();
+        }
 
-        //public async Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId)
-        //{
-        //    return await _context.Document
-        //        .Where(d => d.Status == status && d.ProjectId == projectId && d.IsActive)
-        //        .ToListAsync();
-        //}
+        public async Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId)
+        {
+            return await _context.Document
+                .Where(d => d.Status == status && d.ProjectId == projectId && d.IsActive)
+                .ToListAsync();
+        }
 
         public async Task<List<Document>> GetByEpicIdAsync(string epicId)
         {
@@ -66,7 +66,7 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
         public async Task<List<Document>> GetBySubtaskIdAsync(string subtaskId)
         {
             return await _context.Document
-                .Where(d => d.SubTaskId == subtaskId && d.IsActive)
+                .Where(d => d.SubtaskId == subtaskId && d.IsActive)
                 .ToListAsync();
         }
 
@@ -97,9 +97,9 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToListAsync();
 
             return docs
-                .Where(d => d.EpicId != null || d.TaskId != null || d.SubTaskId != null)
+                .Where(d => d.EpicId != null || d.TaskId != null || d.SubtaskId != null)
                 .ToDictionary(
-                    d => d.EpicId ?? d.TaskId ?? d.SubTaskId!,
+                    d => d.EpicId ?? d.TaskId ?? d.SubtaskId!,
                     d => d.Id
                 );
         }
