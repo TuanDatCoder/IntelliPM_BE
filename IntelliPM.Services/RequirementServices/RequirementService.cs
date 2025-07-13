@@ -53,19 +53,22 @@ namespace IntelliPM.Services.RequirementServices
             return _mapper.Map<List<RequirementResponseDTO>>(entities);
         }
 
-        public async Task<RequirementResponseDTO> CreateRequirement(RequirementRequestDTO request)
+        public async Task<RequirementResponseDTO> CreateRequirement(int projectId, RequirementNoProjectRequestDTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
-            if (string.IsNullOrEmpty(request.Title))
+            if (string.IsNullOrWhiteSpace(request.Title))
                 throw new ArgumentException("Requirement title is required.", nameof(request.Title));
 
             var entity = _mapper.Map<Requirement>(request);
+            entity.ProjectId = projectId; 
 
             try
             {
                 await _repo.Add(entity);
+                entity.CreatedAt = DateTime.UtcNow; 
+                entity.UpdatedAt = DateTime.UtcNow; 
             }
             catch (DbUpdateException ex)
             {
@@ -79,17 +82,32 @@ namespace IntelliPM.Services.RequirementServices
             return _mapper.Map<RequirementResponseDTO>(entity);
         }
 
-        public async Task<RequirementResponseDTO> UpdateRequirement(int id, RequirementRequestDTO request)
+        public async Task<RequirementResponseDTO> UpdateRequirement(int id, int projectId, RequirementNoProjectRequestDTO request)
         {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new ArgumentException("Requirement title is required.", nameof(request.Title));
+
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Requirement with ID {id} not found.");
+
+            if (entity.ProjectId != projectId)
+                throw new ArgumentException($"Requirement with ID {id} does not belong to project ID {projectId}.");
 
             _mapper.Map(request, entity);
 
             try
             {
+                entity.ProjectId = projectId; 
+                entity.UpdatedAt = DateTime.UtcNow;
                 await _repo.Update(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to update requirement: An error occurred while saving the entity changes. Inner exception: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
             catch (Exception ex)
             {
@@ -146,9 +164,8 @@ namespace IntelliPM.Services.RequirementServices
             var responses = new List<RequirementResponseDTO>();
             foreach (var request in requests)
             {
-                var mappedRequest = _mapper.Map<RequirementRequestDTO>(request);
-                mappedRequest.ProjectId = projectId; 
-                var response = await CreateRequirement(mappedRequest);
+                var mappedRequest = _mapper.Map<RequirementNoProjectRequestDTO>(request);
+                var response = await CreateRequirement(projectId,mappedRequest);
                 responses.Add(response);
             }
             return responses;

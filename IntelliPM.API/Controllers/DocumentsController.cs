@@ -24,9 +24,18 @@ namespace IntelliPM.API.Controllers
         [HttpPost]
         public async Task<ActionResult<DocumentResponseDTO>> Create([FromBody] DocumentRequestDTO request)
         {
-            var result = await _documentService.CreateDocument(request);
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
+
+            var result = await _documentService.CreateDocument(request, userId); 
             return Ok(result);
         }
+
 
         [HttpPut("{id}")]
         public async Task<ActionResult<DocumentResponseDTO>> Update(int id, [FromBody] UpdateDocumentRequest request)
@@ -94,52 +103,103 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        //[Authorize]
-        //[HttpPost("{documentId}/submit-approval")]
-        //public async Task<IActionResult> SubmitForApproval(int documentId)
-        //{
-        //    var userIdClaim = User.FindFirst("accountId")?.Value;
+        [Authorize]
+        [HttpPost("{documentId}/submit-approval")]
+        public async Task<IActionResult> SubmitForApproval(int documentId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
 
-        //    if (string.IsNullOrEmpty(userIdClaim))
-        //        return Unauthorized();
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
 
-        //    if (!int.TryParse(userIdClaim, out var approverId))
-        //        return BadRequest("Invalid approver ID");
+            if (!int.TryParse(userIdClaim, out var approverId))
+                return BadRequest("Invalid approver ID");
 
-        //    var result = await _documentService.SubmitForApproval(documentId);
-        //    return Ok(result);
-        //}
-
-
-        //[HttpPost("{documentId}/approve")]
-        //public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
-        //{
-        //    var result = await _documentService.UpdateApprovalStatus(documentId, req);
-        //    return Ok(result);
-        //}
-
-        //[HttpGet("status/{status}")]
-        //public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
-        //{
-        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-        //        return BadRequest("Invalid status");
-
-        //    var result = await _documentService.GetDocumentsByStatus(status);
-        //    return Ok(result);
-        //}
+            var result = await _documentService.SubmitForApproval(documentId);
+            return Ok(result);
+        }
 
 
-        //[HttpGet("project/{projectId}/status/{status}")]
-        //public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+        [HttpPost("{documentId}/approve")]
+        public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
+        {
+            var result = await _documentService.UpdateApprovalStatus(documentId, req);
+            return Ok(result);
+        }
 
-        //{
-        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-        //        return BadRequest("Invalid status");
+        [HttpGet("status/{status}")]
+        public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
+        {
+            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                return BadRequest("Invalid status");
 
-        //    var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
-        //    return Ok(result);
-        //}
+            var result = await _documentService.GetDocumentsByStatus(status);
+            return Ok(result);
+        }
+
+
+        [HttpGet("project/{projectId}/status/{status}")]
+        public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+
+        {
+            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                return BadRequest("Invalid status");
+
+
+            var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/generate-ai-content")]
+        public async Task<IActionResult> GenerateAIContent(int id, [FromBody] string prompt)
+        {
+            try
+            {
+                var content = await _documentService.GenerateAIContent(id, prompt);
+                return Ok(new { content });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("ask-ai")]
+        public async Task<IActionResult> AskAI([FromBody] string prompt)
+        {
+            try
+            {
+                var result = await _documentService.GenerateFreeAIContent(prompt);
+                return Ok(new { content = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("find-by-key")]
+        public async Task<ActionResult<DocumentResponseDTO>> GetByKey(
+            [FromQuery] int projectId,
+            [FromQuery] string? epicId,
+            [FromQuery] string? taskId,
+            [FromQuery] string? subTaskId)
+        {
+            var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
+            if (result == null)
+                return NotFound("Document not found");
+
+            return Ok(result);
+        }
+
+        [HttpGet("mapping")]
+        public async Task<IActionResult> GetDocumentMapping([FromQuery] int projectId, [FromQuery] int userId)
+        {
+            var mapping = await _documentService.GetUserDocumentMappingAsync(projectId, userId);
+            return Ok(mapping);
+        }
+
     }
 }

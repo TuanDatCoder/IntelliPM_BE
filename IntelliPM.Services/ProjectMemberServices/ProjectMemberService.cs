@@ -6,6 +6,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using Microsoft.EntityFrameworkCore;
@@ -19,16 +20,18 @@ namespace IntelliPM.Services.ProjectMemberServices
         private readonly IMapper _mapper;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IProjectPositionRepository _projectPositionRepo;
+        private readonly IProjectRepository _projectRepo;
         private readonly ILogger<ProjectMemberService> _logger;
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IAccountRepository _accountRepo;
 
 
-        public ProjectMemberService(IMapper mapper, IProjectMemberRepository projectMemberRepo, IProjectPositionRepository projectPositionRepo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo)
+        public ProjectMemberService(IMapper mapper, IProjectMemberRepository projectMemberRepo, IProjectPositionRepository projectPositionRepo, IProjectRepository projectRepo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo)
         {
             _mapper = mapper;
             _projectMemberRepo = projectMemberRepo;
             _projectPositionRepo = projectPositionRepo;
+            _projectRepo = projectRepo;
             _logger = logger;
             _decodeToken = decodeToken;
             _accountRepo = accountRepo;
@@ -56,7 +59,37 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<ProjectMemberResponseDTO>(entity);
         }
 
+        public async Task<ProjectMemberResponseDTO> CreateProjectMember(int projectId,ProjectMemberNoProjectIdRequestDTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+            var existingProject = await _projectRepo.GetByIdAsync(projectId);
+            if( existingProject == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
+            var existingMember = await _projectMemberRepo.GetByAccountAndProjectAsync(request.AccountId, projectId);
+            if (existingMember != null)
+                throw new InvalidOperationException($"Account ID {request.AccountId} is already a member of Project ID {projectId}.");
+
+            var entity = _mapper.Map<ProjectMember>(request);
+            entity.ProjectId = projectId;
+            entity.Status = "CREATED";
+
+            try
+            {
+                await _projectMemberRepo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to add project member due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to add project member: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<ProjectMemberResponseDTO>(entity);
+        }
 
         public async Task<ProjectMemberResponseDTO> AddProjectMember(ProjectMemberRequestDTO request)
         {
@@ -91,6 +124,13 @@ namespace IntelliPM.Services.ProjectMemberServices
             var entity = await _projectMemberRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project member with ID {id} not found.");
+
+
+            var positions = await _projectPositionRepo.GetAllProjectPositions(id);
+            foreach (var pos in positions)
+            {
+                await _projectPositionRepo.Delete(pos);
+            }
 
             try
             {
@@ -274,7 +314,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                         ProjectId = projectId,
                         JoinedAt = request.AccountId == currentAccount.Id ? DateTime.UtcNow : null,
                         InvitedAt = DateTime.UtcNow,
-                        Status = "CREATED"
+                        Status = request.AccountId == currentAccount.Id ? "ACTIVE" : "CREATED"
                     };
                     await _projectMemberRepo.Add(memberEntity);
 

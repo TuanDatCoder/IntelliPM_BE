@@ -47,16 +47,20 @@ namespace IntelliPM.Services.ProjectPositionServices
             return _mapper.Map<ProjectPositionResponseDTO>(entity);
         }
 
-        public async Task<ProjectPositionResponseDTO> AddProjectPosition(ProjectPositionRequestDTO request)
+        public async Task<ProjectPositionResponseDTO> CreateProjectPosition(int projectMemberId, ProjectPositionNoMemberIdRequestDTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+          var checkProjectMember= await _projectMemberService.GetProjectMemberById(projectMemberId);
+            if (checkProjectMember == null) 
+                throw new KeyNotFoundException($"Project member with ID {projectMemberId} not found.");
 
             if (string.IsNullOrEmpty(request.Position))
                 throw new ArgumentException("Position is required.", nameof(request.Position));
 
             var entity = _mapper.Map<ProjectPosition>(request);
-            // Không gán AssignedAt vì DB tự động gán
+            entity.ProjectMemberId = projectMemberId;
 
             try
             {
@@ -74,14 +78,17 @@ namespace IntelliPM.Services.ProjectPositionServices
             return _mapper.Map<ProjectPositionResponseDTO>(entity);
         }
 
-        public async Task<ProjectPositionResponseDTO> UpdateProjectPosition(int id, ProjectPositionRequestDTO request)
+        public async Task<ProjectPositionResponseDTO> UpdateProjectPosition(int id, int projectMemberId, ProjectPositionNoMemberIdRequestDTO request)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project position with ID {id} not found.");
+            var checkProjectMember = await _projectMemberService.GetProjectMemberById(projectMemberId);
+            if (checkProjectMember == null)
+                throw new KeyNotFoundException($"Project member with ID {projectMemberId} not found.");
 
             _mapper.Map(request, entity);
-            // Không gán AssignedAt vì DB tự động gán khi tạo, không cần cập nhật
+            entity.ProjectMemberId = projectMemberId;
 
             try
             {
@@ -125,7 +132,31 @@ namespace IntelliPM.Services.ProjectPositionServices
             return responses;
         }
 
-     
+        public async Task<ProjectPositionResponseDTO> AddProjectPosition(ProjectPositionRequestDTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            if (string.IsNullOrEmpty(request.Position))
+                throw new ArgumentException("Position is required.", nameof(request.Position));
+
+            var entity = _mapper.Map<ProjectPosition>(request);
+
+            try
+            {
+                await _repo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to add project position due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to add project position: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<ProjectPositionResponseDTO>(entity);
+        }
         public async Task<List<ProjectPosition>> GetAllByProjectId(int projectId)
         {
             var members = await _projectMemberService.GetAllByProjectId(projectId); 

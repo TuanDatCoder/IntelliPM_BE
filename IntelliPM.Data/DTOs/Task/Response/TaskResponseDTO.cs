@@ -11,6 +11,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public int ReporterId { get; set; }
 
         public string? ReporterName { get; set; }
+        public string? ReporterPicture { get; set; }
 
         public int ProjectId { get; set; }
 

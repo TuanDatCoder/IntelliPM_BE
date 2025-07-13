@@ -92,6 +92,31 @@ namespace IntelliPM.Services.TaskAssignmentServices
             return _mapper.Map<TaskAssignmentResponseDTO>(entity);
         }
 
+
+        public async Task<TaskAssignmentResponseDTO> CreateTaskAssignmentQuick(string taskId, TaskAssignmentQuickRequestDTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            var entity = _mapper.Map<TaskAssignment>(request);
+            entity.TaskId = taskId;
+            try
+            {
+                await _repo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to create task assignment due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create task assignment: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskAssignmentResponseDTO>(entity);
+        }
+
+
         public async Task<TaskAssignmentResponseDTO> UpdateTaskAssignment(int id, TaskAssignmentRequestDTO request)
         {
             var entity = await _repo.GetByIdAsync(id);
