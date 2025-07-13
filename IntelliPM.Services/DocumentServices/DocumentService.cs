@@ -4,14 +4,11 @@ using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
-using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Services.EmailServices;
 using Microsoft.Extensions.Configuration;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 namespace IntelliPM.Services.DocumentServices
 {
     public class DocumentService : IDocumentService
@@ -55,7 +52,7 @@ namespace IntelliPM.Services.DocumentServices
           (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
           (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-            if (count != 1)
+            if (count > 1)
             {
                 throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
             }
@@ -66,7 +63,7 @@ namespace IntelliPM.Services.DocumentServices
                 ProjectId = req.ProjectId,
                 EpicId = req.EpicId,
                 TaskId = req.TaskId,
-                SubTaskId = req.SubTaskId,
+                SubtaskId = req.SubTaskId,
                 Title = req.Title,
                 Type = req.Type,
                 Template = req.Template,
@@ -197,9 +194,9 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             {
                 Id = doc.Id,
                 ProjectId = doc.ProjectId,
-                EpicId = doc.EpicId, 
+                EpicId = doc.EpicId,
                 TaskId = doc.TaskId,
-                SubtaskId = doc.SubTaskId,
+                SubtaskId = doc.SubtaskId,
                 Title = doc.Title,
                 Type = doc.Type,
                 Template = doc.Template,
@@ -246,51 +243,51 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             };
         }
 
-        //public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
-        //    if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
+        public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null) throw new Exception("Document not found");
+            if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
 
-        //    doc.Status = "PendingApproval";
-        //    doc.UpdatedAt = DateTime.UtcNow;
+            doc.Status = "PendingApproval";
+            doc.UpdatedAt = DateTime.UtcNow;
 
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
 
-        //    return ToResponse(doc);
-        //}
+            return ToResponse(doc);
+        }
 
-        //public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
+        public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null) throw new Exception("Document not found");
 
-        //    if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
+            if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
 
-        //    if (request.Status != "Approved" && request.Status != "Rejected")
-        //        throw new Exception("Invalid approval status");
+            if (request.Status != "Approved" && request.Status != "Rejected")
+                throw new Exception("Invalid approval status");
 
-        //    doc.Status = request.Status;
-        //    doc.UpdatedAt = DateTime.UtcNow;
+            doc.Status = request.Status;
+            doc.UpdatedAt = DateTime.UtcNow;
 
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
 
-        //    return ToResponse(doc);
-        //}
+            return ToResponse(doc);
+        }
 
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
-        //{
-        //    var docs = await _repo.GetByStatusAsync(status);
-        //    return docs.Select(ToResponse).ToList();
-        //}
+        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
+        {
+            var docs = await _repo.GetByStatusAsync(status);
+            return docs.Select(ToResponse).ToList();
+        }
 
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
-        //{
-        //    var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
-        //    return docs.Select(ToResponse).ToList();
-        //}
+        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
+        {
+            var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
+            return docs.Select(ToResponse).ToList();
+        }
 
         private bool IsPromptValid(string prompt)
         {
