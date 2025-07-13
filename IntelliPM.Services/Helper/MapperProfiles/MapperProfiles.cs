@@ -7,6 +7,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.EpicComment.Response;
+using IntelliPM.Data.DTOs.EpicFile.Request;
+using IntelliPM.Data.DTOs.EpicFile.Response;
 using IntelliPM.Data.DTOs.Label.Request;
 using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
@@ -336,6 +338,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<SubtaskFile, SubtaskFileResponseDTO>();
+
+            // EpicFile
+            CreateMap<EpicFileRequestDTO, EpicFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<EpicFile, EpicFileResponseDTO>();
 
             // TaskAssignment
             CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()

@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
@@ -42,8 +43,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -55,6 +57,7 @@ namespace IntelliPM.Services.TaskServices
             _workItemLabelService = workItemLabelService;
             _taskAssignmentRepo = taskAssignmentRepository;
             _taskDependencyRepo = taskDependencyRepo;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
         }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
@@ -116,6 +119,8 @@ namespace IntelliPM.Services.TaskServices
 
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+            entity.Priority = "MEDIUM";
+            entity.Status = "TO_DO";
 
             try
             {

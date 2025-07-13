@@ -169,5 +169,25 @@ namespace IntelliPM.Services.TaskAssignmentServices
             }
             return responses;
         }
+
+        public async Task DeleteByTaskAndAccount(string taskId, int accountId)
+        {
+            var entities = await _repo.GetByTaskIdAndAccountIdAsync(taskId, accountId);
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No task assignment found with taskId={taskId} and accountId={accountId}.");
+
+            try
+            {
+                foreach (var entity in entities)
+                {
+                    await _repo.Delete(entity);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete task assignment: {ex.Message}", ex);
+            }
+        }
+
     }
 }
