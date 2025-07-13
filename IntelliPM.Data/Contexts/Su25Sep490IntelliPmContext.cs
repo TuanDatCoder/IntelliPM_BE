@@ -102,6 +102,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -114,6 +115,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -263,6 +265,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.ToTable("document");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ApproverId).HasColumnName("approver_id");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -278,6 +281,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'Draft'::character varying")
+                .HasColumnName("status");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -295,6 +302,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+
+            entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
+                .HasForeignKey(d => d.ApproverId)
+                .HasConstraintName("document_approver_id_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)

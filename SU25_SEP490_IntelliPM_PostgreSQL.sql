@@ -275,26 +275,31 @@ CREATE TABLE task_file (
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NULL,
-    epic_id VARCHAR(255) NULL,
-    subtask_id VARCHAR(255) NULL,
+    task_id VARCHAR(255),
+    epic_id VARCHAR(255),
+    subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
-    type VARCHAR(100) NULL,
-    template TEXT NULL,
-    content TEXT NULL,
-    file_url VARCHAR(1024) NULL,
+    type VARCHAR(100),
+    template TEXT,
+    content TEXT,
+    file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(30) DEFAULT 'Draft',
     created_by INT NOT NULL,
-    updated_by INT NULL,
+    updated_by INT,
+    approver_id INT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (epic_id) REFERENCES epic(id),
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
     FOREIGN KEY (created_by) REFERENCES account(id),
-    FOREIGN KEY (updated_by) REFERENCES account(id)
+    FOREIGN KEY (updated_by) REFERENCES account(id),
+    FOREIGN KEY (approver_id) REFERENCES account(id)
 );
+
 
 -- 19. document_permission
 CREATE TABLE document_permission (
