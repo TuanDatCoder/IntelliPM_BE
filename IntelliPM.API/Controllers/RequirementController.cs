@@ -83,19 +83,15 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(int projectId, [FromBody] RequirementRequestDTO request)
+        public async Task<IActionResult> Create(int projectId, [FromBody] RequirementNoProjectRequestDTO request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
             }
-
-            if (request.ProjectId != projectId)
-                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID in request does not match URL." });
-
             try
             {
-                var result = await _service.CreateRequirement(request);
+                var result = await _service.CreateRequirement(projectId, request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -157,16 +153,21 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int projectId, int id, [FromBody] RequirementRequestDTO request)
+        public async Task<IActionResult> Update(int projectId, int id, [FromBody] RequirementNoProjectRequestDTO request)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Invalid request data"
+                });
+            }
+
             try
             {
-                var requirement = await _service.GetRequirementById(id);
-                if (requirement.ProjectId != projectId)
-                    return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Project ID does not match." });
-
-                request.ProjectId = projectId; // Đảm bảo projectId không bị thay đổi
-                var updated = await _service.UpdateRequirement(id, request);
+                var updated = await _service.UpdateRequirement(id, projectId, request);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -178,6 +179,10 @@ namespace IntelliPM.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
             }
             catch (Exception ex)
             {

@@ -18,6 +18,27 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
             _context = context;
         }
 
+        public async Task DeleteByTaskIdAsync(string taskId)
+        {
+            var dependencies = await _context.TaskDependency
+                .Where(dep => dep.TaskId == taskId)
+                .ToListAsync();
+
+            _context.TaskDependency.RemoveRange(dependencies);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddRangeAsync(List<TaskDependency> dependencies)
+        {
+            _context.TaskDependency.AddRange(dependencies);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<List<TaskDependency>> GetByProjectIdAsync(int projectId)
         {
             return await _context.TaskDependency
@@ -27,5 +48,13 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
                     .Contains(d.TaskId))
                 .ToListAsync();
         }
+
+        public async Task<List<TaskDependency>> GetByTaskIdAsync(string taskId)
+        {
+            return await _context.TaskDependency
+                .Where(d => d.TaskId == taskId)
+                .ToListAsync();
+        }
+
     }
 }

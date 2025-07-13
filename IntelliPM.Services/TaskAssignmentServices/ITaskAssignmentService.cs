@@ -15,6 +15,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
         Task<List<TaskAssignmentResponseDTO>> GetByAccountIdAsync(int accountId);
         Task<TaskAssignmentResponseDTO> GetByIdAsync(int id);
         Task<TaskAssignmentResponseDTO> CreateTaskAssignment(TaskAssignmentRequestDTO request);
+        Task<TaskAssignmentResponseDTO> CreateTaskAssignmentQuick(string taskId, TaskAssignmentQuickRequestDTO request);
         Task<TaskAssignmentResponseDTO> UpdateTaskAssignment(int id, TaskAssignmentRequestDTO request);
         Task DeleteTaskAssignment(int id);
         Task<TaskAssignmentResponseDTO> ChangeStatus(int id, string status);
