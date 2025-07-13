@@ -100,6 +100,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
 
             var entity = _mapper.Map<TaskAssignment>(request);
             entity.TaskId = taskId;
+            entity.AssignedAt = DateTime.UtcNow;
+            entity.Status = "ASSIGNED";
             try
             {
                 await _repo.Add(entity);
