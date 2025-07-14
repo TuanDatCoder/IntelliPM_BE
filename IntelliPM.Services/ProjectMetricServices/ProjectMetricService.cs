@@ -132,13 +132,13 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
 
-            //var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
-            //if (result == null)
-            //    throw new Exception("AI did not return valid project metrics");
-
-            var result = await _chatGPTService.CalculateProjectMetricsAsync(project, tasks);
+            var result = await _geminiService.CalculateProjectMetricsAsync(project, tasks);
             if (result == null)
                 throw new Exception("AI did not return valid project metrics");
+
+            //var result = await _chatGPTService.CalculateProjectMetricsAsync(project, tasks);
+            //if (result == null)
+            //    throw new Exception("AI did not return valid project metrics");
 
             // Lưu ProjectMetric
             var existing = await _repo.GetByProjectIdAsync(project.Id);
