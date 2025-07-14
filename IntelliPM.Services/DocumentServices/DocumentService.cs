@@ -1,9 +1,11 @@
-﻿using IntelliPM.Data.DTOs.Document.Request;
+﻿using Google.Cloud.Storage.V1;
+using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
 using Microsoft.Extensions.Configuration;
 using System.Text;
@@ -18,16 +20,16 @@ namespace IntelliPM.Services.DocumentServices
         private readonly string _geminiApiKey;
         private readonly string _geminiEndpoint;
         private readonly IEmailService _emailService;
+        private readonly IProjectMemberRepository _projectMemberRepository;
 
-
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService)
+        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository)
         {
             _repo = repo;
             _httpClient = httpClient;
             _geminiApiKey = configuration["GeminiApi:ApiKey"];
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
             _emailService = emailService;
-
+            _projectMemberRepository = projectMemberRepository;
         }
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -41,6 +43,55 @@ namespace IntelliPM.Services.DocumentServices
             var doc = await _repo.GetByIdAsync(id);
             if (doc == null)
                 throw new Exception("Document not found");
+
+            return ToResponse(doc);
+        }
+
+        public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
+        {
+            int count =
+          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+
+            if (count > 1)
+            {
+                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
+            }
+
+
+            var doc = new Document
+            {
+                ProjectId = req.ProjectId,
+                EpicId = req.EpicId,
+                TaskId = req.TaskId,
+                SubtaskId = req.SubTaskId,
+                Title = req.Title,
+                Type = req.Type,
+                Template = req.Template,
+                Content = req.Content,
+                FileUrl = req.FileUrl,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsActive = true,
+                Status = "PendingApproval"
+            };
+
+            try
+            {
+                await _repo.AddAsync(doc);
+                await _repo.SaveChangesAsync();
+                var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
+                await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
+      
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
+                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+            }
 
             return ToResponse(doc);
         }

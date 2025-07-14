@@ -614,6 +614,58 @@ namespace IntelliPM.Services.EmailServices
         }
 
 
+        public async Task SendEmailTeamLeader(List<string> emails, string message)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+
+            foreach (var emailAddress in emails)
+            {
+                email.To.Add(MailboxAddress.Parse(emailAddress));
+            }
+
+            email.Subject = $"[IntelliPM] New Document Created";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <title>New Document Request</title>
+</head>
+<body style='font-family:Segoe UI,sans-serif;background-color:#f9fafb;padding:32px'>
+  <div style='max-width:600px;margin:auto;background-color:#fff;padding:32px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06)'>
+    <div style='text-align:center;margin-bottom:24px'>
+      <img src='https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1' alt='IntelliPM Logo' style='width:80px'>
+    </div>
+    <h2 style='color:#1b1b1f'>📄 A document request has been created</h2>
+    <p style='font-size:15px;color:#333'>{message}</p>
+    <div style='text-align:center;margin-top:30px'>
+      <a href='' target='_blank' style='display:inline-block;background-color:#1b6fff;color:#fff;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 4px 12px rgba(27,111,255,0.25)'>View Document</a>
+    </div>
+    <div style='margin-top:40px;font-size:13px;color:#888;text-align:center'>
+      <p>Sent via IntelliPM</p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            int port = int.Parse(_config["SmtpSettings:Port"]);
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+
+
+
+
     }
 
 
