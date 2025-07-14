@@ -135,7 +135,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
-            CreateMap<Epic, EpicResponseDTO>();
+
+            CreateMap<Epic, EpicResponseDTO>()
+                .ForMember(dest => dest.AssignedByFullname, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null))
+                .ForMember(dest => dest.ReporterFullname, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
+                .ForMember(dest => dest.ReporterPicture, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.Picture : null))
+                .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
+            .ForMember(dest => dest.SprintGoal, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Goal : null));
 
             CreateMap<Epic, EpicDetailedResponseDTO>()
                 .ForMember(dest => dest.ReporterFullname, opt => opt.Ignore())
