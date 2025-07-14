@@ -20,7 +20,7 @@ namespace IntelliPM.Repositories.RiskRepos
 
         public async Task AddAsync(Risk risk)
         {
-            _context.Risk.AddAsync(risk);
+            await _context.Risk.AddAsync(risk);
             await _context.SaveChangesAsync();
         }
 
