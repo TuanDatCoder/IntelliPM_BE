@@ -20,5 +20,6 @@ namespace IntelliPM.Services.TaskAssignmentServices
         Task DeleteTaskAssignment(int id);
         Task<TaskAssignmentResponseDTO> ChangeStatus(int id, string status);
         Task<List<TaskAssignmentResponseDTO>> CreateListTaskAssignment(List<TaskAssignmentRequestDTO> requests);
+        Task DeleteByTaskAndAccount(string taskId, int accountId);
     }
 }
