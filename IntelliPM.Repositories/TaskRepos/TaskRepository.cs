@@ -65,6 +65,8 @@ namespace IntelliPM.Repositories.TaskRepos
         {
             return await _context.Tasks
                 .Include(v => v.Project)
+                .Include(a => a.Reporter)
+                .Include(e => e.Epic)
                 .Where(t => t.ProjectId == projectId)
                 .ToListAsync();
         }
@@ -73,6 +75,7 @@ namespace IntelliPM.Repositories.TaskRepos
         {
             return await _context.Tasks
                 .Include(v => v.Project)
+                .Include(a => a.Reporter)
                 .Where(t => t.EpicId == epicId)
                 .ToListAsync();
         }

@@ -16,7 +16,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
-using IntelliPM.Services.TaskCommentServices; // Giả sử bạn có service này
+using IntelliPM.Services.TaskCommentServices; 
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
@@ -153,10 +153,8 @@ namespace IntelliPM.Services.TaskServices
 
             if (request.Dependencies != null)
             {
-                // Xóa hết các dependency cũ liên quan đến task này
                 await _taskDependencyRepo.DeleteByTaskIdAsync(id);
 
-                // Tạo danh sách mới
                 var newDeps = request.Dependencies.Select(d => new TaskDependency
                 {
                     TaskId = id,
@@ -171,6 +169,29 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+        public async Task<TaskUpdateResponseDTO> UpdateTaskTrue(string id, TaskUpdateRequestDTO request)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            _mapper.Map(request, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update task: {ex.Message}", ex);
+            }
+
+         
+            return _mapper.Map<TaskUpdateResponseDTO>(entity);
+        }
+
 
         public async Task DeleteTask(string id)
         {
