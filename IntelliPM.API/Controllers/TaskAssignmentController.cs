@@ -114,6 +114,44 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+
+        [HttpPost("quick")]
+        public async Task<IActionResult> CreateQuick(string taskId, [FromBody] TaskAssignmentQuickRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            try
+            {
+                var result = await _service.CreateTaskAssignmentQuick(taskId, request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Task assignment created successfully",
+                    Data = result
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating task assignment: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpPost("bulk")]
         public async Task<IActionResult> CreateBulk(string taskId, [FromBody] List<TaskAssignmentRequestDTO> requests)
         {
@@ -204,6 +242,35 @@ namespace IntelliPM.API.Controllers
                     return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Task ID does not match." });
 
                 await _service.DeleteTaskAssignment(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task assignment deleted successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting task assignment: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpDelete("account/{accountId}")]
+        public async Task<IActionResult> DeleteAccountByTask(string taskId, int accountId)
+        {
+            try
+            {
+                await _service.DeleteByTaskAndAccount(taskId, accountId);
+
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

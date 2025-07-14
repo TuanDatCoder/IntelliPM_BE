@@ -1,10 +1,13 @@
-﻿using IntelliPM.Data.DTOs.TaskDependency.Request;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.Task.Request
 {
-    public class TaskRequestDTO
+    public class TaskUpdateRequestDTO
     {
         [Required(ErrorMessage = "Reporter ID is required")]
         public int ReporterId { get; set; }
@@ -16,8 +19,6 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         public int? SprintId { get; set; }
 
-        [Required]
-        [RegularExpression("BUG|TASK|STORY", ErrorMessage = "Type must be BUG, TASK, or STORY")]
         public string? Type { get; set; }
 
         [Required(ErrorMessage = "Task title is required")]
@@ -33,6 +34,5 @@ namespace IntelliPM.Data.DTOs.Task.Request
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         public string? Status { get; set; }
 
-        public List<TaskDependencyRequestDTO>? Dependencies { get; set; }
     }
 }
