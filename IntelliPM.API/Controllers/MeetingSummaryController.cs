@@ -16,13 +16,6 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> Create([FromBody] MeetingSummaryRequestDTO request)
-        //{
-        //    var result = await _service.CreateSummaryAsync(request);
-        //    return Ok(result);
-        //}
-
         [HttpGet("{meetingTranscriptId}")]
         public async Task<IActionResult> GetByTranscriptId(int meetingTranscriptId)
         {
@@ -45,5 +38,15 @@ namespace IntelliPM.API.Controllers
             var result = await _service.GetAllMeetingSummariesByAccountIdAsync(accountId);
             return Ok(result);
         }
+
+        [HttpDelete("{meetingTranscriptId}")]
+        public async Task<IActionResult> DeleteByTranscriptId(int meetingTranscriptId)
+        {
+            var isDeleted = await _service.DeleteSummaryAndTranscriptAsync(meetingTranscriptId);
+            if (!isDeleted)
+                return NotFound();
+            return NoContent();
+        }
+
     }
 }

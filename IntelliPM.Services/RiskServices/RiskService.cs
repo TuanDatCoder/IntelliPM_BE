@@ -58,13 +58,13 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task AddAsync(RiskRequestDTO request)
-        {
-            var risk = _mapper.Map<Risk>(request);
-            risk.CreatedAt = DateTime.UtcNow;
-            risk.UpdatedAt = DateTime.UtcNow;
-            await _riskRepo.AddAsync(risk);
-        }
+        //public async Task AddAsync(RiskRequestDTO request)
+        //{
+        //    var risk = _mapper.Map<Risk>(request);
+        //    risk.CreatedAt = DateTime.UtcNow;
+        //    risk.UpdatedAt = DateTime.UtcNow;
+        //    await _riskRepo.AddAsync(risk);
+        //}
 
         public async Task UpdateAsync(int id, RiskRequestDTO request)
         {
@@ -240,6 +240,22 @@ namespace IntelliPM.Services.RiskServices
 
             return _mapper.Map<List<RiskResponseDTO>>(risks);
         }
+
+        public async Task<RiskResponseDTO> CreateRiskAsync(RiskCreateRequestDTO request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new ArgumentException("Title is required.");
+            if (string.IsNullOrWhiteSpace(request.RiskScope))
+                throw new ArgumentException("RiskScope is required.");
+
+            var entity = _mapper.Map<Risk>(request);
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _riskRepo.AddAsync(entity); 
+            return _mapper.Map<RiskResponseDTO>(entity);
+        }
+
     }
 
 }

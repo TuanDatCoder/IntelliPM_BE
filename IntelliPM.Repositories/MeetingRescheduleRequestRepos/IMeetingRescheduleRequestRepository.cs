@@ -11,5 +11,7 @@ namespace IntelliPM.Repositories.MeetingRescheduleRequestRepos
         Task<MeetingRescheduleRequest> AddAsync(MeetingRescheduleRequest request);
         Task UpdateAsync(MeetingRescheduleRequest request);
         Task DeleteAsync(MeetingRescheduleRequest request);
+        Task<List<MeetingRescheduleRequest>> GetByRequesterIdAsync(int requesterId);
+
     }
 }

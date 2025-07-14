@@ -351,11 +351,13 @@ namespace IntelliPM.Services.SubtaskServices
             dto.Comments = _mapper.Map<List<SubtaskCommentResponseDTO>>(subtaskComments);
 
             var labels = await _workItemLabelService.GetBySubtaskIdAsync(dto.Id);
-            dto.Labels = (await Task.WhenAll(labels.Select(async l =>
+            var labelDtos = new List<LabelResponseDTO>();
+            foreach (var l in labels)
             {
                 var label = await _workItemLabelService.GetLabelById(l.LabelId);
-                return _mapper.Map<LabelResponseDTO>(label);
-            }))).ToList();
+                labelDtos.Add(_mapper.Map<LabelResponseDTO>(label));
+            }
+            dto.Labels = labelDtos;
         }
     }
 }
