@@ -12,12 +12,12 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         Task<List<TaskAssignment>> GetAllAsync();
         Task<List<TaskAssignment>> GetByTaskIdAsync(string taskId);
         Task<List<TaskAssignment>> GetByAccountIdAsync(int accountId);
+        Task<List<TaskAssignment>> GetByTaskIdAndAccountIdAsync(string taskId, int accountId);
         Task<TaskAssignment> GetByIdAsync(int id);
         Task Add(TaskAssignment taskAssignment);
         Task Update(TaskAssignment taskAssignment);
         Task Delete(TaskAssignment taskAssignment);
         Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId);
+
     }
-
-
 }

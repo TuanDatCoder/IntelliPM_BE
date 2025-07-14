@@ -7,6 +7,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.EpicComment.Response;
+using IntelliPM.Data.DTOs.EpicFile.Request;
+using IntelliPM.Data.DTOs.EpicFile.Response;
 using IntelliPM.Data.DTOs.Label.Request;
 using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Meeting.Request;
@@ -171,11 +173,16 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // Task
             CreateMap<TaskRequestDTO, Tasks>();
+            CreateMap<TaskUpdateRequestDTO, Tasks>();
 
             CreateMap<Tasks, TaskResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
                 .ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
+
+            CreateMap<Tasks, TaskUpdateResponseDTO>()
+                .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
+                .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
 
             CreateMap<TaskWithMembersDTO, TaskRequestDTO>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
@@ -198,6 +205,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             CreateMap<TaskResponseDTO, Tasks>();
 
+            CreateMap<TaskUpdateResponseDTO, Tasks>();
             // Task Dependency
             CreateMap<TaskDependencyRequestDTO, TaskDependency>();
             CreateMap<TaskDependency, TaskDependencyResponseDTO>();
@@ -337,6 +345,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<SubtaskFile, SubtaskFileResponseDTO>();
 
+            // EpicFile
+            CreateMap<EpicFileRequestDTO, EpicFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<EpicFile, EpicFileResponseDTO>();
+
             // TaskAssignment
             CreateMap<TaskAssignmentRequestDTO, TaskAssignment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -345,6 +359,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Account, opt => opt.Ignore())
                 .ForMember(dest => dest.Task, opt => opt.Ignore());
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>();
+            CreateMap<TaskAssignmentQuickRequestDTO, TaskAssignment>();
+
 
             // Thêm mapping từ TaskAssignment sang TaskAssignmentRequestDTO
             CreateMap<TaskAssignment, TaskAssignmentRequestDTO>()

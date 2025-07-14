@@ -16,6 +16,11 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         [MaxLength(255, ErrorMessage = "Epic name cannot exceed 255 characters")]
         public string Name { get; set; } = null!;
 
+
+        public int? ReporterId { get; set; }
+
+        public int? AssignedBy { get; set; }
+
         public string? Description { get; set; }
 
         public DateTime? StartDate { get; set; } 

@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -17,7 +18,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
-using IntelliPM.Services.TaskCommentServices; // Giả sử bạn có service này
+using IntelliPM.Services.TaskCommentServices; 
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
@@ -44,8 +45,8 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
-
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -58,6 +59,7 @@ namespace IntelliPM.Services.TaskServices
             _taskAssignmentRepo = taskAssignmentRepository;
             _taskDependencyRepo = taskDependencyRepo;
             _projectMemberRepo = projectMemberRepo;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
         }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
@@ -119,6 +121,8 @@ namespace IntelliPM.Services.TaskServices
 
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+            entity.Priority = "MEDIUM";
+            entity.Status = "TO_DO";
 
             try
             {
@@ -158,10 +162,8 @@ namespace IntelliPM.Services.TaskServices
 
             if (request.Dependencies != null)
             {
-                // Xóa hết các dependency cũ liên quan đến task này
                 await _taskDependencyRepo.DeleteByTaskIdAsync(id);
 
-                // Tạo danh sách mới
                 var newDeps = request.Dependencies.Select(d => new TaskDependency
                 {
                     TaskId = id,
@@ -176,6 +178,29 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+        public async Task<TaskUpdateResponseDTO> UpdateTaskTrue(string id, TaskUpdateRequestDTO request)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            _mapper.Map(request, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update task: {ex.Message}", ex);
+            }
+
+         
+            return _mapper.Map<TaskUpdateResponseDTO>(entity);
+        }
+
 
         public async Task DeleteTask(string id)
         {

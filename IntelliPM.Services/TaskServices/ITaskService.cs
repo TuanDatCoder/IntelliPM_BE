@@ -16,6 +16,8 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskResponseDTO>> GetTaskByTitle(string title);
         Task<TaskResponseDTO> CreateTask(TaskRequestDTO request);
         Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request);
+        Task<TaskUpdateResponseDTO> UpdateTaskTrue(string id, TaskUpdateRequestDTO request);
+
         Task DeleteTask(string id);
         Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
