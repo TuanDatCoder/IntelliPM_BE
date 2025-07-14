@@ -22,6 +22,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         {
             return await _context.Subtask
                 .Include(v => v.Reporter)
+                .Include(e => e.Sprint)
                 .Include(t => t.AssignedByNavigation) 
                 .ToListAsync();
         }
@@ -32,6 +33,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
             return await _context.Subtask
                 .Include(s => s.Task)
                 .Include(v => v.Reporter)
+                .Include(e => e.Sprint)
                 .Include(s => s.AssignedByNavigation) 
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
@@ -60,6 +62,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
                 .Where(tf => tf.TaskId == taskId)
                 .Include(t => t.AssignedByNavigation)
                 .Include(v => v.Reporter)
+                .Include(e => e.Sprint)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }

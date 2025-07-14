@@ -294,17 +294,17 @@ namespace IntelliPM.Services.SubtaskServices
         public async Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId)
         {
             var entities = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-            var dtos = _mapper.Map<List<SubtaskDetailedResponseDTO>>(entities); // Trả về danh sách rỗng nếu không có entities
+            var dtos = _mapper.Map<List<SubtaskDetailedResponseDTO>>(entities); 
             foreach (var dto in dtos)
             {
                 await EnrichSubtaskDetailedResponse(dto);
             }
-            return dtos; // Không ném lỗi, chỉ trả về danh sách rỗng nếu không có subtasks
+            return dtos;
         }
 
         public async Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId)
         {
-            // Lấy tất cả Task trong project
+        
             var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
             if (!tasks.Any())
             {
@@ -314,7 +314,7 @@ namespace IntelliPM.Services.SubtaskServices
             var taskIds = tasks.Select(t => t.Id).ToList();
             var allSubtasks = new List<SubtaskDetailedResponseDTO>();
 
-            // Lấy subtasks chi tiết cho từng Task
+       
             foreach (var taskId in taskIds)
             {
                 var subtasks = await GetSubtaskByTaskIdDetailed(taskId);
@@ -326,7 +326,6 @@ namespace IntelliPM.Services.SubtaskServices
 
         private async Task EnrichSubtaskDetailedResponse(SubtaskDetailedResponseDTO dto)
         {
-            // Lấy thông tin Reporter
             if (dto.ReporterId.HasValue)
             {
                 var reporter = await _accountRepo.GetAccountById(dto.ReporterId.Value);
@@ -337,7 +336,7 @@ namespace IntelliPM.Services.SubtaskServices
                 }
             }
 
-            // Lấy thông tin AssignedBy
+        
             if (dto.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(dto.AssignedBy.Value);
@@ -348,13 +347,12 @@ namespace IntelliPM.Services.SubtaskServices
                 }
             }
 
-            // Lấy comment và số lượng
             var allComments = await _subtaskCommentService.GetAllSubtaskComment();
             var subtaskComments = allComments.Where(c => c.SubtaskId == dto.Id).ToList();
             dto.CommentCount = subtaskComments.Count;
             dto.Comments = _mapper.Map<List<SubtaskCommentResponseDTO>>(subtaskComments);
 
-            // Lấy các label
+
             var labels = await _workItemLabelService.GetBySubtaskIdAsync(dto.Id);
             var labelDtos = new List<LabelResponseDTO>();
             foreach (var l in labels)
