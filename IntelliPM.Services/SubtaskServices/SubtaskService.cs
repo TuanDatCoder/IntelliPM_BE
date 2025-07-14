@@ -326,7 +326,6 @@ namespace IntelliPM.Services.SubtaskServices
 
         private async Task EnrichSubtaskDetailedResponse(SubtaskDetailedResponseDTO dto)
         {
-            // Lấy thông tin Reporter
             if (dto.ReporterId.HasValue)
             {
                 var reporter = await _accountRepo.GetAccountById(dto.ReporterId.Value);
@@ -336,8 +335,6 @@ namespace IntelliPM.Services.SubtaskServices
                     dto.ReporterPicture = reporter.Picture;
                 }
             }
-
-            // Lấy thông tin AssignedBy
             if (dto.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(dto.AssignedBy.Value);
@@ -348,13 +345,11 @@ namespace IntelliPM.Services.SubtaskServices
                 }
             }
 
-            // Lấy comment và số lượng
             var allComments = await _subtaskCommentService.GetAllSubtaskComment();
             var subtaskComments = allComments.Where(c => c.SubtaskId == dto.Id).ToList();
             dto.CommentCount = subtaskComments.Count;
             dto.Comments = _mapper.Map<List<SubtaskCommentResponseDTO>>(subtaskComments);
 
-            // Lấy các label
             var labels = await _workItemLabelService.GetBySubtaskIdAsync(dto.Id);
             dto.Labels = (await Task.WhenAll(labels.Select(async l =>
             {
