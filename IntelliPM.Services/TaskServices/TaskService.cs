@@ -12,6 +12,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
@@ -43,9 +44,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
-
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IDynamicCategoryRepository dynamicCategoryRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -57,8 +58,10 @@ namespace IntelliPM.Services.TaskServices
             _workItemLabelService = workItemLabelService;
             _taskAssignmentRepo = taskAssignmentRepository;
             _taskDependencyRepo = taskDependencyRepo;
+            _projectMemberRepo = projectMemberRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
         }
+      
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
         {
@@ -125,6 +128,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Add(entity);
+                await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (DbUpdateException ex)
             {
@@ -150,6 +154,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (Exception ex)
             {
@@ -222,6 +227,15 @@ namespace IntelliPM.Services.TaskServices
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+            {
+                entity.ActualStartDate = DateTime.UtcNow;
+            }
+            if (status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+            {
+                entity.ActualEndDate = DateTime.UtcNow;
+            }
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -315,7 +329,6 @@ namespace IntelliPM.Services.TaskServices
 
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {
-            // Lấy thông tin Reporter
             var reporter = await _accountRepo.GetAccountById(dto.ReporterId);
             if (reporter != null)
             {
@@ -323,9 +336,10 @@ namespace IntelliPM.Services.TaskServices
                 dto.ReporterPicture = reporter.Picture;
             }
 
-            // Lấy danh sách TaskAssignment và enrich thông tin Account
-            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id); 
-            dto.TaskAssignments = (await Task.WhenAll(assignments.Select(async a =>
+            
+            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+            var assignmentDtos = new List<TaskAssignmentResponseDTO>();
+            foreach (var a in assignments)
             {
                 var assignmentDto = _mapper.Map<TaskAssignmentResponseDTO>(a);
                 var account = await _accountRepo.GetAccountById(a.AccountId);
@@ -334,8 +348,9 @@ namespace IntelliPM.Services.TaskServices
                     assignmentDto.AccountFullname = account.FullName;
                     assignmentDto.AccountPicture = account.Picture;
                 }
-                return assignmentDto;
-            }))).ToList();
+                assignmentDtos.Add(assignmentDto);
+            }
+            dto.TaskAssignments = assignmentDtos;
 
             // Lấy comment và số lượng
             var allComments = await _taskCommentService.GetAllTaskComment();
@@ -345,12 +360,13 @@ namespace IntelliPM.Services.TaskServices
 
             // Lấy các label
             var labels = await _workItemLabelService.GetByTaskIdAsync(dto.Id);
-            dto.Labels = (await Task.WhenAll(labels.Select(async l =>
+            var labelDtos = new List<LabelResponseDTO>();
+            foreach (var l in labels)
             {
                 var label = await _workItemLabelService.GetLabelById(l.LabelId);
-                return _mapper.Map<LabelResponseDTO>(label);
-            }))).ToList();
-
+                labelDtos.Add(_mapper.Map<LabelResponseDTO>(label));
+            }
+            dto.Labels = labelDtos;
         }
 
         public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title)
@@ -389,6 +405,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (Exception ex)
             {
@@ -410,6 +427,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (Exception ex)
             {
@@ -439,5 +457,145 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+        public async Task<TaskResponseDTO> CalculatePlannedHoursAsync(string id)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (task.PlannedStartDate == null || task.PlannedEndDate == null)
+                throw new InvalidOperationException("Task must have both planned start and end dates.");
+
+            var totalDays = (task.PlannedEndDate.Value.Date - task.PlannedStartDate.Value.Date).Days + 1;
+            if (totalDays <= 0)
+                throw new InvalidOperationException("Planned end date must be after start date.");
+
+            const int workingHoursPerDay = 8;
+
+            // Lấy số người được gán vào task
+            var assignees = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+            var numAssignees = assignees.Count;
+
+            if (numAssignees == 0)
+                throw new InvalidOperationException("No assignees assigned to this task.");
+
+            // Tổng giờ công = ngày × giờ/ngày × số người
+            var plannedHours = totalDays * workingHoursPerDay * numAssignees;
+            task.PlannedHours = plannedHours;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _taskRepo.Update(task);
+            await DistributePlannedHoursAsync(id);
+
+            decimal totalResourceCost = 0;
+            foreach (var assignment in assignees)
+            {
+                if (assignment.PlannedHours == null || assignment.PlannedHours <= 0) continue;
+
+                var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+                if (projectMember?.HourlyRate != null)
+                {
+                    var memberCost = assignment.PlannedHours.Value * projectMember.HourlyRate.Value;
+                    totalResourceCost += memberCost;
+                }
+            }
+
+            task.PlannedResourceCost = Math.Round(totalResourceCost, 2);
+
+            //var otherCost = task.OtherPlannedCost ?? 0;
+            var otherCost = 0;
+            task.PlannedCost = Math.Round(task.PlannedResourceCost.Value + otherCost, 2);
+
+            await _taskRepo.Update(task);
+
+            return _mapper.Map<TaskResponseDTO>(task);
+        }
+
+        //public async Task DistributePlannedHoursAsync(string taskId)
+        //{
+        //    var task = await _taskRepo.GetByIdAsync(taskId);
+        //    if (task == null)
+        //        throw new KeyNotFoundException($"Task with ID {taskId} not found.");
+
+        //    if (task.PlannedHours == null || task.PlannedHours <= 0)
+        //        throw new InvalidOperationException("Planned hours for task must be greater than 0 before distribution.");
+
+        //    var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+        //    if (assignments == null || !assignments.Any())
+        //        return;
+
+        //    var totalWorkingHours = 0m;
+        //    var memberWorkingHours = new Dictionary<int, decimal>();
+
+        //    foreach (var assignment in assignments)
+        //    {
+        //        var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+        //        if (projectMember == null || projectMember.HourlyRate == null)
+        //            continue;
+
+        //        //var workingHours = projectMember.HourlyRate.Value; // or change to WorkingHoursPerDay if you add that column
+        //        //var workingHours = projectMember.WorkingHoursPerDay ?? 8;
+        //        var workingHours = 8;
+
+        //        memberWorkingHours[assignment.AccountId] = workingHours;
+        //        totalWorkingHours += workingHours;
+        //    }
+
+        //    if (totalWorkingHours == 0) return;
+
+        //    foreach (var assignment in assignments)
+        //    {
+        //        if (!memberWorkingHours.TryGetValue(assignment.AccountId, out var hours)) continue;
+
+        //        var share = task.PlannedHours.Value * (hours / totalWorkingHours);
+        //        assignment.PlannedHours = Math.Round(share, 2);
+        //        await _taskAssignmentRepo.Update(assignment);
+        //    }
+        //}
+
+        public async Task DistributePlannedHoursAsync(string taskId)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {taskId} not found.");
+
+            if (task.PlannedHours == null || task.PlannedHours <= 0)
+                throw new InvalidOperationException("Planned hours for task must be greater than 0 before distribution.");
+
+            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+            if (assignments == null || !assignments.Any())
+                return;
+
+            decimal totalWorkingHours = 0;
+            var memberWorkingHours = new Dictionary<int, decimal>();
+
+            foreach (var assignment in assignments)
+            {
+                var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+                if (projectMember == null)
+                    continue;
+
+                // TODO: Replace this when you add "WorkingHoursPerDay" column
+                //var workingHours = 8m;
+                var workingHours = projectMember.WorkingHoursPerDay ?? 8;
+
+                memberWorkingHours[assignment.AccountId] = workingHours;
+                totalWorkingHours += workingHours;
+            }
+
+            if (totalWorkingHours == 0) return;
+
+            foreach (var assignment in assignments)
+            {
+                if (!memberWorkingHours.TryGetValue(assignment.AccountId, out var hours)) continue;
+
+                var share = task.PlannedHours.Value * (hours / totalWorkingHours);
+                assignment.PlannedHours = Math.Round(share, 2);
+
+                await _taskAssignmentRepo.Update(assignment);
+            }
+        }
+
     }
 }

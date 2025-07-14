@@ -101,7 +101,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -115,6 +115,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
 
 
 
@@ -305,7 +306,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("document_approver_id_fkey");
+                .HasConstraintName("fk_document_approver");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -893,6 +894,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
+            entity.Property(e => e.WorkingHoursPerDay)
+                .HasDefaultValue(8)
+                .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
                 .HasForeignKey(d => d.AccountId)
@@ -1209,21 +1213,55 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id)
                 .HasMaxLength(255)
                 .HasColumnName("id");
+            entity.Property(e => e.ActualCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("actual_cost");
+            entity.Property(e => e.ActualEndDate).HasColumnName("actual_end_date");
+            entity.Property(e => e.ActualHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("actual_hours");
+            entity.Property(e => e.ActualResourceCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("actual_resource_cost");
+            entity.Property(e => e.ActualStartDate).HasColumnName("actual_start_date");
             entity.Property(e => e.AssignedBy).HasColumnName("assigned_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Duration)
+                .HasMaxLength(100)
+                .HasColumnName("duration");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.Evaluate)
+                .HasMaxLength(50)
+                .HasColumnName("evaluate");
             entity.Property(e => e.GenerationAiInput)
                 .HasDefaultValue(false)
                 .HasColumnName("generation_ai_input");
             entity.Property(e => e.ManualInput)
                 .HasDefaultValue(false)
                 .HasColumnName("manual_input");
+            entity.Property(e => e.PercentComplete)
+                .HasPrecision(5, 2)
+                .HasColumnName("percent_complete");
+            entity.Property(e => e.PlannedCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("planned_cost");
+            entity.Property(e => e.PlannedEndDate).HasColumnName("planned_end_date");
+            entity.Property(e => e.PlannedHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("planned_hours");
+            entity.Property(e => e.PlannedResourceCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("planned_resource_cost");
+            entity.Property(e => e.PlannedStartDate).HasColumnName("planned_start_date");
             entity.Property(e => e.Priority)
                 .HasMaxLength(50)
                 .HasColumnName("priority");
+            entity.Property(e => e.RemainingHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("remaining_hours");
             entity.Property(e => e.ReporterId).HasColumnName("reporter_id");
             entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
