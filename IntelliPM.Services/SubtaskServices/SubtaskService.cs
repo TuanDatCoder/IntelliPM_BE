@@ -336,7 +336,6 @@ namespace IntelliPM.Services.SubtaskServices
                 }
             }
 
-        
             if (dto.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(dto.AssignedBy.Value);

@@ -25,6 +25,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Reporter)
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
+                .Include(e => e.Sprint)
                 .OrderBy(e => e.Id)
                 .ToListAsync();
         }
@@ -36,6 +37,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Reporter)
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
+                .Include(e => e.Sprint)
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
@@ -46,6 +48,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Reporter)
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
+                .Include(e => e.Sprint)
                 .Where(e => e.Name.Contains(name))
                 .OrderBy(e => e.Id)
                 .ToListAsync();
