@@ -12,5 +12,7 @@ namespace IntelliPM.Services.MeetingRescheduleRequestServices
         Task<MeetingRescheduleRequestResponseDTO> CreateAsync(MeetingRescheduleRequestDTO dto);
         Task<MeetingRescheduleRequestResponseDTO> UpdateAsync(int id, MeetingRescheduleRequestDTO dto);
         Task DeleteAsync(int id);
+        Task<List<MeetingRescheduleRequestResponseDTO>> GetByRequesterIdAsync(int requesterId);
+
     }
 }

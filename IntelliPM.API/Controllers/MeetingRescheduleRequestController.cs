@@ -108,5 +108,19 @@ namespace IntelliPM.API.Controllers
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
         }
+
+        [HttpGet("by-requester/{requesterId}")]
+        public async Task<IActionResult> GetByRequesterId(int requesterId)
+        {
+            var result = await _service.GetByRequesterIdAsync(requesterId);
+            return Ok(new ApiResponseDTO
+            {
+                IsSuccess = true,
+                Code = 200,
+                Message = "View reschedule requests by requester successfully",
+                Data = result
+            });
+        }
+
     }
 }
