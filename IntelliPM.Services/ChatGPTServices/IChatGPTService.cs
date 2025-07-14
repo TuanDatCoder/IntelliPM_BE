@@ -11,6 +11,6 @@ namespace IntelliPM.Services.ChatGPTServices
 {
     public interface IChatGPTService
     {
-        Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
+        //Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
     }
 }
