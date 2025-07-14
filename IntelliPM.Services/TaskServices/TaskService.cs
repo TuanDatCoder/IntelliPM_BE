@@ -45,8 +45,8 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -61,6 +61,7 @@ namespace IntelliPM.Services.TaskServices
             _projectMemberRepo = projectMemberRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
         }
+      
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
         {
