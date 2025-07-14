@@ -23,6 +23,7 @@ namespace IntelliPM.Repositories.TaskRepos
             return await _context.Tasks
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
                 .OrderBy(t => t.Id)
                 .ToListAsync();
         }
@@ -32,6 +33,7 @@ namespace IntelliPM.Repositories.TaskRepos
             return await _context.Tasks
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
@@ -67,6 +69,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
                 .Include(e => e.Epic)
+                .Include(e => e.Sprint)
                 .Where(t => t.ProjectId == projectId)
                 .ToListAsync();
         }
@@ -76,6 +79,7 @@ namespace IntelliPM.Repositories.TaskRepos
             return await _context.Tasks
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
                 .Where(t => t.EpicId == epicId)
                 .ToListAsync();
         }
