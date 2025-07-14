@@ -127,7 +127,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 throw new KeyNotFoundException($"Task assignment with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.AssignedAt = entity.AssignedAt ?? DateTime.UtcNow; // Giữ giá trị cũ hoặc gán mới nếu null
+            entity.AssignedAt = entity.AssignedAt ?? DateTime.UtcNow; 
 
             try
             {

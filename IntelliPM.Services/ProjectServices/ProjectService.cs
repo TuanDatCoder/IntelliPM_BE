@@ -302,7 +302,7 @@ namespace IntelliPM.Services.ProjectServices
 
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-           //
+           
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -310,7 +310,7 @@ namespace IntelliPM.Services.ProjectServices
             if (!projectInfo.Status.Equals("PLANNING"))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
 
-            await ChangeTaskStatus(projectId, "CANCELLED");
+            await ChangeProjectStatus(projectId, "CANCELLED");
 
             var projectDetailsUrl = $"{_forntendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
@@ -351,7 +351,9 @@ namespace IntelliPM.Services.ProjectServices
             if (projectInfo == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
-         
+            await ChangeProjectStatus(projectId, "IN_PROGRESS");
+
+
             var eligibleMembers = membersWithPositions
                 .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
                 .Where(m => m.Status == "CREATED")
@@ -361,10 +363,13 @@ namespace IntelliPM.Services.ProjectServices
                 return "No eligible team members to send invitations.";
 
             
-            var projectDetailsUrl = $"https://localhost:7128/api/project/{projectId}/details";
+
 
             foreach (var member in eligibleMembers)
             {
+                await ChangeProjectStatus(member.Id, "INVITED");
+
+                var projectDetailsUrl = $"{_backendUrl}/api/project/{projectId}/projectmember/{member.Id}/status/ACTIVE";
                 await _emailService.SendTeamInvitation(
                     member.FullName,
                     member.Email,
@@ -383,7 +388,7 @@ namespace IntelliPM.Services.ProjectServices
 
 
 
-        public async Task<ProjectResponseDTO> ChangeTaskStatus(int id, string status)
+        public async Task<ProjectResponseDTO> ChangeProjectStatus(int id, string status)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
@@ -401,7 +406,7 @@ namespace IntelliPM.Services.ProjectServices
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to change task status: {ex.Message}", ex);
+                throw new Exception($"Failed to change project status: {ex.Message}", ex);
             }
 
             return _mapper.Map<ProjectResponseDTO>(entity);
@@ -413,7 +418,6 @@ namespace IntelliPM.Services.ProjectServices
         {
             var workItems = new List<WorkItemResponseDTO>();
 
-            // Tạo scope riêng cho mỗi dịch vụ
             using var epicScope = _serviceProvider.CreateScope();
             using var taskScope = _serviceProvider.CreateScope();
             using var subtaskScope = _serviceProvider.CreateScope();
@@ -428,7 +432,6 @@ namespace IntelliPM.Services.ProjectServices
 
             await Task.WhenAll(epicTask, taskTask, subtaskTask);
 
-            // Map Epics
             foreach (var epic in await epicTask)
             {
                 workItems.Add(new WorkItemResponseDTO
@@ -456,7 +459,6 @@ namespace IntelliPM.Services.ProjectServices
                 });
             }
 
-            // Map Tasks
             foreach (var task in await taskTask)
             {
                 workItems.Add(new WorkItemResponseDTO
@@ -481,7 +483,6 @@ namespace IntelliPM.Services.ProjectServices
                 });
             }
 
-            // Map Subtasks
             foreach (var subtask in await subtaskTask)
             {
                 workItems.Add(new WorkItemResponseDTO
