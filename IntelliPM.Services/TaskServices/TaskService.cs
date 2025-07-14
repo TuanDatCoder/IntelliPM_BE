@@ -45,8 +45,8 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -480,10 +480,31 @@ namespace IntelliPM.Services.TaskServices
             // Tổng giờ công = ngày × giờ/ngày × số người
             var plannedHours = totalDays * workingHoursPerDay * numAssignees;
             task.PlannedHours = plannedHours;
-
             task.UpdatedAt = DateTime.UtcNow;
+
             await _taskRepo.Update(task);
             await DistributePlannedHoursAsync(id);
+
+            decimal totalResourceCost = 0;
+            foreach (var assignment in assignees)
+            {
+                if (assignment.PlannedHours == null || assignment.PlannedHours <= 0) continue;
+
+                var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+                if (projectMember?.HourlyRate != null)
+                {
+                    var memberCost = assignment.PlannedHours.Value * projectMember.HourlyRate.Value;
+                    totalResourceCost += memberCost;
+                }
+            }
+
+            task.PlannedResourceCost = Math.Round(totalResourceCost, 2);
+
+            //var otherCost = task.OtherPlannedCost ?? 0;
+            var otherCost = 0;
+            task.PlannedCost = Math.Round(task.PlannedResourceCost.Value + otherCost, 2);
+
+            await _taskRepo.Update(task);
 
             return _mapper.Map<TaskResponseDTO>(task);
         }
@@ -553,7 +574,8 @@ namespace IntelliPM.Services.TaskServices
                     continue;
 
                 // TODO: Replace this when you add "WorkingHoursPerDay" column
-                var workingHours = 8m;
+                //var workingHours = 8m;
+                var workingHours = projectMember.WorkingHoursPerDay ?? 8;
 
                 memberWorkingHours[assignment.AccountId] = workingHours;
                 totalWorkingHours += workingHours;
