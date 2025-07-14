@@ -329,7 +329,6 @@ namespace IntelliPM.Services.TaskServices
 
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {
-            // Lấy thông tin Reporter
             var reporter = await _accountRepo.GetAccountById(dto.ReporterId);
             if (reporter != null)
             {
@@ -337,9 +336,10 @@ namespace IntelliPM.Services.TaskServices
                 dto.ReporterPicture = reporter.Picture;
             }
 
-            // Lấy danh sách TaskAssignment và enrich thông tin Account
-            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id); 
-            dto.TaskAssignments = (await Task.WhenAll(assignments.Select(async a =>
+            
+            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+            var assignmentDtos = new List<TaskAssignmentResponseDTO>();
+            foreach (var a in assignments)
             {
                 var assignmentDto = _mapper.Map<TaskAssignmentResponseDTO>(a);
                 var account = await _accountRepo.GetAccountById(a.AccountId);
@@ -348,8 +348,9 @@ namespace IntelliPM.Services.TaskServices
                     assignmentDto.AccountFullname = account.FullName;
                     assignmentDto.AccountPicture = account.Picture;
                 }
-                return assignmentDto;
-            }))).ToList();
+                assignmentDtos.Add(assignmentDto);
+            }
+            dto.TaskAssignments = assignmentDtos;
 
             // Lấy comment và số lượng
             var allComments = await _taskCommentService.GetAllTaskComment();
@@ -359,12 +360,13 @@ namespace IntelliPM.Services.TaskServices
 
             // Lấy các label
             var labels = await _workItemLabelService.GetByTaskIdAsync(dto.Id);
-            dto.Labels = (await Task.WhenAll(labels.Select(async l =>
+            var labelDtos = new List<LabelResponseDTO>();
+            foreach (var l in labels)
             {
                 var label = await _workItemLabelService.GetLabelById(l.LabelId);
-                return _mapper.Map<LabelResponseDTO>(label);
-            }))).ToList();
-
+                labelDtos.Add(_mapper.Map<LabelResponseDTO>(label));
+            }
+            dto.Labels = labelDtos;
         }
 
         public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title)

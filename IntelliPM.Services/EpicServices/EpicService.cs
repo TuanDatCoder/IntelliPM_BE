@@ -227,22 +227,24 @@ namespace IntelliPM.Services.EpicServices
                 }
             }
 
-      
+            // Lấy comment và số lượng
             var allComments = await _epicCommentService.GetAllEpicComment();
             var epicComments = allComments.Where(c => c.EpicId == epicDetailedDTO.Id).ToList();
             epicDetailedDTO.CommentCount = epicComments.Count;
             epicDetailedDTO.Comments = _mapper.Map<List<EpicCommentResponseDTO>>(epicComments);
 
+            // Lấy các label
             var labels = await _workItemLabelService.GetByEpicIdAsync(epicDetailedDTO.Id);
-            epicDetailedDTO.Labels = (await Task.WhenAll(labels.Select(async l =>
+            var labelDtos = new List<LabelResponseDTO>();
+            foreach (var l in labels)
             {
                 var label = await _workItemLabelService.GetLabelById(l.LabelId);
-                return _mapper.Map<LabelResponseDTO>(label);
-            }))).ToList();
+                labelDtos.Add(_mapper.Map<LabelResponseDTO>(label));
+            }
+            epicDetailedDTO.Labels = labelDtos;
 
             epicDetailedDTO.Type = "EPIC";
         }
-
 
         public async Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request)
         {
