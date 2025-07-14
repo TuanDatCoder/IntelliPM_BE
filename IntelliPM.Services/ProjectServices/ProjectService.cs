@@ -25,6 +25,7 @@ using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
@@ -55,8 +56,9 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IConfiguration _config;
         private readonly string _backendUrl;
         private readonly string _forntendUrl;
+        private readonly IServiceProvider _serviceProvider;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, IConfiguration config)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, IConfiguration config, IServiceProvider serviceProvider)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -76,6 +78,7 @@ namespace IntelliPM.Services.ProjectServices
             #pragma warning disable CS8601
             _backendUrl = config["Environment:BE_URL"];
             _forntendUrl = config["Environment:FE_URL"];
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -295,12 +298,11 @@ namespace IntelliPM.Services.ProjectServices
             if (membersWithPositions == null || !membersWithPositions.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
-            // Tìm Project Manager trong danh sách
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "TEAM_LEADER") && (m.Status == "ACTIVE"));
 
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-           
+           //
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -411,9 +413,23 @@ namespace IntelliPM.Services.ProjectServices
         {
             var workItems = new List<WorkItemResponseDTO>();
 
-           
-            var epics = await _epicService.GetEpicsByProjectId(projectId);
-            foreach (var epic in epics)
+            // Tạo scope riêng cho mỗi dịch vụ
+            using var epicScope = _serviceProvider.CreateScope();
+            using var taskScope = _serviceProvider.CreateScope();
+            using var subtaskScope = _serviceProvider.CreateScope();
+
+            var epicService = epicScope.ServiceProvider.GetRequiredService<IEpicService>();
+            var taskService = taskScope.ServiceProvider.GetRequiredService<ITaskService>();
+            var subtaskService = subtaskScope.ServiceProvider.GetRequiredService<ISubtaskService>();
+
+            var epicTask = epicService.GetEpicsByProjectId(projectId);
+            var taskTask = taskService.GetTasksByProjectIdDetailed(projectId);
+            var subtaskTask = subtaskService.GetSubtasksByProjectIdDetailed(projectId);
+
+            await Task.WhenAll(epicTask, taskTask, subtaskTask);
+
+            // Map Epics
+            foreach (var epic in await epicTask)
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
@@ -428,7 +444,7 @@ namespace IntelliPM.Services.ProjectServices
                 new AssigneeDTO
                 {
                     Fullname = epic.AssignedByFullname ?? "Unknown",
-                    Picture = null
+                    Picture = epic.AssignedByPicture
                 }
             },
                     DueDate = epic.EndDate,
@@ -440,8 +456,8 @@ namespace IntelliPM.Services.ProjectServices
                 });
             }
 
-            var tasks = await _taskService.GetTasksByProjectIdDetailed(projectId);
-            foreach (var task in tasks)
+            // Map Tasks
+            foreach (var task in await taskTask)
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
@@ -465,9 +481,8 @@ namespace IntelliPM.Services.ProjectServices
                 });
             }
 
-            
-            var subtasks = await _subtaskService.GetSubtasksByProjectIdDetailed(projectId);
-            foreach (var subtask in subtasks)
+            // Map Subtasks
+            foreach (var subtask in await subtaskTask)
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
