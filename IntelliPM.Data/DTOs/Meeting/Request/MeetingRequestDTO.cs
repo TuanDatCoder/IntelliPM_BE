@@ -11,5 +11,6 @@
         public int? Attendees { get; set; }
 
         public List<int> ParticipantIds { get; set; } = new();
+        
     }
 }
