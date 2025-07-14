@@ -11,6 +11,7 @@ namespace IntelliPM.Repositories.DocumentRepos
     public interface IDocumentRepository
     {
         Task<List<Document>> GetByProjectAsync(int projectId);
+        Task<List<Document>> GetAllAsync();
         Task<Document?> GetByIdAsync(int id);
         Task AddAsync(Document doc);
         Task UpdateAsync(Document doc);

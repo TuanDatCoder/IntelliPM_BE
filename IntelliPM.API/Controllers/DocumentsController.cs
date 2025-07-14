@@ -20,6 +20,14 @@ namespace IntelliPM.API.Controllers
             _documentService = documentService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<List<DocumentResponseDTO>>> GetAll()
+        {
+            var result = await _documentService.GetAllDocuments();
+            return Ok(result);
+        }
+
+
 
         [HttpPost("request")]
         public async Task<ActionResult<DocumentResponseDTO>> CreateDocumentRequest([FromBody] DocumentRequestDTO request)

@@ -18,6 +18,11 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                              .Where(d => d.ProjectId == projectId && d.IsActive)
                              .ToListAsync();
 
+        public async Task<List<Document>> GetAllAsync()
+            => await _context.Document
+                             .Where(d => d.IsActive)
+                             .ToListAsync();
+
         public async Task<Document?> GetByIdAsync(int id)
             => await _context.Document.FindAsync(id);
 

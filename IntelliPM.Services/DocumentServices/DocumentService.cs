@@ -38,6 +38,28 @@ namespace IntelliPM.Services.DocumentServices
             return docs.Select(ToResponse).ToList();
         }
 
+        public async Task<List<DocumentResponseDTO>> GetAllDocuments()
+        {
+            var docs = await _repo.GetAllAsync();
+            return docs.Select(d => new DocumentResponseDTO
+            {
+                Id = d.Id,
+                ProjectId = d.ProjectId,
+                TaskId = d.TaskId,
+                Title = d.Title,
+                Type = d.Type,
+                Template = d.Template,
+                Content = d.Content,
+                FileUrl = d.FileUrl,
+                IsActive = d.IsActive,
+                CreatedBy = d.CreatedBy,
+                UpdatedBy = d.UpdatedBy,
+                CreatedAt = d.CreatedAt,
+                UpdatedAt = d.UpdatedAt
+            }).ToList();
+        }
+
+
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
             var doc = await _repo.GetByIdAsync(id);
