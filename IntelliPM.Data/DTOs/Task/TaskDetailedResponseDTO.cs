@@ -35,6 +35,7 @@ namespace IntelliPM.Data.DTOs.Task
         public decimal? ActualResourceCost { get; set; }
         public decimal? RemainingHours { get; set; }
         public int? SprintId { get; set; }
+        public string? SprintName { get; set; }
         public string? EpicId { get; set; }
 
         // Thông tin Reporter

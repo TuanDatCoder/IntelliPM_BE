@@ -143,6 +143,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
                 .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
                 .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.EpicComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
@@ -200,6 +201,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ReporterPicture, opt => opt.Ignore())
                 .ForMember(dest => dest.TaskAssignments, opt => opt.MapFrom(src => src.TaskAssignment))
                 .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.TaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 
@@ -285,6 +287,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AssignedByFullname, opt => opt.Ignore())
                 .ForMember(dest => dest.AssignedByPicture, opt => opt.Ignore())
                 .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
+                                .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
 

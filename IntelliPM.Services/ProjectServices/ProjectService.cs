@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using FirebaseAdmin.Messaging;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
@@ -27,13 +26,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.ProjectServices
 {
@@ -43,7 +36,7 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IProjectRepository _projectRepo;
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IAccountRepository _accountRepo;
-        private readonly IEmailService _emailService; 
+        private readonly IEmailService _emailService;
         private readonly IProjectMemberService _projectMemberService;
         private readonly ILogger<ProjectService> _logger;
         private readonly IEpicService _epicService;
@@ -75,7 +68,7 @@ namespace IntelliPM.Services.ProjectServices
             _milestoneRepo = milestoneRepo;
             _taskDependencyRepo = taskDependencyRepo;
             _config = config;
-            #pragma warning disable CS8601
+#pragma warning disable CS8601
             _backendUrl = config["Environment:BE_URL"];
             _forntendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -225,9 +218,9 @@ namespace IntelliPM.Services.ProjectServices
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status,
-                    FullName = pm.Account?.FullName, 
-                    Username = pm.Account?.Username, 
-                    Picture = pm.Account?.Picture,  
+                    FullName = pm.Account?.FullName,
+                    Username = pm.Account?.Username,
+                    Picture = pm.Account?.Picture,
                     ProjectPositions = pm.ProjectPosition?.Select(pp => new ProjectPositionResponseDTO
                     {
                         Id = pp.Id,
@@ -258,7 +251,7 @@ namespace IntelliPM.Services.ProjectServices
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-            if(!pm.Status.Equals("CREATED"))
+            if (!pm.Status.Equals("CREATED"))
                 throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
 
             var projectInfo = await GetProjectById(projectId);
@@ -274,8 +267,8 @@ namespace IntelliPM.Services.ProjectServices
                   pm.Email,
                   currentAccount.FullName,
                   currentAccount.Username,
-                  projectInfo.Name, 
-                  projectInfo.ProjectKey,  
+                  projectInfo.Name,
+                  projectInfo.ProjectKey,
                   projectId,
                   projectDetailsUrl
               );
@@ -302,7 +295,7 @@ namespace IntelliPM.Services.ProjectServices
 
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-           
+
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -362,7 +355,7 @@ namespace IntelliPM.Services.ProjectServices
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
 
-            
+
 
 
             foreach (var member in eligibleMembers)
@@ -436,16 +429,19 @@ namespace IntelliPM.Services.ProjectServices
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
+                    ProjectId = projectId,
                     Type = epic.Type,
                     Key = epic.Id,
                     Summary = epic.Name,
                     Status = epic.Status,
                     CommentCount = epic.CommentCount,
                     SprintId = epic.SprintId,
+                    SprintName = epic.SprintName,
                     Assignees = new List<AssigneeDTO>
             {
                 new AssigneeDTO
                 {
+                    AccountId = epic.AssignedBy ?? 0,
                     Fullname = epic.AssignedByFullname ?? "Unknown",
                     Picture = epic.AssignedByPicture
                 }
@@ -454,6 +450,7 @@ namespace IntelliPM.Services.ProjectServices
                     Labels = epic.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = epic.CreatedAt,
                     UpdatedAt = epic.UpdatedAt,
+                    ReporterId = epic.ReporterId,
                     ReporterFullname = epic.ReporterFullname ?? "Unknown",
                     ReporterPicture = epic.ReporterPicture
                 });
@@ -463,14 +460,17 @@ namespace IntelliPM.Services.ProjectServices
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
+                    ProjectId = projectId,
                     Type = task.Type,
                     Key = task.Id,
                     Summary = task.Title,
                     Status = task.Status,
                     CommentCount = task.CommentCount,
                     SprintId = task.SprintId,
+                    SprintName = task.SprintName,
                     Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
                     {
+                        AccountId = a.AccountId,
                         Fullname = a.AccountFullname ?? "Unknown",
                         Picture = a.AccountPicture
                     }).ToList(),
@@ -478,6 +478,7 @@ namespace IntelliPM.Services.ProjectServices
                     Labels = task.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = task.CreatedAt,
                     UpdatedAt = task.UpdatedAt,
+                    ReporterId = task.ReporterId,
                     ReporterFullname = task.ReporterFullname ?? "Unknown",
                     ReporterPicture = task.ReporterPicture
                 });
@@ -487,6 +488,7 @@ namespace IntelliPM.Services.ProjectServices
             {
                 workItems.Add(new WorkItemResponseDTO
                 {
+                    ProjectId = projectId,
                     Type = subtask.Type,
                     Key = subtask.Id,
                     TaskId = subtask.TaskId,
@@ -494,10 +496,12 @@ namespace IntelliPM.Services.ProjectServices
                     Status = subtask.Status,
                     CommentCount = subtask.CommentCount,
                     SprintId = subtask.SprintId,
+                    SprintName = subtask.SprintName,
                     Assignees = new List<AssigneeDTO>
             {
                 new AssigneeDTO
                 {
+                    AccountId = subtask.AssignedBy ?? 0,
                     Fullname = subtask.AssignedByFullname ?? "Unknown",
                     Picture = subtask.AssignedByPicture
                 }
@@ -506,6 +510,7 @@ namespace IntelliPM.Services.ProjectServices
                     Labels = subtask.Labels.Select(l => l.Name).ToList(),
                     CreatedAt = subtask.CreatedAt,
                     UpdatedAt = subtask.UpdatedAt,
+                    ReporterId = subtask.ReporterId,
                     ReporterFullname = subtask.ReporterFullname ?? "Unknown",
                     ReporterPicture = subtask.ReporterPicture
                 });
@@ -545,7 +550,7 @@ namespace IntelliPM.Services.ProjectServices
             var project = await _projectRepo.GetProjectByNameAsync(projectName);
             return project != null;
         }
-       
+
         public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
