@@ -302,7 +302,7 @@ namespace IntelliPM.Services.ProjectServices
 
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-           
+           //
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
