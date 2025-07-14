@@ -128,7 +128,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Add(entity);
-                await CalculatePlannedHoursAsync(entity.Id);
+                //await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (DbUpdateException ex)
             {
