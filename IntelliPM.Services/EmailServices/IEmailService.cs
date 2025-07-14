@@ -24,7 +24,10 @@ namespace IntelliPM.Services.EmailServices
 
         Task SendShareDocumentEmail(string toEmail, string documentTitle, string message, string link);
 
-      
+        Task SendEmailTeamLeader(List<string> email, string message);
+
+
+
 
     }
 }

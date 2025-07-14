@@ -18,7 +18,9 @@ namespace IntelliPM.Services.DocumentServices
         Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId);
         Task<DocumentResponseDTO> GetDocumentById(int id);
 
+        Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId);
         Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId);
+
         Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req);
         Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId);
 

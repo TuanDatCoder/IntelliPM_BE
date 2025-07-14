@@ -21,8 +21,8 @@ namespace IntelliPM.API.Controllers
         }
 
 
-        [HttpPost]
-        public async Task<ActionResult<DocumentResponseDTO>> Create([FromBody] DocumentRequestDTO request)
+        [HttpPost("request")]
+        public async Task<ActionResult<DocumentResponseDTO>> CreateDocumentRequest([FromBody] DocumentRequestDTO request)
         {
             var accountIdClaim = User.FindFirst("accountId")?.Value;
 
@@ -32,9 +32,27 @@ namespace IntelliPM.API.Controllers
             if (!int.TryParse(accountIdClaim, out var userId))
                 return BadRequest("Invalid user ID format");
 
-            var result = await _documentService.CreateDocument(request, userId); 
+            var result = await _documentService.CreateDocumentRequest(request, userId); 
             return Ok(result);
         }
+
+
+        [HttpPost("create")]
+        public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
+
+            var result = await _documentService.CreateDocument(request, userId);
+            return Ok(result);
+        }
+
+
 
 
         [HttpPut("{id}")]
@@ -185,7 +203,7 @@ namespace IntelliPM.API.Controllers
             [FromQuery] int projectId,
             [FromQuery] string? epicId,
             [FromQuery] string? taskId,
-            [FromQuery] string? subTaskId)
+            [FromQuery] string? subTaskId)      
         {
             var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
             if (result == null)
