@@ -35,6 +35,10 @@ namespace IntelliPM.Repositories.DocumentRepos
 
         Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId);
 
+        Task<Dictionary<string, int>> CountByStatusAsync();
+
+        Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId);
+
 
 
 

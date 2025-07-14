@@ -474,7 +474,15 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
         {
             return await _repo.GetUserDocumentMappingAsync(projectId, userId);
         }
+        public async Task<Dictionary<string, int>> GetStatusCount()
+        {
+            return await _repo.CountByStatusAsync();
+        }
 
+        public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
+        {
+            return await _repo.CountByStatusInProjectAsync(projectId);
+        }
 
 
 

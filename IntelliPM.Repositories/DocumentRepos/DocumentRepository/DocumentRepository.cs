@@ -109,6 +109,25 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 );
         }
 
+        public async Task<Dictionary<string, int>> CountByStatusAsync()
+        {
+            return await _context.Document
+                .Where(d => d.IsActive)
+                .GroupBy(d => d.Status ?? "Unknown")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Status, g => g.Count);
+        }
+
+        public async Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId)
+        {
+            return await _context.Document
+                .Where(d => d.IsActive && d.ProjectId == projectId)
+                .GroupBy(d => d.Status ?? "Unknown")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Status, g => g.Count);
+        }
+
+
 
 
 

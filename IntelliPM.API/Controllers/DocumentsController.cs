@@ -227,5 +227,19 @@ namespace IntelliPM.API.Controllers
             return Ok(mapping);
         }
 
+        [HttpGet("status-total")]
+        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummary()
+        {
+            var summary = await _documentService.GetStatusCount();
+            return Ok(summary);
+        }
+
+        [HttpGet("project/{projectId}/status-total")]
+        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummaryByProject(int projectId)
+        {
+            var result = await _documentService.GetStatusCountByProject(projectId);
+            return Ok(result);
+        }
+
     }
 }
