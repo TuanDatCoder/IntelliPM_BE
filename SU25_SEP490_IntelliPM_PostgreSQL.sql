@@ -216,6 +216,26 @@ CREATE TABLE subtask (
 	FOREIGN KEY (reporter_id) REFERENCES account(id)
 );
 
+-- Thêm các trường còn thiếu cho bảng subtask (tất cả đều cho phép NULL)
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_start_date TIMESTAMPTZ NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_end_date TIMESTAMPTZ NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS duration VARCHAR(100) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS actual_start_date TIMESTAMPTZ NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS actual_end_date TIMESTAMPTZ NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS percent_complete DECIMAL(5, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_hours DECIMAL(8, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS actual_hours DECIMAL(8, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS remaining_hours DECIMAL(8, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_cost DECIMAL(15, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_resource_cost DECIMAL(15, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS actual_cost DECIMAL(15, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS actual_resource_cost DECIMAL(15, 2) NULL;
+ALTER TABLE subtask ADD COLUMN IF NOT EXISTS evaluate VARCHAR(50) NULL;
+
+
+
+
+
 -- 13. subtask_file
 CREATE TABLE subtask_file (
     id SERIAL PRIMARY KEY,
