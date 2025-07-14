@@ -205,7 +205,7 @@ namespace IntelliPM.Services.EpicServices
 
         private async Task EnrichEpicDetailedResponse(EpicDetailedResponseDTO epicDetailedDTO)
         {
-            // Lấy thông tin Reporter
+         
             if (epicDetailedDTO.ReporterId.HasValue)
             {
                 var reporter = await _accountRepo.GetAccountById(epicDetailedDTO.ReporterId.Value);
@@ -215,8 +215,6 @@ namespace IntelliPM.Services.EpicServices
                     epicDetailedDTO.ReporterPicture = reporter.Picture;
                 }
             }
-
-            // Lấy thông tin AssignedBy
             if (epicDetailedDTO.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedBy.Value);
@@ -226,14 +224,11 @@ namespace IntelliPM.Services.EpicServices
                     epicDetailedDTO.AssignedByPicture = assignedBy.Picture;
                 }
             }
-
-            // Lấy comment và số lượng
             var allComments = await _epicCommentService.GetAllEpicComment();
             var epicComments = allComments.Where(c => c.EpicId == epicDetailedDTO.Id).ToList();
             epicDetailedDTO.CommentCount = epicComments.Count;
             epicDetailedDTO.Comments = _mapper.Map<List<EpicCommentResponseDTO>>(epicComments);
 
-            // Lấy các label
             var labels = await _workItemLabelService.GetByEpicIdAsync(epicDetailedDTO.Id);
             var labelDtos = new List<LabelResponseDTO>();
             foreach (var l in labels)
