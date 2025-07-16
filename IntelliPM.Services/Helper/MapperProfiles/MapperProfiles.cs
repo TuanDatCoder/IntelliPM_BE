@@ -52,7 +52,6 @@ using IntelliPM.Data.DTOs.SubtaskFile.Request;
 using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.SystemConfiguration.Request;
 using IntelliPM.Data.DTOs.SystemConfiguration.Response;
-using IntelliPM.Data.DTOs.Task;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Request;
@@ -186,10 +185,14 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<Tasks, TaskResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
+                .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
+                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
                 .ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
 
             CreateMap<Tasks, TaskUpdateResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
+                  .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
+                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
 
             CreateMap<TaskWithMembersDTO, TaskRequestDTO>()

@@ -2,7 +2,6 @@
 using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
-using IntelliPM.Data.DTOs.Task;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
@@ -18,7 +17,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
-using IntelliPM.Services.TaskCommentServices; 
+using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;

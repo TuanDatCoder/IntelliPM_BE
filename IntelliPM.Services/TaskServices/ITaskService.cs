@@ -1,5 +1,4 @@
-﻿using IntelliPM.Data.DTOs.Task;
-using IntelliPM.Data.DTOs.Task.Request;
+﻿using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using System;
 using System.Collections.Generic;
