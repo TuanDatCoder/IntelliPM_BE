@@ -99,9 +99,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<WorkItemLabel> WorkItemLabel { get; set; }
 
+    public virtual DbSet<WorkLog> WorkLog { get; set; }
+
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
+    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -115,8 +117,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
-
-
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -306,7 +306,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("fk_document_approver");
+                .HasConstraintName("document_approver_id_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1649,6 +1649,39 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Task).WithMany(p => p.WorkItemLabel)
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_item_label_task_id_fkey");
+        });
+
+        modelBuilder.Entity<WorkLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("work_log_pkey");
+
+            entity.ToTable("work_log");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Hours)
+                .HasPrecision(8, 2)
+                .HasColumnName("hours");
+            entity.Property(e => e.LogDate).HasColumnName("log_date");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.WorkLog)
+                .HasForeignKey(d => d.SubtaskId)
+                .HasConstraintName("work_log_subtask_id_fkey");
+
+            entity.HasOne(d => d.Task).WithMany(p => p.WorkLog)
+                .HasForeignKey(d => d.TaskId)
+                .HasConstraintName("work_log_task_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);
