@@ -8,7 +8,7 @@ namespace IntelliPM.Data.DTOs.Risk.Request
 {
     public class RiskCreateRequestDTO
     {
-        public int ProjectId { get; set; }
+        public string ProjectKey { get; set; } = null!;
         public int? ResponsibleId { get; set; }
         public string? TaskId { get; set; }
         public string RiskScope { get; set; } = null!;
