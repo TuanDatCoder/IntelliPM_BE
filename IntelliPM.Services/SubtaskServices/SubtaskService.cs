@@ -361,6 +361,37 @@ namespace IntelliPM.Services.SubtaskServices
             }
             dto.Labels = labelDtos;
         }
+
+        public async Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            entity.PlannedHours = hours;
+
+            try
+            {
+                await _subtaskRepo.Update(entity);
+
+                // Tính lại planned_hours của task cha
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+                var totalPlannedHours = subtasks.Sum(s => s.PlannedHours ?? 0);
+
+                var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+                if (task != null)
+                {
+                    task.PlannedHours = totalPlannedHours;
+                    await _taskRepo.Update(task);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
     }
 }
 

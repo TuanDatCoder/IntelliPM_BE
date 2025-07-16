@@ -301,5 +301,38 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/planned-hours")]
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        {
+            try
+            {
+                var updated = await _service.ChangePlannedHours(id, hours);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask plannedHours updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask plannedHours: {ex.Message}"
+                });
+            }
+        }
+
     }
 }
