@@ -304,6 +304,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
+            CreateMap<Subtask, SubtaskFullResponseDTO>();
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
