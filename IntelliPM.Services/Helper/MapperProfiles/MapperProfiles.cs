@@ -225,6 +225,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<Requirement, RequirementResponseDTO>();
 
             CreateMap<TaskAssignment, TaskAssignmentResponseDTO>()
                 .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
