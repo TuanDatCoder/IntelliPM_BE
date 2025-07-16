@@ -247,8 +247,14 @@ namespace IntelliPM.Services.RiskServices
                 throw new ArgumentException("Title is required.");
             if (string.IsNullOrWhiteSpace(request.RiskScope))
                 throw new ArgumentException("RiskScope is required.");
+            if (string.IsNullOrWhiteSpace(request.ProjectKey))
+                throw new ArgumentException("ProjectKey is required.");
+
+            var project = await _projectRepo.GetProjectByKeyAsync(request.ProjectKey)
+                ?? throw new Exception("Project not found with provided projectKey");
 
             var entity = _mapper.Map<Risk>(request);
+            entity.ProjectId = project.Id;
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
