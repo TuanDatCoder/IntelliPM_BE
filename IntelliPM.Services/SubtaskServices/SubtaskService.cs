@@ -17,6 +17,7 @@ using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
+using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -39,8 +40,9 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IAccountRepository _accountRepo; 
         private readonly ISubtaskCommentService _subtaskCommentService;
         private readonly IWorkItemLabelService _workItemLabelService;
+        private readonly IWorkLogService _workLogService;
 
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService)
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -52,6 +54,7 @@ namespace IntelliPM.Services.SubtaskServices
             _accountRepo = accountRepo;
             _subtaskCommentService = subtaskCommentService;
             _workItemLabelService = workItemLabelService;
+            _workLogService = workLogService;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -265,14 +268,13 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
-            if (status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
-            {
+            var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            if (isInProgress)
                 entity.ActualStartDate = DateTime.UtcNow;
-            }
-            if (status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
-            {
+            if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
-            }
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -280,6 +282,10 @@ namespace IntelliPM.Services.SubtaskServices
             try
             {
                 await _subtaskRepo.Update(entity);
+                if (isInProgress)
+                {
+                    await _workLogService.GenerateDailyWorkLogsAsync(); 
+                }
             }
             catch (Exception ex)
             {
