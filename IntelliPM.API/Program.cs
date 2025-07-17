@@ -87,6 +87,8 @@ using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Services.WorkLogServices;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 
 
@@ -95,6 +97,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+builder.Services.AddHangfire(config =>
+{
+    config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddHangfireServer();
+
 
 
 //------------------------------AUTOMAPPER---------------------------
@@ -313,6 +322,16 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard();  
+app.UseHangfireServer();
+
+RecurringJob.AddOrUpdate<IWorkLogService>(
+    "generate-daily-worklog",
+    x => x.GenerateDailyWorkLogsAsync(),
+    // "0 1 * * *"  
+    // "*/1 * * * *"
+    "0 0 * * *"
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();
