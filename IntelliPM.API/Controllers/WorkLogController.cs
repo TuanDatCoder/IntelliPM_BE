@@ -83,8 +83,8 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(int id, [FromBody] decimal hours)
+        [HttpPatch("{id}/hours")]
+        public async Task<IActionResult> ChangeWorkLogHours(int id, [FromBody] decimal hours)
         {
             try
             {

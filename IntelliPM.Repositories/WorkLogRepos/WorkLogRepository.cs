@@ -54,5 +54,13 @@ namespace IntelliPM.Repositories.WorkLogRepos
             _context.WorkLog.Update(workLog);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<WorkLog>> GetBySubtaskIdAsync(string subtaskId)
+        {
+            return await _context.WorkLog
+                .Where(w => w.SubtaskId == subtaskId)
+                .OrderByDescending(w => w.CreatedAt)
+                .ToListAsync();
+        }
     }
 }
