@@ -85,6 +85,8 @@ using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Services.EpicFileServices;
+using IntelliPM.Repositories.WorkLogRepos;
+using IntelliPM.Services.WorkLogServices;
 
 
 
@@ -141,6 +143,7 @@ builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
+builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -185,6 +188,7 @@ builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
+builder.Services.AddScoped<IWorkLogService, WorkLogService>();
 
 
 // ------------------------- HttpClient -----------------------------
