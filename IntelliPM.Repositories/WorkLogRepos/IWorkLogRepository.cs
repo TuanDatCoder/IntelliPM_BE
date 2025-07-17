@@ -14,5 +14,7 @@ namespace IntelliPM.Repositories.WorkLogRepos
         Task<List<WorkLog>> GetByTaskOrSubtaskIdAsync(string? taskId, string? subtaskId);
         Task<WorkLog> GetByIdAsync(int id);
         Task Update(WorkLog workLog);
+        Task<List<WorkLog>> GetBySubtaskIdAsync(string subtaskId);
+
     }
 }
