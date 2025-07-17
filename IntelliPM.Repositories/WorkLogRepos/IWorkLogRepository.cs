@@ -11,6 +11,8 @@ namespace IntelliPM.Repositories.WorkLogRepos
     {
         Task<bool> ExistsAsync(string? taskId, string? subtaskId, DateTime logDate);
         Task BulkInsertAsync(List<WorkLog> logs);
-
+        Task<List<WorkLog>> GetByTaskOrSubtaskIdAsync(string? taskId, string? subtaskId);
+        Task<WorkLog> GetByIdAsync(int id);
+        Task Update(WorkLog workLog);
     }
 }
