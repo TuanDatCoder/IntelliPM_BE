@@ -25,6 +25,8 @@ namespace IntelliPM.Services.MeetingServices
 
         Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto);
 
+        Task CompleteMeeting(int meetingId);
+
 
     }
 }
