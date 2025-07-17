@@ -39,6 +39,37 @@ namespace IntelliPM.Services.WorkLogServices
             entity.UpdatedAt = DateTime.UtcNow;
 
             await _workLogRepo.Update(entity);
+
+            // cập nhật Subtask.ActualHours
+            if (entity.SubtaskId != null)
+            {
+                var allWorkLogs = await _workLogRepo.GetBySubtaskIdAsync(entity.SubtaskId);
+                var totalHours = allWorkLogs.Sum(w => w.Hours ?? 0);
+
+                var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
+                if (subtask != null)
+                {
+                    subtask.ActualHours = totalHours;
+                    subtask.UpdatedAt = DateTime.UtcNow;
+                    await _subtaskRepo.Update(subtask);
+
+                    // Cập nhật Task.ActualHours = tổng ActualHours của tất cả subtasks
+                    if (subtask.TaskId != null)
+                    {
+                        var allSubtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(subtask.TaskId);
+                        var totalSubtaskHours = allSubtasks.Sum(s => s.ActualHours ?? 0);
+
+                        var task = await _taskRepo.GetByIdAsync(subtask.TaskId);
+                        if (task != null)
+                        {
+                            task.ActualHours = totalSubtaskHours;
+                            task.UpdatedAt = DateTime.UtcNow;
+                            await _taskRepo.Update(task);
+                        }
+                    }
+                }
+            }
+
             return _mapper.Map<WorkLogResponseDTO>(entity);
         }
 
