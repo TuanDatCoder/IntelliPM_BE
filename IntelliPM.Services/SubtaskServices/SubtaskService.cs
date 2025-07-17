@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -41,8 +42,9 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly ISubtaskCommentService _subtaskCommentService;
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly IWorkLogService _workLogService;
+        private readonly IProjectMemberRepository _projectMemberRepo;
 
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService)
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -55,6 +57,7 @@ namespace IntelliPM.Services.SubtaskServices
             _subtaskCommentService = subtaskCommentService;
             _workItemLabelService = workItemLabelService;
             _workLogService = workLogService;
+            _projectMemberRepo = projectMemberRepo;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -385,28 +388,41 @@ namespace IntelliPM.Services.SubtaskServices
 
             entity.PlannedHours = hours;
 
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task != null && entity.AssignedBy != null)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
+                if (member != null && member.HourlyRate.HasValue)
+                {
+                    entity.PlannedResourceCost = entity.PlannedHours * member.HourlyRate.Value;
+                }
+            }
+
+            // cập nhật subtask sau khi đã gán đầy đủ thông tin
+            await _subtaskRepo.Update(entity);
+
             try
             {
-                await _subtaskRepo.Update(entity);
-
                 // Tính lại planned_hours của task cha
                 var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
                 var totalPlannedHours = subtasks.Sum(s => s.PlannedHours ?? 0);
+                var totalPlannedResourceCost = subtasks.Sum(s => s.PlannedResourceCost ?? 0);
 
-                var task = await _taskRepo.GetByIdAsync(entity.TaskId);
                 if (task != null)
                 {
                     task.PlannedHours = totalPlannedHours;
+                    task.PlannedResourceCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to change task title: {ex.Message}", ex);
+                throw new Exception($"Failed to update task values: {ex.Message}", ex);
             }
 
             return _mapper.Map<SubtaskFullResponseDTO>(entity);
         }
+
     }
 }
 
