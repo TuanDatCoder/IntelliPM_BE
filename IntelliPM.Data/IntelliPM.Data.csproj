@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Contexts\" />
+    <Folder Include="DTOs\WorkLog\Request\" />
   </ItemGroup>
 
 </Project>
