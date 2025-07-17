@@ -265,6 +265,15 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
+            if (status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+            {
+                entity.ActualStartDate = DateTime.UtcNow;
+            }
+            if (status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+            {
+                entity.ActualEndDate = DateTime.UtcNow;
+            }
+
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
