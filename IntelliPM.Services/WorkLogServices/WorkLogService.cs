@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.WorkLog.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Repositories.WorkLogRepos;
@@ -20,14 +21,16 @@ namespace IntelliPM.Services.WorkLogServices
         private readonly ILogger<WorkLogService> _logger;
         private readonly ITaskRepository _taskRepo;
         private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
 
-        public WorkLogService(IMapper mapper, IWorkLogRepository workLogRepo, ILogger<WorkLogService> logger, ITaskRepository taskRepo, ISubtaskRepository subtaskRepo)
+        public WorkLogService(IMapper mapper, IWorkLogRepository workLogRepo, ILogger<WorkLogService> logger, ITaskRepository taskRepo, ISubtaskRepository subtaskRepo, IProjectMemberRepository projectMemberRepo)
         {
             _mapper = mapper;
             _workLogRepo = workLogRepo;
             _logger = logger;
             _taskRepo = taskRepo;
             _subtaskRepo = subtaskRepo;
+            _projectMemberRepo = projectMemberRepo;
         }
 
         public async Task<WorkLogResponseDTO> ChangeWorkLogHoursAsync(int id, decimal hours)
@@ -51,6 +54,20 @@ namespace IntelliPM.Services.WorkLogServices
                 {
                     subtask.ActualHours = totalHours;
                     subtask.UpdatedAt = DateTime.UtcNow;
+
+                    // Tính ActualResourceCost của subtask
+                    if (subtask.AssignedBy != null)
+                    {
+                        var task = await _taskRepo.GetByIdAsync(subtask.TaskId);
+                        if (task?.ProjectId != null)
+                        {
+                            var member = await _projectMemberRepo.GetByAccountAndProjectAsync(subtask.AssignedBy.Value, task.ProjectId);
+                            if (member != null && member.HourlyRate.HasValue)
+                            {
+                                subtask.ActualResourceCost = subtask.ActualHours * member.HourlyRate.Value;
+                            }
+                        }
+                    }
                     await _subtaskRepo.Update(subtask);
 
                     // Cập nhật Task.ActualHours = tổng ActualHours của tất cả subtasks
@@ -58,11 +75,13 @@ namespace IntelliPM.Services.WorkLogServices
                     {
                         var allSubtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(subtask.TaskId);
                         var totalSubtaskHours = allSubtasks.Sum(s => s.ActualHours ?? 0);
+                        var totalActualResourceCost = allSubtasks.Sum(s => s.ActualResourceCost ?? 0);
 
                         var task = await _taskRepo.GetByIdAsync(subtask.TaskId);
                         if (task != null)
                         {
                             task.ActualHours = totalSubtaskHours;
+                            task.ActualResourceCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                         }
