@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.WorkLog.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -27,6 +28,18 @@ namespace IntelliPM.Services.WorkLogServices
             _logger = logger;
             _taskRepo = taskRepo;
             _subtaskRepo = subtaskRepo;
+        }
+
+        public async Task<WorkLogResponseDTO> ChangeWorkLogHoursAsync(int id, decimal hours)
+        {
+            var entity = await _workLogRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"WorkLog with ID {id} not found.");
+            entity.Hours = hours;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _workLogRepo.Update(entity);
+            return _mapper.Map<WorkLogResponseDTO>(entity);
         }
 
         public async Task GenerateDailyWorkLogsAsync()
@@ -74,6 +87,12 @@ namespace IntelliPM.Services.WorkLogServices
             {
                 await _workLogRepo.BulkInsertAsync(logsToInsert);
             }
+        }
+
+        public async Task<List<WorkLogResponseDTO>> GetWorkLogsByTaskOrSubtaskAsync(string? taskId, string? subtaskId)
+        {
+            var list = await _workLogRepo.GetByTaskOrSubtaskIdAsync(taskId, subtaskId);
+            return _mapper.Map<List<WorkLogResponseDTO>>(list);
         }
     }
 }

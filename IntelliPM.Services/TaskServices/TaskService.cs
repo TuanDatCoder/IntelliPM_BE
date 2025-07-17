@@ -22,6 +22,7 @@ using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.TaskCommentServices; 
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
+using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -47,7 +48,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo)
+        private readonly IWorkLogService _workLogService;
+
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -61,6 +64,7 @@ namespace IntelliPM.Services.TaskServices
             _taskDependencyRepo = taskDependencyRepo;
             _projectMemberRepo = projectMemberRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
+            _workLogService = workLogService;
         }
       
 
@@ -229,14 +233,13 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            if (status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
-            {
+            var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            if (isInProgress)
                 entity.ActualStartDate = DateTime.UtcNow;
-            }
-            if (status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
-            {
+            if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
-            }
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -244,6 +247,10 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                if (isInProgress)
+                {
+                    await _workLogService.GenerateDailyWorkLogsAsync();
+                }
             }
             catch (Exception ex)
             {
