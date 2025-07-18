@@ -114,11 +114,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost("calculate")]
-        public async Task<IActionResult> CalculateAndSave([FromQuery] int projectId, [FromQuery] string calculatedBy)
+        public async Task<IActionResult> CalculateAndSave([FromQuery] int projectId)
         {
             try
             {
-                var result = await _service.CalculateAndSaveMetricsAsync(projectId, calculatedBy);
+                var result = await _service.CalculateAndSaveMetricsAsync(projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -281,5 +281,38 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("view-new-metric")]
+        public async Task<IActionResult> GetProjectMetricView([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _service.CalculateProjectMetricsViewAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Project metric generated",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating project metric: {ex.Message}"
+                });
+            }
+
+        }
     }
 }
