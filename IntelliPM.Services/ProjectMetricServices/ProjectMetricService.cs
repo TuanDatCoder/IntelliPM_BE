@@ -27,6 +27,8 @@ using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using Google.Cloud.Storage.V1;
 using IntelliPM.Services.ChatGPTServices;
+using CloudinaryDotNet;
+using IntelliPM.Repositories.SubtaskRepos;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -45,8 +47,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly ILogger<ProjectMetricService> _logger;
         private readonly IGeminiService _geminiService;
         private readonly IChatGPTService _chatGPTService;
+        private readonly ISubtaskRepository _subtaskRepo;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -57,6 +60,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _taskAssignmentRepo = taskAssignmentRepo;
             _projectMemberRepo = projectMemberRepo;
             _projectRecommendationRepo = projectRecommendationRepo;
+            _subtaskRepo = subtaskRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _logger = logger;
             _geminiService = geminiService;
@@ -123,6 +127,159 @@ namespace IntelliPM.Services.ProjectMetricServices
             await _repo.Add(metric);
 
             return _mapper.Map<ProjectMetricResponseDTO>(metric);
+        }
+
+        //public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId)
+        //{
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+        //    if (tasks == null || !tasks.Any())
+        //        throw new InvalidOperationException("No tasks found for the project.");
+
+        //    decimal PV = 0; // Planned Value
+        //    decimal EV = 0; // Earned Value
+        //    decimal AC = 0; // Actual Cost
+        //    decimal BAC = 0; // Budget At Completion
+
+        //    foreach (var task in tasks)
+        //    {
+        //        // Tổng planned cost là BAC
+        //        BAC += task.PlannedCost ?? 0;
+
+        //        // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
+        //        if (task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
+        //        {
+        //            var now = DateTime.UtcNow;
+        //            if (now >= task.PlannedStartDate && now <= task.PlannedEndDate)
+        //            {
+        //                var totalPlannedDuration = (task.PlannedEndDate - task.PlannedStartDate)?.TotalDays ?? 1;
+        //                var elapsed = (now - task.PlannedStartDate)?.TotalDays ?? 0;
+        //                var progress = (decimal)(elapsed / totalPlannedDuration);
+        //                PV += (task.PlannedCost ?? 0) * progress;
+        //            }
+        //            else if (now > task.PlannedEndDate)
+        //            {
+        //                PV += task.PlannedCost ?? 0;
+        //            }
+        //        }
+
+        //        // EV: dựa vào phần trăm hoàn thành * planned cost
+        //        if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
+        //        {
+        //            EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
+        //        }
+
+        //        // AC: Actual Cost
+        //        AC += task.ActualCost ?? 0;
+        //    }
+
+        //    // Công thức hiệu suất chi phí và tiến độ
+        //    decimal CV = EV - AC;
+        //    decimal SV = EV - PV;
+        //    decimal CPI = AC == 0 ? 0 : EV / AC;
+        //    decimal SPI = PV == 0 ? 0 : EV / PV;
+        //    decimal EAC = CPI == 0 ? 0 : BAC / CPI;
+        //    decimal ETC = EAC - AC;
+        //    decimal VAC = BAC - EAC;
+
+        //    var metrics = new ProjectMetric
+        //    {
+        //        ProjectId = projectId,
+        //        PlannedValue = PV,
+        //        EarnedValue = EV,
+        //        ActualCost = AC,
+        //        BudgetAtCompletion = BAC,
+        //        CostVariance = CV,
+        //        ScheduleVariance = SV,
+        //        CostPerformanceIndex = CPI,
+        //        SchedulePerformanceIndex = SPI,
+        //        EstimateAtCompletion = EAC,
+        //        EstimateToComplete = ETC,
+        //        VarianceAtCompletion = VAC,
+        //        CalculatedBy = "System",
+        //        CalculatedAt = DateTime.UtcNow
+        //    };
+
+        //    await _projectMetricRepo.SaveAsync(metrics);
+
+        //    return _mapper.Map<ProjectMetricResponseDTO>(metrics);
+        //}
+
+        public async Task<NewProjectMetricResponseDTO> CalculateProjectMetricsViewAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+            if (tasks == null || !tasks.Any())
+                throw new InvalidOperationException("No tasks found for the project.");
+
+            decimal PV = 0; // Planned Value
+            decimal EV = 0; // Earned Value
+            decimal AC = 0; // Actual Cost
+            decimal BAC = (decimal)project.Budget; // Budget At Completion
+            decimal DAC = 12; // Duration At Completion (tháng)
+
+            foreach (var task in tasks)
+            {
+                // Tổng planned cost là BAC
+                //BAC += task.PlannedCost ?? 0;
+
+                // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
+                if (task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
+                {
+                    var now = DateTime.UtcNow;
+                    if (now >= task.PlannedStartDate && now <= task.PlannedEndDate)
+                    {
+                        var totalPlannedDuration = (task.PlannedEndDate - task.PlannedStartDate)?.TotalDays ?? 1;
+                        var elapsed = (now - task.PlannedStartDate)?.TotalDays ?? 0;
+                        var progress = (decimal)(elapsed / totalPlannedDuration);
+                        PV += (task.PlannedCost ?? 0) * progress;
+                    }
+                    else if (now > task.PlannedEndDate)
+                    {
+                        PV += task.PlannedCost ?? 0;
+                    }
+                }
+
+                // EV: dựa vào phần trăm hoàn thành * planned cost
+                if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
+                {
+                    EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
+                }
+
+                // AC: Actual Cost
+                AC += task.ActualCost ?? 0;
+            }
+
+            // Công thức hiệu suất chi phí và tiến độ
+            decimal CV = EV - AC;
+            decimal SV = EV - PV;
+            decimal CPI = AC == 0 ? 0 : EV / AC;
+            decimal SPI = PV == 0 ? 0 : EV / PV;
+            decimal EAC = CPI == 0 ? 0 : BAC / CPI;
+            decimal ETC = EAC - AC;
+            decimal VAC = BAC - EAC;
+            decimal EDAC = SPI == 0 ? DAC : DAC / SPI;
+
+            return new NewProjectMetricResponseDTO
+            {
+                ProjectId = project.Id,
+                PlannedValue = PV,
+                EarnedValue = EV,
+                ActualCost = AC,
+                BudgetAtCompletion = BAC,
+                DurationAtCompletion = DAC,
+                CostVariance = CV,
+                ScheduleVariance = SV,
+                CostPerformanceIndex = Math.Round(CPI, 3),
+                SchedulePerformanceIndex = Math.Round(SPI, 3),
+                EstimateAtCompletion = Math.Round(EAC, 0),
+                EstimateToComplete = Math.Round(ETC, 0),
+                VarianceAtCompletion = Math.Round(VAC, 0),
+                EstimateDurationAtCompletion = Math.Round(EDAC, 1),
+                CreatedAt = DateTime.UtcNow
+            };
         }
 
         public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsByAIAsync(string projectKey)
@@ -243,33 +400,86 @@ namespace IntelliPM.Services.ProjectMetricServices
             return entity != null ? _mapper.Map<ProjectMetricResponseDTO>(entity) : null;
         }
 
+        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
+        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+
+        //    // Tính Task Cost
+        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+
+        //    // Tính Resource Cost từ TaskAssignment và ProjectMember
+        //    decimal actualResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers
+        //            .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.ActualHours ?? 0) * hourly;
+        //    });
+
+        //    decimal plannedResourceCost = taskAssignments.Sum(a =>
+        //    {
+        //        var hourly = projectMembers
+        //            .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
+        //        return (decimal)(a.PlannedHours ?? 0) * hourly;
+        //    });
+
+        //    return new CostDashboardResponseDTO
+        //    {
+        //        ActualTaskCost = actualTaskCost,
+        //        PlannedTaskCost = plannedTaskCost,
+        //        ActualResourceCost = actualResourceCost,
+        //        PlannedResourceCost = plannedResourceCost,
+
+        //        ActualCost = actualTaskCost + actualResourceCost,
+        //        PlannedCost = plannedTaskCost + plannedResourceCost,
+        //        Budget = project.Budget ?? 0
+        //    };
+        //}
+
         public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
 
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
+
+            // Lấy tất cả subtasks theo danh sách task Id
+            var taskIds = tasks.Select(t => t.Id).ToList();
+            var allSubtasks = new List<Subtask>();
+
+            foreach (var task in tasks)
+            {
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+                allSubtasks.AddRange(subtasks);
+            }
+
+
+            // Lấy danh sách ProjectMember trước để dùng lại nhiều lần
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
 
             // Tính Task Cost
             decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
             decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
 
-            // Tính Resource Cost từ TaskAssignment và ProjectMember
-            decimal actualResourceCost = taskAssignments.Sum(a =>
-            {
-                var hourly = projectMembers
-                    .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
-                return (decimal)(a.ActualHours ?? 0) * hourly;
-            });
+            // Tính Resource Cost
+            decimal actualResourceCost = 0;
+            decimal plannedResourceCost = 0;
 
-            decimal plannedResourceCost = taskAssignments.Sum(a =>
+            foreach (var subtask in allSubtasks)
             {
-                var hourly = projectMembers
-                    .FirstOrDefault(m => m.ProjectId == project.Id && m.AccountId == a.AccountId)?.HourlyRate ?? 0;
-                return (decimal)(a.PlannedHours ?? 0) * hourly;
-            });
+                var member = projectMembers.FirstOrDefault(m =>
+                    m.AccountId == subtask.AssignedBy && m.ProjectId == project.Id);
+
+                var hourlyRate = member?.HourlyRate ?? 0;
+
+                actualResourceCost += (decimal)(subtask.ActualHours ?? 0) * hourlyRate;
+                plannedResourceCost += (decimal)(subtask.PlannedHours ?? 0) * hourlyRate;
+            }
 
             return new CostDashboardResponseDTO
             {
@@ -277,7 +487,6 @@ namespace IntelliPM.Services.ProjectMetricServices
                 PlannedTaskCost = plannedTaskCost,
                 ActualResourceCost = actualResourceCost,
                 PlannedResourceCost = plannedResourceCost,
-
                 ActualCost = actualTaskCost + actualResourceCost,
                 PlannedCost = plannedTaskCost + plannedResourceCost,
                 Budget = project.Budget ?? 0
@@ -377,6 +586,67 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
+        //public async Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+        //    var latestMetric = await _repo.GetLatestByProjectIdAsync(project.Id);
+
+        //    // Tính tiến độ theo phần trăm task đã hoàn thành
+        //    int tasksToBeCompleted = tasks.Count(t => t.Status != "CM");
+        //    int overdueTasks = tasks.Count(t =>
+        //        t.PlannedEndDate.HasValue &&
+        //        t.PlannedEndDate.Value < DateTime.UtcNow &&
+        //        t.Status != "CM");
+
+        //    double progress = tasks.Any()
+        //        ? tasks.Average(t => (double)(t.PercentComplete ?? 0))
+        //        : 0;
+
+        //    string timeStatus = "On track";
+        //    decimal costStatus = 0;
+        //    var costDto = new NewProjectMetricResponseDTO();
+
+        //    if (latestMetric != null)
+        //    {
+        //        // Làm tròn chỉ số và map DTO mới
+        //        costDto = _mapper.Map<NewProjectMetricResponseDTO>(latestMetric);
+
+        //        costDto.CostPerformanceIndex = Math.Round(costDto.CostPerformanceIndex, 3);
+        //        costDto.SchedulePerformanceIndex = Math.Round(costDto.SchedulePerformanceIndex, 3);
+        //        costDto.EstimateDurationAtCompletion = Math.Round(costDto.EstimateDurationAtCompletion, 1);
+        //        costDto.EstimateAtCompletion = Math.Round(costDto.EstimateAtCompletion, 0);
+        //        costDto.EstimateToComplete = Math.Round(costDto.EstimateToComplete, 0);
+        //        costDto.VarianceAtCompletion = Math.Round(costDto.VarianceAtCompletion, 0);
+
+        //        // Tính trạng thái thời gian: nếu SPI < 1 thì đang chậm
+        //        if (costDto.SchedulePerformanceIndex < 1)
+        //        {
+        //            var behindPercent = (1 - (double)costDto.SchedulePerformanceIndex) * 100;
+        //            timeStatus = $"{Math.Round(behindPercent, 2)}% behind";
+        //        }
+        //        else if (costDto.SchedulePerformanceIndex > 1)
+        //        {
+        //            var aheadPercent = ((double)costDto.SchedulePerformanceIndex - 1) * 100;
+        //            timeStatus = $"{Math.Round(aheadPercent, 2)}% ahead";
+        //        }
+
+        //        costStatus = costDto.CostPerformanceIndex;
+        //    }
+
+        //    return new ProjectHealthDTO
+        //    {
+        //        TimeStatus = timeStatus,
+        //        TasksToBeCompleted = tasksToBeCompleted,
+        //        OverdueTasks = overdueTasks,
+        //        ProgressPercent = Math.Round(progress, 2),
+        //        CostStatus = costStatus,
+        //        Cost = costDto
+        //    };
+        //}
+
         public async Task<object> GetTaskStatusDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
@@ -410,6 +680,53 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
+        //public async Task<object> GetTimeDashboardAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id)
+        //        ?? throw new Exception("Project has no tasks");
+
+        //    var today = DateTime.UtcNow;
+
+        //    decimal totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
+        //    decimal plannedCostTillToday = tasks
+        //        .Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today)
+        //        .Sum(t => t.PlannedCost ?? 0);
+
+        //    // Nếu không có PlannedCost, fallback sang số lượng task
+        //    double plannedCompletion;
+        //    if (totalPlannedCost > 0)
+        //    {
+        //        plannedCompletion = (double)(plannedCostTillToday / totalPlannedCost) * 100;
+        //    }
+        //    else
+        //    {
+        //        int totalTasks = tasks.Count;
+        //        int expectedCompletedTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
+        //        plannedCompletion = totalTasks == 0 ? 0 : (double)expectedCompletedTasks / totalTasks * 100;
+        //    }
+
+        //    double actualCompletion = (double)tasks.Average(t => t.PercentComplete ?? 0);
+
+        //    string status;
+        //    double diff = actualCompletion - plannedCompletion;
+
+        //    if (diff > 5)
+        //        status = "Ahead";
+        //    else if (diff < -5)
+        //        status = "Behind";
+        //    else
+        //        status = "On Time";
+
+        //    return new
+        //    {
+        //        plannedCompletion = Math.Round(plannedCompletion, 2),
+        //        actualCompletion = Math.Round(actualCompletion, 2),
+        //        status
+        //    };
+        //}
+
         public async Task<object> GetTimeDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
@@ -417,14 +734,54 @@ namespace IntelliPM.Services.ProjectMetricServices
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id)
                 ?? throw new Exception("Project has no tasks");
 
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+
+            // Lấy tất cả subtasks
+            var subtasks = new List<Subtask>();
+            foreach (var task in tasks)
+            {
+                var subtaskList = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+                subtasks.AddRange(subtaskList);
+            }
+
+            // Tạo dictionary taskId → subtasks
+            var subtasksByTaskId = subtasks
+                .GroupBy(s => s.TaskId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             var today = DateTime.UtcNow;
 
-            decimal totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
-            decimal plannedCostTillToday = tasks
-                .Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today)
-                .Sum(t => t.PlannedCost ?? 0);
+            var taskInfos = tasks.Select(task =>
+            {
+                var subtasks = subtasksByTaskId.ContainsKey(task.Id) ? subtasksByTaskId[task.Id] : new List<Subtask>();
 
-            // Nếu không có PlannedCost, fallback sang số lượng task
+                // Tính PlannedCost từ subtasks
+                decimal plannedCost = subtasks.Sum(s =>
+                {
+                    var hourlyRate = projectMembers
+                        .FirstOrDefault(m => m.AccountId == s.AssignedBy && m.ProjectId == project.Id)?.HourlyRate ?? 0;
+                    return (decimal)(s.PlannedHours ?? 0) * hourlyRate;
+                });
+
+                // Tính % hoàn thành trung bình subtasks
+                double avgPercentComplete = (double)(subtasks.Count > 0
+                    ? subtasks.Average(s => s.PercentComplete ?? 0)
+                    : (task.PercentComplete ?? 0)); // fallback nếu không có subtask
+
+                return new
+                {
+                    Task = task,
+                    PlannedCost = plannedCost,
+                    AvgPercentComplete = avgPercentComplete
+                };
+            }).ToList();
+
+            decimal totalPlannedCost = taskInfos.Sum(t => t.PlannedCost);
+            decimal plannedCostTillToday = taskInfos
+                .Where(t => t.Task.PlannedEndDate.HasValue && t.Task.PlannedEndDate.Value <= today)
+                .Sum(t => t.PlannedCost);
+
+            // Tính planned completion
             double plannedCompletion;
             if (totalPlannedCost > 0)
             {
@@ -432,22 +789,19 @@ namespace IntelliPM.Services.ProjectMetricServices
             }
             else
             {
-                int totalTasks = tasks.Count;
-                int expectedCompletedTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
+                int totalTasks = taskInfos.Count;
+                int expectedCompletedTasks = taskInfos
+                    .Count(t => t.Task.PlannedEndDate.HasValue && t.Task.PlannedEndDate.Value <= today);
+
                 plannedCompletion = totalTasks == 0 ? 0 : (double)expectedCompletedTasks / totalTasks * 100;
             }
 
-            double actualCompletion = (double)tasks.Average(t => t.PercentComplete ?? 0);
+            // Tính actual completion: trung bình % hoàn thành các task (từ subtask)
+            double actualCompletion = taskInfos.Count == 0 ? 0 : taskInfos.Average(t => t.AvgPercentComplete);
 
-            string status;
+            // Phân loại status
             double diff = actualCompletion - plannedCompletion;
-
-            if (diff > 5)
-                status = "Ahead";
-            else if (diff < -5)
-                status = "Behind";
-            else
-                status = "On Time";
+            string status = diff > 5 ? "Ahead" : (diff < -5 ? "Behind" : "On Time");
 
             return new
             {
@@ -457,10 +811,55 @@ namespace IntelliPM.Services.ProjectMetricServices
             };
         }
 
+        //public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+        //    var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
+
+        //    var today = DateTime.Today;
+
+        //    var result = projectMembers.Select(member =>
+        //    {
+        //        var assignedTaskIds = taskAssignments
+        //            .Where(a => a.AccountId == member.AccountId)
+        //            .Select(a => a.TaskId)
+        //            .Distinct()
+        //            .ToList();
+
+        //        var memberTasks = tasks.Where(t => assignedTaskIds.Contains(t.Id)).ToList();
+
+        //        var completed = memberTasks.Count(t => t.PercentComplete == 100);
+        //        var overdue = memberTasks.Count(t =>
+        //            t.PercentComplete < 100 &&
+        //            t.PlannedEndDate.HasValue &&
+        //            t.PlannedEndDate.Value.Date < today
+        //        );
+
+        //        var remaining = memberTasks.Count(t =>
+        //            t.PercentComplete < 100 &&
+        //            (!t.PlannedEndDate.HasValue || t.PlannedEndDate.Value.Date >= today)
+        //        );
+
+        //        return new WorkloadDashboardResponseDTO
+        //        {
+        //            MemberName = member.Account?.FullName ?? "Unknown",
+        //            Completed = completed,
+        //            Remaining = remaining,
+        //            Overdue = overdue
+        //        };
+        //    }).ToList();
+
+        //    return result;
+        //}
+
         public async Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
+
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
@@ -475,9 +874,12 @@ namespace IntelliPM.Services.ProjectMetricServices
                     .Distinct()
                     .ToList();
 
-                var memberTasks = tasks.Where(t => assignedTaskIds.Contains(t.Id)).ToList();
+                var memberTasks = tasks
+                    .Where(t => assignedTaskIds.Contains(t.Id))
+                    .ToList();
 
                 var completed = memberTasks.Count(t => t.PercentComplete == 100);
+
                 var overdue = memberTasks.Count(t =>
                     t.PercentComplete < 100 &&
                     t.PlannedEndDate.HasValue &&
@@ -493,13 +895,14 @@ namespace IntelliPM.Services.ProjectMetricServices
                 {
                     MemberName = member.Account?.FullName ?? "Unknown",
                     Completed = completed,
-                    Remaining = remaining,
-                    Overdue = overdue
+                    Overdue = overdue,
+                    Remaining = remaining
                 };
             }).ToList();
 
             return result;
         }
+
 
         public async Task<ProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey)
         {
