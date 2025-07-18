@@ -330,7 +330,8 @@ RecurringJob.AddOrUpdate<IWorkLogService>(
     x => x.GenerateDailyWorkLogsAsync(),
     // "0 1 * * *"  
     // "*/1 * * * *"
-    "0 0 * * *"
+    "0 0 * * *",
+    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
 );
 
 app.UseDefaultFiles();   
