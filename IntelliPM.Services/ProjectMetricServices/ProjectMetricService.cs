@@ -67,143 +67,144 @@ namespace IntelliPM.Services.ProjectMetricServices
             _chatGPTService = chatGPTService;
         }
 
-        public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy)
-        {
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var today = DateTime.UtcNow;
-
-            // Planned Value (PV): Tổng PlannedCost của các task kết thúc đến thời điểm hiện tại
-            var plannedTasks = tasks.Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
-            decimal plannedValue = plannedTasks.Sum(t => t.PlannedCost ?? 0);
-
-            // Earned Value (EV): Tổng (PlannedCost * % hoàn thành)
-            decimal earnedValue = tasks.Sum(t => (t.PlannedCost ?? 0) * (decimal)((t.PercentComplete ?? 0) / 100));
-
-            // Actual Cost (AC): Tổng ActualCost
-            decimal actualCost = tasks.Sum(t => t.ActualCost ?? 0);
-
-            // SPI = EV / PV
-            double? spi = plannedValue == 0 ? null : (double?)Math.Round((double)earnedValue / (double)plannedValue, 2);
-
-            // CPI = EV / AC
-            double? cpi = actualCost == 0 ? null : (double?)Math.Round((double)earnedValue / (double)actualCost, 2);
-
-            // Delay Days = số ngày trễ giữa ngày kết thúc dự kiến và ngày thực tế kết thúc trễ nhất
-            var latestPlannedEnd = tasks.Max(t => t.PlannedEndDate);
-            var latestActualEnd = tasks.Max(t => t.ActualEndDate);
-            int? delayDays = (latestActualEnd.HasValue && latestPlannedEnd.HasValue)
-                ? (int?)(latestActualEnd.Value - latestPlannedEnd.Value).TotalDays
-                : null;
-
-            // BudgetOverrun = AC - PV
-            decimal? budgetOverrun = actualCost - plannedValue;
-
-            // ProjectedFinishDate = lấy ngày kết thúc thực tế trễ nhất hoặc ngày dự kiến trễ nhất nếu chưa hoàn thành
-            DateTime? projectedFinish = tasks.Any(t => t.ActualEndDate.HasValue)
-                ? tasks.Max(t => t.ActualEndDate)
-                : tasks.Max(t => t.PlannedEndDate);
-
-            // Tổng chi phí ước lượng của toàn bộ dự án
-            decimal totalCost = tasks.Sum(t => t.PlannedCost ?? 0);
-
-            var metric = new ProjectMetric
-            {
-                ProjectId = projectId,
-                CalculatedBy = calculatedBy,
-                IsApproved = false,
-                PlannedValue = plannedValue,
-                EarnedValue = earnedValue,
-                ActualCost = actualCost,
-                Spi = (decimal?)spi,
-                Cpi = (decimal?)cpi,
-                DelayDays = delayDays,
-                BudgetOverrun = budgetOverrun,
-                ProjectedFinishDate = projectedFinish,
-                ProjectedTotalCost = totalCost,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            await _repo.Add(metric);
-
-            return _mapper.Map<ProjectMetricResponseDTO>(metric);
-        }
-
-        //public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId)
+        //public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy)
         //{
         //    var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+        //    var today = DateTime.UtcNow;
 
-        //    if (tasks == null || !tasks.Any())
-        //        throw new InvalidOperationException("No tasks found for the project.");
+        //    // Planned Value (PV): Tổng PlannedCost của các task kết thúc đến thời điểm hiện tại
+        //    var plannedTasks = tasks.Where(t => t.PlannedEndDate.HasValue && t.PlannedEndDate.Value <= today);
+        //    decimal plannedValue = plannedTasks.Sum(t => t.PlannedCost ?? 0);
 
-        //    decimal PV = 0; // Planned Value
-        //    decimal EV = 0; // Earned Value
-        //    decimal AC = 0; // Actual Cost
-        //    decimal BAC = 0; // Budget At Completion
+        //    // Earned Value (EV): Tổng (PlannedCost * % hoàn thành)
+        //    decimal earnedValue = tasks.Sum(t => (t.PlannedCost ?? 0) * (decimal)((t.PercentComplete ?? 0) / 100));
 
-        //    foreach (var task in tasks)
-        //    {
-        //        // Tổng planned cost là BAC
-        //        BAC += task.PlannedCost ?? 0;
+        //    // Actual Cost (AC): Tổng ActualCost
+        //    decimal actualCost = tasks.Sum(t => t.ActualCost ?? 0);
 
-        //        // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
-        //        if (task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
-        //        {
-        //            var now = DateTime.UtcNow;
-        //            if (now >= task.PlannedStartDate && now <= task.PlannedEndDate)
-        //            {
-        //                var totalPlannedDuration = (task.PlannedEndDate - task.PlannedStartDate)?.TotalDays ?? 1;
-        //                var elapsed = (now - task.PlannedStartDate)?.TotalDays ?? 0;
-        //                var progress = (decimal)(elapsed / totalPlannedDuration);
-        //                PV += (task.PlannedCost ?? 0) * progress;
-        //            }
-        //            else if (now > task.PlannedEndDate)
-        //            {
-        //                PV += task.PlannedCost ?? 0;
-        //            }
-        //        }
+        //    // SPI = EV / PV
+        //    double? spi = plannedValue == 0 ? null : (double?)Math.Round((double)earnedValue / (double)plannedValue, 2);
 
-        //        // EV: dựa vào phần trăm hoàn thành * planned cost
-        //        if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
-        //        {
-        //            EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
-        //        }
+        //    // CPI = EV / AC
+        //    double? cpi = actualCost == 0 ? null : (double?)Math.Round((double)earnedValue / (double)actualCost, 2);
 
-        //        // AC: Actual Cost
-        //        AC += task.ActualCost ?? 0;
-        //    }
+        //    // Delay Days = số ngày trễ giữa ngày kết thúc dự kiến và ngày thực tế kết thúc trễ nhất
+        //    var latestPlannedEnd = tasks.Max(t => t.PlannedEndDate);
+        //    var latestActualEnd = tasks.Max(t => t.ActualEndDate);
+        //    int? delayDays = (latestActualEnd.HasValue && latestPlannedEnd.HasValue)
+        //        ? (int?)(latestActualEnd.Value - latestPlannedEnd.Value).TotalDays
+        //        : null;
 
-        //    // Công thức hiệu suất chi phí và tiến độ
-        //    decimal CV = EV - AC;
-        //    decimal SV = EV - PV;
-        //    decimal CPI = AC == 0 ? 0 : EV / AC;
-        //    decimal SPI = PV == 0 ? 0 : EV / PV;
-        //    decimal EAC = CPI == 0 ? 0 : BAC / CPI;
-        //    decimal ETC = EAC - AC;
-        //    decimal VAC = BAC - EAC;
+        //    // BudgetOverrun = AC - PV
+        //    decimal? budgetOverrun = actualCost - plannedValue;
 
-        //    var metrics = new ProjectMetric
+        //    // ProjectedFinishDate = lấy ngày kết thúc thực tế trễ nhất hoặc ngày dự kiến trễ nhất nếu chưa hoàn thành
+        //    DateTime? projectedFinish = tasks.Any(t => t.ActualEndDate.HasValue)
+        //        ? tasks.Max(t => t.ActualEndDate)
+        //        : tasks.Max(t => t.PlannedEndDate);
+
+        //    // Tổng chi phí ước lượng của toàn bộ dự án
+        //    decimal totalCost = tasks.Sum(t => t.PlannedCost ?? 0);
+
+        //    var metric = new ProjectMetric
         //    {
         //        ProjectId = projectId,
-        //        PlannedValue = PV,
-        //        EarnedValue = EV,
-        //        ActualCost = AC,
-        //        BudgetAtCompletion = BAC,
-        //        CostVariance = CV,
-        //        ScheduleVariance = SV,
-        //        CostPerformanceIndex = CPI,
-        //        SchedulePerformanceIndex = SPI,
-        //        EstimateAtCompletion = EAC,
-        //        EstimateToComplete = ETC,
-        //        VarianceAtCompletion = VAC,
-        //        CalculatedBy = "System",
-        //        CalculatedAt = DateTime.UtcNow
+        //        CalculatedBy = calculatedBy,
+        //        IsApproved = false,
+        //        PlannedValue = plannedValue,
+        //        EarnedValue = earnedValue,
+        //        ActualCost = actualCost,
+        //        Spi = (decimal?)spi,
+        //        Cpi = (decimal?)cpi,
+        //        DelayDays = delayDays,
+        //        BudgetOverrun = budgetOverrun,
+        //        ProjectedFinishDate = projectedFinish,
+        //        ProjectedTotalCost = totalCost,
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow
         //    };
 
-        //    await _projectMetricRepo.SaveAsync(metrics);
+        //    await _repo.Add(metric);
 
-        //    return _mapper.Map<ProjectMetricResponseDTO>(metrics);
+        //    return _mapper.Map<ProjectMetricResponseDTO>(metric);
         //}
+
+        public async Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId)
+        {
+            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
+
+            if (tasks == null || !tasks.Any())
+                throw new InvalidOperationException("No tasks found for the project.");
+
+            decimal PV = 0; // Planned Value
+            decimal EV = 0; // Earned Value
+            decimal AC = 0; // Actual Cost
+            decimal BAC = 0; // Budget At Completion
+
+            foreach (var task in tasks)
+            {
+                // Tổng planned cost là BAC
+                BAC += task.PlannedCost ?? 0;
+
+                // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
+                if (task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
+                {
+                    var now = DateTime.UtcNow;
+                    if (now >= task.PlannedStartDate && now <= task.PlannedEndDate)
+                    {
+                        var totalPlannedDuration = (task.PlannedEndDate - task.PlannedStartDate)?.TotalDays ?? 1;
+                        var elapsed = (now - task.PlannedStartDate)?.TotalDays ?? 0;
+                        var progress = (decimal)(elapsed / totalPlannedDuration);
+                        PV += (task.PlannedCost ?? 0) * progress;
+                    }
+                    else if (now > task.PlannedEndDate)
+                    {
+                        PV += task.PlannedCost ?? 0;
+                    }
+                }
+
+                // EV: dựa vào phần trăm hoàn thành * planned cost
+                if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
+                {
+                    EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
+                }
+
+                // AC: Actual Cost
+                AC += task.ActualCost ?? 0;
+            }
+
+            // Công thức hiệu suất chi phí và tiến độ
+            decimal CV = EV - AC;
+            decimal SV = EV - PV;
+            decimal CPI = AC == 0 ? 0 : EV / AC;
+            decimal SPI = PV == 0 ? 0 : EV / PV;
+            decimal EAC = CPI == 0 ? 0 : BAC / CPI;
+            decimal ETC = EAC - AC;
+            decimal VAC = BAC - EAC;
+
+            var metrics = new ProjectMetric
+            {
+                ProjectId = projectId,
+                PlannedValue = PV,
+                EarnedValue = EV,
+                ActualCost = AC,
+                BudgetAtCompletion = BAC,
+                CostVariance = CV,
+                ScheduleVariance = SV,
+                CostPerformanceIndex = CPI,
+                SchedulePerformanceIndex = SPI,
+                EstimateAtCompletion = EAC,
+                EstimateToComplete = ETC,
+                VarianceAtCompletion = VAC,
+                CalculatedBy = "System",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+
+            await _repo.Add(metrics);
+
+            return _mapper.Map<ProjectMetricResponseDTO>(metrics);
+        }
 
         public async Task<NewProjectMetricResponseDTO> CalculateProjectMetricsViewAsync(string projectKey)
         {
