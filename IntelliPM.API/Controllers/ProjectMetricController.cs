@@ -114,11 +114,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost("calculate")]
-        public async Task<IActionResult> CalculateAndSave([FromQuery] int projectId, [FromQuery] string calculatedBy)
+        public async Task<IActionResult> CalculateAndSave([FromQuery] int projectId)
         {
             try
             {
-                var result = await _service.CalculateAndSaveMetricsAsync(projectId, calculatedBy);
+                var result = await _service.CalculateAndSaveMetricsAsync(projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
