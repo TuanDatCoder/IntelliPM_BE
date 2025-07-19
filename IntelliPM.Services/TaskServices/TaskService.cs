@@ -15,6 +15,7 @@ using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
@@ -48,9 +49,10 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        private readonly ISprintRepository _sprintRepo;
         private readonly IWorkLogService _workLogService;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -65,6 +67,7 @@ namespace IntelliPM.Services.TaskServices
             _projectMemberRepo = projectMemberRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _workLogService = workLogService;
+            _sprintRepo = sprintRepo;
         }
       
 
@@ -585,32 +588,37 @@ namespace IntelliPM.Services.TaskServices
         }
 
 
-        public async Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync()
+        public async Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey)
         {
-            var entities = await _taskRepo.GetAllTasks();
-            var backlogTasks = entities.Where(t => t.SprintId == null).ToList();
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
 
-            if (!backlogTasks.Any())
-                throw new KeyNotFoundException("No backlog tasks found.");
+
+            var entities = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+            var backlogTasks = entities.Where(t => t.SprintId == null).ToList();
 
             var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(backlogTasks);
             await EnrichTaskBacklogResponses(dtos);
             return dtos;
         }
 
+
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId)
         {
-            if (sprintId <= 0)
-                throw new ArgumentException("Sprint ID must be greater than 0.");
+
+            var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+            if (sprint == null)
+                throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
 
             var entities = await _taskRepo.GetBySprintIdAsync(sprintId);
-            if (!entities.Any())
-                throw new KeyNotFoundException($"No tasks found for Sprint ID {sprintId}.");
 
             var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(entities);
             await EnrichTaskBacklogResponses(dtos);
             return dtos;
         }
+
         private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
         {
             foreach (var dto in dtos)

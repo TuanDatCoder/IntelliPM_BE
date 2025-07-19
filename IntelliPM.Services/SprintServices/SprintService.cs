@@ -2,7 +2,9 @@
 using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
@@ -20,14 +22,17 @@ namespace IntelliPM.Services.SprintServices
         private readonly IMapper _mapper;
         private readonly ISprintRepository _repo;
         private readonly ITaskService _taskService;
+        private readonly IProjectRepository _projectRepo;
         private readonly ILogger<SprintService> _logger;
 
-        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger, ITaskService taskService)
+        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger, ITaskService taskService, IProjectRepository projectRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _taskService = taskService;
+            _projectRepo = projectRepo;
+         
         }
 
         public async Task<List<SprintResponseDTO>> GetAllSprints()
@@ -132,7 +137,7 @@ namespace IntelliPM.Services.SprintServices
                 throw new KeyNotFoundException($"Sprint with ID {id} not found.");
 
             entity.Status = status;
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày khi thay đổi trạng thái
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -159,23 +164,30 @@ namespace IntelliPM.Services.SprintServices
             return _mapper.Map<List<SprintResponseDTO>>(entities);
         }
 
-        //public async Task<List<SprintWithTaskListResponseDTO>> GetSprintByProjectIdAndWithTask(int projectId)
-        //{
-        //    if (projectId <= 0)
-        //        throw new ArgumentException("Project ID must be greater than 0.");
+        public async Task<List<SprintWithTaskListResponseDTO>> GetSprintsByProjectKeyWithTasksAsync(string projectKey)
+        {
+            if (string.IsNullOrWhiteSpace(projectKey))
+                throw new ArgumentException("Project key is required.");
 
-        //    var entities = await _repo.GetByProjectIdAsync(projectId);
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+            var entities = await _repo.GetByProjectIdAsync(project.Id);
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No sprints found for Project '{projectKey}'.");
 
-        //    if (entities == null || !entities.Any())
-        //        throw new KeyNotFoundException($"No sprints found for Project ID {projectId}.");
+            var dtos = new List<SprintWithTaskListResponseDTO>();
+            foreach (var entity in entities)
+            {
+                var sprintDto = _mapper.Map<SprintWithTaskListResponseDTO>(entity);
+                var tasks = await _taskService.GetTasksBySprintIdAsync(entity.Id); 
+                sprintDto.Tasks = tasks; 
+                dtos.Add(sprintDto);
+            }
 
-        //    foreach (var entity in entities)
-        //    {
-        //        var tasks = await _taskService.GetTasksBySprintIdAsync(entity.Id);
-        //        entity.Tasks = tasks.Select(t => _mapper.Map<TaskResponseDTO>(t)).ToList();
-        //    }
+            return dtos;
+        }
 
-        //    return _mapper.Map<List<SprintResponseDTO>>(entities);
-        //}
+
     }
 }
