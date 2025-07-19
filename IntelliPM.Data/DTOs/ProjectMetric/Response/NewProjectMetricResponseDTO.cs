@@ -22,6 +22,8 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public decimal EstimateToComplete { get; set; }
         public decimal VarianceAtCompletion { get; set; }
         public decimal EstimateDurationAtCompletion { get; set; }
+        public string CalculatedBy { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }
