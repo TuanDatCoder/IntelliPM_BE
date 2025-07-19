@@ -11,14 +11,13 @@ namespace IntelliPM.Services.ProjectMetricServices
 {
     public interface IProjectMetricService
     {
-        Task<List<ProjectMetricResponseDTO>> GetAllAsync();
-        Task<ProjectMetricResponseDTO> GetByIdAsync(int id);
-        Task<ProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId);
-        Task<ProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey);
-        Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey);
-        //Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy);
-        Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId);
+        Task<List<NewProjectMetricResponseDTO>> GetAllAsync();
+        Task<NewProjectMetricResponseDTO> GetByIdAsync(int id);
+        Task<NewProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId);
+        Task<NewProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey);
+        Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey);
         Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId);
+        Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey);
         Task<object> GetTaskStatusDashboardAsync(string projectKey);
         Task<List<object>> GetProgressDashboardAsync(string projectKey);
         Task<object> GetTimeDashboardAsync(string projectKey);

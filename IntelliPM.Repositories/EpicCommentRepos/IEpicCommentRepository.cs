@@ -14,5 +14,6 @@ namespace IntelliPM.Repositories.EpicCommentRepos
         Task<List<EpicComment>> GetAllEpicComment();
         Task<EpicComment?> GetByIdAsync(int id);
         Task Update(EpicComment epicComment);
+        Task<List<EpicComment>> GetEpicCommentByEpicIdAsync(string epicId);
     }
 }

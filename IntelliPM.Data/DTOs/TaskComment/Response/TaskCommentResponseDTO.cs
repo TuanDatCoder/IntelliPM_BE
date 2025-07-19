@@ -16,6 +16,7 @@ namespace IntelliPM.Data.DTOs.TaskComment.Response
         public int AccountId { get; set; }
 
         public string AccountName { get; set; }
+        public string AccountPicture { get; set; }
 
         public string Content { get; set; } = null!;
 
