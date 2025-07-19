@@ -573,11 +573,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("backlog")]
-        public async Task<IActionResult> GetBacklog()
+        public async Task<IActionResult> GetBacklog([FromQuery] string projectKey)
         {
             try
             {
-                var tasks = await _service.GetBacklogTasksAsync();
+                var tasks = await _service.GetBacklogTasksAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
