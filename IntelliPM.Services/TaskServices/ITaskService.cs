@@ -17,7 +17,6 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskResponseDTO> CreateTask(TaskRequestDTO request);
         Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request);
         Task<TaskUpdateResponseDTO> UpdateTaskTrue(string id, TaskUpdateRequestDTO request);
-
         Task DeleteTask(string id);
         Task<TaskResponseDTO> ChangeTaskStatus(string id, string status);
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
@@ -29,7 +28,8 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id);
         Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId);
         Task<List<TaskResponseDTO>> GetTasksByEpicIdAsync(string epicId);
-        Task<TaskResponseDTO> CalculatePlannedHoursAsync(string id);
-        Task DistributePlannedHoursAsync(string taskId);
+        //Task<TaskResponseDTO> CalculatePlannedHoursAsync(string id);
+        //Task DistributePlannedHoursAsync(string taskId);
+        Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours);
     }
 }

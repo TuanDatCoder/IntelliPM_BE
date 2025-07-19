@@ -119,7 +119,7 @@ namespace IntelliPM.Services.MeetingServices
                     {
                         MeetingId = meeting.Id,
                         AccountId = participantId,
-                        Role = "Attendee",
+                        Role = account.Role ?? "Attendee",
                         Status = "Active",
                         CreatedAt = DateTime.UtcNow
                     };
@@ -229,7 +229,7 @@ namespace IntelliPM.Services.MeetingServices
                     {
                         MeetingId = meeting.Id,
                         AccountId = participantId,
-                        Role = "Attendee",
+                        Role = account.Role ?? "Attendee",
                         Status = "Active",
                         CreatedAt = DateTime.UtcNow
                     };
@@ -313,6 +313,22 @@ namespace IntelliPM.Services.MeetingServices
             {
                 Console.WriteLine("Error in UpdateMeeting: " + ex.Message);
                 throw new Exception("An error occurred while updating the meeting.");
+            }
+        }
+        public async Task CompleteMeeting(int meetingId)
+        {
+            try
+            {
+                var meeting = await _repo.GetByIdAsync(meetingId) ?? throw new KeyNotFoundException("Meeting not found");
+                meeting.Status = "COMPLETED";
+
+                await _repo.UpdateAsync(meeting);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in CompleteMeeting: " + ex.Message);
+                throw new Exception("An error occurred while completing the meeting.");
             }
         }
 
