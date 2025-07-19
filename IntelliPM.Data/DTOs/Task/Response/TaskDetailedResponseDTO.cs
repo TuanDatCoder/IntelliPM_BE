@@ -7,12 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.Task
+namespace IntelliPM.Data.DTOs.Task.Response
 {
     public class TaskDetailedResponseDTO
     {
         public string Id { get; set; } = null!;
         public int ProjectId { get; set; }
+        public string ProjectName { get; set; } = null!;
         public string Type { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }

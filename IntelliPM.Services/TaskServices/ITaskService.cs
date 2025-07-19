@@ -1,5 +1,4 @@
-﻿using IntelliPM.Data.DTOs.Task;
-using IntelliPM.Data.DTOs.Task.Request;
+﻿using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using System;
 using System.Collections.Generic;
@@ -32,6 +31,8 @@ namespace IntelliPM.Services.TaskServices
         //Task DistributePlannedHoursAsync(string taskId);
         Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours);
         Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
+        Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey);
+        Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId);
 
     }
 }
