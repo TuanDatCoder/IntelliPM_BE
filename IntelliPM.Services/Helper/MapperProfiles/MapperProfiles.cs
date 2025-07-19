@@ -66,6 +66,7 @@ using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Data.DTOs.WorkItemLabel.Response;
+using IntelliPM.Data.DTOs.WorkLog.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 
@@ -307,6 +308,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
+            CreateMap<Subtask, SubtaskFullResponseDTO>();
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
@@ -414,6 +416,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ReverseMap();
             CreateMap<WorkItemLabel, WorkItemLabelResponseDTO>()
                 .ForMember(dest => dest.LabelName, opt => opt.MapFrom(src => src.Label != null ? src.Label.Name : null));
+
+            // WorkLog
+            CreateMap<WorkLog, WorkLogResponseDTO>();
         }
     }
 }

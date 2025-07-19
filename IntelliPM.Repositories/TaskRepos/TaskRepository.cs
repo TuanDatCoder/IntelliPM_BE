@@ -95,7 +95,11 @@ namespace IntelliPM.Repositories.TaskRepos
             return project.ProjectKey;
         }
 
-       
-
+        public async Task<List<Tasks>> GetInProgressAsync()
+        {
+            return await _context.Tasks
+                .Where(t => t.Status == "IN_PROGRESS")
+                .ToListAsync();
+        }
     }
 }
