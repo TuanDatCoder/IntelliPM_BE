@@ -125,5 +125,12 @@ namespace IntelliPM.Repositories.AccountRepos
         {
             return await _context.Account.CountAsync(); 
         }
+
+        public async Task<List<Account>> GetByIdsAsync(List<int> ids)
+        {
+            return await _context.Account
+                        .Where(a => ids.Contains(a.Id))
+                        .ToListAsync();
+        }
     }
 }

@@ -5,6 +5,7 @@ using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntelliPM.API.Controllers
 {
@@ -572,6 +573,24 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpGet("with-subtasks")]
+        public async Task<IActionResult> GetTaskWithSubtasks([FromQuery] string id)
+        {
+            try
+            {
+                var task = await _service.GetTaskWithSubtasksAsync(id);
+                if (task == null)
+                    return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = "Task not found" });
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task view successfully",
+                    Data = task
+                });
+            }
+
         [HttpGet("backlog")]
         public async Task<IActionResult> GetBacklog([FromQuery] string projectKey)
         {
@@ -590,16 +609,21 @@ namespace IntelliPM.API.Controllers
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
+
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponseDTO
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"An error occurred: {ex.Message}"
+
+                    Message = $"Error fetching task with subtasks: {ex.Message}"
                 });
             }
         }
+
+
+    
 
         [HttpGet("by-sprint-id/{sprintId}")]
         public async Task<IActionResult> GetBySprintId(int sprintId)

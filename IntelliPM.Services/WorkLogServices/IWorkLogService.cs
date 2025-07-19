@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.WorkLog.Response;
+﻿using IntelliPM.Data.DTOs.WorkLog.Request;
+using IntelliPM.Data.DTOs.WorkLog.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,8 @@ namespace IntelliPM.Services.WorkLogServices
         Task GenerateDailyWorkLogsAsync();
         Task<List<WorkLogResponseDTO>> GetWorkLogsByTaskOrSubtaskAsync(string? taskId, string? subtaskId);
         Task<WorkLogResponseDTO> ChangeWorkLogHoursAsync(int id, decimal hours);
+        Task<List<WorkLogResponseDTO>> ChangeMultipleWorkLogHoursAsync(Dictionary<int, decimal> updates);
+        //Task<bool> UpdateWorkLogByAccountsAsync(UpdateWorkLogByAccountsDTO dto);
+        Task<bool> UpdateWorkLogsByAccountsAsync(UpdateWorkLogsByAccountsDTO dto);
     }
 }
