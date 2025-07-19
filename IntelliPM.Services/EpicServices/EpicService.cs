@@ -3,6 +3,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.EpicComment.Response;
 using IntelliPM.Data.DTOs.Label.Response;
+using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -332,6 +334,54 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
+
+
+        public async Task<EpicTasksStatsResponseDTO> GetTasksByEpicIdWithStatsAsync(string epicId)
+        {
+            if (string.IsNullOrEmpty(epicId))
+                throw new ArgumentException("Epic ID cannot be null or empty.");
+
+            var epic = await _epicRepo.GetByIdAsync(epicId);
+            if (epic == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
+
+            var taskEntities = await _taskRepo.GetByEpicIdAsync(epicId);
+            if (taskEntities == null || !taskEntities.Any())
+                throw new KeyNotFoundException($"No tasks found for Epic ID {epicId}.");
+
+            var taskDtos = _mapper.Map<List<TaskBacklogResponseDTO>>(taskEntities);
+
+            var taskIds = taskDtos.Select(t => t.Id).ToList();
+            var allAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(epic.ProjectId);
+
+            var assignmentsByTaskId = allAssignments
+                .GroupBy(a => a.TaskId)
+                .ToDictionary(g => g.Key, g => g.Select(a => _mapper.Map<TaskAssignmentResponseDTO>(a)).ToList());
+
+            foreach (var task in taskDtos)
+            {
+                if (assignmentsByTaskId.TryGetValue(task.Id, out var taskAssignments))
+                {
+                    task.TaskAssignments = taskAssignments;
+                }
+                else
+                {
+                    task.TaskAssignments = new List<TaskAssignmentResponseDTO>();
+                }
+            }
+
+ 
+            var stats = new EpicTasksStatsResponseDTO
+            {
+                Tasks = taskDtos,
+                TotalTasks = taskDtos.Count,
+                TotalToDoTasks = taskDtos.Count(t => t.Status == "TO_DO"),
+                TotalInProgressTasks = taskDtos.Count(t => t.Status == "IN_PROGRESS"),
+                TotalDoneTasks = taskDtos.Count(t => t.Status == "DONE")
+            };
+
+            return stats;
+        }
 
 
 
