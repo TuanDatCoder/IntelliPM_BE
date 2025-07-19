@@ -590,6 +590,17 @@ namespace IntelliPM.API.Controllers
                     Data = task
                 });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error fetching task with subtasks: {ex.Message}"
+                });
+            }
+        }
+         
 
         [HttpGet("backlog")]
         public async Task<IActionResult> GetBacklog([FromQuery] string projectKey)
