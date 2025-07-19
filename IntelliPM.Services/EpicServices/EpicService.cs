@@ -383,18 +383,15 @@ namespace IntelliPM.Services.EpicServices
         }
         public async Task<List<EpicWithStatsResponseDTO>> GetEpicsWithTasksByProjectKeyAsync(string projectKey)
         {
-            _logger.LogInformation("Starting GetEpicsWithTasksByProjectKeyAsync with projectKey: {ProjectKey}", projectKey);
 
             if (string.IsNullOrEmpty(projectKey))
             {
-                _logger.LogError("Project key is null or empty.");
                 throw new ArgumentException("Project key cannot be null or empty.");
             }
 
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
             if (project == null)
             {
-                _logger.LogError("Project not found for projectKey: {ProjectKey}", projectKey);
                 throw new KeyNotFoundException($"Project with key {projectKey} not found.");
             }
 
@@ -450,7 +447,6 @@ namespace IntelliPM.Services.EpicServices
                 result.Add(epicDto);
             }
 
-            _logger.LogInformation("Completed processing for projectKey: {ProjectKey}", projectKey);
             return result;
         }
 

@@ -284,6 +284,7 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<List<TaskResponseDTO>>(entities);
         }
 
+
         public async Task<TaskResponseDTO> ChangeTaskType(string id, string type)
         {
             if (string.IsNullOrEmpty(type))
@@ -582,5 +583,42 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+
+        public async Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync()
+        {
+            var entities = await _taskRepo.GetAllTasks();
+            var backlogTasks = entities.Where(t => t.SprintId == null).ToList();
+
+            if (!backlogTasks.Any())
+                throw new KeyNotFoundException("No backlog tasks found.");
+
+            var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(backlogTasks);
+            await EnrichTaskBacklogResponses(dtos);
+            return dtos;
+        }
+
+        public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId)
+        {
+            if (sprintId <= 0)
+                throw new ArgumentException("Sprint ID must be greater than 0.");
+
+            var entities = await _taskRepo.GetBySprintIdAsync(sprintId);
+            if (!entities.Any())
+                throw new KeyNotFoundException($"No tasks found for Sprint ID {sprintId}.");
+
+            var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(entities);
+            await EnrichTaskBacklogResponses(dtos);
+            return dtos;
+        }
+        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
+            }
+        }
+
     }
 }

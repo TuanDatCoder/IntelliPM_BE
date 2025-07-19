@@ -84,6 +84,16 @@ namespace IntelliPM.Repositories.TaskRepos
                 .ToListAsync();
         }
 
+        public async Task<List<Tasks>> GetBySprintIdAsync(int sprintId)
+        {
+            return await _context.Tasks
+                .Include(v => v.Project)
+                .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
+                .Where(t => t.SprintId == sprintId)
+                .ToListAsync();
+        }
+
         public async Task<string> GetProjectKeyByTaskIdAsync(string taskId)
         {
             var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);

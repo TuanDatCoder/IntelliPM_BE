@@ -572,5 +572,69 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("backlog")]
+        public async Task<IActionResult> GetBacklog()
+        {
+            try
+            {
+                var tasks = await _service.GetBacklogTasksAsync();
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Backlog tasks retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("by-sprint-id/{sprintId}")]
+        public async Task<IActionResult> GetBySprintId(int sprintId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksBySprintIdAsync(sprintId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Sprint ID {sprintId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
+
+
     }
 }
