@@ -15,5 +15,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         Task Update(Subtask subtask);
         Task Delete(Subtask subtask);
         Task<List<Subtask>> GetSubtaskByTaskIdAsync(string taskId);
+        Task<List<Subtask>> GetInProgressAsync();
+
     }
 }

@@ -16,7 +16,8 @@ namespace IntelliPM.Services.ProjectMetricServices
         Task<ProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId);
         Task<ProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey);
         Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey);
-        Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy);
+        //Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId, string calculatedBy);
+        Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId);
         Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId);
         Task<object> GetTaskStatusDashboardAsync(string projectKey);
         Task<List<object>> GetProgressDashboardAsync(string projectKey);
@@ -24,5 +25,7 @@ namespace IntelliPM.Services.ProjectMetricServices
         Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey);
         Task<List<WorkloadDashboardResponseDTO>> GetWorkloadDashboardAsync(string projectKey);
         Task<ProjectMetricRequestDTO> CalculateProjectMetricsByAIAsync(string projectKey);
+        //Task<ProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(int projectId);
+        Task<NewProjectMetricResponseDTO> CalculateProjectMetricsViewAsync(string projectKey);
     }
 }
