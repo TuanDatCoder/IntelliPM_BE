@@ -15,11 +15,12 @@ using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
-using IntelliPM.Services.TaskCommentServices; 
+using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
@@ -48,9 +49,10 @@ namespace IntelliPM.Services.TaskServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        private readonly ISprintRepository _sprintRepo;
         private readonly IWorkLogService _workLogService;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -65,6 +67,7 @@ namespace IntelliPM.Services.TaskServices
             _projectMemberRepo = projectMemberRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _workLogService = workLogService;
+            _sprintRepo = sprintRepo;
         }
       
 
@@ -283,6 +286,7 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<List<TaskResponseDTO>>(entities);
         }
+
 
         public async Task<TaskResponseDTO> ChangeTaskType(string id, string type)
         {
@@ -583,9 +587,51 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+
         public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
         {
             return await _taskRepo.GetTaskWithSubtasksAsync(id);
+        }
+
+        public async Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+
+            var entities = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+            var backlogTasks = entities.Where(t => t.SprintId == null).ToList();
+
+            var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(backlogTasks);
+            await EnrichTaskBacklogResponses(dtos);
+            return dtos;
+        }
+
+
+        public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId)
+        {
+
+            var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+            if (sprint == null)
+                throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+
+            var entities = await _taskRepo.GetBySprintIdAsync(sprintId);
+
+            var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(entities);
+            await EnrichTaskBacklogResponses(dtos);
+            return dtos;
+        }
+
+        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
+            }
+
         }
 
     }
