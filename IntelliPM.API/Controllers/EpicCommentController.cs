@@ -140,5 +140,29 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+        [HttpGet("by-epic/{epicId}")]
+        public async Task<IActionResult> GetSubtaskCommentBySubtaskId(string epicId)
+        {
+            try
+            {
+                var epicComments = await _service.GetEpicCommentByEpicIdAsync(epicId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved epic comment successfully.",
+                    Data = epicComments
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving epic comment: {ex.Message}"
+                });
+            }
+        }
     }
 }

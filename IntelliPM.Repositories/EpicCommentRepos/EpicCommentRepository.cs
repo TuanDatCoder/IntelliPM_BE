@@ -52,5 +52,14 @@ namespace IntelliPM.Repositories.EpicCommentRepos
             _context.EpicComment.Update(epicComment);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<EpicComment>> GetEpicCommentByEpicIdAsync(string epicId)
+        {
+            return await _context.EpicComment
+                .Where(tf => tf.EpicId == epicId)
+                .Include(tf => tf.Account)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }
