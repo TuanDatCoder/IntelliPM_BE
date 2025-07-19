@@ -20,5 +20,7 @@ namespace IntelliPM.Services.EpicServices
         Task DeleteEpic(string id);
         Task<EpicResponseDTO> ChangeEpicStatus(string id, string status);
         Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request);
+        Task<EpicTasksStatsResponseDTO> GetTasksByEpicIdWithStatsAsync(string epicId);
+
     }
 }
