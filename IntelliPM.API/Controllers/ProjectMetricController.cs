@@ -113,12 +113,12 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("calculate")]
-        public async Task<IActionResult> CalculateAndSave([FromQuery] int projectId)
+        [HttpPost("calculate-by-system")]
+        public async Task<IActionResult> CalculateAndSave([FromQuery] string projectKey)
         {
             try
             {
-                var result = await _service.CalculateAndSaveMetricsAsync(projectId);
+                var result = await _service.CalculateAndSaveMetricsAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -281,7 +281,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("view-new-metric")]
+        [HttpGet("metric-calculate")]
         public async Task<IActionResult> GetProjectMetricView([FromQuery] string projectKey)
         {
             try
