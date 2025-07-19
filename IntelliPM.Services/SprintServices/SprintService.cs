@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -18,13 +19,15 @@ namespace IntelliPM.Services.SprintServices
     {
         private readonly IMapper _mapper;
         private readonly ISprintRepository _repo;
+        private readonly ITaskService _taskService;
         private readonly ILogger<SprintService> _logger;
 
-        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger)
+        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger, ITaskService taskService)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _taskService = taskService;
         }
 
         public async Task<List<SprintResponseDTO>> GetAllSprints()
@@ -155,5 +158,24 @@ namespace IntelliPM.Services.SprintServices
 
             return _mapper.Map<List<SprintResponseDTO>>(entities);
         }
+
+        //public async Task<List<SprintWithTaskListResponseDTO>> GetSprintByProjectIdAndWithTask(int projectId)
+        //{
+        //    if (projectId <= 0)
+        //        throw new ArgumentException("Project ID must be greater than 0.");
+
+        //    var entities = await _repo.GetByProjectIdAsync(projectId);
+
+        //    if (entities == null || !entities.Any())
+        //        throw new KeyNotFoundException($"No sprints found for Project ID {projectId}.");
+
+        //    foreach (var entity in entities)
+        //    {
+        //        var tasks = await _taskService.GetTasksBySprintIdAsync(entity.Id);
+        //        entity.Tasks = tasks.Select(t => _mapper.Map<TaskResponseDTO>(t)).ToList();
+        //    }
+
+        //    return _mapper.Map<List<SprintResponseDTO>>(entities);
+        //}
     }
 }
