@@ -588,6 +588,11 @@ namespace IntelliPM.Services.TaskServices
         }
 
 
+        public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
+        {
+            return await _taskRepo.GetTaskWithSubtasksAsync(id);
+        }
+
         public async Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
@@ -626,6 +631,7 @@ namespace IntelliPM.Services.TaskServices
                 var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
                 dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
             }
+
         }
 
     }

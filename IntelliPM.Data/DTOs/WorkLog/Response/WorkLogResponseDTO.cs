@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,8 @@ namespace IntelliPM.Data.DTOs.WorkLog.Response
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
+
+        public List<AccountBasicDTO>? Accounts { get; set; }
 
     }
 }

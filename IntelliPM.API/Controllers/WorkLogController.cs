@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.WorkLog.Request;
 using IntelliPM.Services.TaskServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.AspNetCore.Mvc;
@@ -115,6 +116,54 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPut("change-multiple-hours")]
+        public async Task<IActionResult> ChangeMultipleHours([FromBody] Dictionary<int, decimal> updates)
+        {
+            try
+            {
+                var result = await _service.ChangeMultipleWorkLogHoursAsync(updates);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "WorkLog hours updated successfully",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating workLog hours: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPut("update-by-accounts")]
+        public async Task<IActionResult> UpdateWorkLogByAccounts([FromBody] UpdateWorkLogsByAccountsDTO dto)
+        {
+            try
+            {
+                var success = await _service.UpdateWorkLogsByAccountsAsync(dto);
+                return success ? Ok(new { isSuccess = true }) : BadRequest(new { isSuccess = false });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { isSuccess = false, message = ex.Message });
+            }
+        }
+
 
     }
 }
