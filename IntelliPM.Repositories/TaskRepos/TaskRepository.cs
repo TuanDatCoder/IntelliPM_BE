@@ -1,4 +1,7 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Subtask.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -101,5 +104,37 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Where(t => t.Status == "IN_PROGRESS")
                 .ToListAsync();
         }
+
+        public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
+        {
+            var task = await _context.Tasks
+                .Include(t => t.TaskAssignment).ThenInclude(ta => ta.Account)
+                .Include(t => t.Subtask)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (task == null) return null;
+
+            return new TaskWithSubtaskDTO
+            {
+                Id = task.Id,
+                PlannedHours = task.PlannedHours,
+                ActualHours = task.ActualHours,
+                Accounts = task.TaskAssignment.Select(ta => new AccountBasicDTO
+                {
+                    Id = ta.Account.Id,
+                    Username = ta.Account.Username,
+                    FullName = ta.Account.FullName
+                }).ToList(),
+                Subtasks = task.Subtask.Select(st => new SubtaskBasicDTO
+                {
+                    Id = st.Id,
+                    TaskId = st.TaskId,
+                    AssignedBy = (int)st.AssignedBy,
+                    PlannedHours = st.PlannedHours,
+                    ActualHours = st.ActualHours
+                }).ToList()
+            };
+        }
+
     }
 }
