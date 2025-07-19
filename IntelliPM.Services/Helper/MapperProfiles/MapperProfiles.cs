@@ -352,10 +352,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
             CreateMap<TaskComment, TaskCommentResponseDTO>()
-                 .ForMember(dest => dest.AccountName,
-        opt => opt.MapFrom(src => src.Account != null
-            ? src.Account.FullName
-            : null));
+                 .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                 .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // SubtaskComment
             CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
@@ -363,7 +361,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
 
             CreateMap<SubtaskComment, SubtaskCommentResponseDTO>()
-                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null));
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             CreateMap<MeetingLogRequestDTO, MeetingLog>();
             CreateMap<MeetingLog, MeetingLogResponseDTO>()
@@ -425,7 +424,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<EpicCommentRequestDTO, EpicComment>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ReverseMap();
-            CreateMap<EpicComment, EpicCommentResponseDTO>();
+            CreateMap<EpicComment, EpicCommentResponseDTO>()
+               .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+               .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // Label Mapping
             CreateMap<LabelRequestDTO, Label>()
