@@ -66,5 +66,12 @@ namespace IntelliPM.Repositories.SubtaskRepos
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<List<Subtask>> GetInProgressAsync()
+        {
+            return await _context.Subtask
+                .Where(t => t.Status == "IN_PROGRESS")
+                .ToListAsync();
+        }
     }
 }
