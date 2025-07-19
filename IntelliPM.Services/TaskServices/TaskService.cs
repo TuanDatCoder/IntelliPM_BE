@@ -582,5 +582,11 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+        public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
+        {
+            return await _taskRepo.GetTaskWithSubtasksAsync(id);
+        }
+
     }
 }
