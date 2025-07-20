@@ -328,9 +328,8 @@ app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
-     "0 1 * * *",
+     "0 1 * * *"
     // "*/1 * * * *"
-    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
 );
 
 app.UseDefaultFiles();   
