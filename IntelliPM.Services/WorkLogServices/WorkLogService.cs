@@ -178,9 +178,7 @@ namespace IntelliPM.Services.WorkLogServices
 
         public async Task GenerateDailyWorkLogsAsync()
         {
-            //var today = DateTime.UtcNow.Date;
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            var today = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone).Date;
+            var today = DateTime.UtcNow;
 
             var logsToInsert = new List<WorkLog>();
 
