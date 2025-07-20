@@ -136,12 +136,25 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Add(entity);
+
+                if (!string.IsNullOrEmpty(entity.EpicId))
+                {
+                    var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
+                    if (epic != null && epic.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        epic.Status = "IN_PROGRESS";
+                        epic.UpdatedAt = DateTime.UtcNow;
+                        await _epicRepo.Update(epic);
+                    }
+                }
+
                 //await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (DbUpdateException ex)
             {
                 throw new Exception($"Failed to create task due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
+
             catch (Exception ex)
             {
                 throw new Exception($"Failed to create task: {ex.Message}", ex);
@@ -250,9 +263,34 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+
                 if (isInProgress)
                 {
                     await _workLogService.GenerateDailyWorkLogsAsync();
+                }
+
+                var parentEpicId = entity.EpicId;
+                var allTasks = await _taskRepo.GetByEpicIdAsync(parentEpicId);
+
+                var parentEpic = await _epicRepo.GetByIdAsync(parentEpicId);
+                if (parentEpic != null)
+                {
+                    if (allTasks.All(st => st.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        parentEpic.Status = "DONE";
+                        parentEpic.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else if (allTasks.Any(st => st.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        parentEpic.Status = "IN_PROGRESS";
+                        parentEpic.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+
+                    }
+                    parentEpic.UpdatedAt = DateTime.UtcNow;
+                    await _epicRepo.Update(parentEpic);
                 }
             }
             catch (Exception ex)
@@ -262,6 +300,7 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
         {

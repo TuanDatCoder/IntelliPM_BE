@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.Subtask.Request
 {
-    public class SubtaskRequest2DTO
+    public class SubtaskRequest3DTO
     {
-        public string TaskId { get; set; } = null!;
-        public string Title { get; set; } = null!;
-        public int CreatedBy { get; set; }
+        public string Status { get; set; } 
+        public int CreatedBy { get; set; } 
     }
 }

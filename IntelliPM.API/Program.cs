@@ -89,6 +89,8 @@ using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Services.WorkLogServices;
 using Hangfire;
 using Hangfire.PostgreSql;
+using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Services.ActivityLogServices;
 
 
 
@@ -127,6 +129,7 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
@@ -198,6 +201,8 @@ builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
 builder.Services.AddScoped<IWorkLogService, WorkLogService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
 
 
 // ------------------------- HttpClient -----------------------------
