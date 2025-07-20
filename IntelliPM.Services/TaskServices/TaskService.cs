@@ -250,10 +250,10 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
-                if (isInProgress)
-                {
-                    await _workLogService.GenerateDailyWorkLogsAsync();
-                }
+                //if (isInProgress)
+                //{
+                //    await _workLogService.GenerateDailyWorkLogsAsync();
+                //}
             }
             catch (Exception ex)
             {
@@ -364,13 +364,11 @@ namespace IntelliPM.Services.TaskServices
             }
             dto.TaskAssignments = assignmentDtos;
 
-            // Lấy comment và số lượng
             var allComments = await _taskCommentService.GetAllTaskComment();
             var taskComments = allComments.Where(c => c.TaskId == dto.Id).ToList();
             dto.CommentCount = taskComments.Count;
             dto.Comments = _mapper.Map<List<TaskCommentResponseDTO>>(taskComments);
 
-            // Lấy các label
             var labels = await _workItemLabelService.GetByTaskIdAsync(dto.Id);
             var labelDtos = new List<LabelResponseDTO>();
             foreach (var l in labels)
