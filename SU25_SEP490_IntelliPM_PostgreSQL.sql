@@ -538,7 +538,20 @@ CREATE TABLE work_item_label (
     UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
--- 36. requirement
+-- 36. work_log
+CREATE TABLE work_log (
+    id SERIAL PRIMARY KEY,
+    task_id VARCHAR(255) NULL,     
+    subtask_id VARCHAR(255) NULL,      
+    log_date TIMESTAMPTZ NOT NULL,   
+    hours DECIMAL(8, 2) NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+);
+
+-- 37. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -551,7 +564,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 37. project_metric
+-- 38. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -560,18 +573,22 @@ CREATE TABLE project_metric (
     planned_value DECIMAL(15, 2) NULL,
     earned_value DECIMAL(15, 2) NULL,
     actual_cost DECIMAL(15, 2) NULL,
-    spi DECIMAL(15, 2) NULL,
-    cpi DECIMAL(15, 2) NULL,
-    delay_days INT NULL,
-    budget_overrun DECIMAL(15, 2) NULL,
-    projected_finish_date TIMESTAMPTZ NULL,
-    projected_total_cost DECIMAL(15, 2) NULL,
+    schedule_performance_index DECIMAL(15, 2) NULL,
+    cost_performance_index DECIMAL(15, 2) NULL,
+    budget_at_completion DECIMAL(15, 2) NULL,
+    duration_at_completion DECIMAL(15, 2) NULL,
+    cost_variance DECIMAL(15, 2) NULL,
+    schedule_variance DECIMAL(15, 2) NULL,
+    estimate_at_completion DECIMAL(15, 2) NULL,
+    estimate_to_complete DECIMAL(15, 2) NULL,
+    variance_at_completion DECIMAL(15, 2) NULL,
+    estimate_duration_at_completion DECIMAL(15, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 38. system_configuration
+-- 39. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -587,7 +604,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 39. dynamic_category
+-- 40. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -602,7 +619,7 @@ CREATE TABLE dynamic_category (
     UNIQUE (category_group, name)
 );
 
--- 40. activity_log
+-- 41. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
@@ -622,7 +639,7 @@ CREATE TABLE activity_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 41. meeting_reschedule_request
+-- 42. meeting_reschedule_request
 CREATE TABLE meeting_reschedule_request (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -1015,13 +1032,20 @@ VALUES
     (5, 'Test Coverage', 'FUNCTIONAL', 'Cover all cases', 'LOW');
 
 -- Insert sample data into project_metric
-INSERT INTO project_metric (project_id, calculated_by, is_approved, planned_value, earned_value, actual_cost, spi, cpi, delay_days, budget_overrun, projected_finish_date, projected_total_cost)
-VALUES 
-    (1, 'user1', FALSE, 100000.00, 80000.00, 75000.00, 0.90, 0.95, 5, 5000.00, '2025-12-10 00:00:00+00', 105000.00),
-    (2, 'user2', TRUE, 50000.00, 45000.00, 48000.00, 0.85, 0.90, 3, 3000.00, '2025-09-10 00:00:00+00', 53000.00),
-    (3, 'user3', FALSE, 75000.00, 60000.00, 65000.00, 0.80, 0.88, 10, 7000.00, '2025-11-15 00:00:00+00', 82000.00),
-    (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 2, 1000.00, '2025-10-05 00:00:00+00', 31000.00),
-    (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 4, 2000.00, '2025-12-10 00:00:00+00', 42000.00);
+INSERT INTO project_metric (
+    project_id, calculated_by, is_approved,
+    planned_value, earned_value, actual_cost,
+    schedule_performance_index, cost_performance_index,
+    budget_at_completion, duration_at_completion,
+    cost_variance, schedule_variance,
+    estimate_at_completion, estimate_to_complete,
+    variance_at_completion, estimate_duration_at_completion
+) VALUES
+    (1, 'user1', FALSE, 100000.00, 80000.00, 75000.00, 0.90, 0.95, 110000.00, 120.00, 5000.00, -20000.00, 105000.00, 25000.00, -5000.00, 125.00),
+    (2, 'user2', TRUE, 50000.00, 45000.00, 48000.00, 0.85, 0.90, 55000.00, 90.00, 2000.00, -5000.00, 53000.00, 8000.00, -3000.00, 95.00),
+    (3, 'user3', FALSE, 75000.00, 60000.00, 65000.00, 0.80, 0.88, 80000.00, 110.00, -5000.00, -15000.00, 82000.00, 22000.00, -2000.00, 115.00),
+    (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 31000.00, 60.00, -1000.00, -2000.00, 31000.00, 3000.00, -1000.00, 62.00),
+    (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 42000.00, 75.00, -1000.00, -5000.00, 42000.00, 6000.00, -2000.00, 78.00);
 
 	-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
