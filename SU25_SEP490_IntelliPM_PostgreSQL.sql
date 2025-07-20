@@ -1291,3 +1291,5 @@ VALUES
 ((SELECT id FROM project WHERE project_key = 'COURSE'), 'Video Lecture Streaming', 'NON_FUNCTIONAL', 'Stream high-quality videos hosted on cloud storage.', 'MEDIUM'),
 ((SELECT id FROM project WHERE project_key = 'COURSE'), 'Quiz and Grading System', 'FUNCTIONAL', 'Students can take quizzes and receive scores instantly.', 'HIGH'),
 ((SELECT id FROM project WHERE project_key = 'COURSE'), 'Progress Tracking', 'FUNCTIONAL', 'Students and instructors can view progress reports.', 'MEDIUM');
+
+-- Check 20/07/2025
