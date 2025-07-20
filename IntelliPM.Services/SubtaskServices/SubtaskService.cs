@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -17,6 +18,7 @@ using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
+using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -39,8 +41,10 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IAccountRepository _accountRepo; 
         private readonly ISubtaskCommentService _subtaskCommentService;
         private readonly IWorkItemLabelService _workItemLabelService;
+        private readonly IWorkLogService _workLogService;
+        private readonly IProjectMemberRepository _projectMemberRepo;
 
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService)
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -52,6 +56,8 @@ namespace IntelliPM.Services.SubtaskServices
             _accountRepo = accountRepo;
             _subtaskCommentService = subtaskCommentService;
             _workItemLabelService = workItemLabelService;
+            _workLogService = workLogService;
+            _projectMemberRepo = projectMemberRepo;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -265,12 +271,24 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
+            var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            if (isInProgress)
+                entity.ActualStartDate = DateTime.UtcNow;
+            if (isDone)
+                entity.ActualEndDate = DateTime.UtcNow;
+
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _subtaskRepo.Update(entity);
+                if (isInProgress)
+                {
+                    await _workLogService.GenerateDailyWorkLogsAsync(); 
+                }
             }
             catch (Exception ex)
             {
@@ -294,17 +312,17 @@ namespace IntelliPM.Services.SubtaskServices
         public async Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId)
         {
             var entities = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-            var dtos = _mapper.Map<List<SubtaskDetailedResponseDTO>>(entities); // Trả về danh sách rỗng nếu không có entities
+            var dtos = _mapper.Map<List<SubtaskDetailedResponseDTO>>(entities); 
             foreach (var dto in dtos)
             {
                 await EnrichSubtaskDetailedResponse(dto);
             }
-            return dtos; // Không ném lỗi, chỉ trả về danh sách rỗng nếu không có subtasks
+            return dtos;
         }
 
         public async Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId)
         {
-            // Lấy tất cả Task trong project
+        
             var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
             if (!tasks.Any())
             {
@@ -314,7 +332,7 @@ namespace IntelliPM.Services.SubtaskServices
             var taskIds = tasks.Select(t => t.Id).ToList();
             var allSubtasks = new List<SubtaskDetailedResponseDTO>();
 
-            // Lấy subtasks chi tiết cho từng Task
+       
             foreach (var taskId in taskIds)
             {
                 var subtasks = await GetSubtaskByTaskIdDetailed(taskId);
@@ -335,6 +353,7 @@ namespace IntelliPM.Services.SubtaskServices
                     dto.ReporterPicture = reporter.Picture;
                 }
             }
+
             if (dto.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(dto.AssignedBy.Value);
@@ -350,6 +369,7 @@ namespace IntelliPM.Services.SubtaskServices
             dto.CommentCount = subtaskComments.Count;
             dto.Comments = _mapper.Map<List<SubtaskCommentResponseDTO>>(subtaskComments);
 
+
             var labels = await _workItemLabelService.GetBySubtaskIdAsync(dto.Id);
             var labelDtos = new List<LabelResponseDTO>();
             foreach (var l in labels)
@@ -359,6 +379,50 @@ namespace IntelliPM.Services.SubtaskServices
             }
             dto.Labels = labelDtos;
         }
+
+        public async Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            entity.PlannedHours = hours;
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task != null && entity.AssignedBy != null)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
+                if (member != null && member.HourlyRate.HasValue)
+                {
+                    entity.PlannedResourceCost = entity.PlannedHours * member.HourlyRate.Value;
+                }
+            }
+
+            // cập nhật subtask sau khi đã gán đầy đủ thông tin
+            await _subtaskRepo.Update(entity);
+
+            try
+            {
+                // Tính lại planned_hours của task cha
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+                var totalPlannedHours = subtasks.Sum(s => s.PlannedHours ?? 0);
+                var totalPlannedResourceCost = subtasks.Sum(s => s.PlannedResourceCost ?? 0);
+
+                if (task != null)
+                {
+                    task.PlannedHours = totalPlannedHours;
+                    task.PlannedResourceCost = totalPlannedResourceCost;
+                    await _taskRepo.Update(task);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update task values: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
+
     }
 }
 

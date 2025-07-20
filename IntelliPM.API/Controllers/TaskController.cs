@@ -5,6 +5,7 @@ using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntelliPM.API.Controllers
 {
@@ -308,6 +309,40 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/sprint")]
+        public async Task<IActionResult> ChangeSprint(string id, [FromBody] int sprintId)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskSprint(id, sprintId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task sprint: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpPatch("{id}/type")]
         public async Task<IActionResult> ChangeType(string id, [FromBody] string type)
         {
@@ -538,5 +573,137 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPatch("{id}/planned-hours")]
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPlannedHours(id, hours);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task plannedHours updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task plannedHours: {ex.Message}"
+                });
+            }
+        }
+
+
+        [HttpGet("with-subtasks")]
+        public async Task<IActionResult> GetTaskWithSubtasks([FromQuery] string id)
+        {
+            try
+            {
+                var task = await _service.GetTaskWithSubtasksAsync(id);
+                if (task == null)
+                    return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = "Task not found" });
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task view successfully",
+                    Data = task
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error fetching task with subtasks: {ex.Message}"
+                });
+            }
+        }
+         
+
+        [HttpGet("backlog")]
+        public async Task<IActionResult> GetBacklog([FromQuery] string projectKey)
+        {
+            try
+            {
+                var tasks = await _service.GetBacklogTasksAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Backlog tasks retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+
+                    Message = $"Error fetching task with subtasks: {ex.Message}"
+                });
+            }
+        }
+
+
+    
+
+        [HttpGet("by-sprint-id/{sprintId}")]
+        public async Task<IActionResult> GetBySprintId(int sprintId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksBySprintIdAsync(sprintId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Sprint ID {sprintId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
+
+
     }
 }

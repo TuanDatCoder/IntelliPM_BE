@@ -92,4 +92,6 @@ public partial class Tasks
     public virtual ICollection<TaskFile> TaskFile { get; set; } = new List<TaskFile>();
 
     public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
+
+    public virtual ICollection<WorkLog> WorkLog { get; set; } = new List<WorkLog>();
 }

@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,14 @@ namespace IntelliPM.Repositories.TaskRepos
         Task<List<Tasks>> GetByTitleAsync(string title);
         Task<List<Tasks>> GetByProjectIdAsync(int projectId);
         Task<List<Tasks>> GetByEpicIdAsync(string epicId);
+        Task<List<Tasks>> GetBySprintIdAsync(int sprintId);
         Task Add(Tasks task);
         Task Update(Tasks task);
         Task Delete(Tasks task);
         Task<string?> GetProjectKeyByTaskIdAsync(string taskId);
+        Task<List<Tasks>> GetInProgressAsync();
+        Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
+
 
     }
 }

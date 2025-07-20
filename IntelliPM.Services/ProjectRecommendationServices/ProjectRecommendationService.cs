@@ -75,7 +75,7 @@ namespace IntelliPM.Services.ProjectRecommendationServices
                 throw new Exception("ProjectMetric not found");
 
             // Nếu dự án không gặp vấn đề về SPI hoặc CPI thì không cần gọi AI
-            if (metric.Spi >= 1 && metric.Cpi >= 1)
+            if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
                 return new List<AIRecommendationDTO>();
 
             // Gọi AI sinh recommendations
