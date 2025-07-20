@@ -519,8 +519,31 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-      
+            var sprint = await _epicRepo.GetByIdAsync(epicId);
+            if (sprint == null)
+                throw new KeyNotFoundException($"Epic with ID {id} not found.");
+
+            entity.EpicId = epicId;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
         public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
         {
             return await _taskRepo.GetTaskWithSubtasksAsync(id);
