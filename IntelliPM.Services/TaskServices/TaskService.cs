@@ -250,10 +250,10 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
-                //if (isInProgress)
-                //{
-                //    await _workLogService.GenerateDailyWorkLogsAsync();
-                //}
+                if (isInProgress)
+                {
+                    await _workLogService.GenerateDailyWorkLogsAsync();
+                }
             }
             catch (Exception ex)
             {
