@@ -43,5 +43,13 @@ namespace IntelliPM.Repositories.MeetingRescheduleRequestRepos
             _context.MeetingRescheduleRequest.Remove(request);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<MeetingRescheduleRequest>> GetByRequesterIdAsync(int requesterId)
+        {
+            return await _context.MeetingRescheduleRequest
+                                 .Where(x => x.RequesterId == requesterId)
+                                 .ToListAsync();
+        }
+
     }
 }

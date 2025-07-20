@@ -482,18 +482,17 @@ namespace IntelliPM.API.Controllers
         }
 
 
-
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
+        [HttpPatch("{id}/status/{status}")]
+        public async Task<IActionResult> ChangeStatus(int id,  string status)
         {
             try
             {
-                var updated = await _service.ChangeTaskStatus(id, status);
+                var updated = await _service.ChangeProjectStatus(id, status);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
                     Code = 200,
-                    Message = "Task status updated successfully",
+                    Message = "Project status updated successfully",
                     Data = updated
                 });
             }
@@ -515,6 +514,9 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+       
 
     }
 }

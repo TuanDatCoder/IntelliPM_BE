@@ -552,7 +552,7 @@ Danh sách task:
     List<Sprint> sprints,
     List<Milestone> milestones)
     {
-        if (metric.Spi >= 1 && metric.Cpi >= 1)
+        if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
             return new List<AIRecommendationDTO>(); // Không cần gợi ý nếu dự án đang ổn
 
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
@@ -662,8 +662,8 @@ Danh sách task:
 You are an experienced project management expert. Below is the detailed information of a software project including tasks, sprints, milestones, and key performance metrics.
 
 The project is currently underperforming:
-- SPI (Schedule Performance Index) = {metric.Spi}
-- CPI (Cost Performance Index) = {metric.Cpi}
+- SPI (Schedule Performance Index) = {metric.SchedulePerformanceIndex}
+- CPI (Cost Performance Index) = {metric.CostPerformanceIndex}
 
 Please analyze all data and propose **3 specific and feasible recommendations** to help improve the current situation. Each recommendation must include:
 
@@ -708,11 +708,8 @@ Metric Data:
 - PV: {metric.PlannedValue}
 - EV: {metric.EarnedValue}
 - AC: {metric.ActualCost}
-- SPI: {metric.Spi}
-- CPI: {metric.Cpi}
-- Delay (days): {metric.DelayDays}
-- Budget overrun: {metric.BudgetOverrun}
-- Projected Finish Date: {metric.ProjectedFinishDate}
+- SPI: {metric.SchedulePerformanceIndex}
+- CPI: {metric.CostPerformanceIndex}
 
 Task List:
 {taskList}

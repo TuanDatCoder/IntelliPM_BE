@@ -110,6 +110,14 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
             }
         }
 
+        [HttpPut("{id}/complete")]
+        public async Task<IActionResult> CompleteMeeting(int id)
+        {
+            await _service.CompleteMeeting(id);  // Đúng tên biến rồi
+            return Ok(new { message = "Meeting marked as COMPLETED" });
+        }
+
+
         [HttpPost("internal")]
         public async Task<IActionResult> CreateInternal([FromBody] MeetingRequestDTO request)
         {
