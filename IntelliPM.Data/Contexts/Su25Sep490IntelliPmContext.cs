@@ -1,8 +1,9 @@
-﻿using IntelliPM.Data.Entities;
+﻿using System;
+using System.Collections.Generic;
+using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -21,7 +22,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<ActivityLog> ActivityLog { get; set; }
 
+    public virtual DbSet<Aggregatedcounter> Aggregatedcounter { get; set; }
+
     public virtual DbSet<ChangeRequest> ChangeRequest { get; set; }
+
+    public virtual DbSet<Counter> Counter { get; set; }
 
     public virtual DbSet<Document> Document { get; set; }
 
@@ -35,7 +40,19 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<EpicFile> EpicFile { get; set; }
 
+    public virtual DbSet<Hash> Hash { get; set; }
+
+    public virtual DbSet<Job> Job { get; set; }
+
+    public virtual DbSet<Jobparameter> Jobparameter { get; set; }
+
+    public virtual DbSet<Jobqueue> Jobqueue { get; set; }
+
     public virtual DbSet<Label> Label { get; set; }
+
+    public virtual DbSet<List> List { get; set; }
+
+    public virtual DbSet<Lock> Lock { get; set; }
 
     public virtual DbSet<Meeting> Meeting { get; set; }
 
@@ -77,7 +94,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<RiskSolution> RiskSolution { get; set; }
 
+    public virtual DbSet<Schema> Schema { get; set; }
+
+    public virtual DbSet<Server> Server { get; set; }
+
+    public virtual DbSet<Set> Set { get; set; }
+
     public virtual DbSet<Sprint> Sprint { get; set; }
+
+    public virtual DbSet<State> State { get; set; }
 
     public virtual DbSet<Subtask> Subtask { get; set; }
 
@@ -99,9 +124,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<WorkItemLabel> WorkItemLabel { get; set; }
 
-    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+    public virtual DbSet<WorkLog> WorkLog { get; set; }
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -116,6 +139,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
+//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -224,6 +250,20 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("activity_log_task_id_fkey");
         });
 
+        modelBuilder.Entity<Aggregatedcounter>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("aggregatedcounter_pkey");
+
+            entity.ToTable("aggregatedcounter", "hangfire");
+
+            entity.HasIndex(e => e.Key, "aggregatedcounter_key_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Key).HasColumnName("key");
+            entity.Property(e => e.Value).HasColumnName("value");
+        });
+
         modelBuilder.Entity<ChangeRequest>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("change_request_pkey");
@@ -256,6 +296,22 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.RequestedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("change_request_requested_by_fkey");
+        });
+
+        modelBuilder.Entity<Counter>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("counter_pkey");
+
+            entity.ToTable("counter", "hangfire");
+
+            entity.HasIndex(e => e.Expireat, "ix_hangfire_counter_expireat");
+
+            entity.HasIndex(e => e.Key, "ix_hangfire_counter_key");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Key).HasColumnName("key");
+            entity.Property(e => e.Value).HasColumnName("value");
         });
 
         modelBuilder.Entity<Document>(entity =>
@@ -305,7 +361,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("document_approver_id_fkey");
+                .HasConstraintName("fk_document_approver");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -499,6 +555,96 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("epic_file_epic_id_fkey");
         });
 
+        modelBuilder.Entity<Hash>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hash_pkey");
+
+            entity.ToTable("hash", "hangfire");
+
+            entity.HasIndex(e => new { e.Key, e.Field }, "hash_key_field_key").IsUnique();
+
+            entity.HasIndex(e => e.Expireat, "ix_hangfire_hash_expireat");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Field).HasColumnName("field");
+            entity.Property(e => e.Key).HasColumnName("key");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+            entity.Property(e => e.Value).HasColumnName("value");
+        });
+
+        modelBuilder.Entity<Job>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("job_pkey");
+
+            entity.ToTable("job", "hangfire");
+
+            entity.HasIndex(e => e.Expireat, "ix_hangfire_job_expireat");
+
+            entity.HasIndex(e => e.Statename, "ix_hangfire_job_statename");
+
+            entity.HasIndex(e => e.Statename, "ix_hangfire_job_statename_is_not_null").HasFilter("(statename IS NOT NULL)");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Arguments)
+                .HasColumnType("jsonb")
+                .HasColumnName("arguments");
+            entity.Property(e => e.Createdat).HasColumnName("createdat");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Invocationdata)
+                .HasColumnType("jsonb")
+                .HasColumnName("invocationdata");
+            entity.Property(e => e.Stateid).HasColumnName("stateid");
+            entity.Property(e => e.Statename).HasColumnName("statename");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+        });
+
+        modelBuilder.Entity<Jobparameter>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("jobparameter_pkey");
+
+            entity.ToTable("jobparameter", "hangfire");
+
+            entity.HasIndex(e => new { e.Jobid, e.Name }, "ix_hangfire_jobparameter_jobidandname");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Jobid).HasColumnName("jobid");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+            entity.Property(e => e.Value).HasColumnName("value");
+
+            entity.HasOne(d => d.Job).WithMany(p => p.Jobparameter)
+                .HasForeignKey(d => d.Jobid)
+                .HasConstraintName("jobparameter_jobid_fkey");
+        });
+
+        modelBuilder.Entity<Jobqueue>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("jobqueue_pkey");
+
+            entity.ToTable("jobqueue", "hangfire");
+
+            entity.HasIndex(e => new { e.Fetchedat, e.Queue, e.Jobid }, "ix_hangfire_jobqueue_fetchedat_queue_jobid").HasNullSortOrder(new[] { NullSortOrder.NullsFirst, NullSortOrder.NullsLast, NullSortOrder.NullsLast });
+
+            entity.HasIndex(e => new { e.Jobid, e.Queue }, "ix_hangfire_jobqueue_jobidandqueue");
+
+            entity.HasIndex(e => new { e.Queue, e.Fetchedat }, "ix_hangfire_jobqueue_queueandfetchedat");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Fetchedat).HasColumnName("fetchedat");
+            entity.Property(e => e.Jobid).HasColumnName("jobid");
+            entity.Property(e => e.Queue).HasColumnName("queue");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+        });
+
         modelBuilder.Entity<Label>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("label_pkey");
@@ -523,6 +669,38 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("label_project_id_fkey");
+        });
+
+        modelBuilder.Entity<List>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("list_pkey");
+
+            entity.ToTable("list", "hangfire");
+
+            entity.HasIndex(e => e.Expireat, "ix_hangfire_list_expireat");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Key).HasColumnName("key");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+            entity.Property(e => e.Value).HasColumnName("value");
+        });
+
+        modelBuilder.Entity<Lock>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("lock", "hangfire");
+
+            entity.HasIndex(e => e.Resource, "lock_resource_key").IsUnique();
+
+            entity.Property(e => e.Acquired).HasColumnName("acquired");
+            entity.Property(e => e.Resource).HasColumnName("resource");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
         });
 
         modelBuilder.Entity<Meeting>(entity =>
@@ -893,6 +1071,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
+            entity.Property(e => e.WorkingHoursPerDay)
+                .HasDefaultValue(8)
+                .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
                 .HasForeignKey(d => d.AccountId)
@@ -915,22 +1096,36 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.ActualCost)
                 .HasPrecision(15, 2)
                 .HasColumnName("actual_cost");
-            entity.Property(e => e.BudgetOverrun)
+            entity.Property(e => e.BudgetAtCompletion)
                 .HasPrecision(15, 2)
-                .HasColumnName("budget_overrun");
+                .HasColumnName("budget_at_completion");
             entity.Property(e => e.CalculatedBy)
                 .HasMaxLength(50)
                 .HasColumnName("calculated_by");
-            entity.Property(e => e.Cpi)
+            entity.Property(e => e.CostPerformanceIndex)
                 .HasPrecision(15, 2)
-                .HasColumnName("cpi");
+                .HasColumnName("cost_performance_index");
+            entity.Property(e => e.CostVariance)
+                .HasPrecision(15, 2)
+                .HasColumnName("cost_variance");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.DelayDays).HasColumnName("delay_days");
+            entity.Property(e => e.DurationAtCompletion)
+                .HasPrecision(15, 2)
+                .HasColumnName("duration_at_completion");
             entity.Property(e => e.EarnedValue)
                 .HasPrecision(15, 2)
                 .HasColumnName("earned_value");
+            entity.Property(e => e.EstimateAtCompletion)
+                .HasPrecision(15, 2)
+                .HasColumnName("estimate_at_completion");
+            entity.Property(e => e.EstimateDurationAtCompletion)
+                .HasPrecision(15, 2)
+                .HasColumnName("estimate_duration_at_completion");
+            entity.Property(e => e.EstimateToComplete)
+                .HasPrecision(15, 2)
+                .HasColumnName("estimate_to_complete");
             entity.Property(e => e.IsApproved)
                 .HasDefaultValue(false)
                 .HasColumnName("is_approved");
@@ -938,16 +1133,18 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_value");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.ProjectedFinishDate).HasColumnName("projected_finish_date");
-            entity.Property(e => e.ProjectedTotalCost)
+            entity.Property(e => e.SchedulePerformanceIndex)
                 .HasPrecision(15, 2)
-                .HasColumnName("projected_total_cost");
-            entity.Property(e => e.Spi)
+                .HasColumnName("schedule_performance_index");
+            entity.Property(e => e.ScheduleVariance)
                 .HasPrecision(15, 2)
-                .HasColumnName("spi");
+                .HasColumnName("schedule_variance");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
+            entity.Property(e => e.VarianceAtCompletion)
+                .HasPrecision(15, 2)
+                .HasColumnName("variance_at_completion");
 
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectMetric)
                 .HasForeignKey(d => d.ProjectId)
@@ -1170,6 +1367,55 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("risk_solution_risk_id_fkey");
         });
 
+        modelBuilder.Entity<Schema>(entity =>
+        {
+            entity.HasKey(e => e.Version).HasName("schema_pkey");
+
+            entity.ToTable("schema", "hangfire");
+
+            entity.Property(e => e.Version)
+                .ValueGeneratedNever()
+                .HasColumnName("version");
+        });
+
+        modelBuilder.Entity<Server>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("server_pkey");
+
+            entity.ToTable("server", "hangfire");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Data)
+                .HasColumnType("jsonb")
+                .HasColumnName("data");
+            entity.Property(e => e.Lastheartbeat).HasColumnName("lastheartbeat");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+        });
+
+        modelBuilder.Entity<Set>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("set_pkey");
+
+            entity.ToTable("set", "hangfire");
+
+            entity.HasIndex(e => e.Expireat, "ix_hangfire_set_expireat");
+
+            entity.HasIndex(e => new { e.Key, e.Score }, "ix_hangfire_set_key_score");
+
+            entity.HasIndex(e => new { e.Key, e.Value }, "set_key_value_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Expireat).HasColumnName("expireat");
+            entity.Property(e => e.Key).HasColumnName("key");
+            entity.Property(e => e.Score).HasColumnName("score");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+            entity.Property(e => e.Value).HasColumnName("value");
+        });
+
         modelBuilder.Entity<Sprint>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("sprint_pkey");
@@ -1200,6 +1446,31 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("sprint_project_id_fkey");
         });
 
+        modelBuilder.Entity<State>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("state_pkey");
+
+            entity.ToTable("state", "hangfire");
+
+            entity.HasIndex(e => e.Jobid, "ix_hangfire_state_jobid");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Createdat).HasColumnName("createdat");
+            entity.Property(e => e.Data)
+                .HasColumnType("jsonb")
+                .HasColumnName("data");
+            entity.Property(e => e.Jobid).HasColumnName("jobid");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.Updatecount)
+                .HasDefaultValue(0)
+                .HasColumnName("updatecount");
+
+            entity.HasOne(d => d.Job).WithMany(p => p.State)
+                .HasForeignKey(d => d.Jobid)
+                .HasConstraintName("state_jobid_fkey");
+        });
+
         modelBuilder.Entity<Subtask>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("subtask_pkey");
@@ -1209,21 +1480,55 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id)
                 .HasMaxLength(255)
                 .HasColumnName("id");
+            entity.Property(e => e.ActualCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("actual_cost");
+            entity.Property(e => e.ActualEndDate).HasColumnName("actual_end_date");
+            entity.Property(e => e.ActualHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("actual_hours");
+            entity.Property(e => e.ActualResourceCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("actual_resource_cost");
+            entity.Property(e => e.ActualStartDate).HasColumnName("actual_start_date");
             entity.Property(e => e.AssignedBy).HasColumnName("assigned_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Duration)
+                .HasMaxLength(100)
+                .HasColumnName("duration");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.Evaluate)
+                .HasMaxLength(50)
+                .HasColumnName("evaluate");
             entity.Property(e => e.GenerationAiInput)
                 .HasDefaultValue(false)
                 .HasColumnName("generation_ai_input");
             entity.Property(e => e.ManualInput)
                 .HasDefaultValue(false)
                 .HasColumnName("manual_input");
+            entity.Property(e => e.PercentComplete)
+                .HasPrecision(5, 2)
+                .HasColumnName("percent_complete");
+            entity.Property(e => e.PlannedCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("planned_cost");
+            entity.Property(e => e.PlannedEndDate).HasColumnName("planned_end_date");
+            entity.Property(e => e.PlannedHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("planned_hours");
+            entity.Property(e => e.PlannedResourceCost)
+                .HasPrecision(15, 2)
+                .HasColumnName("planned_resource_cost");
+            entity.Property(e => e.PlannedStartDate).HasColumnName("planned_start_date");
             entity.Property(e => e.Priority)
                 .HasMaxLength(50)
                 .HasColumnName("priority");
+            entity.Property(e => e.RemainingHours)
+                .HasPrecision(8, 2)
+                .HasColumnName("remaining_hours");
             entity.Property(e => e.ReporterId).HasColumnName("reporter_id");
             entity.Property(e => e.SprintId).HasColumnName("sprint_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
@@ -1611,6 +1916,39 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Task).WithMany(p => p.WorkItemLabel)
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_item_label_task_id_fkey");
+        });
+
+        modelBuilder.Entity<WorkLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("work_log_pkey");
+
+            entity.ToTable("work_log");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Hours)
+                .HasPrecision(8, 2)
+                .HasColumnName("hours");
+            entity.Property(e => e.LogDate).HasColumnName("log_date");
+            entity.Property(e => e.SubtaskId)
+                .HasMaxLength(255)
+                .HasColumnName("subtask_id");
+            entity.Property(e => e.TaskId)
+                .HasMaxLength(255)
+                .HasColumnName("task_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Subtask).WithMany(p => p.WorkLog)
+                .HasForeignKey(d => d.SubtaskId)
+                .HasConstraintName("work_log_subtask_id_fkey");
+
+            entity.HasOne(d => d.Task).WithMany(p => p.WorkLog)
+                .HasForeignKey(d => d.TaskId)
+                .HasConstraintName("work_log_task_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

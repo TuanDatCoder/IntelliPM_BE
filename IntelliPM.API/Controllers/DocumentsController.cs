@@ -153,13 +153,14 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+
         [HttpGet("status/{status}")]
         public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
         {
             var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
             if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
                 return BadRequest("Invalid status");
-
+                
             var result = await _documentService.GetDocumentsByStatus(status);
             return Ok(result);
         }
@@ -226,6 +227,7 @@ namespace IntelliPM.API.Controllers
             var mapping = await _documentService.GetUserDocumentMappingAsync(projectId, userId);
             return Ok(mapping);
         }
+
 
         [HttpGet("status-total")]
         public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummary()

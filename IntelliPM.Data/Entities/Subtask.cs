@@ -35,6 +35,34 @@ public partial class Subtask
 
     public int? SprintId { get; set; }
 
+    public DateTime? PlannedStartDate { get; set; }
+
+    public DateTime? PlannedEndDate { get; set; }
+
+    public string? Duration { get; set; }
+
+    public DateTime? ActualStartDate { get; set; }
+
+    public DateTime? ActualEndDate { get; set; }
+
+    public decimal? PercentComplete { get; set; }
+
+    public decimal? PlannedHours { get; set; }
+
+    public decimal? ActualHours { get; set; }
+
+    public decimal? RemainingHours { get; set; }
+
+    public decimal? PlannedCost { get; set; }
+
+    public decimal? PlannedResourceCost { get; set; }
+
+    public decimal? ActualCost { get; set; }
+
+    public decimal? ActualResourceCost { get; set; }
+
+    public string? Evaluate { get; set; }
+
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
     public virtual Account? AssignedByNavigation { get; set; }
@@ -52,4 +80,6 @@ public partial class Subtask
     public virtual Tasks Task { get; set; } = null!;
 
     public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
+
+    public virtual ICollection<WorkLog> WorkLog { get; set; } = new List<WorkLog>();
 }

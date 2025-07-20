@@ -83,6 +83,12 @@ using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ChatGPTServices;
+using IntelliPM.Repositories.EpicFileRepos;
+using IntelliPM.Services.EpicFileServices;
+using IntelliPM.Repositories.WorkLogRepos;
+using IntelliPM.Services.WorkLogServices;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 
 
@@ -91,6 +97,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+builder.Services.AddHangfire(config =>
+{
+    config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddHangfireServer();
+
 
 
 //------------------------------AUTOMAPPER---------------------------
@@ -103,6 +116,7 @@ builder.Services.AddScoped<IDynamicCategoryRepository, DynamicCategoryRepository
 builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IEpicRepository, EpicRepository>();
+builder.Services.AddScoped<IEpicFileRepository, EpicFileRepository>();
 builder.Services.AddScoped<IMilestoneRepository, MilestoneRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
@@ -138,6 +152,7 @@ builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
+builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -152,6 +167,7 @@ builder.Services.AddScoped<IDynamicCategoryService, DynamicCategoryService>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IEpicService, EpicService>();
+builder.Services.AddScoped<IEpicFileService, EpicFileService>();
 builder.Services.AddScoped<IMilestoneService, MilestoneService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
@@ -181,6 +197,7 @@ builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
+builder.Services.AddScoped<IWorkLogService, WorkLogService>();
 
 
 // ------------------------- HttpClient -----------------------------
@@ -305,6 +322,15 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard();  
+app.UseHangfireServer();
+
+RecurringJob.AddOrUpdate<IWorkLogService>(
+    "generate-daily-worklog",
+    x => x.GenerateDailyWorkLogsAsync(),
+     "0 1 * * *"
+    // "*/1 * * * *"
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();
