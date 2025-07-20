@@ -97,7 +97,7 @@ namespace IntelliPM.Services.SprintServices
                 throw new KeyNotFoundException($"Sprint with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.UpdatedAt = DateTime.UtcNow; // Cập nhật ngày hiện tại khi sửa
+            entity.UpdatedAt = DateTime.UtcNow; 
 
             try
             {
