@@ -15,5 +15,6 @@ namespace IntelliPM.Services.EpicCommentServices
         Task<List<EpicCommentResponseDTO>> GetAllEpicComment(int page = 1, int pageSize = 10);
         Task<EpicCommentResponseDTO> GetEpicCommentById(int id);
         Task<EpicCommentResponseDTO> UpdateEpicComment(int id, EpicCommentRequestDTO request);
+        Task<List<EpicCommentResponseDTO>> GetEpicCommentByEpicIdAsync(string epicId);
     }
 }

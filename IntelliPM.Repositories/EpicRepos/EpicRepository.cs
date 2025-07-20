@@ -23,6 +23,7 @@ namespace IntelliPM.Repositories.EpicRepos
             return await _context.Epic
                 .Include(e => e.Project)
                 .Include(e => e.Reporter)
+                .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
                 .OrderBy(e => e.Id)
@@ -34,6 +35,7 @@ namespace IntelliPM.Repositories.EpicRepos
             return await _context.Epic
                 .Include(e => e.Project)
                 .Include(e => e.Reporter)
+                .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
                 .FirstOrDefaultAsync(e => e.Id == id);
@@ -44,6 +46,7 @@ namespace IntelliPM.Repositories.EpicRepos
             return await _context.Epic
                 .Include(e => e.Project)
                 .Include(e => e.Reporter)
+                .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
                 .Where(e => e.Name.Contains(name))
