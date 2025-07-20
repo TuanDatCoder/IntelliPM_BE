@@ -87,5 +87,14 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .ToListAsync();
         }
 
+        public async Task<List<ProjectMember>> GetTeamLeaderByProjectId(int projectId)
+        {
+            return await _context.ProjectMember
+                .Include(pm => pm.Account)
+                .Where(pm => pm.ProjectId == projectId)
+                .Where(pm => pm.Account.Position.Equals("TEAM_LEADER"))
+                .ToListAsync();
+        }
+
     }
 }

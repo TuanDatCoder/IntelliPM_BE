@@ -1,9 +1,11 @@
-﻿using IntelliPM.Data.DTOs.Document.Request;
+﻿using Google.Cloud.Storage.V1;
+using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
 using Microsoft.Extensions.Configuration;
 using System.Text;
@@ -18,16 +20,16 @@ namespace IntelliPM.Services.DocumentServices
         private readonly string _geminiApiKey;
         private readonly string _geminiEndpoint;
         private readonly IEmailService _emailService;
+        private readonly IProjectMemberRepository _projectMemberRepository;
 
-
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService)
+        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository)
         {
             _repo = repo;
             _httpClient = httpClient;
             _geminiApiKey = configuration["GeminiApi:ApiKey"];
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
             _emailService = emailService;
-
+            _projectMemberRepository = projectMemberRepository;
         }
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -36,11 +38,82 @@ namespace IntelliPM.Services.DocumentServices
             return docs.Select(ToResponse).ToList();
         }
 
+        public async Task<List<DocumentResponseDTO>> GetAllDocuments()
+        {
+            var docs = await _repo.GetAllAsync();
+            return docs.Select(d => new DocumentResponseDTO
+            {
+                Id = d.Id,
+                ProjectId = d.ProjectId,
+                TaskId = d.TaskId,
+                Title = d.Title,
+                Type = d.Type,
+                Template = d.Template,
+                Content = d.Content,
+                FileUrl = d.FileUrl,
+                IsActive = d.IsActive,
+                CreatedBy = d.CreatedBy,
+                UpdatedBy = d.UpdatedBy,
+                CreatedAt = d.CreatedAt,
+                UpdatedAt = d.UpdatedAt
+            }).ToList();
+        }
+
+
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
             var doc = await _repo.GetByIdAsync(id);
             if (doc == null)
                 throw new Exception("Document not found");
+
+            return ToResponse(doc);
+        }
+
+        public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
+        {
+            int count =
+          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+
+            if (count > 1)
+            {
+                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
+            }
+
+
+            var doc = new Document
+            {
+                ProjectId = req.ProjectId,
+                EpicId = req.EpicId,
+                TaskId = req.TaskId,
+                SubtaskId = req.SubTaskId,
+                Title = req.Title,
+                Type = req.Type,
+                Template = req.Template,
+                Content = req.Content,
+                FileUrl = req.FileUrl,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsActive = true,
+                Status = "PendingApproval"
+            };
+
+            try
+            {
+                await _repo.AddAsync(doc);
+                await _repo.SaveChangesAsync();
+                var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
+                await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
+      
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
+                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+            }
 
             return ToResponse(doc);
         }
@@ -401,7 +474,15 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
         {
             return await _repo.GetUserDocumentMappingAsync(projectId, userId);
         }
+        public async Task<Dictionary<string, int>> GetStatusCount()
+        {
+            return await _repo.CountByStatusAsync();
+        }
 
+        public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
+        {
+            return await _repo.CountByStatusInProjectAsync(projectId);
+        }
 
 
 

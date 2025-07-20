@@ -1,13 +1,7 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
-using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
-using IntelliPM.Data.DTOs.Document.Request;
+using IntelliPM.Data.DTOs.ShareDocument.Response;
 
 namespace IntelliPM.Services.DocumentServices
 {
@@ -17,8 +11,11 @@ namespace IntelliPM.Services.DocumentServices
     {
         Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId);
         Task<DocumentResponseDTO> GetDocumentById(int id);
+        Task<List<DocumentResponseDTO>> GetAllDocuments();
 
+        Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId);
         Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId);
+
         Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req);
         Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId);
 
@@ -40,9 +37,9 @@ namespace IntelliPM.Services.DocumentServices
 
         Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId);
 
+        Task<Dictionary<string, int>> GetStatusCount();
 
-
-
+        Task<Dictionary<string, int>> GetStatusCountByProject(int projectId);
 
 
 
