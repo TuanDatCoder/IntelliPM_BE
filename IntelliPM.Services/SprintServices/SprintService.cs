@@ -71,8 +71,6 @@ namespace IntelliPM.Services.SprintServices
                 throw new ArgumentException("Sprint name is required.", nameof(request.Name));
 
             var entity = _mapper.Map<Sprint>(request);
-            //entity.CreatedAt = DateTime.UtcNow; // Gán ngày tạo hiện tại
-            //entity.UpdatedAt = DateTime.UtcNow; // Gán ngày cập nhật hiện tại
 
             try
             {
