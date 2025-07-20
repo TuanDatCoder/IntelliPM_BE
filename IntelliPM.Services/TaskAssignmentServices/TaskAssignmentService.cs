@@ -100,6 +100,9 @@ namespace IntelliPM.Services.TaskAssignmentServices
 
             var entity = _mapper.Map<TaskAssignment>(request);
             entity.TaskId = taskId;
+            entity.AssignedAt = DateTime.UtcNow;
+            entity.Status = "ASSIGNED";
+
             try
             {
                 await _repo.Add(entity);
@@ -124,7 +127,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 throw new KeyNotFoundException($"Task assignment with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.AssignedAt = entity.AssignedAt ?? DateTime.UtcNow; // Giữ giá trị cũ hoặc gán mới nếu null
+            entity.AssignedAt = entity.AssignedAt ?? DateTime.UtcNow; 
 
             try
             {
@@ -194,5 +197,25 @@ namespace IntelliPM.Services.TaskAssignmentServices
             }
             return responses;
         }
+
+        public async Task DeleteByTaskAndAccount(string taskId, int accountId)
+        {
+            var entities = await _repo.GetByTaskIdAndAccountIdAsync(taskId, accountId);
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No task assignment found with taskId={taskId} and accountId={accountId}.");
+
+            try
+            {
+                foreach (var entity in entities)
+                {
+                    await _repo.Delete(entity);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete task assignment: {ex.Message}", ex);
+            }
+        }
+
     }
 }

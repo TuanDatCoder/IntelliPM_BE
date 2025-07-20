@@ -77,5 +77,14 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
                 .Where(ta => ta.Task.ProjectId == projectId)
                 .ToListAsync();
         }
+
+        public async Task<List<TaskAssignment>> GetByTaskIdAndAccountIdAsync(string taskId, int accountId)
+        {
+            return await _context.TaskAssignment
+               .Where(x => x.TaskId == taskId && x.AccountId == accountId)
+               .Include(ta => ta.Account)
+               .Include(ta => ta.Task)
+               .ToListAsync();
+        }
     }
 }

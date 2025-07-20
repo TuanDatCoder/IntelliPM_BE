@@ -23,14 +23,12 @@ namespace IntelliPM.Data.DTOs.Epic.Response
         public int? ReporterId { get; set; }
         public int? AssignedBy { get; set; }
         public int? SprintId { get; set; }
-
-        // Thông tin bổ sung từ Account
+        public string? SprintName { get; set; }
         public string? ReporterFullname { get; set; }
         public string? ReporterPicture { get; set; }
         public string? AssignedByFullname { get; set; }
         public string? AssignedByPicture { get; set; }
 
-        // Comment thông tin
         public int CommentCount { get; set; }
         public List<EpicCommentResponseDTO> Comments { get; set; } = new List<EpicCommentResponseDTO>();
 

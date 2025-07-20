@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.EpicComment.Response;
+using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -127,6 +128,18 @@ namespace IntelliPM.Services.EpicCommentServices
             return _mapper.Map<List<EpicCommentResponseDTO>>(entities);
         }
 
+        public async Task<List<EpicCommentResponseDTO>> GetEpicCommentByEpicIdAsync(string epicId)
+        {
+            {
+                var entities = await _repo.GetEpicCommentByEpicIdAsync(epicId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No epics found for Task ID {epicId}.");
+
+                return _mapper.Map<List<EpicCommentResponseDTO>>(entities);
+            }
+        }
+
         public async Task<EpicCommentResponseDTO> GetEpicCommentById(int id)
         {
             var entity = await _repo.GetByIdAsync(id);
@@ -160,5 +173,8 @@ namespace IntelliPM.Services.EpicCommentServices
 
             return _mapper.Map<EpicCommentResponseDTO>(entity);
         }
+
+
+
     }
 }

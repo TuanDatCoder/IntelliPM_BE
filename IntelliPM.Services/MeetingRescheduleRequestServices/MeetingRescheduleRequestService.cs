@@ -61,5 +61,12 @@ namespace IntelliPM.Services.MeetingRescheduleRequestServices
                 throw new KeyNotFoundException("Reschedule request not found");
             await _repo.DeleteAsync(entity);
         }
+
+        public async Task<List<MeetingRescheduleRequestResponseDTO>> GetByRequesterIdAsync(int requesterId)
+        {
+            var entities = await _repo.GetByRequesterIdAsync(requesterId);
+            return _mapper.Map<List<MeetingRescheduleRequestResponseDTO>>(entities);
+        }
+
     }
 }
