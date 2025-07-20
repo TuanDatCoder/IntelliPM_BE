@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.ActivityLog.Request;
+using IntelliPM.Data.DTOs.ActivityLog.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
@@ -355,6 +357,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<TaskComment, TaskCommentResponseDTO>()
                  .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
                  .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
+
+            // ActivityLog
+            CreateMap<ActivityLogRequestDTO, ActivityLog>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<ActivityLog, ActivityLogResponseDTO>()
+                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByNavigation != null ? src.CreatedByNavigation.FullName : null));
 
             // SubtaskComment
             CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()
