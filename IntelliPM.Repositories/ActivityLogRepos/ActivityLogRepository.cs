@@ -44,6 +44,7 @@ namespace IntelliPM.Repositories.ActivityLogRepos
             return await _context.ActivityLog
                 .Include(s => s.CreatedByNavigation)
                 .Where(t => t.ProjectId == projectId)
+                .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
     }
