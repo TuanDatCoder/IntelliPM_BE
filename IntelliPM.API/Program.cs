@@ -91,6 +91,8 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.RecipientNotificationServices;
+using IntelliPM.Repositories.RecipientNotificationRepos;
 
 
 
@@ -146,16 +148,13 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
 builder.Services.AddScoped<IRiskSolutionRepository, RiskSolutionRepository>();
 builder.Services.AddScoped<IMeetingRescheduleRequestRepository, MeetingRescheduleRequestRepository>();
-
-
-
-
 builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
+builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -202,6 +201,7 @@ builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
 builder.Services.AddScoped<IWorkLogService, WorkLogService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IRecipientNotificationService, RecipientNotificationService>();
 
 
 
