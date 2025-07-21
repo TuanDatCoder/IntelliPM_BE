@@ -1,19 +1,12 @@
 ﻿using AutoMapper;
-using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
-using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.SprintServices
 {
@@ -32,7 +25,7 @@ namespace IntelliPM.Services.SprintServices
             _logger = logger;
             _taskService = taskService;
             _projectRepo = projectRepo;
-         
+
         }
 
         public async Task<List<SprintResponseDTO>> GetAllSprints()
@@ -89,16 +82,51 @@ namespace IntelliPM.Services.SprintServices
         }
 
 
-        public async Task<SprintResponseDTO> CreateSprintQuick(SprintQuickRequestDTO request)
+        public async Task<string> GenerateSprintNameAsync(int projectId, string projectKey)
+        {
+            var entities = await _repo.GetByProjectIdDescendingAsync(projectId);
+
+            int nextNumber = 1;
+
+            if (entities.Any())
+            {
+                string latestName = entities[0].Name?.Trim() ?? "";
+                var parts = latestName.Split(' ');
+                string lastPart = parts.LastOrDefault();
+
+                if (int.TryParse(lastPart, out int currentNumber))
+                {
+                    nextNumber = currentNumber + 1;
+
+                    string prefix = string.Join(" ", parts.Take(parts.Length - 1));
+                    return $"{prefix} {nextNumber}";
+                }
+                else
+                {
+                    return $"{latestName} 1";
+                }
+            }
+            return $"{projectKey} 1";
+        }
+
+
+
+        public async Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
 
+            var projectEntity = await _projectRepo.GetProjectByKeyAsync(request.projectKey);
 
-            var entity = _mapper.Map<Sprint>(request);
-            entity.CreatedAt = DateTime.Now;
-            entity.UpdatedAt = DateTime.Now;
+            if (projectEntity == null)
+                throw new Exception($"Project with key '{request.projectKey}' not found.");
 
+            var entity = new Sprint();
+            entity.ProjectId = projectEntity.Id;
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+            entity.Name = await GenerateSprintNameAsync(projectEntity.Id, projectEntity.ProjectKey);
+            entity.Status = "FUTURE";
 
 
             try
@@ -124,7 +152,7 @@ namespace IntelliPM.Services.SprintServices
                 throw new KeyNotFoundException($"Sprint with ID {id} not found.");
 
             _mapper.Map(request, entity);
-            entity.UpdatedAt = DateTime.UtcNow; 
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -165,6 +193,25 @@ namespace IntelliPM.Services.SprintServices
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            if (status.Equals("ACTIVE"))
+            {
+                entity.StartDate = DateTime.UtcNow;
+                if (entity.EndDate == null && entity.PlannedEndDate != null)
+                {
+                    entity.EndDate = entity.PlannedEndDate;
+                }
+
+            }
+            else if (status.Equals("COMPLETED"))
+            {
+                entity.EndDate = DateTime.UtcNow;
+                if (entity.StartDate == null && entity.PlannedStartDate != null)
+                {
+                    entity.StartDate = entity.PlannedStartDate;
+                }
+            }
+
 
             try
             {
@@ -207,8 +254,8 @@ namespace IntelliPM.Services.SprintServices
             foreach (var entity in entities)
             {
                 var sprintDto = _mapper.Map<SprintWithTaskListResponseDTO>(entity);
-                var tasks = await _taskService.GetTasksBySprintIdAsync(entity.Id); 
-                sprintDto.Tasks = tasks; 
+                var tasks = await _taskService.GetTasksBySprintIdAsync(entity.Id);
+                sprintDto.Tasks = tasks;
                 dtos.Add(sprintDto);
             }
 

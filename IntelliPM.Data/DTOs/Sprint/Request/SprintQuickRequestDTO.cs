@@ -11,7 +11,7 @@ namespace IntelliPM.Data.DTOs.Sprint.Request
     {
 
         [Required(ErrorMessage = "Project ID is required")]
-        public int ProjectId { get; set; }
+        public string projectKey { get; set; }
 
     }
 }
