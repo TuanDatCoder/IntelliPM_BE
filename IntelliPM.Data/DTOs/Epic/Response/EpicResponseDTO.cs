@@ -19,10 +19,16 @@ namespace IntelliPM.Data.DTOs.Epic.Response
         public DateTime UpdatedAt { get; set; }
         public string? Status { get; set; }
         public int? ReporterId { get; set; }
+        public string? ReporterFullname { get; set; }
+        public string? ReporterPicture { get; set; }
         public int? AssignedBy { get; set; }
+        public string? AssignedByFullname { get; set; }
+        public string? AssignedByPicture { get; set; }
         public int? SprintId { get; set; }
+        public string? SprintName { get; set; }
+        public string? SprintGoal { get; set; }
 
-        
+
     }
 
 

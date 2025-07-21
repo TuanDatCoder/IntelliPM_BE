@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.ProjectMember.Request;
+﻿using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
@@ -26,5 +27,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectMemberResponseDTO>> GetProjectMemberByProjectId(int projectId);
         Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests);
         Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId);
+
+        Task<ProjectMemberResponseDTO> ChangeProjectMemberStatus(int id, string status);
     }
 }

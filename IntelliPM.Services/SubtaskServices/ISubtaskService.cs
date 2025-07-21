@@ -22,11 +22,11 @@ namespace IntelliPM.Services.SubtaskServices
         Task DeleteSubtask(string id);
         Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
         Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId);
-        Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status);
+        Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status, int createdBy);
         Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId);
         Task<List<SubtaskResponseDTO>> SaveGeneratedSubtasks(List<SubtaskRequest2DTO> previews);
-
+        Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours);
     }
 }

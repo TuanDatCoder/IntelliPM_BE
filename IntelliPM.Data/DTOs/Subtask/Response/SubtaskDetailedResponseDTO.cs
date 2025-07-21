@@ -24,20 +24,14 @@ namespace IntelliPM.Data.DTOs.Subtask.Response
         public int? AssignedBy { get; set; }
         public string? Priority { get; set; }
         public int? SprintId { get; set; }
-
-        // Thông tin Reporter
+        public string? SprintName { get; set; }
         public string? ReporterFullname { get; set; }
         public string? ReporterPicture { get; set; }
-
-        // Thông tin AssignedBy
         public string? AssignedByFullname { get; set; }
         public string? AssignedByPicture { get; set; }
-
-        // Comment thông tin
         public int CommentCount { get; set; }
         public List<SubtaskCommentResponseDTO> Comments { get; set; } = new List<SubtaskCommentResponseDTO>();
 
-        // Label thông tin
         public List<LabelResponseDTO> Labels { get; set; } = new List<LabelResponseDTO>();
     }
 }

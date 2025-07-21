@@ -85,6 +85,12 @@ using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Services.EpicFileServices;
+using IntelliPM.Repositories.WorkLogRepos;
+using IntelliPM.Services.WorkLogServices;
+using Hangfire;
+using Hangfire.PostgreSql;
+using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Services.ActivityLogServices;
 
 
 
@@ -93,6 +99,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+builder.Services.AddHangfire(config =>
+{
+    config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddHangfireServer();
+
 
 
 //------------------------------AUTOMAPPER---------------------------
@@ -116,6 +129,7 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
@@ -141,6 +155,7 @@ builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
+builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -185,6 +200,9 @@ builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
+builder.Services.AddScoped<IWorkLogService, WorkLogService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
 
 
 // ------------------------- HttpClient -----------------------------
@@ -309,6 +327,15 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard();  
+app.UseHangfireServer();
+
+RecurringJob.AddOrUpdate<IWorkLogService>(
+    "generate-daily-worklog",
+    x => x.GenerateDailyWorkLogsAsync(),
+     "0 1 * * *"
+    // "*/1 * * * *"
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();

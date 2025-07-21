@@ -20,9 +20,17 @@ namespace IntelliPM.API.Controllers
             _documentService = documentService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<List<DocumentResponseDTO>>> GetAll()
+        {
+            var result = await _documentService.GetAllDocuments();
+            return Ok(result);
+        }
 
-        [HttpPost]
-        public async Task<ActionResult<DocumentResponseDTO>> Create([FromBody] DocumentRequestDTO request)
+
+
+        [HttpPost("request")]
+        public async Task<ActionResult<DocumentResponseDTO>> CreateDocumentRequest([FromBody] DocumentRequestDTO request)
         {
             var accountIdClaim = User.FindFirst("accountId")?.Value;
 
@@ -32,9 +40,27 @@ namespace IntelliPM.API.Controllers
             if (!int.TryParse(accountIdClaim, out var userId))
                 return BadRequest("Invalid user ID format");
 
-            var result = await _documentService.CreateDocument(request, userId); 
+            var result = await _documentService.CreateDocumentRequest(request, userId); 
             return Ok(result);
         }
+
+
+        [HttpPost("create")]
+        public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
+
+            var result = await _documentService.CreateDocument(request, userId);
+            return Ok(result);
+        }
+
+
 
 
         [HttpPut("{id}")]
@@ -127,13 +153,14 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+
         [HttpGet("status/{status}")]
         public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
         {
             var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
             if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
                 return BadRequest("Invalid status");
-
+                
             var result = await _documentService.GetDocumentsByStatus(status);
             return Ok(result);
         }
@@ -185,7 +212,7 @@ namespace IntelliPM.API.Controllers
             [FromQuery] int projectId,
             [FromQuery] string? epicId,
             [FromQuery] string? taskId,
-            [FromQuery] string? subTaskId)
+            [FromQuery] string? subTaskId)      
         {
             var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
             if (result == null)
@@ -199,6 +226,21 @@ namespace IntelliPM.API.Controllers
         {
             var mapping = await _documentService.GetUserDocumentMappingAsync(projectId, userId);
             return Ok(mapping);
+        }
+
+
+        [HttpGet("status-total")]
+        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummary()
+        {
+            var summary = await _documentService.GetStatusCount();
+            return Ok(summary);
+        }
+
+        [HttpGet("project/{projectId}/status-total")]
+        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummaryByProject(int projectId)
+        {
+            var result = await _documentService.GetStatusCountByProject(projectId);
+            return Ok(result);
         }
 
     }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
@@ -59,12 +60,12 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<ProjectMemberResponseDTO>(entity);
         }
 
-        public async Task<ProjectMemberResponseDTO> CreateProjectMember(int projectId,ProjectMemberNoProjectIdRequestDTO request)
+        public async Task<ProjectMemberResponseDTO> CreateProjectMember(int projectId, ProjectMemberNoProjectIdRequestDTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
             var existingProject = await _projectRepo.GetByIdAsync(projectId);
-            if( existingProject == null)
+            if (existingProject == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
             var existingMember = await _projectMemberRepo.GetByAccountAndProjectAsync(request.AccountId, projectId);
@@ -178,20 +179,48 @@ namespace IntelliPM.Services.ProjectMemberServices
             }
 
             var members = await _projectMemberRepo.GetAllAsync();
-            var accountProjects = members
-                .Where(pm => pm.AccountId == currentAccount.Id)
-                .Select(pm => new ProjectByAccountResponseDTO
-                {
-                    ProjectId = pm.ProjectId,
-                    ProjectName = pm.Project.Name,
-                    ProjectKey = pm.Project.ProjectKey,
-                    ProjectStatus = pm.Project.Status,
-                    IconUrl = pm.Project.IconUrl,
-                    JoinedAt = pm.JoinedAt,
-                    InvitedAt = pm.InvitedAt,
-                    Status = pm.Status
-                })
-                .ToList();
+            var accountProjects = new List<ProjectByAccountResponseDTO>();
+
+            var isLimitedRole = currentAccount.Role.Equals("TEAM_MEMBER", StringComparison.OrdinalIgnoreCase)
+                             || currentAccount.Role.Equals("CLIENT", StringComparison.OrdinalIgnoreCase);
+
+            if (isLimitedRole)
+            {
+                accountProjects = members
+                    .Where(pm => pm.AccountId == currentAccount.Id)
+                    .Where(pm =>
+                        !string.Equals(pm.Project.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(pm.Project.Status, "PLANNING", StringComparison.OrdinalIgnoreCase))
+                    .Select(pm => new ProjectByAccountResponseDTO
+                    {
+                        ProjectId = pm.ProjectId,
+                        ProjectName = pm.Project.Name,
+                        ProjectKey = pm.Project.ProjectKey,
+                        ProjectStatus = pm.Project.Status,
+                        IconUrl = pm.Project.IconUrl,
+                        JoinedAt = pm.JoinedAt,
+                        InvitedAt = pm.InvitedAt,
+                        Status = pm.Status
+                    })
+                    .ToList();
+            }
+            else
+            {
+                accountProjects = members
+                    .Where(pm => pm.AccountId == currentAccount.Id)
+                    .Select(pm => new ProjectByAccountResponseDTO
+                    {
+                        ProjectId = pm.ProjectId,
+                        ProjectName = pm.Project.Name,
+                        ProjectKey = pm.Project.ProjectKey,
+                        ProjectStatus = pm.Project.Status,
+                        IconUrl = pm.Project.IconUrl,
+                        JoinedAt = pm.JoinedAt,
+                        InvitedAt = pm.InvitedAt,
+                        Status = pm.Status
+                    })
+                    .ToList();
+            }
 
             if (!accountProjects.Any())
             {
@@ -376,6 +405,30 @@ namespace IntelliPM.Services.ProjectMemberServices
             }
 
             return responses;
+        }
+
+        public async Task<ProjectMemberResponseDTO> ChangeProjectMemberStatus(int id, string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                throw new ArgumentException("Status cannot be null or empty.");
+
+            var entity = await _projectMemberRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"ProjectMember with ID {id} not found.");
+
+            entity.Status = status;
+            entity.JoinedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _projectMemberRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change ProjectMember status: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<ProjectMemberResponseDTO>(entity);
         }
 
     }

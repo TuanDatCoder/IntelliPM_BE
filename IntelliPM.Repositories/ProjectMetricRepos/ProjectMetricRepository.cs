@@ -55,5 +55,12 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
             return await _context.ProjectMetric
                 .FirstOrDefaultAsync(pm => pm.ProjectId == projectId);
         }
+
+        public async Task<ProjectMetric?> GetByProjectIdAndCalculatedByAsync(int projectId, string calculatedBy)
+        {
+            return await _context.ProjectMetric
+                .FirstOrDefaultAsync(x => x.ProjectId == projectId && x.CalculatedBy == calculatedBy);
+        }
+
     }
 }

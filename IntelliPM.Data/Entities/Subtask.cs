@@ -80,4 +80,6 @@ public partial class Subtask
     public virtual Tasks Task { get; set; } = null!;
 
     public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
+
+    public virtual ICollection<WorkLog> WorkLog { get; set; } = new List<WorkLog>();
 }

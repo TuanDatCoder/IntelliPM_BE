@@ -3,6 +3,8 @@ using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.EpicComment.Response;
 using IntelliPM.Data.DTOs.Label.Response;
+using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -15,6 +17,7 @@ using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -205,7 +208,7 @@ namespace IntelliPM.Services.EpicServices
 
         private async Task EnrichEpicDetailedResponse(EpicDetailedResponseDTO epicDetailedDTO)
         {
-            // Lấy thông tin Reporter
+         
             if (epicDetailedDTO.ReporterId.HasValue)
             {
                 var reporter = await _accountRepo.GetAccountById(epicDetailedDTO.ReporterId.Value);
@@ -215,8 +218,6 @@ namespace IntelliPM.Services.EpicServices
                     epicDetailedDTO.ReporterPicture = reporter.Picture;
                 }
             }
-
-            // Lấy thông tin AssignedBy
             if (epicDetailedDTO.AssignedBy.HasValue)
             {
                 var assignedBy = await _accountRepo.GetAccountById(epicDetailedDTO.AssignedBy.Value);
@@ -226,23 +227,22 @@ namespace IntelliPM.Services.EpicServices
                     epicDetailedDTO.AssignedByPicture = assignedBy.Picture;
                 }
             }
-
-      
             var allComments = await _epicCommentService.GetAllEpicComment();
             var epicComments = allComments.Where(c => c.EpicId == epicDetailedDTO.Id).ToList();
             epicDetailedDTO.CommentCount = epicComments.Count;
             epicDetailedDTO.Comments = _mapper.Map<List<EpicCommentResponseDTO>>(epicComments);
 
             var labels = await _workItemLabelService.GetByEpicIdAsync(epicDetailedDTO.Id);
-            epicDetailedDTO.Labels = (await Task.WhenAll(labels.Select(async l =>
+            var labelDtos = new List<LabelResponseDTO>();
+            foreach (var l in labels)
             {
                 var label = await _workItemLabelService.GetLabelById(l.LabelId);
-                return _mapper.Map<LabelResponseDTO>(label);
-            }))).ToList();
+                labelDtos.Add(_mapper.Map<LabelResponseDTO>(label));
+            }
+            epicDetailedDTO.Labels = labelDtos;
 
             epicDetailedDTO.Type = "EPIC";
         }
-
 
         public async Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request)
         {
@@ -335,6 +335,120 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
+        public async Task<EpicTasksStatsResponseDTO> GetTasksByEpicIdWithStatsAsync(string epicId)
+        {
+            if (string.IsNullOrEmpty(epicId))
+                throw new ArgumentException("Epic ID cannot be null or empty.");
+
+            var epic = await _epicRepo.GetByIdAsync(epicId);
+            if (epic == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
+
+            var taskEntities = await _taskRepo.GetByEpicIdAsync(epicId);
+            if (taskEntities == null || !taskEntities.Any())
+                throw new KeyNotFoundException($"No tasks found for Epic ID {epicId}.");
+
+            var taskDtos = _mapper.Map<List<TaskBacklogResponseDTO>>(taskEntities);
+
+            var taskIds = taskDtos.Select(t => t.Id).ToList();
+            var allAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(epic.ProjectId);
+
+            var assignmentsByTaskId = allAssignments
+                .GroupBy(a => a.TaskId)
+                .ToDictionary(g => g.Key, g => g.Select(a => _mapper.Map<TaskAssignmentResponseDTO>(a)).ToList());
+
+            foreach (var task in taskDtos)
+            {
+                if (assignmentsByTaskId.TryGetValue(task.Id, out var taskAssignments))
+                {
+                    task.TaskAssignments = taskAssignments;
+                }
+                else
+                {
+                    task.TaskAssignments = new List<TaskAssignmentResponseDTO>();
+                }
+            }
+
+
+            var stats = new EpicTasksStatsResponseDTO
+            {
+                Tasks = taskDtos,
+                TotalTasks = taskDtos.Count,
+                TotalToDoTasks = taskDtos.Count(t => t.Status == "TO_DO"),
+                TotalInProgressTasks = taskDtos.Count(t => t.Status == "IN_PROGRESS"),
+                TotalDoneTasks = taskDtos.Count(t => t.Status == "DONE")
+            };
+
+            return stats;
+        }
+        public async Task<List<EpicWithStatsResponseDTO>> GetEpicsWithTasksByProjectKeyAsync(string projectKey)
+        {
+
+            if (string.IsNullOrEmpty(projectKey))
+            {
+                throw new ArgumentException("Project key cannot be null or empty.");
+            }
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+            {
+                throw new KeyNotFoundException($"Project with key {projectKey} not found.");
+            }
+
+            var epicEntities = await _epicRepo.GetByProjectKeyAsync(projectKey);
+            if (epicEntities == null || !epicEntities.Any())
+            {
+                _logger.LogWarning("No epics found for projectKey: {ProjectKey}. Returning empty list.", projectKey);
+                return new List<EpicWithStatsResponseDTO>();
+            }
+
+            var allTasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var validTasks = allTasks.Where(t => t.EpicId != null).ToList();
+            var tasksByEpicId = validTasks
+                .GroupBy(t => t.EpicId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = new List<EpicWithStatsResponseDTO>();
+            foreach (var epic in epicEntities)
+            {
+                _logger.LogInformation("Processing epic: {EpicId}", epic.Id);
+                var taskEntities = tasksByEpicId.TryGetValue(epic.Id, out var tasks) ? tasks : new List<Tasks>();
+                var taskDtos = _mapper.Map<List<TaskBacklogResponseDTO>>(taskEntities);
+
+                var epicDto = _mapper.Map<EpicWithStatsResponseDTO>(epic);
+
+                if (epic.ReporterId.HasValue)
+                {
+                    var reporter = await _accountRepo.GetAccountById(epic.ReporterId.Value);
+                    if (reporter != null)
+                    {
+                        epicDto.ReporterFullname = reporter.FullName;
+                        epicDto.ReporterPicture = reporter.Picture;
+                    }
+                }
+
+
+                if (epic.AssignedBy.HasValue)
+                {
+                    var assignedBy = await _accountRepo.GetAccountById(epic.AssignedBy.Value);
+                    if (assignedBy != null)
+                    {
+                        epicDto.AssignedByFullname = assignedBy.FullName;
+                        epicDto.AssignedByPicture = assignedBy.Picture;
+                    }
+                }
+
+
+                epicDto.TotalTasks = taskDtos.Count;
+                epicDto.TotalToDoTasks = taskDtos.Count(t => t.Status == "TO_DO");
+                epicDto.TotalInProgressTasks = taskDtos.Count(t => t.Status == "IN_PROGRESS");
+                epicDto.TotalDoneTasks = taskDtos.Count(t => t.Status == "DONE");
+
+                result.Add(epicDto);
+            }
+
+            return result;
+        }
 
 
 
