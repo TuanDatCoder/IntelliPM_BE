@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IntelliPM.Data.Entities;
 
@@ -28,17 +27,17 @@ public partial class Document
 
     public bool IsActive { get; set; }
 
-    public string? Status { get; set; }
-
     public int CreatedBy { get; set; }
 
     public int? UpdatedBy { get; set; }
 
-    public int? ApproverId { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public string? Status { get; set; }
+
+    public int? ApproverId { get; set; }
 
     public virtual Account? Approver { get; set; }
 

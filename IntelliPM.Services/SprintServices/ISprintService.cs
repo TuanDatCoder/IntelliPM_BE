@@ -19,5 +19,6 @@ namespace IntelliPM.Services.SprintServices
         Task<SprintResponseDTO> ChangeSprintStatus(int id, string status);
         Task<List<SprintResponseDTO>> GetSprintByProjectId(int projectId);
         Task<List<SprintWithTaskListResponseDTO>> GetSprintsByProjectKeyWithTasksAsync(string projectKey);
+        Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request);
     }
 }
