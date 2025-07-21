@@ -1372,6 +1372,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.RiskId).HasColumnName("risk_id");
 
+            entity.HasOne(d => d.Account).WithMany(p => p.RiskComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_risk_comment_account");
+
             entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.RiskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

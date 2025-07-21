@@ -507,7 +507,8 @@ CREATE TABLE risk_comment (
     account_id INT NOT NULL,
     comment TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (risk_id) REFERENCES risk(id)
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (account_id) REFERENCES account(id);
 );
 
 -- 34. change_request
