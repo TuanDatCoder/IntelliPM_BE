@@ -84,6 +84,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
                 .Where(t => t.EpicId == epicId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
