@@ -1406,6 +1406,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.RiskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_file_risk_id_fkey");
+
+            entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.RiskFile)
+                .HasForeignKey(d => d.UploadedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_risk_file_uploaded_by");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>

@@ -18,4 +18,6 @@ public partial class RiskFile
     public DateTime UploadedAt { get; set; }
 
     public virtual Risk Risk { get; set; } = null!;
+
+    public virtual Account UploadedByNavigation { get; set; } = null!;
 }
