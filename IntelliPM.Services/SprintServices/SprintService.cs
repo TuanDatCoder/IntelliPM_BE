@@ -88,6 +88,35 @@ namespace IntelliPM.Services.SprintServices
             return _mapper.Map<SprintResponseDTO>(entity);
         }
 
+
+        public async Task<SprintResponseDTO> CreateSprintQuick(SprintQuickRequestDTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+
+            var entity = _mapper.Map<Sprint>(request);
+            entity.CreatedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.Now;
+
+
+
+            try
+            {
+                await _repo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to create sprint due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create sprint: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<SprintResponseDTO>(entity);
+        }
+
         public async Task<SprintResponseDTO> UpdateSprint(int id, SprintRequestDTO request)
         {
             var entity = await _repo.GetByIdAsync(id);
