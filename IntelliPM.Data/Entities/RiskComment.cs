@@ -15,5 +15,7 @@ public partial class RiskComment
 
     public DateTime CreatedAt { get; set; }
 
+    public virtual Account Account { get; set; } = null!;
+
     public virtual Risk Risk { get; set; } = null!;
 }
