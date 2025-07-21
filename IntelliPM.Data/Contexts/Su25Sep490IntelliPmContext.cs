@@ -92,6 +92,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Risk> Risk { get; set; }
 
+    public virtual DbSet<RiskComment> RiskComment { get; set; }
+
+    public virtual DbSet<RiskFile> RiskFile { get; set; }
+
     public virtual DbSet<RiskSolution> RiskSolution { get; set; }
 
     public virtual DbSet<Schema> Schema { get; set; }
@@ -139,10 +143,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
-
+    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1288,10 +1291,13 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.ToTable("risk");
 
+            entity.HasIndex(e => e.RiskKey, "risk_risk_key_key").IsUnique();
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.DueDate).HasColumnName("due_date");
             entity.Property(e => e.GeneratedBy)
@@ -1308,6 +1314,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("probability");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.ResponsibleId).HasColumnName("responsible_id");
+            entity.Property(e => e.RiskKey)
+                .HasMaxLength(20)
+                .HasColumnName("risk_key");
             entity.Property(e => e.RiskScope)
                 .HasMaxLength(255)
                 .HasColumnName("risk_scope");
@@ -1330,18 +1339,68 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
 
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_risk_created_by");
+
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_project_id_fkey");
 
-            entity.HasOne(d => d.Responsible).WithMany(p => p.Risk)
+            entity.HasOne(d => d.Responsible).WithMany(p => p.RiskResponsible)
                 .HasForeignKey(d => d.ResponsibleId)
                 .HasConstraintName("risk_responsible_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("risk_task_id_fkey");
+        });
+
+        modelBuilder.Entity<RiskComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("risk_comment_pkey");
+
+            entity.ToTable("risk_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Comment).HasColumnName("comment");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.RiskId).HasColumnName("risk_id");
+
+            entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
+                .HasForeignKey(d => d.RiskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_comment_risk_id_fkey");
+        });
+
+        modelBuilder.Entity<RiskFile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("risk_file_pkey");
+
+            entity.ToTable("risk_file");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(255)
+                .HasColumnName("file_name");
+            entity.Property(e => e.FileUrl)
+                .HasMaxLength(1024)
+                .HasColumnName("file_url");
+            entity.Property(e => e.RiskId).HasColumnName("risk_id");
+            entity.Property(e => e.UploadedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("uploaded_at");
+            entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
+
+            entity.HasOne(d => d.Risk).WithMany(p => p.RiskFile)
+                .HasForeignKey(d => d.RiskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_file_risk_id_fkey");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>
