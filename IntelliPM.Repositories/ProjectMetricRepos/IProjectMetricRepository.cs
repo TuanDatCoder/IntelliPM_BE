@@ -16,5 +16,7 @@ namespace IntelliPM.Repositories.ProjectMetricRepos
         Task Add(ProjectMetric metric);
         Task Update(ProjectMetric metric);
         Task<ProjectMetric?> GetLatestByProjectIdAsync(int projectId);
+        Task<ProjectMetric?> GetByProjectIdAndCalculatedByAsync(int projectId, string calculatedBy);
+
     }
 }

@@ -100,18 +100,6 @@ namespace IntelliPM.API.Controllers
             });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] RiskRequestDTO request)
-        {
-            await _riskService.AddAsync(request);
-            return Ok(new ApiResponseDTO
-            {
-                IsSuccess = true,
-                Code = 200,
-                Message = "Created risk successfully"
-            });
-        }
-
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RiskRequestDTO request)
         {
@@ -220,6 +208,32 @@ namespace IntelliPM.API.Controllers
                 {
                     isSuccess = false,
                     code = 500,
+                    message = ex.Message
+                });
+            }
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] RiskCreateRequestDTO request)
+        {
+            try
+            {
+                var result = await _riskService.CreateRiskAsync(request);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    data = result,
+                    message = "Risk created successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
                     message = ex.Message
                 });
             }

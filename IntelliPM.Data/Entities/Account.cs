@@ -77,7 +77,13 @@ public partial class Account
 
     public virtual ICollection<RefreshToken> RefreshToken { get; set; } = new List<RefreshToken>();
 
-    public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
+    public virtual ICollection<RiskComment> RiskComment { get; set; } = new List<RiskComment>();
+
+    public virtual ICollection<Risk> RiskCreatedByNavigation { get; set; } = new List<Risk>();
+
+    public virtual ICollection<RiskFile> RiskFile { get; set; } = new List<RiskFile>();
+
+    public virtual ICollection<Risk> RiskResponsible { get; set; } = new List<Risk>();
 
     public virtual ICollection<Subtask> SubtaskAssignedByNavigation { get; set; } = new List<Subtask>();
 

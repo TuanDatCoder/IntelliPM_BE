@@ -279,5 +279,40 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPatch("{id}/status/{status}")]
+        public async Task<IActionResult> ChangeStatus(int id, string status)
+        {
+            try
+            {
+                var updated = await _service.ChangeProjectMemberStatus(id, status);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Project status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating project member status: {ex.Message}"
+                });
+            }
+        }
+
+
     }
 }
