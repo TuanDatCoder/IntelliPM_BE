@@ -497,7 +497,8 @@ CREATE TABLE risk_file (
     file_url VARCHAR(1024) NOT NULL, 
     uploaded_by INT NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (risk_id) REFERENCES risk(id)
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (uploaded_by) REFERENCES account(id);
 );
 
 -- 33. risk_comment
@@ -507,7 +508,8 @@ CREATE TABLE risk_comment (
     account_id INT NOT NULL,
     comment TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (risk_id) REFERENCES risk(id)
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (account_id) REFERENCES account(id);
 );
 
 -- 34. change_request

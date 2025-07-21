@@ -1372,6 +1372,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.RiskId).HasColumnName("risk_id");
 
+            entity.HasOne(d => d.Account).WithMany(p => p.RiskComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_risk_comment_account");
+
             entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.RiskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1401,6 +1406,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.RiskId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_file_risk_id_fkey");
+
+            entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.RiskFile)
+                .HasForeignKey(d => d.UploadedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_risk_file_uploaded_by");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>
