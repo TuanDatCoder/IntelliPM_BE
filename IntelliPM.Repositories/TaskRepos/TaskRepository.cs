@@ -93,6 +93,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
+                .Include(e => e.Epic)
                 .Where(t => t.SprintId == sprintId)
                 .ToListAsync();
         }

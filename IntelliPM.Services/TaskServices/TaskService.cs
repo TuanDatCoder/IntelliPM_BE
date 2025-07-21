@@ -352,8 +352,6 @@ namespace IntelliPM.Services.TaskServices
         }
 
 
-
-
         public async Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
