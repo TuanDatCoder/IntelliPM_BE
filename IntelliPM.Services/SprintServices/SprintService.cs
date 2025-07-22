@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.Entities;
@@ -369,6 +368,66 @@ namespace IntelliPM.Services.SprintServices
 
             return checkSprintDate > project.StartDate.Value && checkSprintDate < project.EndDate.Value;
         }
+
+
+        public async Task<string> MoveTaskToSprint(int sprintOldId, int sprintNewId, string type)
+        {
+            var validTypes = new[] { "BACKLOG", "CHANGE", "NEW_SPRINT" };
+            if (!validTypes.Contains(type))
+                throw new ArgumentException($"Invalid type '{type}'. Must be one of: BACKLOG, CHANGE, NEW_SPRINT.");
+
+            var sprintOld = await _repo.GetByIdAsync(sprintOldId);
+            if (sprintOld == null)
+                throw new KeyNotFoundException($"Sprint with id '{sprintOldId}' not found.");
+
+            int? sprintNewIdNull = sprintNewId;
+
+            if (type.Equals("CHANGE", StringComparison.OrdinalIgnoreCase))
+            {
+                var sprintNew = await _repo.GetByIdAsync(sprintNewId);
+                if (sprintNew == null)
+                    throw new KeyNotFoundException($"Sprint with id '{sprintNewId}' not found.");
+            }
+            else if (type.Equals("NEW_SPRINT", StringComparison.OrdinalIgnoreCase))
+            {
+                var projectEntity = await _projectRepo.GetByIdAsync(sprintOld.ProjectId);
+                if (projectEntity == null)
+                    throw new KeyNotFoundException($"Project with Id '{sprintOld.ProjectId}' not found.");
+
+                SprintQuickRequestDTO sprintQuickRequestDTO = new SprintQuickRequestDTO
+                {
+                    projectKey = projectEntity.ProjectKey
+                };
+
+                var sprint = await CreateSprintQuickAsync(sprintQuickRequestDTO);
+                sprintNewIdNull = sprint.Id;
+            }
+            else if (type.Equals("BACKLOG", StringComparison.OrdinalIgnoreCase))
+            {
+                sprintNewIdNull = null;
+            }
+
+            var tasksToMove = await _taskRepo.GetBySprintIdAsync(sprintOldId);
+            if (tasksToMove == null || !tasksToMove.Any())
+                throw new KeyNotFoundException($"No tasks found in sprint with id '{sprintOldId}'.");
+
+            int movedCount = 0;
+            foreach (var task in tasksToMove)
+            {
+                if (!string.Equals(task.Status, "DONE", StringComparison.OrdinalIgnoreCase))
+                {
+                    task.SprintId = sprintNewIdNull;
+                    await _taskRepo.Update(task);
+                    movedCount++;
+                }
+            }
+
+            return $"Moved {movedCount} task(s) from Sprint {sprintOldId} to {(sprintNewIdNull.HasValue ? $"Sprint {sprintNewIdNull}" : "Backlog")}.";
+        }
+
+
+
+
 
     }
 }
