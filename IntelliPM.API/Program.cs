@@ -90,6 +90,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
+using IntelliPM.Services.MeetingRescheduleRequestServices;
+using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
+using IntelliPM.Services.ProjectRecommendationServices;
+using IntelliPM.Services.ChatGPTServices;
+using IntelliPM.Repositories.EpicFileRepos;
+using IntelliPM.Services.EpicFileServices;
+using IntelliPM.Repositories.WorkLogRepos;
+using IntelliPM.Services.WorkLogServices;
+using Hangfire;
+using Hangfire.PostgreSql;
+using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.RecipientNotificationServices;
+using IntelliPM.Repositories.RecipientNotificationRepos;
 
 
 
@@ -128,6 +144,7 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
@@ -144,16 +161,13 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IRiskRepository, RiskRepository>();
 builder.Services.AddScoped<IRiskSolutionRepository, RiskSolutionRepository>();
 builder.Services.AddScoped<IMeetingRescheduleRequestRepository, MeetingRescheduleRequestRepository>();
-
-
-
-
 builder.Services.AddScoped<IEpicCommentRepository, EpicCommentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IWorkItemLabelRepository, WorkItemLabelRepository>();
 builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendationRepository>();
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
+builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -199,6 +213,9 @@ builder.Services.AddScoped<IWorkItemLabelService, WorkItemLabelService>();
 builder.Services.AddHttpClient<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationService>();
 builder.Services.AddScoped<IWorkLogService, WorkLogService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IRecipientNotificationService, RecipientNotificationService>();
+
 builder.Services.AddScoped<INotificationService, NotificationService>(); 
 
 

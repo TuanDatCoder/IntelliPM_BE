@@ -20,12 +20,14 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,8 +53,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         private readonly ISprintRepository _sprintRepo;
         private readonly IWorkLogService _workLogService;
+        private readonly IActivityLogService _activityLogService;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -68,6 +71,7 @@ namespace IntelliPM.Services.TaskServices
             _dynamicCategoryRepo = dynamicCategoryRepo;
             _workLogService = workLogService;
             _sprintRepo = sprintRepo;
+            _activityLogService = activityLogService;
         }
       
 
@@ -136,12 +140,38 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Add(entity);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "CREATE",
+                    Message = $"Created task '{entity.Id}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                if (!string.IsNullOrEmpty(entity.EpicId))
+                {
+                    var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
+                    if (epic != null && epic.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        epic.Status = "IN_PROGRESS";
+                        epic.UpdatedAt = DateTime.UtcNow;
+                        await _epicRepo.Update(epic);
+                    }
+                }
+
                 //await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (DbUpdateException ex)
             {
                 throw new Exception($"Failed to create task due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
+
             catch (Exception ex)
             {
                 throw new Exception($"Failed to create task: {ex.Message}", ex);
@@ -227,7 +257,7 @@ namespace IntelliPM.Services.TaskServices
             }
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskStatus(string id, string status)
+        public async Task<TaskResponseDTO> ChangeTaskStatus(string id, string status, int createdBy)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
@@ -250,9 +280,46 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed status of task '{entity.Id}' to '{status}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+
                 if (isInProgress)
                 {
                     await _workLogService.GenerateDailyWorkLogsAsync();
+                }
+
+                var parentEpicId = entity.EpicId;
+                var allTasks = await _taskRepo.GetByEpicIdAsync(parentEpicId);
+
+                var parentEpic = await _epicRepo.GetByIdAsync(parentEpicId);
+                if (parentEpic != null)
+                {
+                    if (allTasks.All(st => st.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        parentEpic.Status = "DONE";
+                        parentEpic.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else if (allTasks.Any(st => st.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        parentEpic.Status = "IN_PROGRESS";
+                        parentEpic.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+
+                    }
+                    parentEpic.UpdatedAt = DateTime.UtcNow;
+                    await _epicRepo.Update(parentEpic);
                 }
             }
             catch (Exception ex)
@@ -262,6 +329,7 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
         {
@@ -288,7 +356,7 @@ namespace IntelliPM.Services.TaskServices
         }
 
 
-        public async Task<TaskResponseDTO> ChangeTaskType(string id, string type)
+        public async Task<TaskResponseDTO> ChangeTaskType(string id, string type, int createdBy)
         {
             if (string.IsNullOrEmpty(type))
                 throw new ArgumentException("Type cannot be null or empty.");
@@ -303,6 +371,18 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed type of task '{entity.Id}' to '{type}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -311,8 +391,6 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
-
-
 
 
         public async Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id)
@@ -382,7 +460,7 @@ namespace IntelliPM.Services.TaskServices
             dto.Labels = labelDtos;
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title)
+        public async Task<TaskResponseDTO> ChangeTaskTitle(string id, string title, int createdBy)
         {
             if (string.IsNullOrEmpty(title))
                 throw new ArgumentException("Title cannot be null or empty.");
@@ -397,6 +475,19 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed title of task '{entity.Id}' to '{title}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+
             }
             catch (Exception ex)
             {
@@ -406,7 +497,7 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate)
+        public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -419,6 +510,18 @@ namespace IntelliPM.Services.TaskServices
             {
                 await _taskRepo.Update(entity);
                 //await CalculatePlannedHoursAsync(entity.Id);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed planned start date of task '{entity.Id}' to '{plannedStartDate}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -428,11 +531,11 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate)
+        public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
-                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+                throw new KeyNotFoundException($"Planned EndDate with task ID {id} not found.");
 
             entity.PlannedEndDate = plannedEndDate;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -441,6 +544,18 @@ namespace IntelliPM.Services.TaskServices
             {
                 await _taskRepo.Update(entity);
                 //await CalculatePlannedHoursAsync(entity.Id);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed Planned End Date of task '{entity.Id}' to '{plannedEndDate}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -450,7 +565,7 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskDescription(string id, string description)
+        public async Task<TaskResponseDTO> ChangeTaskDescription(string id, string description, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -462,15 +577,25 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed description of task '{entity.Id}' to '{description}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
                 throw new Exception($"Failed to change task Description: {ex.Message}", ex);
             }
-
             return _mapper.Map<TaskResponseDTO>(entity);
         }
-
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours)
         {
@@ -519,8 +644,31 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-      
+            var sprint = await _epicRepo.GetByIdAsync(epicId);
+            if (sprint == null)
+                throw new KeyNotFoundException($"Epic with ID {id} not found.");
+
+            entity.EpicId = epicId;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
         public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
         {
             return await _taskRepo.GetTaskWithSubtasksAsync(id);

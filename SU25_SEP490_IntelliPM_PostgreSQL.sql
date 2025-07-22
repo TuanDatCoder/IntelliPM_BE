@@ -84,6 +84,13 @@ CREATE TABLE sprint (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
+ALTER TABLE sprint
+ADD COLUMN planned_start_date TIMESTAMPTZ NULL;
+
+ALTER TABLE sprint
+ADD COLUMN planned_end_date TIMESTAMPTZ NULL;
+
+
 
 -- 6. epic
 CREATE TABLE epic (
@@ -454,7 +461,9 @@ CREATE TABLE milestone_feedback (
 -- 30. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
+    risk_key VARCHAR(20) NOT NULL UNIQUE,
     responsible_id INT NULL,
+    created_by INT NOT NULL,
     project_id INT NOT NULL,
     task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
@@ -472,6 +481,7 @@ CREATE TABLE risk (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (responsible_id) REFERENCES account(id),
+    FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
@@ -486,7 +496,30 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 32. change_request
+-- 32. risk_file
+CREATE TABLE risk_file (
+    id SERIAL PRIMARY KEY,
+    risk_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_url VARCHAR(1024) NOT NULL, 
+    uploaded_by INT NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (uploaded_by) REFERENCES account(id);
+);
+
+-- 33. risk_comment
+CREATE TABLE risk_comment (
+    id SERIAL PRIMARY KEY,
+    risk_id INT NOT NULL,
+    account_id INT NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (account_id) REFERENCES account(id);
+);
+
+-- 34. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -500,7 +533,7 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 33. project_recommendation
+-- 35. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -512,7 +545,7 @@ CREATE TABLE project_recommendation (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 34. label
+-- 36. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -523,7 +556,7 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 35. work_item_label
+-- 37. work_item_label
 CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
@@ -538,7 +571,7 @@ CREATE TABLE work_item_label (
     UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
--- 36. work_log
+-- 38. work_log
 CREATE TABLE work_log (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NULL,     
@@ -551,7 +584,7 @@ CREATE TABLE work_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 37. requirement
+-- 39. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -564,7 +597,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 38. project_metric
+-- 40. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -588,7 +621,7 @@ CREATE TABLE project_metric (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 39. system_configuration
+-- 41. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -604,7 +637,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 40. dynamic_category
+-- 42. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -619,7 +652,7 @@ CREATE TABLE dynamic_category (
     UNIQUE (category_group, name)
 );
 
--- 41. activity_log
+-- 43. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
@@ -639,7 +672,7 @@ CREATE TABLE activity_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 42. meeting_reschedule_request
+-- 44. meeting_reschedule_request
 CREATE TABLE meeting_reschedule_request (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -968,13 +1001,13 @@ VALUES
 
 -- Insert sample data into risk
 -- Insert sample data into risk with the 'due_date' column
-INSERT INTO risk (responsible_id, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved, due_date)
+INSERT INTO risk (risk_key, responsible_id, created_by, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved, due_date)
 VALUES 
-    (1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE, '2025-07-20 00:00:00+00'),
-    (2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE, '2025-07-25 00:00:00+00'),
-    (3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE, '2025-09-10 00:00:00+00'),
-    (4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE, '2025-09-15 00:00:00+00'),
-    (5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE, '2025-10-25 00:00:00+00');
+    ('RISK-001', 1, 1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE, '2025-07-20 00:00:00+00'),
+    ('RISK-002', 2, 2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE, '2025-07-25 00:00:00+00'),
+    ('RISK-003', 3, 3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE, '2025-09-10 00:00:00+00'),
+    ('RISK-004', 4, 4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE, '2025-09-15 00:00:00+00'),
+    ('RISK-005', 5, 5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE, '2025-10-25 00:00:00+00');
 
 -- Insert sample data into risk_solution
 INSERT INTO risk_solution (risk_id, mitigation_plan, contingency_plan)
@@ -1166,11 +1199,14 @@ VALUES
     ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, NULL),
     ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, NULL),
     ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, NULL),
+    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, NULL),
     ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
     ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
     ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
     ('risk_type', 'QUALITY', 'Quality', 'Quality risk', 4, NULL, NULL),
     ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5, NULL, NULL),
+    ('risk_type', 'TECHNICAL', 'Technical', 'Technical risk', 6, NULL, NULL),
+    ('risk_type', 'SECURITY', 'Security', 'Security risk', 7, NULL, NULL),
     ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1, NULL, NULL),
     ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
     ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
@@ -1214,7 +1250,9 @@ VALUES
     ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
     ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
-    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL);
+    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
+    ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
+    ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14');
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025
