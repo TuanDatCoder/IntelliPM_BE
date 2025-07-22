@@ -58,6 +58,7 @@ namespace IntelliPM.Repositories.RiskRepos
         {
             return await _context.Risk
                 .Include(r => r.Responsible)
+                .Include(r => r.CreatedByNavigation)
                 .Include(r => r.RiskSolution)
                 .Where(m => m.ProjectId == projectId)
                 .ToListAsync();
