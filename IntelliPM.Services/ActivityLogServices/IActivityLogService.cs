@@ -17,5 +17,7 @@ namespace IntelliPM.Services.ActivityLogServices
         Task<List<ActivityLogResponseDTO>> GetAllActivityLogList();
         Task<ActivityLogResponseDTO> GetActivityLogById(int id);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsByProjectId(int projectId);
+        Task<List<ActivityLogResponseDTO>> GetActivityLogsByTaskId(string taskId);
+        Task<List<ActivityLogResponseDTO>> GetActivityLogsBySubtaskId(string subtaskId);
     }
 }

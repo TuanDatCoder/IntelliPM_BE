@@ -15,7 +15,7 @@ namespace IntelliPM.Services.SubtaskCommentServices
         Task<SubtaskCommentResponseDTO> GetSubtaskCommentById(int id);
         Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request);
         Task<SubtaskCommentResponseDTO> UpdateSubtaskComment(int id, SubtaskCommentRequestDTO request);
-        Task DeleteSubtaskComment(int id);
+        Task DeleteSubtaskComment(int id, int createdBy);
         Task<List<SubtaskCommentResponseDTO>> GetSubtaskCommentBySubtaskIdAsync(string subtaskId);
     }
 }

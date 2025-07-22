@@ -11,6 +11,16 @@ namespace IntelliPM.Data.DTOs.Risk.Response
     {
         public int Id { get; set; }
 
+        public string RiskKey { get; set; } = null!;
+
+        public int CreatedBy { get; set; }
+
+        public string CreatorFullName { get; set; } = null!;
+
+        public string CreatorUserName { get; set; } = null!;
+
+        public string? CreatorPicture { get; set; }
+
         public int ResponsibleId { get; set; }
 
         public string ResponsibleFullName { get; set; } = null!;
