@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.Entities;
@@ -152,7 +153,27 @@ namespace IntelliPM.Services.SprintServices
                 throw new KeyNotFoundException($"Sprint with ID {id} not found.");
 
             _mapper.Map(request, entity);
+
+            entity.Status = request.Status;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            if (request.Status.Equals("ACTIVE"))
+            {
+                entity.StartDate = DateTime.UtcNow;
+                if (entity.EndDate == null && entity.PlannedEndDate != null)
+                {
+                    entity.EndDate = entity.PlannedEndDate;
+                }
+
+            }
+            else if (request.Status.Equals("COMPLETED"))
+            {
+                entity.EndDate = DateTime.UtcNow;
+                if (entity.StartDate == null && entity.PlannedStartDate != null)
+                {
+                    entity.StartDate = entity.PlannedStartDate;
+                }
+            }
 
             try
             {
@@ -262,6 +283,55 @@ namespace IntelliPM.Services.SprintServices
             return dtos;
         }
 
+
+        public async Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+            var dateWithinProject = await IsSprintWithinProject(projectKey, checkStartDate);
+
+            if (!dateWithinProject)
+                return (false, "current date is not in project");
+
+            var entities = await _repo.GetByProjectIdDescendingAsync(project.Id);
+            if (entities == null || !entities.Any())
+                return (true, "Valid date");
+
+            var latestSprint = entities[0];
+            if (!latestSprint.EndDate.HasValue)
+            {
+                if (latestSprint.PlannedEndDate.HasValue)
+                {
+                    if (checkStartDate > latestSprint.PlannedEndDate.Value)
+                        return (true, "Start date is valid.");
+                    return (false, $"Start date must be after planned end date ({latestSprint.PlannedEndDate.Value}).");
+                }
+                return (true, "No end date or planned end date set for the latest sprint.");
+            }
+
+            if (checkStartDate > latestSprint.EndDate.Value)
+                return (true, "Start date is valid.");
+            return (false, $"Start date must be after end date ({latestSprint.EndDate.Value}).");
+        }
+
+
+
+        public async Task<bool> IsSprintWithinProject(string projectKey, DateTime checkSprintDate)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+            if (!project.StartDate.HasValue || !project.EndDate.HasValue)
+                throw new ArgumentException($"Project '{projectKey}' has invalid start or end date.");
+
+            if (project.StartDate.Value >= project.EndDate.Value)
+                throw new ArgumentException($"Project '{projectKey}' has invalid date range: start date must be before end date.");
+
+            return checkSprintDate > project.StartDate.Value && checkSprintDate < project.EndDate.Value;
+        }
 
     }
 }
