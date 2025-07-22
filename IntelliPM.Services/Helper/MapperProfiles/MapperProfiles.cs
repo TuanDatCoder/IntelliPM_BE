@@ -271,6 +271,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ResponsibleFullName, opt => opt.MapFrom(src => src.Responsible.FullName))
                 .ForMember(dest => dest.ResponsibleUserName, opt => opt.MapFrom(src => src.Responsible.Username))
                 .ForMember(dest => dest.ResponsiblePicture, opt => opt.MapFrom(src => src.Responsible.Picture))
+                .ForMember(dest => dest.CreatorFullName, opt => opt.MapFrom(src => src.CreatedByNavigation.FullName))
+                .ForMember(dest => dest.CreatorUserName, opt => opt.MapFrom(src => src.CreatedByNavigation.Username))
+                .ForMember(dest => dest.CreatorPicture, opt => opt.MapFrom(src => src.CreatedByNavigation.Picture))
                 .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
             CreateMap<RiskRequestDTO, Risk>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
