@@ -14,5 +14,7 @@ namespace IntelliPM.Data.DTOs.SubtaskComment.Request
 
         public string Content { get; set; } = null!;
 
+        public int CreatedBy { get; set; }
+
     }
 }
