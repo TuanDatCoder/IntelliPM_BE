@@ -13,5 +13,9 @@ namespace IntelliPM.Repositories.ActivityLogRepos
         Task<List<ActivityLog>> GetAllActivityLog();
         Task<ActivityLog?> GetByIdAsync(int id);
         Task<List<ActivityLog>> GetByProjectIdAsync(int projectId);
+
+        Task<List<ActivityLog>> GetByTaskIdAsync(string taskId);
+
+        Task<List<ActivityLog>> GetBySubtaskIdAsync(string subtaskId);
     }
 }
