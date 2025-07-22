@@ -3,6 +3,7 @@ using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -10,9 +11,11 @@ using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,25 +59,6 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id)
                 ?? throw new Exception("Risk not found");
             return _mapper.Map<RiskResponseDTO>(risk);
-        }
-
-        //public async Task AddAsync(RiskRequestDTO request)
-        //{
-        //    var risk = _mapper.Map<Risk>(request);
-        //    risk.CreatedAt = DateTime.UtcNow;
-        //    risk.UpdatedAt = DateTime.UtcNow;
-        //    await _riskRepo.AddAsync(risk);
-        //}
-
-        public async Task UpdateAsync(int id, RiskRequestDTO request)
-        {
-            var risk = await _riskRepo.GetByIdAsync(id)
-                ?? throw new Exception("Risk not found");
-
-            _mapper.Map(request, risk);
-            risk.UpdatedAt = DateTime.UtcNow;
-
-            await _riskRepo.UpdateAsync(risk);
         }
 
         public async Task DeleteAsync(int id)
@@ -262,6 +246,102 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(entity);
         }
 
+        public async Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Status = status;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk status: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Type = type;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk type: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int responsibleId)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.ResponsibleId = responsibleId;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk responsible id: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.DueDate = dueDate;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk due date: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Title = title;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
     }
 
 }
