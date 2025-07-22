@@ -295,6 +295,20 @@ namespace IntelliPM.Services.SprintServices
             return _mapper.Map<List<SprintResponseDTO>>(entities);
         }
 
+
+        public async Task<List<SprintResponseDTO>> GetSprintByProjectIdDescending(int projectId)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("Project ID must be greater than 0.");
+
+            var entities = await _repo.GetByProjectIdDescendingAsync(projectId);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No sprints found for Project ID {projectId}.");
+
+            return _mapper.Map<List<SprintResponseDTO>>(entities);
+        }
+
         public async Task<List<SprintWithTaskListResponseDTO>> GetSprintsByProjectKeyWithTasksAsync(string projectKey)
         {
             if (string.IsNullOrWhiteSpace(projectKey))

@@ -286,6 +286,39 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("by-project-id/descending")]
+        public async Task<IActionResult> GetByProjectIdDescending([FromQuery] int projectId)
+        {
+            try
+            {
+                var sprints = await _service.GetSprintByProjectIdDescending(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Sprints retrieved successfully",
+                    Data = sprints
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+
         [HttpGet("by-project-id-with-tasks")]
         public async Task<IActionResult> GetByProjectIdWithTasks([FromQuery] string projectKey)
         {
