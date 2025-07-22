@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Services.TaskServices;
@@ -277,11 +278,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] ChangeTaskStatusRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskStatus(id, status);
+                var updated = await _service.ChangeTaskStatus(id, dto.Status, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -377,11 +378,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/type")]
-        public async Task<IActionResult> ChangeType(string id, [FromBody] string type)
+        public async Task<IActionResult> ChangeType(string id, [FromBody] ChangeTaskTypeRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskType(id, type);
+                var updated = await _service.ChangeTaskType(id, dto.Type, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -410,11 +411,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/title")]
-        public async Task<IActionResult> ChangeTitle(string id, [FromBody] string title)
+        public async Task<IActionResult> ChangeTitle(string id, [FromBody] ChangeTaskTitleRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskTitle(id, title);
+                var updated = await _service.ChangeTaskTitle(id, dto.Title, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -443,11 +444,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/description")]
-        public async Task<IActionResult> ChangeDescription(string id, [FromBody] string description)
+        public async Task<IActionResult> ChangeDescription(string id, [FromBody] ChangeTaskDescriptionRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskDescription(id, description);
+                var updated = await _service.ChangeTaskDescription(id, dto.Description, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -476,11 +477,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-end-date")]
-        public async Task<IActionResult> ChangePlannedEndDate(string id, [FromBody] DateTime plannedEndDate)
+        public async Task<IActionResult> ChangePlannedEndDate(string id, [FromBody] ChangeTaskPlanEndDateRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedEndDate(id, plannedEndDate);
+                var updated = await _service.ChangeTaskPlannedEndDate(id, dto.PlannedEndDate, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -509,11 +510,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-start-date")]
-        public async Task<IActionResult> ChangePlannedStartDate(string id, [FromBody] DateTime plannedStartDate)
+        public async Task<IActionResult> ChangePlannedStartDate(string id, [FromBody] ChangeTaskPlanStartDateRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedStartDate(id, plannedStartDate);
+                var updated = await _service.ChangeTaskPlannedStartDate(id, dto.PlannedStartDate, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
