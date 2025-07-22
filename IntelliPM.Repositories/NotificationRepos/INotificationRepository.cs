@@ -10,5 +10,7 @@ namespace IntelliPM.Repositories.NotificationRepos
     public interface INotificationRepository
     {
         Task Add(Notification notification);
+        Task<List<Notification>> GetByReceiverId(int userId);
+
     }
 }
