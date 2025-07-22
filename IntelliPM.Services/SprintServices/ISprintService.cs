@@ -23,6 +23,7 @@ namespace IntelliPM.Services.SprintServices
         Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request);
         Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate);
         Task<bool> IsSprintWithinProject(string projectKey, DateTime checkSprintDate);
+        Task<string> MoveTaskToSprint(int sprintOldId, int sprintNewId, string type);
 
     }
 }

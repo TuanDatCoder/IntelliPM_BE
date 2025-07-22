@@ -407,6 +407,52 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("move-tasks")]
+        public async Task<IActionResult> MoveTasksToAnotherSprint([FromBody] MoveTasksToSprintRequestDTO requestDTO)
+        {
+            try
+            {
+                var message = await _service.MoveTaskToSprint(requestDTO.SprintOldId, requestDTO.SprintNewId, requestDTO.Type);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error moving tasks: {ex.Message}"
+                });
+            }
+        }
+
+
+
+
+
 
     }
 }
