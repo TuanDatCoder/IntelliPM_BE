@@ -5,6 +5,7 @@ using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,15 +17,17 @@ namespace IntelliPM.Services.SprintServices
         private readonly IMapper _mapper;
         private readonly ISprintRepository _repo;
         private readonly ITaskService _taskService;
+        private readonly ITaskRepository _taskRepo;
         private readonly IProjectRepository _projectRepo;
         private readonly ILogger<SprintService> _logger;
 
-        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger, ITaskService taskService, IProjectRepository projectRepo)
+        public SprintService(IMapper mapper, ISprintRepository repo, ILogger<SprintService> logger, ITaskService taskService, ITaskRepository taskRepo, IProjectRepository projectRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _taskService = taskService;
+            _taskRepo = taskRepo;
             _projectRepo = projectRepo;
 
         }
@@ -202,6 +205,40 @@ namespace IntelliPM.Services.SprintServices
                 throw new Exception($"Failed to delete sprint: {ex.Message}", ex);
             }
         }
+
+
+        public async Task DeleteSprintWithTask(int id)
+        {
+            var entity = await _repo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Sprint with ID {id} not found.");
+
+            var taskEntities = await _taskRepo.GetBySprintIdAsync(id);
+
+
+            try
+            {
+
+
+                if (taskEntities != null)
+                {
+                    foreach (var task in taskEntities)
+                    {
+                        task.SprintId = null;
+                        await _taskRepo.Update(task);
+                    }
+                }
+
+                await _repo.Delete(entity);
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete sprint: {ex.Message}", ex);
+            }
+        }
+
+
 
         public async Task<SprintResponseDTO> ChangeSprintStatus(int id, string status)
         {
