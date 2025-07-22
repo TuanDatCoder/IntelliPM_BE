@@ -84,6 +84,13 @@ CREATE TABLE sprint (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
+ALTER TABLE sprint
+ADD COLUMN planned_start_date TIMESTAMPTZ NULL;
+
+ALTER TABLE sprint
+ADD COLUMN planned_end_date TIMESTAMPTZ NULL;
+
+
 
 -- 6. epic
 CREATE TABLE epic (
