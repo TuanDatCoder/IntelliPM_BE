@@ -19,6 +19,7 @@ namespace IntelliPM.Services.SprintServices
         Task DeleteSprintWithTask(int id);
         Task<SprintResponseDTO> ChangeSprintStatus(int id, string status);
         Task<List<SprintResponseDTO>> GetSprintByProjectId(int projectId);
+        Task<List<SprintResponseDTO>> GetSprintByProjectIdDescending(int projectId);
         Task<List<SprintWithTaskListResponseDTO>> GetSprintsByProjectKeyWithTasksAsync(string projectKey);
         Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request);
         Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate);
