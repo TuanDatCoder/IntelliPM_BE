@@ -182,7 +182,7 @@ namespace IntelliPM.Services.SubtaskServices
                     SubtaskId = entity.Id,
                     RelatedEntityType = "Subtask",
                     RelatedEntityId = entity.Id,
-                    ActionType = "Create",
+                    ActionType = "CREATE",
                     Message = $"Created subtask '{entity.Id}' under task '{task.Id}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
@@ -201,7 +201,7 @@ namespace IntelliPM.Services.SubtaskServices
                         TaskId = task.Id,
                         RelatedEntityType = "Task",
                         RelatedEntityId = task.Id,
-                        ActionType = "StatusUpdate",
+                        ActionType = "UPDATE",
                         Message = $"Task '{task.Id}' status changed from DONE to IN_PROGRESS due to new subtask",
                         CreatedBy = request.CreatedBy, 
                         CreatedAt = DateTime.UtcNow
@@ -286,7 +286,7 @@ namespace IntelliPM.Services.SubtaskServices
                     SubtaskId = entity.Id,
                     RelatedEntityType = "Subtask",
                     RelatedEntityId = entity.Id,
-                    ActionType = "Update",
+                    ActionType = "UPDATE",
                     Message = $"Updated subtask '{entity.Id}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
@@ -332,7 +332,7 @@ namespace IntelliPM.Services.SubtaskServices
                     SubtaskId = entity.Id,
                     RelatedEntityType = "Subtask",
                     RelatedEntityId = entity.Id,
-                    ActionType = "StatusUpdate",
+                    ActionType = "UPDATE",
                     Message = $"Changed status of subtask '{entity.Id}' to '{status}'",
                     CreatedBy = createdBy, 
                     CreatedAt = DateTime.UtcNow

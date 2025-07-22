@@ -56,6 +56,30 @@ namespace IntelliPM.Services.ActivityLogServices
             }
         }
 
+        public async Task<List<ActivityLogResponseDTO>> GetActivityLogsBySubtaskId(string subtaskId)
+        {
+            {
+                var entities = await _activityLogRepository.GetBySubtaskIdAsync(subtaskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No activityLogs found for Subtask ID {subtaskId}.");
+
+                return _mapper.Map<List<ActivityLogResponseDTO>>(entities);
+            }
+        }
+
+        public async Task<List<ActivityLogResponseDTO>> GetActivityLogsByTaskId(string taskId)
+        {
+            {
+                var entities = await _activityLogRepository.GetByTaskIdAsync(taskId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No activityLogs found for Task ID {taskId}.");
+
+                return _mapper.Map<List<ActivityLogResponseDTO>>(entities);
+            }
+        }
+
         public async Task LogFieldChangeAsync(
             string entityType,
             string? entityId,
