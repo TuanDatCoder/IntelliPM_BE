@@ -22,5 +22,16 @@ namespace IntelliPM.Repositories.NotificationRepos
             await _context.Notification.AddAsync(notification);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Notification>> GetByReceiverId(int userId)
+        {
+            return await _context.RecipientNotification
+                .Include(rn => rn.Notification)
+                .Where(rn => rn.AccountId == userId)
+                .OrderByDescending(rn => rn.CreatedAt)
+                .Select(rn => rn.Notification)
+                .ToListAsync();
+        }
+
     }
 }
