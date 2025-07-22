@@ -14,5 +14,8 @@ namespace IntelliPM.Data.DTOs.TaskComment.Request
         public int AccountId { get; set; }
 
         public string Content { get; set; } = null!;
+        public int CreatedBy { get; set; }
+
+
     }
 }

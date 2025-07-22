@@ -47,5 +47,23 @@ namespace IntelliPM.Repositories.ActivityLogRepos
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<List<ActivityLog>> GetByTaskIdAsync(string taskId)
+        {
+            return await _context.ActivityLog
+                .Include(s => s.CreatedByNavigation)
+                .Where(t => t.TaskId == taskId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<ActivityLog>> GetBySubtaskIdAsync(string subtaskId)
+        {
+            return await _context.ActivityLog
+                .Include(s => s.CreatedByNavigation)
+                .Where(t => t.SubtaskId == subtaskId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

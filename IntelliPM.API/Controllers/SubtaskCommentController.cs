@@ -113,11 +113,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, DeleteSubtaskCommentRequestDTO dto)
         {
             try
             {
-                await _service.DeleteSubtaskComment(id);
+                await _service.DeleteSubtaskComment(id, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
