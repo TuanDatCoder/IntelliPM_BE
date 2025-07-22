@@ -100,16 +100,119 @@ namespace IntelliPM.API.Controllers
             });
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] RiskRequestDTO request)
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
         {
-            await _riskService.UpdateAsync(id, request);
-            return Ok(new ApiResponseDTO
+            try
             {
-                IsSuccess = true,
-                Code = 200,
-                Message = "Updated risk successfully"
-            });
+                var updated = await _riskService.UpdateStatusAsync(id, status);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk status successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk status: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/type")]
+        public async Task<IActionResult> UpdateType(int id, [FromBody] string type)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateTypeAsync(id, type);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk type successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk type: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/responsibleId")]
+        public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int responsibleId)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateResponsibleIdAsync(id, responsibleId);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk responsible id successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk responsible id: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/dueDate")]
+        public async Task<IActionResult> UpdateDueDate(int id, [FromBody] DateTime dueDate)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateDueDateAsync(id, dueDate);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk due date successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk due date: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/title")]
+        public async Task<IActionResult> UpdateTitle(int id, [FromBody] string title)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateTitleAsync(id, title);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk title successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk title: {ex.Message}");
+            }
         }
 
         [HttpDelete("{id}")]
