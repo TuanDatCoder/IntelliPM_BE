@@ -16,7 +16,7 @@ namespace IntelliPM.Services.TaskCommentServices
         Task<TaskCommentResponseDTO> GetTaskCommentById(int id);
         Task<TaskCommentResponseDTO> CreateTaskComment(TaskCommentRequestDTO request);
         Task<TaskCommentResponseDTO> UpdateTaskComment(int id, TaskCommentRequestDTO request);
-        Task DeleteTaskComment(int id);
+        Task DeleteTaskComment(int id, int createdBy);
         Task<List<TaskCommentResponseDTO>> GetTaskCommentByTaskIdAsync(string taskId);
     }
 }
