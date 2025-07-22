@@ -185,8 +185,6 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
-
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(string id, [FromBody] SubtaskRequest3DTO dto)
         {
@@ -219,7 +217,6 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
-
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)

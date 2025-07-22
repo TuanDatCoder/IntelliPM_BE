@@ -32,7 +32,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         public string? Status { get; set; }
-
+        public int CreatedBy { get; set; }
         public List<TaskDependencyRequestDTO>? Dependencies { get; set; }
     }
 }

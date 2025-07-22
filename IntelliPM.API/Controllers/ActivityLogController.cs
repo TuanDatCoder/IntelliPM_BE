@@ -75,6 +75,46 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("task/{taskId}")]
+        public async Task<IActionResult> GetByTaskId(string taskId)
+        {
+            try
+            {
+                var activityLogList = await _activityLogService.GetActivityLogsByTaskId(taskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "ActivityLog retrieved successfully",
+                    Data = activityLogList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [HttpGet("subtask/{subtaskId}")]
+        public async Task<IActionResult> GetBySubtaskId(string subtaskId)
+        {
+            try
+            {
+                var activityLogList = await _activityLogService.GetActivityLogsBySubtaskId(subtaskId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "ActivityLog retrieved successfully",
+                    Data = activityLogList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
         // GET: api/ActivityLog?projectId=1&taskId=FLOWER-1&subtaskId=FLOWER-3
         [HttpGet]
         public IActionResult GetLogs([FromQuery] int projectId, [FromQuery] string? taskId, [FromQuery] string? subtaskId)

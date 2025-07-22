@@ -8,9 +8,11 @@ using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.SubtaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,8 +29,9 @@ namespace IntelliPM.Services.TaskCommentServices
         private readonly ITaskRepository _taskRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<TaskCommentService> _logger;
+        private readonly IActivityLogService _activityLogService;
 
-        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, ILogger<TaskCommentService> logger)
+        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, ILogger<TaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -36,6 +39,7 @@ namespace IntelliPM.Services.TaskCommentServices
             _notificationRepo = notificationRepo;
             _projectMemberRepo = projectMemberRepo;
             _taskRepo = taskRepo;
+            _activityLogService = activityLogService;
         }
 
         public async Task<TaskCommentResponseDTO> CreateTaskComment(TaskCommentRequestDTO request)
@@ -52,6 +56,18 @@ namespace IntelliPM.Services.TaskCommentServices
             try
             {
                 await _repo.Add(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
+                    TaskId = entity.TaskId,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "TaskComment",
+                    RelatedEntityId = entity.TaskId,
+                    ActionType = "CREATE",
+                    Message = $"Comment in task '{entity.TaskId}' is '{request.Content}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
 
                 var task = await _taskRepo.GetByIdAsync(request.TaskId);
                 Console.WriteLine($"Creating comment for TaskId: {request.TaskId}");
@@ -103,15 +119,27 @@ namespace IntelliPM.Services.TaskCommentServices
             return _mapper.Map<TaskCommentResponseDTO>(entity);
         }
 
-        public async Task DeleteTaskComment(int id)
+        public async Task DeleteTaskComment(int id, int createdBy)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
-                throw new KeyNotFoundException($"Task task comment with ID {id} not found.");
+                throw new KeyNotFoundException($"Task comment with ID {id} not found.");
 
             try
             {
                 await _repo.Delete(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
+                    TaskId = entity.TaskId,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "TaskComment",
+                    RelatedEntityId = entity.TaskId,
+                    ActionType = "DELETE",
+                    Message = $"Delete comment in task '{entity.TaskId}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -145,6 +173,18 @@ namespace IntelliPM.Services.TaskCommentServices
             try
             {
                 await _repo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
+                    TaskId = entity.TaskId,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "TaskComment",
+                    RelatedEntityId = entity.TaskId,
+                    ActionType = "UPDATE",
+                    Message = $"Update comment in task '{entity.TaskId}' is '{entity.Content}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
