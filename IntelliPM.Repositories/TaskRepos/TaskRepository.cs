@@ -28,6 +28,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
                 .OrderBy(t => t.Id)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
@@ -74,6 +75,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(e => e.Epic)
                 .Include(e => e.Sprint)
                 .Where(t => t.ProjectId == projectId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
@@ -96,6 +98,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.Epic)
                 .Where(t => t.SprintId == sprintId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
