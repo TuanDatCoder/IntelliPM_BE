@@ -103,6 +103,35 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+        [HttpPost("Quick")]
+        public async Task<IActionResult> CreateQuick([FromBody] SprintQuickRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            try
+            {
+                var result = await _service.CreateSprintQuickAsync(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Sprint created successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating sprint: {ex.Message}"
+                });
+            }
+        }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] SprintRequestDTO request)
@@ -160,6 +189,36 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+        [HttpDelete("{id}/with-task")]
+        public async Task<IActionResult> DeleteWithTask(int id)
+        {
+            try
+            {
+                await _service.DeleteSprintWithTask(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Sprint deleted successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting sprint: {ex.Message}"
+                });
+            }
+        }
+
 
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
@@ -259,6 +318,95 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+        [HttpPost("check-dates")]
+        public async Task<IActionResult> CheckSprintDates([FromBody] CheckSprintDateRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Invalid request data"
+                });
+            }
+
+            try
+            {
+                var (isValid, message) = await _service.CheckSprintDatesAsync(request.ProjectKey, request.CheckDate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = message,
+                    Data = new { IsValid = isValid }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking sprint dates: {ex.Message}"
+                });
+            }
+        }
+
+
+        [HttpPost("check-within-project")]
+        public async Task<IActionResult> CheckWithinProject([FromBody] CheckSprintDateRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Invalid request data"
+                });
+            }
+
+            try
+            {
+                var isWithin = await _service.IsSprintWithinProject(request.ProjectKey, request.CheckDate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = isWithin ? "Date is within project duration" : "Date is not within project duration",
+                    Data = new { IsWithin = isWithin }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking project date range: {ex.Message}"
+                });
+            }
+        }
+
 
     }
 }

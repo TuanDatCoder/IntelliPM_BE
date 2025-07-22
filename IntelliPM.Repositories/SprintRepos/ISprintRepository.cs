@@ -16,5 +16,7 @@ namespace IntelliPM.Repositories.SprintRepos
         Task Add(Sprint sprint);
         Task Update(Sprint sprint);
         Task Delete(Sprint sprint);
+
+        Task<List<Sprint>> GetByProjectIdDescendingAsync(int projectId);
     }
 }
