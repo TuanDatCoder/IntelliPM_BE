@@ -190,6 +190,36 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpDelete("{id}/with-task")]
+        public async Task<IActionResult> DeleteWithTask(int id)
+        {
+            try
+            {
+                await _service.DeleteSprintWithTask(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Sprint deleted successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting sprint: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(int id, [FromBody] string status)
         {
