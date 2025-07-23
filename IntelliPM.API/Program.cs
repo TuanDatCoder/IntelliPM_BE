@@ -106,6 +106,7 @@ using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Repositories.RecipientNotificationRepos;
+using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.RiskSolutionServices;
 using IntelliPM.Repositories.RiskFileRepos;
 using IntelliPM.Services.RiskFileServices;
@@ -175,7 +176,6 @@ builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
 builder.Services.AddScoped<IRiskFileRepository, RiskFileRepository>();
 builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
-
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();

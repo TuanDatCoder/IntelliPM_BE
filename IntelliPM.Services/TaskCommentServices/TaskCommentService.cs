@@ -89,7 +89,7 @@ namespace IntelliPM.Services.TaskCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Đã bình luận trên task {request.TaskId}: {request.Content}",
+                        Message = $"Comment in task {request.TaskId}: {request.Content}",
                         RelatedEntityType = "Task",
                         RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
@@ -101,8 +101,8 @@ namespace IntelliPM.Services.TaskCommentServices
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
                         {
-                            AccountId = accId
-                            //IsRead = false
+                            AccountId = accId,
+                            IsRead = false
                         });
                     }
                     await _notificationRepo.Add(notification);
