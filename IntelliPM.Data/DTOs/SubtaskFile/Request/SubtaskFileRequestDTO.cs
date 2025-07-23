@@ -14,5 +14,6 @@ namespace IntelliPM.Data.DTOs.SubtaskFile.Request
         public string Title { get; set; } = null!;
 
         public IFormFile File { get; set; } = null!;
+        public int CreatedBy { get; set; }
     }
 }
