@@ -10,6 +10,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using IntelliPM.Services.NotificationServices;
+using IntelliPM.Shared.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace IntelliPM.Services.NotificationServices
 {
@@ -17,11 +20,14 @@ namespace IntelliPM.Services.NotificationServices
     {
         private readonly IMapper _mapper;
         private readonly INotificationRepository _notificationRepository;
+        private readonly INotificationPushService _pushService;
 
-        public NotificationService(IMapper mapper, INotificationRepository notificationRepository)
+        public NotificationService(IMapper mapper, INotificationRepository notificationRepository, INotificationPushService pushService)
         {
             _mapper = mapper;
             _notificationRepository = notificationRepository;
+            _pushService = pushService;
+
         }
 
         public async Task<List<NotificationResponseDTO>> GetAllNotificationList()
@@ -44,6 +50,7 @@ namespace IntelliPM.Services.NotificationServices
             if (mentionedUserIds == null || !mentionedUserIds.Any()) return;
 
             var notification = new Notification
+
             {
                 CreatedBy = createdBy,
                 Type = "MENTION",
@@ -66,6 +73,11 @@ namespace IntelliPM.Services.NotificationServices
             }
 
             await _notificationRepository.Add(notification);
+
+            foreach (var userId in mentionedUserIds.Distinct())
+            {
+                await _pushService.PushMentionNotificationAsync(userId, notification.Message, documentId, documentTitle);
+            }
         }
 
         public async Task<List<Notification>> GetNotificationsByUserId(int userId)
