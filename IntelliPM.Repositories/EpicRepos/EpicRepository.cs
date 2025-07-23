@@ -62,6 +62,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Where(e => e.Project != null && e.Project.ProjectKey == projectKey)
+                .OrderBy(e => e.Id)
                 .ToListAsync();
         }
 
