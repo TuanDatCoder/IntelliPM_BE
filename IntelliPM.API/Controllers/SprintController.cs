@@ -286,6 +286,39 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("by-project-id/descending")]
+        public async Task<IActionResult> GetByProjectIdDescending([FromQuery] int projectId)
+        {
+            try
+            {
+                var sprints = await _service.GetSprintByProjectIdDescending(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Sprints retrieved successfully",
+                    Data = sprints
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+
         [HttpGet("by-project-id-with-tasks")]
         public async Task<IActionResult> GetByProjectIdWithTasks([FromQuery] string projectKey)
         {
@@ -406,6 +439,83 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("move-tasks")]
+        public async Task<IActionResult> MoveTasksToAnotherSprint([FromBody] MoveTasksToSprintRequestDTO requestDTO)
+        {
+            try
+            {
+                var message = await _service.MoveTaskToSprint(requestDTO.SprintOldId, requestDTO.SprintNewId, requestDTO.Type);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error moving tasks: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("active-with-tasks/{projectKey}")]
+        public async Task<IActionResult> GetActiveSprintWithTasks(string projectKey)
+        {
+            try
+            {
+                var result = await _service.GetActiveSprintWithTasksByProjectKeyAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Active sprint for Project '{projectKey}' retrieved successfully",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving active sprint: {ex.Message}"
+                });
+            }
+        }
+
+
 
 
     }
