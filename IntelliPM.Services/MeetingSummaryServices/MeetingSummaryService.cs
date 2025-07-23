@@ -115,8 +115,8 @@ namespace IntelliPM.Services.MeetingSummaryServices
                 var dto = new MeetingSummaryResponseDTO
                 {
                     MeetingTranscriptId = transcript?.MeetingId ?? meetingId,
-                    SummaryText = summary?.SummaryText ?? "Chờ cập nhật",
-                    TranscriptText = transcript?.TranscriptText ?? "Chờ cập nhật",
+                    SummaryText = summary?.SummaryText ?? "Wait for update",
+                    TranscriptText = transcript?.TranscriptText ?? "Wait for update",
                     CreatedAt = summary?.CreatedAt ?? DateTime.MinValue,
                     MeetingTopic = meetings.TryGetValue(meetingId, out var topic) ? topic : "Chờ cập nhật",
                     IsApproved = isApproved
