@@ -64,11 +64,13 @@ namespace IntelliPM.API.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<DocumentResponseDTO>> Update(int id, [FromBody] UpdateDocumentRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
         {
-            var result = await _documentService.UpdateDocument(id, request);
+            var userId = int.Parse(User.FindFirst("accountId")?.Value ?? "0");
+            var result = await _documentService.UpdateDocument(id, request, userId);
             return Ok(result);
         }
+
 
 
         [HttpGet("project/{projectId}")]
