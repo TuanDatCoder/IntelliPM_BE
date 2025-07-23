@@ -287,7 +287,7 @@ namespace IntelliPM.Services.SubtaskServices
                     RelatedEntityType = "Subtask",
                     RelatedEntityId = entity.Id,
                     ActionType = "UPDATE",
-                    Message = $"Updated subtask '{entity.Id}'",
+                    Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
                 });
@@ -333,7 +333,7 @@ namespace IntelliPM.Services.SubtaskServices
                     RelatedEntityType = "Subtask",
                     RelatedEntityId = entity.Id,
                     ActionType = "UPDATE",
-                    Message = $"Changed status of subtask '{entity.Id}' to '{status}'",
+                    Message = $"Changed status of subtask '{entity.Id}' to '{status}' under task '{entity.TaskId}",
                     CreatedBy = createdBy, 
                     CreatedAt = DateTime.UtcNow
                 });
