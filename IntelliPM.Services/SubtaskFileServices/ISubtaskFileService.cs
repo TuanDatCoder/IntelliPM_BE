@@ -13,7 +13,7 @@ namespace IntelliPM.Services.SubtaskFileServices
     public interface ISubtaskFileService
     {
         Task<SubtaskFileResponseDTO> UploadSubtaskFileAsync(SubtaskFileRequestDTO request);
-        Task<bool> DeleteSubtaskFileAsync(int subtaskFileId);
+        Task<bool> DeleteSubtaskFileAsync(int subtaskFileId, int createdBy);
         Task<List<SubtaskFileResponseDTO>> GetFilesBySubtaskIdAsync(string taskId);
     }
 }

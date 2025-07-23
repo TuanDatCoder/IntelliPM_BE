@@ -9,8 +9,9 @@ namespace IntelliPM.Data.DTOs.TaskFile.Request
 {
     public class TaskFileRequestDTO
     {
-        public string TaskId { get; set; }
+        public string? TaskId { get; set; }
         public string Title { get; set; } = null!;
         public IFormFile File { get; set; } = null!;
+        public int CreatedBy { get; set; }
     }
 }
