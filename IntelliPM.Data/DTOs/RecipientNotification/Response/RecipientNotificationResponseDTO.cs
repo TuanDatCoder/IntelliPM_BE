@@ -10,7 +10,11 @@ namespace IntelliPM.Data.DTOs.RecipientNotification.Response
     {
         public int AccountId { get; set; }
 
+        public string? AccountName { get; set; }
+
         public int NotificationId { get; set; }
+
+        public string? NotificationMessage { get; set; }
 
         public string? Status { get; set; }
 

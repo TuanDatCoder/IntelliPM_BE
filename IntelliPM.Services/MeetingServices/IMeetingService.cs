@@ -27,6 +27,7 @@ namespace IntelliPM.Services.MeetingServices
 
         Task CompleteMeeting(int meetingId);
 
+        Task<List<object>> GetParticipantsWithMeetingConflict(DateTime date, DateTime startTime, DateTime endTime);
 
     }
 }
