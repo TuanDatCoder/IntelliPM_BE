@@ -63,7 +63,7 @@ namespace IntelliPM.Services.SubtaskFileServices
                 RelatedEntityType = "SubtaskFile",
                 RelatedEntityId = entity.SubtaskId,
                 ActionType = "CREATE",
-                Message = $"Upload file in subtask '{entity.SubtaskId}'",
+                Message = $"Upload file in subtask '{entity.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId}'",
                 CreatedBy = request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
             });
@@ -88,7 +88,7 @@ namespace IntelliPM.Services.SubtaskFileServices
                 RelatedEntityType = "SubtaskFile",
                 RelatedEntityId = subtaskFile.SubtaskId,
                 ActionType = "DELETE",
-                Message = $"Delete file in subtask '{subtaskFile.SubtaskId}'",
+                Message = $"Delete file in subtask '{subtaskFile.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
             });
