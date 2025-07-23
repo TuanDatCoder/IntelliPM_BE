@@ -7,6 +7,8 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.MentionHelper;
+using IntelliPM.Services.NotificationServices;
 using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
@@ -21,8 +23,9 @@ namespace IntelliPM.Services.DocumentServices
         private readonly string _geminiEndpoint;
         private readonly IEmailService _emailService;
         private readonly IProjectMemberRepository _projectMemberRepository;
+        private readonly INotificationService _notificationService;
 
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository)
+        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService)
         {
             _repo = repo;
             _httpClient = httpClient;
@@ -30,6 +33,7 @@ namespace IntelliPM.Services.DocumentServices
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
             _emailService = emailService;
             _projectMemberRepository = projectMemberRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -152,6 +156,8 @@ namespace IntelliPM.Services.DocumentServices
             {
                 await _repo.AddAsync(doc);
                 await _repo.SaveChangesAsync();
+                var mentionedUserIds = MentionHelper.ExtractMentionedAccountIds(req.Content ?? "");
+                await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
             catch (Exception ex)
             {
@@ -482,6 +488,21 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
         public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
         {
             return await _repo.CountByStatusInProjectAsync(projectId);
+        }
+
+      
+        public List<int> ExtractMentionedAccountIds(string content)
+        {
+            var mentionedIds = new List<int>();
+            var matches = Regex.Matches(content, @"@(\d+)");
+            foreach (Match match in matches)
+            {
+                if (int.TryParse(match.Groups[1].Value, out int id))
+                {
+                    mentionedIds.Add(id);
+                }
+            }
+            return mentionedIds.Distinct().ToList();
         }
 
 
