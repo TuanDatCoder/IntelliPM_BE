@@ -342,6 +342,130 @@ namespace IntelliPM.Services.RiskServices
 
             return _mapper.Map<RiskResponseDTO>(risk);
         }
+
+        public async Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Description = description;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk description: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.ImpactLevel = impactLevel;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            var probability = risk.Probability; 
+            risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk impact level: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        //private string CalculateSeverityLevel(string impact, string probability)
+        //{
+        //    int GetLevelValue(string level)
+        //    {
+        //        return level.ToLower() switch
+        //        {
+        //            "low" => 1,
+        //            "medium" => 2,
+        //            "high" => 3,
+        //            _ => 0
+        //        };
+        //    }
+
+        //    var impactValue = GetLevelValue(impact);
+        //    var probValue = GetLevelValue(probability);
+
+        //    var max = Math.Max(impactValue, probValue);
+
+        //    return max switch
+        //    {
+        //        1 => "Low",
+        //        2 => "Medium",
+        //        3 => "High",
+        //        _ => "Unknown"
+        //    };
+        //}
+
+        private string CalculateSeverityLevel(string impact, string probability)
+        {
+            int GetLevelValue(string level)
+            {
+                return level.ToLower() switch
+                {
+                    "low" => 1,
+                    "medium" => 2,
+                    "high" => 3,
+                    _ => 0
+                };
+            }
+
+            var impactValue = GetLevelValue(impact);
+            var probValue = GetLevelValue(probability);
+
+            return (impactValue, probValue) switch
+            {
+                (1, 1) => "Low",
+                (1, 2) => "Low",
+                (1, 3) => "Medium",
+                (2, 1) => "Low",
+                (2, 2) => "Medium",
+                (2, 3) => "High",
+                (3, 1) => "Medium",
+                (3, 2) => "High",
+                (3, 3) => "High",
+                _ => "Unknown"
+            };
+        }
+
+        public async Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Probability = probability;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            var impactLevel = risk.ImpactLevel;
+            risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk probability: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
     }
 
 }

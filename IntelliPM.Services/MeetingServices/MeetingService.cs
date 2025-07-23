@@ -373,5 +373,34 @@ namespace IntelliPM.Services.MeetingServices
 
             return _mapper.Map<List<MeetingResponseDTO>>(meetings);
         }
+
+        public async Task<List<object>> GetParticipantsWithMeetingConflict(DateTime date, DateTime startTime, DateTime endTime)
+        {
+            var result = await _context.MeetingParticipant
+                .Include(mp => mp.Meeting)
+                .Include(mp => mp.Account)
+                .Where(mp =>
+                    mp.Meeting.MeetingDate.Date == date.Date &&
+                    mp.Meeting.Status != "CANCELLED" &&
+                    mp.Meeting.StartTime.HasValue &&
+                    mp.Meeting.EndTime.HasValue &&
+                    (
+                        (mp.Meeting.StartTime <= endTime && mp.Meeting.EndTime >= startTime)
+                    )
+                )
+                .Select(mp => new
+                {
+                    AccountId = mp.AccountId,
+                    FullName = mp.Account.FullName,
+                    MeetingDate = mp.Meeting.MeetingDate,
+                    StartTime = mp.Meeting.StartTime,
+                    EndTime = mp.Meeting.EndTime
+                })
+                .Cast<object>()  // Để hợp kiểu trả về object
+                .ToListAsync();
+
+            return result;
+        }
+
     }
 }

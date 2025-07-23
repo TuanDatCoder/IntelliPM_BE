@@ -1,29 +1,31 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.SubtaskServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace IntelliPM.API.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
+[ApiController]
+[Route("api/[controller]")]
     //[Authorize]
     public class NotificationController : ControllerBase
-    {
+{
         private readonly INotificationService _service;
 
-        public NotificationController(INotificationService service)
-        {
-            _service = service;
-        }
+    public NotificationsController(INotificationService notificationService)
+    {
+        _notificationService = notificationService;
+    }
 
         [HttpGet("account/{accountId}")]
         public async Task<IActionResult> GetByAccount(int accountId)
         {
             try
             {
-                var notifications = await _service.GetNotificationByAccount(accountId);
+                var notifications = await _notificationService.GetNotificationByAccount(accountId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -33,7 +35,7 @@ namespace IntelliPM.API.Controllers
                 });
             }
             catch (KeyNotFoundException ex)
-            {
+    {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
         }
@@ -41,7 +43,7 @@ namespace IntelliPM.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllNotificationList();
+            var result = await _notificationService.GetAllNotificationList();
             return Ok(new ApiResponseDTO
             {
                 IsSuccess = true,
@@ -50,5 +52,18 @@ namespace IntelliPM.API.Controllers
                 Data = result
             });
         }
+
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyNotifications()
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim) || !int.TryParse(accountIdClaim, out var userId))
+                return Unauthorized();
+
+            var notifications = await _notificationService.GetNotificationsByUserId(userId);
+            return Ok(notifications);
+        }
+
     }
 }
