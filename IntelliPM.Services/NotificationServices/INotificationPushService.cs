@@ -9,5 +9,6 @@ namespace IntelliPM.Services.NotificationServices
     public interface INotificationPushService
     {
         Task PushMentionNotificationAsync(int userId, string message, int documentId, string documentTitle);
+
     }
 }
