@@ -20,8 +20,10 @@ namespace IntelliPM.Repositories.WorkLogRepos
 
         public async Task<bool> ExistsAsync(string? taskId, string? subtaskId, DateTime logDate)
         {
+            var dateOnly = logDate.Date;
+
             return await _context.WorkLog.AnyAsync(w =>
-                w.LogDate.Date == logDate &&
+                w.LogDate.Date == dateOnly &&
                 ((taskId != null && w.TaskId == taskId) ||
                  (subtaskId != null && w.SubtaskId == subtaskId))
             );

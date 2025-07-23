@@ -178,7 +178,7 @@ namespace IntelliPM.Services.WorkLogServices
 
         public async Task GenerateDailyWorkLogsAsync()
         {
-            var today = DateTime.UtcNow;
+            var today = DateTime.UtcNow.Date;
 
             var logsToInsert = new List<WorkLog>();
 
