@@ -28,7 +28,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
                 .OrderBy(t => t.Id)
-                .OrderBy(m => m.CreatedAt)
+                                                                                                                                                
                 .ToListAsync();
         }
 
@@ -150,6 +150,9 @@ namespace IntelliPM.Repositories.TaskRepos
                 }).ToList()
             };
         }
+
+
+
 
     }
 }
