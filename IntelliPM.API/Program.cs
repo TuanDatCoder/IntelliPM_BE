@@ -106,6 +106,11 @@ using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Repositories.RecipientNotificationRepos;
+using IntelliPM.Services.RiskSolutionServices;
+using IntelliPM.Repositories.RiskFileRepos;
+using IntelliPM.Services.RiskFileServices;
+using IntelliPM.Services.RiskCommentServices;
+using IntelliPM.Repositories.RiskCommentRepos;
 
 
 
@@ -168,6 +173,8 @@ builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendati
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
+builder.Services.AddScoped<IRiskFileRepository, RiskFileRepository>();
+builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
 
 
 //--------------------------SERVICES---------------------------------
@@ -215,6 +222,9 @@ builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationS
 builder.Services.AddScoped<IWorkLogService, WorkLogService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 builder.Services.AddScoped<IRecipientNotificationService, RecipientNotificationService>();
+builder.Services.AddScoped<IRiskSolutionService, RiskSolutionService>();
+builder.Services.AddScoped<IRiskFileService, RiskFileService>();
+builder.Services.AddScoped<IRiskCommentService, RiskCommentService>();
 
 builder.Services.AddScoped<INotificationService, NotificationService>(); 
 
@@ -348,8 +358,9 @@ app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
-     "0 1 * * *"
-    // "*/1 * * * *"
+     "0 17 * * *"
+     //"0 1 * * *"
+     // "*/1 * * * *"
 );
 
 app.UseDefaultFiles();   

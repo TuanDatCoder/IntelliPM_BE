@@ -43,6 +43,10 @@ using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
+using IntelliPM.Data.DTOs.RiskComment.Request;
+using IntelliPM.Data.DTOs.RiskComment.Response;
+using IntelliPM.Data.DTOs.RiskFile.Request;
+using IntelliPM.Data.DTOs.RiskFile.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.RiskSolution.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
@@ -292,6 +296,21 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt.ToLocalTime()))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt.ToLocalTime()));
             CreateMap<RiskSolutionRequestDTO, RiskSolution>();
+
+            // RiskFile
+            CreateMap<RiskFileRequestDTO, RiskFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.UploadedAt, opt => opt.Ignore());
+            CreateMap<RiskFile, RiskFileResponseDTO>();
+
+            // RiskComment
+            CreateMap<RiskCommentRequestDTO, RiskComment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<RiskComment, RiskCommentResponseDTO>()
+                 .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                 .ForMember(dest => dest.AccountUsername, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+                 .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
