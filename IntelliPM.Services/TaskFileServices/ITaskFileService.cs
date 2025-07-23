@@ -11,7 +11,7 @@ namespace IntelliPM.Services.TaskFileServices
     public interface ITaskFileService
     {
         Task<TaskFileResponseDTO> UploadTaskFileAsync(TaskFileRequestDTO request);
-        Task<bool> DeleteTaskFileAsync(int fileId);
+        Task<bool> DeleteTaskFileAsync(int fileId, int createdBy);
         Task<List<TaskFileResponseDTO>> GetFilesByTaskIdAsync(string taskId);
 
     }

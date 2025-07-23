@@ -93,10 +93,10 @@ namespace IntelliPM.Services.SubtaskCommentServices
                         Type = "COMMENT",
                         Priority = "NORMAL",
                         Message = $"Comment in subtask {request.SubtaskId}: {request.Content}",
-                        RelatedEntityType = "SubtaskComment",
-                        RelatedEntityId = entity.Id, // comment ID
+                        RelatedEntityType = "Subtask",
+                        RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
-                        //IsRead = false,
+                        IsRead = false,
                         RecipientNotification = new List<RecipientNotification>()
                     };
 
@@ -104,8 +104,8 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
                         {
-                            AccountId = accId
-                            //IsRead = false
+                            AccountId = accId,
+                            IsRead = false
                         });
                     }
                     await _notificationRepo.Add(notification);

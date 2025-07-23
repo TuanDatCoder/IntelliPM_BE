@@ -30,5 +30,38 @@ namespace IntelliPM.API.Controllers
                 Data = result
             });
         }
+
+        [HttpPut("mark-as-read")]
+        public async Task<IActionResult> MarkAsRead([FromQuery] int accountId, [FromQuery] int notificationId)
+        {
+            await _service.MarkAsReadAsync(accountId, notificationId);
+            return Ok(new ApiResponseDTO
+            {
+                IsSuccess = true,
+                Code = (int)HttpStatusCode.OK,
+                Message = "Notification marked as read successfully"
+            });
+        }
+
+        [HttpGet("account/{accountId}")]
+        public async Task<IActionResult> GetByAccount(int accountId)
+        {
+            try
+            {
+                var recipientNotification = await _service.GetRecipientNotificationByAccount(accountId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = " RecipientNotification Notifications retrieved successfully",
+                    Data = recipientNotification
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
     }
 }

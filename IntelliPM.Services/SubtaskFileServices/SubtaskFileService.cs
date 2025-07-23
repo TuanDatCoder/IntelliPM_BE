@@ -1,14 +1,19 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.SubtaskFile.Request;
 using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.SubtaskFileRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskFileRepos;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using System;
 using System.Collections.Generic;
+using System.Formats.Tar;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,12 +25,18 @@ namespace IntelliPM.Services.SubtaskFileServices
         private readonly ISubtaskFileRepository _repository;
         private readonly ICloudinaryStorageService _cloudinaryService;
         private readonly IMapper _mapper;
+        private readonly IActivityLogService _activityLogService;
+        private readonly ITaskRepository _taskRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
 
-        public SubtaskFileService(ISubtaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper)
+        public SubtaskFileService(ISubtaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, ITaskRepository taskRepo, ISubtaskRepository subtaskRepo)
         {
             _repository = repository;
             _cloudinaryService = cloudinaryService;
             _mapper = mapper;
+            _activityLogService = activityLogService;
+            _taskRepo = taskRepo;
+            _subtaskRepo = subtaskRepo;
         }
 
         public async Task<SubtaskFileResponseDTO> UploadSubtaskFileAsync(SubtaskFileRequestDTO request)
@@ -40,16 +51,47 @@ namespace IntelliPM.Services.SubtaskFileServices
                 Status = "UPLOADED"
             };
 
+            var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
+            var projectId = subtask?.Task.ProjectId;
+
             await _repository.AddAsync(entity);
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = projectId,
+                TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
+                SubtaskId = entity.SubtaskId,
+                RelatedEntityType = "SubtaskFile",
+                RelatedEntityId = entity.SubtaskId,
+                ActionType = "CREATE",
+                Message = $"Upload file in subtask '{entity.SubtaskId}'",
+                CreatedBy = request.CreatedBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
             return _mapper.Map<SubtaskFileResponseDTO>(entity);
         }
 
-        public async Task<bool> DeleteSubtaskFileAsync(int fileId)
+        public async Task<bool> DeleteSubtaskFileAsync(int fileId, int createdBy)
         {
             var subtaskFile = await _repository.GetByIdAsync(fileId);
             if (subtaskFile == null) return false;
 
+            var subtask = await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId);
+            var projectId = subtask?.Task.ProjectId;
+
             await _repository.DeleteAsync(subtaskFile);
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = projectId,
+                TaskId = (await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId ?? null,
+                SubtaskId = subtaskFile.SubtaskId,
+                RelatedEntityType = "SubtaskFile",
+                RelatedEntityId = subtaskFile.SubtaskId,
+                ActionType = "DELETE",
+                Message = $"Delete file in subtask '{subtaskFile.SubtaskId}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
             return true;
         }
 
