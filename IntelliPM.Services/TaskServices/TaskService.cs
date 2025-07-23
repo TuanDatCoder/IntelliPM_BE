@@ -26,6 +26,7 @@ using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
@@ -785,6 +786,21 @@ namespace IntelliPM.Services.TaskServices
 
         }
 
+        public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status)
+        {
+
+            var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+            if (sprint == null)
+                throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+
+            var entities = await _taskRepo.GetBySprintIdAndByStatusAsync(sprintId,status);
+
+            var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(entities);
+            await EnrichTaskBacklogResponses(dtos);
+            return dtos;
+        }
+
+        //
     }
 }
 

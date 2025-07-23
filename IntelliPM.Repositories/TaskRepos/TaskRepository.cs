@@ -102,6 +102,20 @@ namespace IntelliPM.Repositories.TaskRepos
                 .ToListAsync();
         }
 
+
+        public async Task<List<Tasks>> GetBySprintIdAndByStatusAsync(int sprintId, string status)
+        {
+            return await _context.Tasks
+                .Include(v => v.Project)
+                .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
+                .Include(e => e.Epic)
+                .Where(t => t.SprintId == sprintId && t.Status.ToUpper() == status.ToUpper())
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync();
+        }
+
+
         public async Task<string> GetProjectKeyByTaskIdAsync(string taskId)
         {
             var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
