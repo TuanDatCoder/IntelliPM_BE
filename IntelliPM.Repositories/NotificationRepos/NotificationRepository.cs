@@ -22,5 +22,21 @@ namespace IntelliPM.Repositories.NotificationRepos
             await _context.Notification.AddAsync(notification);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Notification>> GetNotificationByAccountIdAsync(int accountId)
+        {
+            return await _context.Notification
+                .Where(tf => tf.CreatedBy == accountId)
+                .Include(t => t.CreatedByNavigation)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<Notification>> GetAllNotification()
+        {
+            return await _context.Notification
+                .Include(t => t.CreatedByNavigation)
+                .ToListAsync();
+        }
     }
 }

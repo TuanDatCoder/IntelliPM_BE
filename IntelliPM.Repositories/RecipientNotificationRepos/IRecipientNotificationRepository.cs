@@ -10,5 +10,11 @@ namespace IntelliPM.Repositories.RecipientNotificationRepos
     public interface IRecipientNotificationRepository
     {
         Task<List<RecipientNotification>> GetAllRecipientNotification();
+
+        Task<RecipientNotification?> GetByIdAsync(int id);
+        Task<RecipientNotification?> GetByAccountAndNotificationIdAsync(int accountId, int notificationId);
+        Task MarkAsReadAsync(int accountId, int notificationId);
+
+        Task<List<RecipientNotification>> GetRecipientNotificationByAccountIdAsync(int accountId);
     }
 }
