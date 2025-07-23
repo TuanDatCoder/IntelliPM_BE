@@ -443,6 +443,39 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/reporter")]
+        public async Task<IActionResult> ChangeReporter(string id, [FromBody] ChangeTaskReporterRequestDTO dto)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskReporter(id, dto.ReporterId, dto.CreatedBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task reporter updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task reporter: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPatch("{id}/description")]
         public async Task<IActionResult> ChangeDescription(string id, [FromBody] ChangeTaskDescriptionRequestDTO dto)
         {
@@ -472,6 +505,39 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error updating task description: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/priority")]
+        public async Task<IActionResult> ChangePriority(string id, [FromBody] ChangeTaskPriorityRequestDTO dto)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPriority(id, dto.Priority, dto.CreatedBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task priority updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task priority: {ex.Message}"
                 });
             }
         }

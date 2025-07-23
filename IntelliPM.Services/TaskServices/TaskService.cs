@@ -392,6 +392,76 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        public async Task<TaskResponseDTO> ChangeTaskPriority(string id, string priority, int createdBy)
+        {
+            if (string.IsNullOrEmpty(priority))
+                throw new ArgumentException("Priority cannot be null or empty.");
+
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            entity.Priority = priority;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed priority of task '{entity.Id}' to '{priority}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change priority: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
+
+        public async Task<TaskResponseDTO> ChangeTaskReporter(string id, int reporter, int createdBy)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            entity.ReporterId = reporter;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed reporter of task '{entity.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change reporter: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
 
         public async Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id)
         {
