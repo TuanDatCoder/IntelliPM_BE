@@ -37,6 +37,6 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
         Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey);
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId);
-
+        Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status);
     }
 }
