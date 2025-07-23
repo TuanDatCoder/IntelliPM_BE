@@ -29,6 +29,8 @@ using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
+using IntelliPM.Data.DTOs.Notification.Request;
+using IntelliPM.Data.DTOs.Notification.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
@@ -38,6 +40,7 @@ using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+using IntelliPM.Data.DTOs.RecipientNotification.Request;
 using IntelliPM.Data.DTOs.RecipientNotification.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
@@ -369,8 +372,17 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                  .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByNavigation != null ? src.CreatedByNavigation.FullName : null));
 
             // RecipientNotification
+            CreateMap<RecipientNotificationRequestDTO, RecipientNotification>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<RecipientNotification, RecipientNotificationResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.NotificationMessage, opt => opt.MapFrom(src => src.Notification != null ? src.Notification.Message : null));
 
-            CreateMap<RecipientNotification, RecipientNotificationResponseDTO>();
+            // Notification
+            CreateMap<NotificationRequestDTO, Notification>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<Notification, NotificationResponseDTO>()
+                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByNavigation != null ? src.CreatedByNavigation.FullName : null));
 
             // SubtaskComment
             CreateMap<SubtaskCommentRequestDTO, SubtaskComment>()

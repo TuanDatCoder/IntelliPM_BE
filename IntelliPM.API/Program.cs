@@ -93,6 +93,7 @@ using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Repositories.RecipientNotificationRepos;
+using IntelliPM.Services.NotificationServices;
 
 
 
@@ -155,7 +156,7 @@ builder.Services.AddScoped<IProjectRecommendationRepository, ProjectRecommendati
 builder.Services.AddScoped<ITaskDependencyRepository, TaskDependencyRepository>();
 builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
-
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -202,6 +203,7 @@ builder.Services.AddScoped<IProjectRecommendationService, ProjectRecommendationS
 builder.Services.AddScoped<IWorkLogService, WorkLogService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 builder.Services.AddScoped<IRecipientNotificationService, RecipientNotificationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 
