@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -440,7 +441,21 @@ namespace IntelliPM.Services.SprintServices
         }
 
 
+        public async Task<SprintResponseDTO> GetActiveSprintWithTasksByProjectKeyAsync(string projectKey)
+        {
+            if (string.IsNullOrWhiteSpace(projectKey))
+                throw new ArgumentException("Project key is required.");
 
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+            var activeSprint = await _repo.GetActiveSprintByProjectIdAsync(project.Id);
+            if (activeSprint == null)
+                throw new KeyNotFoundException($"No active sprint found for Project '{projectKey}'.");
+
+            return _mapper.Map<SprintResponseDTO>(activeSprint);
+        }
 
 
     }
