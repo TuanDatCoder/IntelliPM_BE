@@ -1,24 +1,21 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Services.NotificationServices;
-using IntelliPM.Services.SubtaskServices;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Threading.Tasks;
 
 namespace IntelliPM.API.Controllers
 {
-[ApiController]
-[Route("api/[controller]")]
+    [ApiController]
+    [Route("api/[controller]")]
     //[Authorize]
     public class NotificationController : ControllerBase
-{
-        private readonly INotificationService _service;
-
-    public NotificationsController(INotificationService notificationService)
     {
-        _notificationService = notificationService;
-    }
+        private readonly INotificationService _notificationService;
+
+        public NotificationController(INotificationService notificationService)
+        {
+            _notificationService = notificationService;
+        }
 
         [HttpGet("account/{accountId}")]
         public async Task<IActionResult> GetByAccount(int accountId)
@@ -35,7 +32,7 @@ namespace IntelliPM.API.Controllers
                 });
             }
             catch (KeyNotFoundException ex)
-    {
+            {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
         }
