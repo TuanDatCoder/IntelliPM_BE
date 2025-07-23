@@ -146,7 +146,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/responsibleId")]
+        [HttpPatch("{id}/responsible-id")]
         public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int responsibleId)
         {
             try
@@ -212,6 +212,75 @@ namespace IntelliPM.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Failed to update risk title: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/description")]
+        public async Task<IActionResult> UpdateDescription(int id, [FromBody] string description)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateDescriptionAsync(id, description);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk description successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk description: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/impact-level")]
+        public async Task<IActionResult> UpdateImpactLevel(int id, [FromBody] string impactLevel)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateImpactLevelAsync(id, impactLevel);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk impact level successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk impact level: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/probability")]
+        public async Task<IActionResult> UpdateProbability(int id, [FromBody] string probability)
+        {
+            try
+            {
+                var updated = await _riskService.UpdateProbabilityAsync(id, probability);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update risk probability successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update risk probability: {ex.Message}");
             }
         }
 

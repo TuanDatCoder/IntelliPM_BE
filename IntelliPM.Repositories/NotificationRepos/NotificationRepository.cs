@@ -38,5 +38,15 @@ namespace IntelliPM.Repositories.NotificationRepos
                 .Include(t => t.CreatedByNavigation)
                 .ToListAsync();
         }
+
+        public async Task<List<Notification>> GetByReceiverId(int userId)
+        {
+            return await _context.RecipientNotification
+                .Include(rn => rn.Notification)
+                .Where(rn => rn.AccountId == userId)
+                .OrderByDescending(rn => rn.CreatedAt)
+                .Select(rn => rn.Notification)
+                .ToListAsync();
+        }
     }
 }

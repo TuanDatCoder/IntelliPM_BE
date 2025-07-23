@@ -12,5 +12,7 @@ namespace IntelliPM.Repositories.NotificationRepos
         Task Add(Notification notification);
         Task<List<Notification>> GetAllNotification();
         Task<List<Notification>> GetNotificationByAccountIdAsync(int accountid);
+        Task<List<Notification>> GetByReceiverId(int userId);
+
     }
 }

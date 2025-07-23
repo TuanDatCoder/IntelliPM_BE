@@ -141,5 +141,21 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
                 });
             }
         }
+
+        [HttpGet("check-conflict")]
+        public async Task<IActionResult> CheckMeetingConflict(DateTime date, DateTime startTime, DateTime endTime)
+        {
+            try
+            {
+                var result = await _service.GetParticipantsWithMeetingConflict(date, startTime, endTime);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in CheckMeetingConflict: " + ex.Message);
+                return StatusCode(500, new { message = "An error occurred while checking meeting conflicts." });
+            }
+        }
+
     }
 }
