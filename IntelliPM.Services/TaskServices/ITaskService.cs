@@ -21,6 +21,8 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId);
         Task<TaskResponseDTO> ChangeTaskType(string id, string type, int createdBy);
         Task<TaskResponseDTO> ChangeTaskTitle(string id, string title, int createdBy);
+        Task<TaskResponseDTO> ChangeTaskPriority(string id, string priority, int createdBy);
+        Task<TaskResponseDTO> ChangeTaskReporter(string id, int reporter, int createdBy);
         Task<TaskResponseDTO> ChangeTaskDescription(string id, string description, int createdBy);
         Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy);
         Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy);
