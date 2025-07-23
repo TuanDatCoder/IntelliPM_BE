@@ -20,6 +20,7 @@ namespace IntelliPM.Services.RiskCommentServices
 {
     public class RiskCommentService : IRiskCommentService
     {
+        //
         private readonly IMapper _mapper;
         private readonly IRiskCommentRepository _repo;
         private readonly INotificationRepository _notificationRepo;
