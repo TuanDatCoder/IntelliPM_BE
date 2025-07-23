@@ -16,14 +16,17 @@
 	
 		<PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-		
+	
+
 	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IntelliPM.Services\IntelliPM.Services.csproj" />
+    <ProjectReference Include="..\IntelliPM.Shared\IntelliPM.Shared.csproj" />
   </ItemGroup>
 
 
