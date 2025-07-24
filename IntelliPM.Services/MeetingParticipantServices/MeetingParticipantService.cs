@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -15,13 +17,15 @@ namespace IntelliPM.Services.MeetingParticipantServices
         private readonly IMeetingParticipantRepository _repo;
         private readonly IMapper _mapper;
         private readonly IMeetingRepository _meetingRepo;
+        private readonly Su25Sep490IntelliPmContext _context;
 
 
-        public MeetingParticipantService(IMeetingParticipantRepository repo,IMeetingRepository meetingRepo, IMapper mapper)
+        public MeetingParticipantService(IMeetingParticipantRepository repo,IMeetingRepository meetingRepo, IMapper mapper, Su25Sep490IntelliPmContext context)
         {
             _repo = repo;
             _meetingRepo = meetingRepo;
             _mapper = mapper;
+            _context = context;
         }
 
         //public async Task<MeetingParticipantResponseDTO> CreateParticipant(MeetingParticipantRequestDTO dto)
@@ -66,10 +70,32 @@ namespace IntelliPM.Services.MeetingParticipantServices
             return _mapper.Map<MeetingParticipantResponseDTO>(participant);
         }
 
+        //public async Task<List<MeetingParticipantResponseDTO>> GetParticipantsByMeetingId(int meetingId)
+        //{
+        //    var participants = await _repo.GetByMeetingIdAsync(meetingId);
+        //    return _mapper.Map<List<MeetingParticipantResponseDTO>>(participants);
+        //}
+
         public async Task<List<MeetingParticipantResponseDTO>> GetParticipantsByMeetingId(int meetingId)
         {
-            var participants = await _repo.GetByMeetingIdAsync(meetingId);
-            return _mapper.Map<List<MeetingParticipantResponseDTO>>(participants);
+            var participants = await _context.MeetingParticipant
+                .Where(mp => mp.MeetingId == meetingId)
+                .Join(_context.Account,
+                      mp => mp.AccountId,
+                      acc => acc.Id,
+                      (mp, acc) => new MeetingParticipantResponseDTO
+                      {
+                          Id = mp.Id,
+                          MeetingId = mp.MeetingId,
+                          AccountId = mp.AccountId,
+                          Role = mp.Role,
+                          Status = mp.Status,
+                          CreatedAt = mp.CreatedAt,
+                          FullName = acc.FullName 
+                      })
+                .ToListAsync();
+
+            return participants;
         }
 
         public async Task<MeetingParticipantResponseDTO> UpdateParticipant(int id, MeetingParticipantRequestDTO dto)
