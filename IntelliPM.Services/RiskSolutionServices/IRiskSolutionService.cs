@@ -10,8 +10,10 @@ namespace IntelliPM.Services.RiskSolutionServices
 {
     public interface IRiskSolutionService
     {
-        Task<List<RiskSolutionResponseDTO>> GetListByRiskIdAsync(int riskId);
-        Task<RiskSolutionResponseDTO> CreateAsync(RiskSolutionRequestDTO request);
-        Task<RiskSolutionResponseDTO> UpdateAsync(int id, RiskSolutionRequestDTO request);
+        Task<List<RiskSolutionResponseDTO>> GetByRiskIdAsync(int riskId);
+        Task<RiskSolutionResponseDTO> CreateAsync(RiskSolutionRequestDTO dto);
+        Task<RiskSolutionResponseDTO?> UpdateContigencyPlanAsync(int id, string contigencyPlan);
+        Task<RiskSolutionResponseDTO?> UpdateMitigationPlanAsync(int id, string mitigationPlan);
+        Task DeleteRiskSolution(int id);
     }
 }
