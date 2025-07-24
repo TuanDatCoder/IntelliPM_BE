@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using IntelliPM.Data.DTOs.Risk.Request;
 using AutoMapper;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+using IntelliPM.Data.DTOs.Risk.Response;
 
 public class GeminiService : IGeminiService
 {
@@ -457,7 +458,7 @@ Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một r�
   {{
     title: string,
     description: string,
-    type: string, // ví dụ: Kỹ thuật, Quản lý, Nhân sự, Khách hàng...
+    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
     probability: string, // High | Medium | Low
     impactLevel: string, // High | Medium | Low
     severityLevel: string, // High | Medium | Low
@@ -471,6 +472,7 @@ Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một r�
 - Tập trung vào rủi ro ở cấp độ tổng thể dự án.
 - Không thêm markdown, tiêu đề hoặc giải thích bên ngoài JSON.
 - Phân tích đúng và logic, tránh liệt kê rủi ro chung chung hoặc quá mơ hồ.
+- Trả về dữ liệu bằng tiếng anh.
 
 Thông tin dự án:
 - Tên: {project.Name}
@@ -536,6 +538,121 @@ Danh sách task:
                 risk.GeneratedBy = "AI";
                 risk.RiskScope = "Project"; 
                 risk.IsApproved = false;
+            }
+            return risks;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error parsing RiskDTO from Gemini reply:\n" + replyText + "\n" + ex.Message);
+        }
+    }
+
+    public async Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(Project project, List<Tasks> tasks)
+    {
+        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
+        {
+            t.Title,
+            t.Description,
+            t.PlannedStartDate,
+            t.PlannedEndDate,
+            t.ActualStartDate,
+            t.ActualEndDate,
+            t.PercentComplete,
+            t.PlannedHours,
+            t.ActualHours,
+            t.PlannedCost,
+            t.ActualCost,
+            t.Status
+        }), Formatting.Indented);
+
+        var prompt = $@"
+Bạn là một chuyên gia quản lý rủi ro. Dưới đây là thông tin dự án phần mềm và danh sách các task của dự án đó.
+
+Hãy phân tích và dự đoán 3 rủi ro tổng thể có thể xảy ra trong dự án này (không đi sâu vào chi tiết từng task).
+
+Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một rủi ro tiềm ẩn của dự án và các giải pháp đi kèm như sau:
+
+[
+  {{
+    title: string,
+    description: string,
+    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+    probability: string, // High | Medium | Low
+    impactLevel: string, // High | Medium | Low
+    severityLevel: string, // High | Medium | Low
+    mitigationPlan: string, // kế hoạch giảm thiểu rủi ro
+    contingencyPlan: string // kế hoạch dự phòng nếu rủi ro xảy ra
+  }}
+]
+
+**Yêu cầu:**
+- Không đánh giá chi tiết vào từng task cụ thể.
+- Tập trung vào rủi ro ở cấp độ tổng thể dự án.
+- Không thêm markdown, tiêu đề hoặc giải thích bên ngoài JSON.
+- Phân tích đúng và logic, tránh liệt kê rủi ro chung chung hoặc quá mơ hồ.
+- Trả về dữ liệu bằng tiếng anh.
+
+Thông tin dự án:
+- Tên: {project.Name}
+- Ngân sách: {project.Budget}
+- Thời gian bắt đầu: {project.StartDate}
+- Thời gian kết thúc: {project.EndDate}
+
+Danh sách task:
+{taskList}
+";
+
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[]
+                {
+                    new { text = prompt }
+                }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+
+        if (string.IsNullOrWhiteSpace(responseString))
+            throw new Exception("Gemini response is empty.");
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+            throw new Exception("Gemini did not return any text response.");
+
+        if (replyText.StartsWith("```") && replyText.Contains("json"))
+        {
+            replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+        }
+
+        if (!replyText.StartsWith("["))
+            throw new Exception("Gemini reply is not a valid JSON array:\n" + replyText);
+
+        try
+        {
+            var risks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
+            if (risks == null || risks.Count == 0)
+                throw new Exception("Không tìm thấy rủi ro nào từ phản hồi Gemini.");
+
+            foreach (var risk in risks)
+            {
+                risk.ProjectId = project.Id;
+                risk.TaskId = null;
+                risk.RiskScope = "Project";
             }
             return risks;
         }

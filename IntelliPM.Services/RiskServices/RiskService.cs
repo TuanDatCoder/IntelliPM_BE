@@ -237,8 +237,17 @@ namespace IntelliPM.Services.RiskServices
             var project = await _projectRepo.GetProjectByKeyAsync(request.ProjectKey)
                 ?? throw new Exception("Project not found with provided projectKey");
 
+            var count = await _riskRepo.CountByProjectIdAsync(project.Id);
+            var nextIndex = count + 1;
+            var riskKey = $"{project.ProjectKey}-R{nextIndex:D3}";
+
+            var impactLevel = request.ImpactLevel;
+            var probability = request.Probability;
+
             var entity = _mapper.Map<Risk>(request);
             entity.ProjectId = project.Id;
+            entity.RiskKey = riskKey;
+            entity.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -284,7 +293,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int responsibleId)
+        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -386,33 +395,6 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        //private string CalculateSeverityLevel(string impact, string probability)
-        //{
-        //    int GetLevelValue(string level)
-        //    {
-        //        return level.ToLower() switch
-        //        {
-        //            "low" => 1,
-        //            "medium" => 2,
-        //            "high" => 3,
-        //            _ => 0
-        //        };
-        //    }
-
-        //    var impactValue = GetLevelValue(impact);
-        //    var probValue = GetLevelValue(probability);
-
-        //    var max = Math.Max(impactValue, probValue);
-
-        //    return max switch
-        //    {
-        //        1 => "Low",
-        //        2 => "Medium",
-        //        3 => "High",
-        //        _ => "Unknown"
-        //    };
-        //}
-
         private string CalculateSeverityLevel(string impact, string probability)
         {
             int GetLevelValue(string level)
@@ -465,6 +447,17 @@ namespace IntelliPM.Services.RiskServices
             }
 
             return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var risks = await _geminiService.ViewAIProjectRisksAsync(project, tasks);
+
+            return risks ?? new List<AIRiskResponseDTO>();
         }
     }
 
