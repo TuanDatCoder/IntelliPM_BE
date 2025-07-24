@@ -25,7 +25,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("by-risk/{riskId}")]
-        public async Task<IActionResult> GetFilesByTaskId(int riskId)
+        public async Task<IActionResult> GetFilesByRiskId(int riskId)
         {
             try
             {

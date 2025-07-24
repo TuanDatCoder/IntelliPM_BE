@@ -18,33 +18,35 @@ namespace IntelliPM.Repositories.RiskSolutionRepos
             _context = context;
         }
 
-        public async Task AddAsync(RiskSolution solution)
-        {
-            _context.RiskSolution.Add(solution);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<RiskSolution> GetByIdAsync(int id)
-        {
-            return await _context.RiskSolution.FirstOrDefaultAsync(x => x.Id == id);
-        }
-
-        public async Task<RiskSolution?> GetByRiskIdAsync(int riskId)
-        {
-            return await _context.RiskSolution.FirstOrDefaultAsync(x => x.RiskId == riskId);
-        }
-
-        public async Task<List<RiskSolution>> GetListByRiskIdAsync(int riskId)
+        public async Task<List<RiskSolution>> GetByRiskIdAsync(int riskId)
         {
             return await _context.RiskSolution
                 .Where(rs => rs.RiskId == riskId)
+                .OrderBy(rs => rs.Id)
                 .ToListAsync();
         }
 
-
-        public async Task UpdateAsync(RiskSolution solution)
+        public async Task<RiskSolution?> GetByIdAsync(int id)
         {
-            _context.RiskSolution.Update(solution);
+            return await _context.RiskSolution
+                .FirstOrDefaultAsync(rs => rs.Id == id);
+        }
+
+        public async Task AddAsync(RiskSolution entity)
+        {
+            _context.RiskSolution.Add(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(RiskSolution entity)
+        {
+            _context.RiskSolution.Update(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task Delete(RiskSolution entity)
+        {
+            _context.RiskSolution.Remove(entity);
             await _context.SaveChangesAsync();
         }
     }
