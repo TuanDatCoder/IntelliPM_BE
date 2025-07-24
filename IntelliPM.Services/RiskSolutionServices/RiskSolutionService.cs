@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.RiskSolution.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using Microsoft.VisualBasic;
+using Org.BouncyCastle.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,39 +28,75 @@ namespace IntelliPM.Services.RiskSolutionServices
             _mapper = mapper;
         }
 
+        public async Task<List<RiskSolutionResponseDTO>> GetByRiskIdAsync(int riskId)
+        {
+            var data = await _repo.GetByRiskIdAsync(riskId);
+            return _mapper.Map<List<RiskSolutionResponseDTO>>(data);
+        }
+
         public async Task<RiskSolutionResponseDTO> CreateAsync(RiskSolutionRequestDTO dto)
         {
             var entity = _mapper.Map<RiskSolution>(dto);
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.CreatedAt = entity.UpdatedAt = DateTime.UtcNow;
 
             await _repo.AddAsync(entity);
             return _mapper.Map<RiskSolutionResponseDTO>(entity);
         }
 
-        public async Task<List<RiskSolutionResponseDTO>> GetListByRiskIdAsync(int riskId)
+        public async Task<RiskSolutionResponseDTO?> UpdateContigencyPlanAsync(int id, string contigencyPlan)
         {
-            var entities = await _repo.GetListByRiskIdAsync(riskId);
-            return _mapper.Map<List<RiskSolutionResponseDTO>>(entities);
-        }
+            var existing = await _repo.GetByIdAsync(id);
+            if (existing == null) return null;
 
-        public async Task<RiskSolutionResponseDTO> UpdateAsync(int id, RiskSolutionRequestDTO request)
-        {
-            var existing = await _repo.GetByIdAsync(id); 
-            if (existing == null)
-            {
-                throw new Exception($"RiskSolution with Id {id} not found.");
-            }
-
-            existing.MitigationPlan = request.MitigationPlan;
-            existing.ContingencyPlan = request.ContingencyPlan;
+            existing.ContingencyPlan = contigencyPlan;
             existing.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(existing);
+            try
+            {
+                await _repo.UpdateAsync(existing);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change contigency plan: {ex.Message}", ex);
+            }
 
             return _mapper.Map<RiskSolutionResponseDTO>(existing);
         }
 
+        public async Task<RiskSolutionResponseDTO?> UpdateMitigationPlanAsync(int id, string mitigationPlan)
+        {
+            var existing = await _repo.GetByIdAsync(id);
+            if (existing == null) return null;
 
+            existing.MitigationPlan = mitigationPlan;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _repo.UpdateAsync(existing);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change mitigation plan: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskSolutionResponseDTO>(existing);
+        }
+
+        public async Task DeleteRiskSolution(int id)
+        {
+            var entity = await _repo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Risk solution with ID {id} not found.");
+
+            try
+            {
+                await _repo.Delete(entity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete risk solution: {ex.Message}", ex);
+            }
+        }
     }
 }
