@@ -16,5 +16,8 @@ namespace IntelliPM.Services.NotificationServices
         Task SendMentionNotification(List<int> mentionedUserIds, int documentId, string documentTitle, int createdBy);
 
         Task<List<Notification>> GetNotificationsByUserId(int userId);
+
+
+
     }
 }

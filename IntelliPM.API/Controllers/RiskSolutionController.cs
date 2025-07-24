@@ -1,7 +1,9 @@
-﻿using IntelliPM.Data.DTOs.RiskSolution.Request;
+﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.RiskSolution.Response;
 using IntelliPM.Services.RiskSolutionServices;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntelliPM.API.Controllers
 {
@@ -16,32 +18,117 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
-        [HttpPost]
-        public async Task<ActionResult<RiskSolutionResponseDTO>> Create([FromBody] RiskSolutionRequestDTO dto)
-        {
-            var result = await _service.CreateAsync(dto);
-            return Ok(result);
-        }
-
-        [HttpGet("{riskId}")]
-        public async Task<ActionResult<RiskSolutionResponseDTO>> GetByRiskId(int riskId)
-        {
-            var result = await _service.GetListByRiskIdAsync(riskId);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult<RiskSolutionResponseDTO>> Update([FromRoute] int id, [FromBody] RiskSolutionRequestDTO dto)
+        [HttpGet("by-risk/{riskId}")]
+        public async Task<IActionResult> GetByRiskId(int riskId)
         {
             try
             {
-                var result = await _service.UpdateAsync(id, dto);
-                return Ok(result);
+                var list = await _service.GetByRiskIdAsync(riskId);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Get risk solution successfully",
+                    data = list
+                });
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                return StatusCode(500, $"Failed to get risk solution: {ex.Message}");
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] RiskSolutionRequestDTO dto)
+        {
+            try
+            {
+                var result = await _service.CreateAsync(dto);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Create risk solution successfully",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to create risk solution: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/contigency-plan")]
+        public async Task<IActionResult> UpdateContigencyPlan(int id, [FromBody] string impactLevel)
+        {
+            try
+            {
+                var updated = await _service.UpdateContigencyPlanAsync(id, impactLevel);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update contigency plan successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update contigency plan: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/mitigation-plan")]
+        public async Task<IActionResult> UpdateMitigationPlan(int id, [FromBody] string mitigationPlan)
+        {
+            try
+            {
+                var updated = await _service.UpdateMitigationPlanAsync(id, mitigationPlan);
+                if (updated == null)
+                    return NotFound($"Risk with ID {id} not found");
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Update mitigation plan successfully",
+                    data = updated
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to update mitigation plan: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _service.DeleteRiskSolution(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Deleted risk solution successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting risk solution: {ex.Message}"
+                });
             }
         }
 
