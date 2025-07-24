@@ -9,10 +9,10 @@ namespace IntelliPM.Repositories.RiskSolutionRepos
 {
     public interface IRiskSolutionRepository
     {
-        Task AddAsync(RiskSolution solution);
-        Task<RiskSolution> GetByIdAsync(int id);
-        Task UpdateAsync(RiskSolution solution);
-        Task<List<RiskSolution>> GetListByRiskIdAsync(int riskId);
-
+        Task<List<RiskSolution>> GetByRiskIdAsync(int riskId);
+        Task<RiskSolution?> GetByIdAsync(int id);
+        Task AddAsync(RiskSolution entity);
+        Task UpdateAsync(RiskSolution entity);
+        Task Delete(RiskSolution entity);
     }
 }
