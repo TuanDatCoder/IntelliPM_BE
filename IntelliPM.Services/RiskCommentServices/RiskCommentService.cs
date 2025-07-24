@@ -159,11 +159,7 @@ namespace IntelliPM.Services.RiskCommentServices
         {
             {
                 var entities = await _repo.GetByRiskIdAsync(riskId);
-
-                if (entities == null || !entities.Any())
-                    throw new KeyNotFoundException($"No risk comment found for Risk ID {riskId}.");
-
-                return _mapper.Map<List<RiskCommentResponseDTO>>(entities);
+                return _mapper.Map<List<RiskCommentResponseDTO>>(entities ?? new List<RiskComment>());
             }
         }
     }
