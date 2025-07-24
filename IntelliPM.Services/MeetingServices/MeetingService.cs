@@ -332,6 +332,29 @@ namespace IntelliPM.Services.MeetingServices
             }
         }
 
+        //public async Task CancelMeeting(int id)
+        //{
+        //    try
+        //    {
+        //        var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
+        //        meeting.Status = "CANCELLED";
+
+        //        // Xóa tất cả participant liên quan
+        //        var participants = await _context.MeetingParticipant
+        //            .Where(mp => mp.MeetingId == id)
+        //            .ToListAsync();
+
+        //        _context.MeetingParticipant.RemoveRange(participants);
+
+        //        await _repo.UpdateAsync(meeting);
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CancelMeeting: " + ex.Message);
+        //        throw new Exception("An error occurred while cancelling the meeting.");
+        //    }
+        //}
         public async Task CancelMeeting(int id)
         {
             try
@@ -339,19 +362,57 @@ namespace IntelliPM.Services.MeetingServices
                 var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
                 meeting.Status = "CANCELLED";
 
-                // Xóa tất cả participant liên quan
+                // Lấy danh sách participants liên quan
                 var participants = await _context.MeetingParticipant
                     .Where(mp => mp.MeetingId == id)
                     .ToListAsync();
 
+                // Gửi thông báo email hủy cuộc họp đến từng participant
+                foreach (var participant in participants)
+                {
+                    var account = await _context.Account.FindAsync(participant.AccountId);
+                    if (account == null)
+                    {
+                        Console.WriteLine($"[EmailError] Account with id {participant.AccountId} not found.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(account.Email))
+                    {
+                        Console.WriteLine($"[EmailError] Account id {participant.AccountId} does not have a valid email.");
+                        continue;
+                    }
+
+                    try
+                    {
+                        await _emailService.SendMeetingCancellationEmail(
+                            account.Email,
+                            account.FullName ?? "User",
+                            meeting.MeetingTopic,
+                            meeting.StartTime ?? DateTime.UtcNow,
+                            meeting.MeetingUrl ?? ""
+                        );
+                    }
+                    catch (Exception emailEx)
+                    {
+                        Console.WriteLine($"[EmailError] Failed to send cancellation to {account.Email}: {emailEx.Message}");
+                    }
+                }
+
+                // Xóa tất cả participants
                 _context.MeetingParticipant.RemoveRange(participants);
 
+                // Cập nhật trạng thái cuộc họp
                 await _repo.UpdateAsync(meeting);
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error in CancelMeeting: " + ex.Message);
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+                }
                 throw new Exception("An error occurred while cancelling the meeting.");
             }
         }
