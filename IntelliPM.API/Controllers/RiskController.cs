@@ -147,7 +147,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/responsible-id")]
-        public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int responsibleId)
+        public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int? responsibleId)
         {
             try
             {
@@ -296,6 +296,38 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [HttpGet("ai-suggestion")]
+        public async Task<IActionResult> ViewAIProjectRisksAsync([FromQuery] string projectKey)
+        {
+            try
+            {
+                var risks = await _riskService.ViewAIProjectRisksAsync(projectKey);
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Project risks detected successfully",
+                    data = risks
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = ex.Message
+                });
+            }
+        }
+
+
+
+
+
+
+
         [HttpGet("unapproved-ai-risks")]
         public async Task<IActionResult> GetUnapprovedAIRisks([FromQuery] int projectId)
         {
@@ -384,7 +416,6 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RiskCreateRequestDTO request)
