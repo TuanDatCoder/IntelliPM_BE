@@ -10,5 +10,7 @@ namespace IntelliPM.Data.DTOs.MeetingParticipant.Response
         public string? Role { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public string? FullName { get; set; }
     }
 }
