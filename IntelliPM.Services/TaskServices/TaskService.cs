@@ -776,15 +776,7 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
-        {
-            foreach (var dto in dtos)
-            {
-                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
-                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
-            }
-
-        }
+     
 
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status)
         {
@@ -800,7 +792,50 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-        //
+        public async Task<List<TaskBacklogResponseDTO>> GetTasksByAccountIdAsync(int accountId)
+        {
+            try
+            {
+                var account = await _accountRepo.GetAccountById(accountId);
+                if (account == null)
+                    throw new KeyNotFoundException($"Account with ID {accountId} not found.");
+
+                var taskAssignments = await _taskAssignmentRepo.GetTasksByAccountIdAsync(accountId);
+
+                var tasks = taskAssignments
+                    .Where(ta => ta.Task != null)
+                    .Select(ta => ta.Task)
+                    .ToList();
+
+                if (tasks == null || !tasks.Any())
+                {
+                    throw new KeyNotFoundException($"No tasks found for account with ID {accountId}.");
+                }
+
+
+                var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(tasks);
+                await EnrichTaskBacklogResponses(dtos);
+
+                return dtos;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to retrieve tasks for account {accountId}: {ex.Message}", ex);
+            }
+        }
+
+        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
+            }
+
+        }
+
+
+
     }
 }
 
