@@ -18,6 +18,7 @@ namespace IntelliPM.Services.EmailServices
 
         Task SendTeamInvitation(string memberFullName, string memberEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl);
 
+        Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
 
 
         Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
@@ -26,6 +27,7 @@ namespace IntelliPM.Services.EmailServices
 
         Task SendEmailTeamLeader(List<string> email, string message);
 
+        Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
 
 
 
