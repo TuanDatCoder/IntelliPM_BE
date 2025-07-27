@@ -696,11 +696,19 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var sprint = await _sprintRepo.GetByIdAsync(sprintId);
-            if (sprint == null)
-                throw new KeyNotFoundException($"Sprint with ID {id} not found.");
+            if(sprintId == 0)
+            {
+                entity.SprintId = null;
+            }
+            else
+            {
+                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+                if (sprint == null)
+                    throw new KeyNotFoundException($"Sprint with ID {id} not found.");
+                entity.SprintId = sprintId;
+            }
 
-            entity.SprintId = sprintId;
+            
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
