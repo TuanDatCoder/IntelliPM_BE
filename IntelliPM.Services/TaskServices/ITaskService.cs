@@ -38,5 +38,6 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey);
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId);
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status);
+        Task<List<TaskBacklogResponseDTO>> GetTasksByAccountIdAsync(int accountId);
     }
 }

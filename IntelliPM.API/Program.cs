@@ -129,6 +129,7 @@ using IntelliPM.Repositories.RiskFileRepos;
 using IntelliPM.Services.RiskFileServices;
 using IntelliPM.Services.RiskCommentServices;
 using IntelliPM.Repositories.RiskCommentRepos;
+using Microsoft.Azure.SignalR;
 
 
 
@@ -244,7 +245,7 @@ builder.Services.AddScoped<IRiskFileService, RiskFileService>();
 builder.Services.AddScoped<IRiskCommentService, RiskCommentService>();
 builder.Services.AddScoped<INotificationPushService, SignalRNotificationPushService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddSignalR(); 
+//builder.Services.AddSignalR(); 
 
 
 
@@ -347,6 +348,7 @@ builder.Services.AddSwaggerGen(option =>
 
 //appsettings
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration["Azure:SignalR:ConnectionString"]!);
 
 
 

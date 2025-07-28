@@ -38,7 +38,20 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
+                .OrderBy(e => e.CreatedAt)
                 .FirstOrDefaultAsync(e => e.Id == id);
+        }
+
+        public async Task<Epic?> GetByAccountIdAsync(int accountId)
+        {
+            return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.Sprint)
+                .Include(e => e.AssignedByNavigation)
+                .Include(e => e.Sprint)
+                .OrderByDescending(e => e.CreatedAt)
+                .FirstOrDefaultAsync(e => e.AssignedBy == accountId);
         }
 
         public async Task<List<Epic>> GetByNameAsync(string name)

@@ -22,7 +22,7 @@ namespace IntelliPM.Services.EpicServices
         Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request);
         Task<EpicTasksStatsResponseDTO> GetTasksByEpicIdWithStatsAsync(string epicId);
         Task<List<EpicWithStatsResponseDTO>> GetEpicsWithTasksByProjectKeyAsync(string projectKey);
-
+        Task<EpicResponseDTO> GetEpicByAccountId(int accountId);
 
     }
 }
