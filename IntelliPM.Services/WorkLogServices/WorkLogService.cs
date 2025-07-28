@@ -105,8 +105,11 @@ namespace IntelliPM.Services.WorkLogServices
                         var task = await _taskRepo.GetByIdAsync(subtask.TaskId);
                         if (task != null)
                         {
+                            var plannedHours = task.PlannedHours;
+                            task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
+                            task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                         }
@@ -164,8 +167,11 @@ namespace IntelliPM.Services.WorkLogServices
                         var task = await _taskRepo.GetByIdAsync(subtask.TaskId);
                         if (task != null)
                         {
+                            var plannedHours = task.PlannedHours;
+                            task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
+                            task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                         }
@@ -227,7 +233,9 @@ namespace IntelliPM.Services.WorkLogServices
         public async Task<List<WorkLogResponseDTO>> GetWorkLogsByTaskOrSubtaskAsync(string? taskId, string? subtaskId)
         {
             var worklogs = await _workLogRepo.GetByTaskOrSubtaskIdAsync(taskId, subtaskId);
-            var result = _mapper.Map<List<WorkLogResponseDTO>>(worklogs);
+            var result = _mapper.Map<List<WorkLogResponseDTO>>(worklogs)
+                .OrderByDescending(x => x.Id)
+                .ToList();
 
             if (!string.IsNullOrEmpty(subtaskId))
             {
@@ -389,8 +397,11 @@ namespace IntelliPM.Services.WorkLogServices
             }
 
             // Cập nhật task
+            var plannedHours = task.PlannedHours;
+            task.RemainingHours = plannedHours - totalHours;
             task.ActualHours = totalHours;
             task.ActualResourceCost = totalCost;
+            task.ActualCost = totalCost;
             await _taskRepo.Update(task);
 
             return true;
