@@ -16,8 +16,16 @@ namespace IntelliPM.Services.SprintServices
         Task<SprintResponseDTO> CreateSprint(SprintRequestDTO request);
         Task<SprintResponseDTO> UpdateSprint(int id, SprintRequestDTO request);
         Task DeleteSprint(int id);
+        Task DeleteSprintWithTask(int id);
         Task<SprintResponseDTO> ChangeSprintStatus(int id, string status);
         Task<List<SprintResponseDTO>> GetSprintByProjectId(int projectId);
+        Task<List<SprintResponseDTO>> GetSprintByProjectIdDescending(int projectId);
         Task<List<SprintWithTaskListResponseDTO>> GetSprintsByProjectKeyWithTasksAsync(string projectKey);
+        Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request);
+        Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate);
+        Task<bool> IsSprintWithinProject(string projectKey, DateTime checkSprintDate);
+        Task<string> MoveTaskToSprint(int sprintOldId, int sprintNewId, string type);
+        Task<SprintResponseDTO> GetActiveSprintWithTasksByProjectKeyAsync(string projectKey);
+
     }
 }

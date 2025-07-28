@@ -20,7 +20,12 @@ namespace IntelliPM.Data.DTOs.Sprint.Request
 
         public DateTime? StartDate { get; set; } 
 
-        public DateTime? EndDate { get; set; }   
+        public DateTime? EndDate { get; set; }
+
+        public DateTime? PlannedStartDate { get; set; }
+
+        public DateTime? PlannedEndDate { get; set; }
+
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         public string? Status { get; set; }

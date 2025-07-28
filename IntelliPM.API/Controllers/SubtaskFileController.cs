@@ -51,11 +51,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, DeleteSubtaskFileRequestDTO dto)
         {
             try
             {
-                await _service.DeleteSubtaskFileAsync(id);
+                await _service.DeleteSubtaskFileAsync(id, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
