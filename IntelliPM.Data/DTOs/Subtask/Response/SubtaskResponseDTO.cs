@@ -12,10 +12,12 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public string TaskId { get; set; } = null!;
         public int AssignedBy { get; set; }
         public string? AssignedByName { get; set; }
+        public string? AssignedByPicture { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public int? ReporterId { get; set; }
         public string? ReporterName { get; set; }
+        public string? ReporterPicture { get; set; }
         public string? Status { get; set; }
         public string? Priority { get; set; }
         public bool ManualInput { get; set; }
