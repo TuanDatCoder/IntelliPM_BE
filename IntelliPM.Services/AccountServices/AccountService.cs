@@ -1,17 +1,15 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Response;
-using IntelliPM.Data.DTOs.Project.Response;
-using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices; // Thay Firebase bằng Cloudinary
 using IntelliPM.Services.EmailServices;
-using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using IntelliPM.Services.TaskServices;
+using MimeKit.Cryptography;
 
 namespace IntelliPM.Services.AccountServices
 {
@@ -21,16 +19,27 @@ namespace IntelliPM.Services.AccountServices
         private readonly IAccountRepository _accountRepo;
         private readonly IDecodeTokenHandler _decodeTokenHandler;
         private readonly IEmailService _emailService;
-        private readonly ICloudinaryStorageService _cloudinaryStorageService; // Thay Firebase bằng Cloudinary
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
         private readonly IAuthenticationService _authenticationService;
+        private readonly IEpicRepository _epicRepo;
+        private readonly ITaskRepository _taskRepo;
+        private readonly ISubtaskRepository _subTaskRepo;
+        private readonly ITaskService _taskService;
+
 
         public AccountService(
             IMapper mapper,
             IAccountRepository accountRepository,
             IDecodeTokenHandler decodeTokenHandler,
             IEmailService emailService,
-            ICloudinaryStorageService cloudinaryStorageService, // Thay Firebase bằng Cloudinary
-            IAuthenticationService authenticationService)
+            ICloudinaryStorageService cloudinaryStorageService,
+            IAuthenticationService authenticationService,
+            IEpicRepository epicRepo,
+            ITaskRepository taskRepo,
+            ISubtaskRepository subTaskRepo,
+            ITaskService taskService
+            )
+
         {
             _mapper = mapper;
             _accountRepo = accountRepository;
@@ -38,6 +47,10 @@ namespace IntelliPM.Services.AccountServices
             _emailService = emailService;
             _cloudinaryStorageService = cloudinaryStorageService;
             _authenticationService = authenticationService;
+            _epicRepo = epicRepo;
+            _taskRepo = taskRepo;
+            _subTaskRepo = subTaskRepo;
+            _taskService = taskService;
         }
 
         public async Task<string> UploadProfilePictureAsync(int accountId, Stream fileStream, string fileName)
@@ -94,9 +107,75 @@ namespace IntelliPM.Services.AccountServices
         {
             var entity = await _accountRepo.GetAccountByEmail(email);
             if (entity == null)
-                throw new KeyNotFoundException($"Accoutnt with Email {email} not found.");
+                throw new KeyNotFoundException($"Account with Email {email} not found.");
 
             return _mapper.Map<AccountResponseDTO>(entity);
         }
+
+        public async Task<AccountWithWorkItemDTO> GetAccountAndWorkItemById(int accountId)
+        {
+            var entity = await _accountRepo.GetAccountById(accountId);
+            if (entity == null)
+                throw new KeyNotFoundException($"Account with id {accountId} not found.");
+
+            var epics = await _epicRepo.GetByAccountIdAsync(accountId);
+            var tasks = await _taskService.GetTasksByAccountIdAsync(accountId);
+            var subtasks = await _subTaskRepo.GetByAccountIdAsync(accountId);
+
+            var accountDto = new AccountWithWorkItemDTO
+            {
+                Id = entity.Id,
+                Username = entity.Username,
+                FullName = entity.FullName,
+                WorkItems = new List<WorkItemResponseDTO>()
+            };
+
+            foreach (var epic in epics)
+            {
+                accountDto.WorkItems.Add(new WorkItemResponseDTO
+                {
+                    Key = epic.Id, 
+                    ProjectId = epic.ProjectId, 
+                    Summary = epic.Name, 
+                    Status = epic.Status, 
+                    Type = "EPIC",
+                    CreatedAt = epic.CreatedAt, 
+                    UpdatedAt = epic.UpdatedAt 
+                });
+            }
+
+            foreach (var task in tasks)
+            {
+                accountDto.WorkItems.Add(new WorkItemResponseDTO
+                {
+                    Key = task.Id, 
+                    ProjectId = task.ProjectId, 
+                    Summary = task.Title, 
+                    Status = task.Status,
+                    Type = task.Type ?? "TASK",
+                    CreatedAt = task.CreatedAt, 
+                    UpdatedAt = task.UpdatedAt 
+                });
+            }
+
+            foreach (var subtask in subtasks)
+            {
+                accountDto.WorkItems.Add(new WorkItemResponseDTO
+                {
+                    Key = subtask.Id, 
+                    ProjectId = subtask.Task.ProjectId, 
+                    Summary = subtask.Title,
+                    Status = subtask.Status, 
+                    Type = "SUBSTACK",
+                    CreatedAt = subtask.CreatedAt, 
+                    UpdatedAt = subtask.UpdatedAt 
+                });
+            }
+
+            accountDto.WorkItems = accountDto.WorkItems.OrderByDescending(w => w.CreatedAt).ToList();
+
+            return accountDto;
+        }
+
     }
 }
