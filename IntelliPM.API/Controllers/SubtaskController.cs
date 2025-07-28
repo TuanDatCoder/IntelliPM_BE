@@ -332,5 +332,25 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{id}/full-detailed")]
+        public async Task<IActionResult> GetFullDetailedById(string id)
+        {
+            try
+            {
+                var taskCheckList = await _service.GetFullSubtaskById(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Subtask retrieved successfully",
+                    Data = taskCheckList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
     }
 }

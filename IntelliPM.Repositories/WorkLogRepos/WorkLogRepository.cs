@@ -40,6 +40,7 @@ namespace IntelliPM.Repositories.WorkLogRepos
             return await _context.WorkLog   
                 .Where(w => (taskId != null && w.TaskId == taskId) ||
                             (subtaskId != null && w.SubtaskId == subtaskId))
+                .OrderByDescending(w => w.Id)
                 .ToListAsync();
         }
 
