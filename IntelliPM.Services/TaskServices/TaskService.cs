@@ -674,9 +674,41 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
+            var actualHours = entity.ActualHours;
+            entity.RemainingHours = plannedHours - actualHours;
             entity.PlannedHours = plannedHours;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue && member.HourlyRate.HasValue)
+                {
+                    projectMembers.Add(member);
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal totalCost = 0;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+                    var memberAssignedHours = plannedHours * ratio;
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+                }
+
+                entity.PlannedResourceCost = totalCost;
+                entity.PlannedCost = totalCost;
+            }
 
             try
             {
@@ -841,8 +873,6 @@ namespace IntelliPM.Services.TaskServices
             }
 
         }
-
-
 
     }
 }

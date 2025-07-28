@@ -148,6 +148,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 Id = task.Id,
                 PlannedHours = task.PlannedHours,
                 ActualHours = task.ActualHours,
+                RemainingHours = task.RemainingHours,
                 Accounts = task.TaskAssignment.Select(ta => new AccountBasicDTO
                 {
                     Id = ta.Account.Id,
