@@ -23,6 +23,10 @@ public partial class Sprint
 
     public string? Status { get; set; }
 
+    public DateTime? PlannedStartDate { get; set; }
+
+    public DateTime? PlannedEndDate { get; set; }
+
     public virtual ICollection<Epic> Epic { get; set; } = new List<Epic>();
 
     public virtual ICollection<Milestone> Milestone { get; set; } = new List<Milestone>();

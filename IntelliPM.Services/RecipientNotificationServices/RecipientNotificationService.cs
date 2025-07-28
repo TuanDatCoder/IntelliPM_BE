@@ -1,0 +1,60 @@
+﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Notification.Response;
+using IntelliPM.Data.DTOs.RecipientNotification.Response;
+using IntelliPM.Data.DTOs.SubtaskComment.Response;
+using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Repositories.NotificationRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.RecipientNotificationRepos;
+using IntelliPM.Repositories.SubtaskCommentRepos;
+using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Services.SubtaskCommentServices;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace IntelliPM.Services.RecipientNotificationServices
+{
+    public class RecipientNotificationService : IRecipientNotificationService
+    {
+        private readonly IMapper _mapper;
+        private readonly IRecipientNotificationRepository _recipientNotificationRepository;
+
+        public RecipientNotificationService(IMapper mapper, IRecipientNotificationRepository recipientNotificationRepository)
+        {
+            _mapper = mapper;
+            _recipientNotificationRepository = recipientNotificationRepository;
+        }
+        public async Task<List<RecipientNotificationResponseDTO>> GetAllRecipientNotification()
+        {
+            var entities = await _recipientNotificationRepository.GetAllRecipientNotification();
+            return _mapper.Map<List<RecipientNotificationResponseDTO>>(entities);
+        }
+
+        public async Task<RecipientNotificationResponseDTO> GetRecipientNotificationById(int id)
+        {
+            var entity = await _recipientNotificationRepository.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Recipient Notification with ID {id} not found.");
+
+            return _mapper.Map<RecipientNotificationResponseDTO>(entity);
+        }
+
+        public async Task MarkAsReadAsync(int accountId, int notificationId)
+        {
+            await _recipientNotificationRepository.MarkAsReadAsync(accountId, notificationId);
+        }
+
+        public async Task<List<RecipientNotificationResponseDTO>> GetRecipientNotificationByAccount(int accountId)
+        {
+            var entity = await _recipientNotificationRepository.GetRecipientNotificationByAccountIdAsync(accountId);
+            if (entity == null)
+                throw new KeyNotFoundException($"Notification with Account {accountId} not found.");
+
+            return _mapper.Map<List<RecipientNotificationResponseDTO>>(entity);
+        }
+    }
+}

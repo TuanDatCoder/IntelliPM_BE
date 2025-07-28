@@ -1,5 +1,4 @@
-﻿using Google.Cloud.Storage.V1;
-using IntelliPM.Data.DTOs.Document.Request;
+﻿using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
@@ -7,6 +6,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.NotificationServices;
 using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
@@ -21,8 +21,9 @@ namespace IntelliPM.Services.DocumentServices
         private readonly string _geminiEndpoint;
         private readonly IEmailService _emailService;
         private readonly IProjectMemberRepository _projectMemberRepository;
+        private readonly INotificationService _notificationService;
 
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository)
+        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService)
         {
             _repo = repo;
             _httpClient = httpClient;
@@ -30,6 +31,7 @@ namespace IntelliPM.Services.DocumentServices
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
             _emailService = emailService;
             _projectMemberRepository = projectMemberRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -106,7 +108,7 @@ namespace IntelliPM.Services.DocumentServices
                 await _repo.SaveChangesAsync();
                 var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
                 await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
-      
+
 
             }
             catch (Exception ex)
@@ -152,6 +154,16 @@ namespace IntelliPM.Services.DocumentServices
             {
                 await _repo.AddAsync(doc);
                 await _repo.SaveChangesAsync();
+
+                var mentionedUserIds = Regex.Matches(req.Content, "data-id=[\"'](\\d+)[\"']")
+         .Select(m => int.Parse(m.Groups[1].Value))
+         .Distinct()
+         .ToList();
+                Console.WriteLine("Mentioned IDs found: " + string.Join(",", mentionedUserIds));
+                Console.WriteLine("Document Title: " + doc.Title);
+                Console.WriteLine("Content: " + req.Content);
+
+                await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
             catch (Exception ex)
             {
@@ -165,7 +177,7 @@ namespace IntelliPM.Services.DocumentServices
 
 
 
-        public async Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req)
+        public async Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId)
         {
             var doc = await _repo.GetByIdAsync(id);
             if (doc == null) throw new Exception("Document not found");
@@ -173,14 +185,23 @@ namespace IntelliPM.Services.DocumentServices
             doc.Title = req.Title ?? doc.Title;
             doc.Content = req.Content ?? doc.Content;
             doc.FileUrl = req.FileUrl ?? doc.FileUrl;
-            doc.UpdatedBy = req.UpdatedBy;
+            doc.UpdatedBy = userId; 
             doc.UpdatedAt = DateTime.UtcNow;
 
             await _repo.UpdateAsync(doc);
             await _repo.SaveChangesAsync();
 
+            var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']")
+                .Select(m => int.Parse(m.Groups[1].Value))
+                .Distinct()
+                .ToList();
+
+            await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
+
             return ToResponse(doc);
         }
+
+
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId)
         {
@@ -482,6 +503,21 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
         public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
         {
             return await _repo.CountByStatusInProjectAsync(projectId);
+        }
+
+
+        public List<int> ExtractMentionedAccountIds(string content)
+        {
+            var mentionedIds = new List<int>();
+            var matches = Regex.Matches(content, @"@(\d+)");
+            foreach (Match match in matches)
+            {
+                if (int.TryParse(match.Groups[1].Value, out int id))
+                {
+                    mentionedIds.Add(id);
+                }
+            }
+            return mentionedIds.Distinct().ToList();
         }
 
 

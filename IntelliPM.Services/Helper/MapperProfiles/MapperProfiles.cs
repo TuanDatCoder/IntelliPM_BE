@@ -29,6 +29,8 @@ using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
+using IntelliPM.Data.DTOs.Notification.Request;
+using IntelliPM.Data.DTOs.Notification.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
@@ -38,10 +40,16 @@ using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+using IntelliPM.Data.DTOs.RecipientNotification.Request;
+using IntelliPM.Data.DTOs.RecipientNotification.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
+using IntelliPM.Data.DTOs.RiskComment.Request;
+using IntelliPM.Data.DTOs.RiskComment.Response;
+using IntelliPM.Data.DTOs.RiskFile.Request;
+using IntelliPM.Data.DTOs.RiskFile.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.RiskSolution.Response;
 using IntelliPM.Data.DTOs.Sprint.Request;
@@ -270,6 +278,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ResponsibleFullName, opt => opt.MapFrom(src => src.Responsible.FullName))
                 .ForMember(dest => dest.ResponsibleUserName, opt => opt.MapFrom(src => src.Responsible.Username))
                 .ForMember(dest => dest.ResponsiblePicture, opt => opt.MapFrom(src => src.Responsible.Picture))
+                .ForMember(dest => dest.CreatorFullName, opt => opt.MapFrom(src => src.CreatedByNavigation.FullName))
+                .ForMember(dest => dest.CreatorUserName, opt => opt.MapFrom(src => src.CreatedByNavigation.Username))
+                .ForMember(dest => dest.CreatorPicture, opt => opt.MapFrom(src => src.CreatedByNavigation.Picture))
                 .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : null));
             CreateMap<RiskRequestDTO, Risk>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -288,6 +299,21 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt.ToLocalTime()))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt.ToLocalTime()));
             CreateMap<RiskSolutionRequestDTO, RiskSolution>();
+
+            // RiskFile
+            CreateMap<RiskFileRequestDTO, RiskFile>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.UploadedAt, opt => opt.Ignore());
+            CreateMap<RiskFile, RiskFileResponseDTO>();
+
+            // RiskComment
+            CreateMap<RiskCommentRequestDTO, RiskComment>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+            CreateMap<RiskComment, RiskCommentResponseDTO>()
+                 .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                 .ForMember(dest => dest.AccountUsername, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+                 .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // Meeting
             CreateMap<MeetingRequestDTO, Meeting>()
@@ -310,7 +336,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<Subtask, SubtaskResponseDTO>()
                 .ForMember(dest => dest.AssignedByName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
-
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null))
+                .ForMember(dest => dest.ReporterPicture, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.Picture : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
             CreateMap<SubtaskRequest1DTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -362,6 +389,19 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ActivityLogRequestDTO, ActivityLog>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<ActivityLog, ActivityLogResponseDTO>()
+                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByNavigation != null ? src.CreatedByNavigation.FullName : null));
+
+            // RecipientNotification
+            CreateMap<RecipientNotificationRequestDTO, RecipientNotification>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<RecipientNotification, RecipientNotificationResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.NotificationMessage, opt => opt.MapFrom(src => src.Notification != null ? src.Notification.Message : null));
+
+            // Notification
+            CreateMap<NotificationRequestDTO, Notification>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<Notification, NotificationResponseDTO>()
                  .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByNavigation != null ? src.CreatedByNavigation.FullName : null));
 
             // SubtaskComment

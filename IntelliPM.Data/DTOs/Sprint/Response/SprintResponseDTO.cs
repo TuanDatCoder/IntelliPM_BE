@@ -14,6 +14,8 @@ namespace IntelliPM.Data.DTOs.Sprint.Response
         public string? Goal { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public DateTime? PlannedStartDate { get; set; }
+        public DateTime? PlannedEndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string? Status { get; set; }
