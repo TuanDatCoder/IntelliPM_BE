@@ -126,6 +126,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Requirements, opt => opt.MapFrom(src => src.Requirement))
                 .ForMember(dest => dest.ProjectMembers, opt => opt.MapFrom(src => src.ProjectMember));
 
+            CreateMap<Project, ProjectViewDTO>();
+
             // ProjectMetric
             CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
             CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
@@ -247,11 +249,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null));
 
+            CreateMap<Tasks, TaskSubtaskDependencyResponseDTO>();
 
             // Task Dependency
             CreateMap<TaskDependencyRequestDTO, TaskDependency>();
             CreateMap<TaskDependency, TaskDependencyResponseDTO>();
-
 
             // Requirement
             CreateMap<RequirementRequestDTO, Requirement>()

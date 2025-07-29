@@ -26,7 +26,7 @@ namespace IntelliPM.Data.DTOs.Project.Response
         public string? Status { get; set; }
 
         public List<SprintResponseDTO> Sprints { get; set; }
-        public List<TaskResponseDTO> Tasks { get; set; }
+        public List<TaskSubtaskDependencyResponseDTO> Tasks { get; set; }
         public List<MilestoneResponseDTO> Milestones { get; set; }
     }
 }
