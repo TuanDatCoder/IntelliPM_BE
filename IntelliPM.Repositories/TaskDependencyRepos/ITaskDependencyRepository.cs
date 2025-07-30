@@ -15,7 +15,9 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
         Task AddRangeAsync(List<TaskDependency> dependencies);
         Task SaveChangesAsync();
         Task Add(TaskDependency taskDependency);
-        Task<bool> ValidateItemExistsAsync(string type, string id);
+        Task<List<TaskDependency>> GetDependenciesByLinkedFromAsync(string linkedFrom);
+        Task AddMany(List<TaskDependency> dependencies);
+        Task UpdateMany(List<TaskDependency> dependencies);
     }
 
 }
