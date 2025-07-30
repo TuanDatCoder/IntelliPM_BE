@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
@@ -746,5 +747,10 @@ namespace IntelliPM.Services.ProjectServices
             return projectDTO;
         }
 
+        public async Task<List<ProjectItemDTO>> GetProjectItemsAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            return await _projectRepo.GetProjectItemsAsync(project.Id);
+        }
     }
 }

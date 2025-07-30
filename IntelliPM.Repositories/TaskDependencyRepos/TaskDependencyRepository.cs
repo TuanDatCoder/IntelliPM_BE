@@ -65,16 +65,16 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
                 .ToListAsync();
         }
 
-        public async Task<bool> ValidateItemExistsAsync(string type, string id)
-        {
-            return type switch
-            {
-                "Task" => await _context.Tasks.AnyAsync(t => t.Id == id),
-                "Subtask" => await _context.Subtask.AnyAsync(s => s.Id == id),
-                "Milestone" => await _context.Milestone.AnyAsync(m => m.Key == id),
-                _ => false
-            };
-        }
+        //public async Task<bool> ValidateItemExistsAsync(string type, string id)
+        //{
+        //    return type switch
+        //    {
+        //        "Task" => await _context.Tasks.AnyAsync(t => t.Id == id),
+        //        "Subtask" => await _context.Subtask.AnyAsync(s => s.Id == id),
+        //        "Milestone" => await _context.Milestone.AnyAsync(m => m.Key == id),
+        //        _ => false
+        //    };
+        //}
 
         public async Task Add(TaskDependency taskDependency)
         {
@@ -82,6 +82,23 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<TaskDependency>> GetDependenciesByLinkedFromAsync(string linkedFrom)
+        {
+            return await _context.TaskDependency
+            .Where(td => td.LinkedFrom == linkedFrom)
+            .ToListAsync();
+        }
 
+        public async Task AddMany(List<TaskDependency> dependencies)
+        {
+            await _context.TaskDependency.AddRangeAsync(dependencies);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateMany(List<TaskDependency> dependencies)
+        {
+            _context.TaskDependency.UpdateRange(dependencies);
+            await _context.SaveChangesAsync();
+        }
     }
 }
