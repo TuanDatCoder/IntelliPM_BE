@@ -772,8 +772,6 @@ namespace IntelliPM.Services.EmailServices
         <br/>
         <p>IntelliPM Notification System</p>"
                 };
-
-
                 using var smtp = new SmtpClient();
                 await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
                 await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
