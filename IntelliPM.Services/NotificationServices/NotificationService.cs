@@ -84,9 +84,42 @@ namespace IntelliPM.Services.NotificationServices
         {
             return await _notificationRepository.GetByReceiverId(userId);
         }
+        public async Task SendMeetingNotification(List<int> participantIds, int meetingId, string meetingTopic, int createdBy)
+        {
+            if (participantIds == null || !participantIds.Any()) return;
 
-   
-   
+            var message = $"You have been invited to a meeting: {meetingTopic}";
+
+            var notification = new Notification
+            {
+                CreatedBy = createdBy,
+                Type = "MEETING",
+                Priority = "NORMAL",
+                Message = message,
+                RelatedEntityType = "MEETING",
+                RelatedEntityId = meetingId,
+                CreatedAt = DateTime.UtcNow,
+                RecipientNotification = new List<RecipientNotification>()
+            };
+
+            foreach (var userId in participantIds.Distinct())
+            {
+                notification.RecipientNotification.Add(new RecipientNotification
+                {
+                    AccountId = userId,
+                    IsRead = false,
+                    Status = "RECEIVED",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _notificationRepository.Add(notification);
+
+            foreach (var userId in participantIds.Distinct())
+            {
+                await _pushService.PushMentionNotificationAsync(userId, message, meetingId, meetingTopic);
+            }
+        }
 
 
 
