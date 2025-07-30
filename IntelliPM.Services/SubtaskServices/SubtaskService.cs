@@ -472,8 +472,7 @@ namespace IntelliPM.Services.SubtaskServices
                 var member = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
                 if (member != null && member.HourlyRate.HasValue)
                 {
-                    entity.PlannedResourceCost = entity.PlannedHours * member.HourlyRate.Value;
-                }
+                    entity.PlannedResourceCost = hours * (member.HourlyRate ?? 0);                }
             }
 
             await _subtaskRepo.Update(entity);
@@ -486,8 +485,11 @@ namespace IntelliPM.Services.SubtaskServices
 
                 if (task != null)
                 {
+                    var actualHours = task.ActualHours;
+                    task.RemainingHours = totalPlannedHours - actualHours;
                     task.PlannedHours = totalPlannedHours;
                     task.PlannedResourceCost = totalPlannedResourceCost;
+                    task.PlannedCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
             }
@@ -500,7 +502,6 @@ namespace IntelliPM.Services.SubtaskServices
         }
 
 
-
         public async Task<List<SubtaskResponseDTO>> GetSubTaskByAccountId(int accountId)
         {
 
@@ -510,6 +511,14 @@ namespace IntelliPM.Services.SubtaskServices
             var entity = await _subtaskRepo.GetByAccountIdAsync(accountId);
             //được quyển null
             return _mapper.Map<List<SubtaskResponseDTO>>(entity);
+        }
+        public async Task<SubtaskFullResponseDTO> GetFullSubtaskById(string id)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
         }
 
     }

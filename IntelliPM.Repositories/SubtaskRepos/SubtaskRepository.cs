@@ -75,6 +75,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         }
 
 
+
         public async Task<List<Subtask>> GetByAccountIdAsync(int id)
         {
             return await _context.Subtask
@@ -87,7 +88,15 @@ namespace IntelliPM.Repositories.SubtaskRepos
                 .ToListAsync();
         }
 
-
+        public async Task<List<Subtask>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.Subtask
+                .Where(d => _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => t.Id)
+                .Contains(d.TaskId))
+                .ToListAsync();
+        }
 
     }
 }
