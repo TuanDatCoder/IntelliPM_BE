@@ -748,10 +748,118 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
+        public async Task SendTaskCommentNotificationEmail(string toEmail, string fullName, string taskId, string taskTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in task {taskId}: {taskTitle}";
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on task <b>{taskId}</b>: <b>{taskTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/work-item-detail?taskId={taskId}'>
+            View Task Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
 
 
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
+
+        public async Task SendSubtaskCommentNotificationEmail(string toEmail, string fullName, string subtaskId, string subtaskTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in subtask {subtaskId}: {subtaskTitle}";
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on subtask <b>{subtaskId}</b>: <b>{subtaskTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/child-work?subtaskId={subtaskId}'>
+            View Subtask Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
+
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
+
+        public async Task SendEpicCommentNotificationEmail(string toEmail, string fullName, string epicId, string epicTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in epic: {epicId}: {epicTitle}";
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on epic <b>{epicId}</b>: <b>{epicTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/epic?epicId={epicId}'>
+            View Epic Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
 
 
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
     }
 
 
