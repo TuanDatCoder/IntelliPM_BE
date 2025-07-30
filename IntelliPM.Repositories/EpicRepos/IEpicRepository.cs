@@ -16,6 +16,6 @@ namespace IntelliPM.Repositories.EpicRepos
         Task Add(Epic epic);
         Task Update(Epic epic);
         Task Delete(Epic epic);
-        Task<Epic?> GetByAccountIdAsync(int accountId);
+        Task<List<Epic>> GetByAccountIdAsync(int accountId);
     }
 }
