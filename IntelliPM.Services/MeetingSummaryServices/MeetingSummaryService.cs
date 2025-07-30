@@ -82,7 +82,8 @@ namespace IntelliPM.Services.MeetingSummaryServices
             // Lấy thông tin các cuộc họp
             var meetings = await _context.Meeting
                 .Where(m => meetingIds.Contains(m.Id))
-                .ToDictionaryAsync(m => m.Id, m => m.MeetingTopic);
+                .ToDictionaryAsync(m => m.Id, m => m);
+
 
             // Lấy tất cả transcript của các meeting này
             var transcripts = await _context.MeetingTranscript
@@ -117,10 +118,13 @@ namespace IntelliPM.Services.MeetingSummaryServices
                     MeetingTranscriptId = transcript?.MeetingId ?? meetingId,
                     SummaryText = summary?.SummaryText ?? "Wait for update",
                     TranscriptText = transcript?.TranscriptText ?? "Wait for update",
-                    CreatedAt = summary?.CreatedAt ?? DateTime.MinValue,
-                    MeetingTopic = meetings.TryGetValue(meetingId, out var topic) ? topic : "Chờ cập nhật",
+                    CreatedAt = meetings.TryGetValue(meetingId, out var meeting)
+        ? meeting.MeetingDate
+        : DateTime.MinValue,
+                    MeetingTopic = meeting?.MeetingTopic ?? "Chờ cập nhật",
                     IsApproved = isApproved
                 };
+
                 result.Add(dto);
             }
 
