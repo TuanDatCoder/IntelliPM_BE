@@ -7,7 +7,11 @@ public partial class Risk
 {
     public int Id { get; set; }
 
+    public string RiskKey { get; set; } = null!;
+
     public int? ResponsibleId { get; set; }
+
+    public int CreatedBy { get; set; }
 
     public int ProjectId { get; set; }
 
@@ -38,10 +42,6 @@ public partial class Risk
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
-
-    public string RiskKey { get; set; } = null!;
-
-    public int CreatedBy { get; set; }
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
 

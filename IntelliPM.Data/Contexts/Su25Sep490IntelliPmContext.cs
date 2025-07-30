@@ -1,9 +1,9 @@
-﻿using IntelliPM.Data.Entities;
+﻿using System;
+using System.Collections.Generic;
+using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using System;
-using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -130,10 +130,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<WorkLog> WorkLog { get; set; }
 
-    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -146,6 +142,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
+    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -364,7 +364,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("fk_document_approver");
+                .HasConstraintName("document_approver_id_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1342,7 +1342,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_risk_created_by");
+                .HasConstraintName("risk_created_by_fkey");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.ProjectId)
@@ -1375,7 +1375,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Account).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_risk_comment_account");
+                .HasConstraintName("risk_comment_account_id_fkey");
 
             entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.RiskId)
@@ -1410,7 +1410,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.RiskFile)
                 .HasForeignKey(d => d.UploadedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_risk_file_uploaded_by");
+                .HasConstraintName("risk_file_uploaded_by_fkey");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>
@@ -1792,37 +1792,21 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.ToTable("task_dependency");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FromType)
+                .HasMaxLength(50)
+                .HasColumnName("from_type");
             entity.Property(e => e.LinkedFrom)
                 .HasMaxLength(255)
                 .HasColumnName("linked_from");
             entity.Property(e => e.LinkedTo)
                 .HasMaxLength(255)
                 .HasColumnName("linked_to");
-            entity.Property(e => e.MilestoneId).HasColumnName("milestone_id");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
+            entity.Property(e => e.ToType)
+                .HasMaxLength(50)
+                .HasColumnName("to_type");
             entity.Property(e => e.Type)
                 .HasMaxLength(50)
                 .HasColumnName("type");
-
-            entity.HasOne(d => d.LinkedFromNavigation).WithMany(p => p.TaskDependencyLinkedFromNavigation)
-                .HasForeignKey(d => d.LinkedFrom)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_dependency_linked_from_fkey");
-
-            entity.HasOne(d => d.LinkedToNavigation).WithMany(p => p.TaskDependencyLinkedToNavigation)
-                .HasForeignKey(d => d.LinkedTo)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_dependency_linked_to_fkey");
-
-            entity.HasOne(d => d.Milestone).WithMany(p => p.TaskDependency)
-                .HasForeignKey(d => d.MilestoneId)
-                .HasConstraintName("task_dependency_milestone_id_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskDependencyTask)
-                .HasForeignKey(d => d.TaskId)
-                .HasConstraintName("task_dependency_task_id_fkey");
         });
 
         modelBuilder.Entity<TaskFile>(entity =>
