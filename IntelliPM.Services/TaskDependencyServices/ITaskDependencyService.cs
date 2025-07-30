@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.DTOs.TaskDependency.Request;
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,8 @@ namespace IntelliPM.Services.TaskDependencyServices
 {
     public interface ITaskDependencyService
     {
-        //Task<TaskDependency> CreateDependencyAsync(TaskDependencyRequestDTO request);
+        Task<TaskDependencyResponseDTO> CreateAsync(TaskDependencyRequestDTO dto);
+        Task<List<TaskDependencyResponseDTO>> GetByLinkedFromAsync(string linkedFrom);
+        Task<List<TaskDependencyResponseDTO>> CreateManyAsync(List<TaskDependencyIdRequestDTO> dtos);
     }
 }

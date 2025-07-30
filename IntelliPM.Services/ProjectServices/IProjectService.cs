@@ -27,5 +27,6 @@ namespace IntelliPM.Services.ProjectServices
         Task<bool> CheckProjectNameExists(string projectName);
         Task<ProjectResponseDTO> GetProjectByKey(string projectKey);
         Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey);
+        Task<List<ProjectItemDTO>> GetProjectItemsAsync(string projectKey);
     }
 }
