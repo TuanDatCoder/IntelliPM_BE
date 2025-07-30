@@ -145,7 +145,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -364,7 +364,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("document_approver_id_fkey");
+                .HasConstraintName("fk_document_approver");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1342,7 +1342,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("risk_created_by_fkey");
+                .HasConstraintName("fk_risk_created_by");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.ProjectId)
@@ -1375,7 +1375,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Account).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("risk_comment_account_id_fkey");
+                .HasConstraintName("fk_risk_comment_account");
 
             entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
                 .HasForeignKey(d => d.RiskId)
@@ -1410,7 +1410,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.RiskFile)
                 .HasForeignKey(d => d.UploadedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("risk_file_uploaded_by_fkey");
+                .HasConstraintName("fk_risk_file_uploaded_by");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>
