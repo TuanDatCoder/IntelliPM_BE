@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.DTOs.Project.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +20,6 @@ namespace IntelliPM.Repositories.ProjectRepos
         Task<Project> GetProjectByKeyAsync(string projectKey);
         Task<Project> GetProjectByNameAsync(string projectName);
         Task<Project> GetProjectWithMembersAndRequirements(int projectId);
+        Task<List<ProjectItemDTO>> GetProjectItemsAsync(int projectId);
     }
 }
