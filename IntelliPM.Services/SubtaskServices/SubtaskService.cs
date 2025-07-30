@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Google.Cloud.Storage.V1;
+using IntelliPM.Data.DTOs.Epic.Response;
 using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Subtask.Response;
@@ -500,6 +501,17 @@ namespace IntelliPM.Services.SubtaskServices
             return _mapper.Map<SubtaskFullResponseDTO>(entity);
         }
 
+
+        public async Task<List<SubtaskResponseDTO>> GetSubTaskByAccountId(int accountId)
+        {
+
+            var account = _accountRepo.GetAccountById(accountId);
+            if (account != null) throw new KeyNotFoundException($"Account with key {accountId} not found.");
+
+            var entity = await _subtaskRepo.GetByAccountIdAsync(accountId);
+            //được quyển null
+            return _mapper.Map<List<SubtaskResponseDTO>>(entity);
+        }
         public async Task<SubtaskFullResponseDTO> GetFullSubtaskById(string id)
         {
             var entity = await _subtaskRepo.GetByIdAsync(id);
@@ -508,6 +520,7 @@ namespace IntelliPM.Services.SubtaskServices
 
             return _mapper.Map<SubtaskFullResponseDTO>(entity);
         }
+
     }
 }
 

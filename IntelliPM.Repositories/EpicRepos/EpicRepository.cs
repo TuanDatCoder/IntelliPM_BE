@@ -1,11 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Repositories.EpicRepos
 {
@@ -42,7 +37,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
-        public async Task<Epic?> GetByAccountIdAsync(int accountId)
+        public async Task<List<Epic>> GetByAccountIdAsync(int accountId)
         {
             return await _context.Epic
                 .Include(e => e.Project)
@@ -50,8 +45,9 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
-                .OrderByDescending(e => e.CreatedAt)
-                .FirstOrDefaultAsync(e => e.AssignedBy == accountId);
+                .Where(e => e.AssignedBy == accountId)
+                .OrderBy(e => e.Id)
+                .ToListAsync();
         }
 
         public async Task<List<Epic>> GetByNameAsync(string name)
@@ -67,7 +63,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .ToListAsync();
         }
 
-        public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey) 
+        public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey)
         {
             return await _context.Epic
                 .Include(e => e.Project)

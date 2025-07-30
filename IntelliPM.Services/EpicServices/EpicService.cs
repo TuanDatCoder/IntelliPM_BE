@@ -451,14 +451,14 @@ namespace IntelliPM.Services.EpicServices
             return result;
         }
 
-        public async Task<EpicResponseDTO> GetEpicByAccountId(int accountId)
+        public async Task<List<EpicResponseDTO>> GetEpicByAccountId(int accountId)
         {
 
             var account = _accountRepo.GetAccountById(accountId);
             if (account != null) throw new KeyNotFoundException($"Account with key {accountId} not found.");
-            var entity = await _epicRepo.GetByAccountIdAsync(accountId);
+            var entities = await _epicRepo.GetByAccountIdAsync(accountId);
             //được quyển null
-            return  _mapper.Map<EpicResponseDTO>(entity);
+            return  _mapper.Map<List<EpicResponseDTO>>(entities);
         }
 
     }

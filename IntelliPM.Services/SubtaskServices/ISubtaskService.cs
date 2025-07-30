@@ -29,5 +29,7 @@ namespace IntelliPM.Services.SubtaskServices
         Task<List<SubtaskDetailedResponseDTO>> GetSubtasksByProjectIdDetailed(int projectId);
         Task<List<SubtaskResponseDTO>> SaveGeneratedSubtasks(List<SubtaskRequest2DTO> previews);
         Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours);
+        Task<List<SubtaskResponseDTO>> GetSubTaskByAccountId(int accountId);
+
     }
 }
