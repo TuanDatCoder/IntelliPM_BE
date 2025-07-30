@@ -3,12 +3,14 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.SubtaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -30,8 +32,10 @@ namespace IntelliPM.Services.TaskCommentServices
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<TaskCommentService> _logger;
         private readonly IActivityLogService _activityLogService;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IEmailService _emailService;
 
-        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, ILogger<TaskCommentService> logger)
+        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IEmailService emailService, IAccountRepository accountRepository, ILogger<TaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -40,6 +44,8 @@ namespace IntelliPM.Services.TaskCommentServices
             _projectMemberRepo = projectMemberRepo;
             _taskRepo = taskRepo;
             _activityLogService = activityLogService;
+            _accountRepository = accountRepository;
+            _emailService = emailService;
         }
 
         public async Task<TaskCommentResponseDTO> CreateTaskComment(TaskCommentRequestDTO request)
@@ -55,12 +61,20 @@ namespace IntelliPM.Services.TaskCommentServices
 
             try
             {
+                // Lưu comment
                 await _repo.Add(entity);
+
+                // Lấy task và kiểm tra
+                var task = await _taskRepo.GetByIdAsync(request.TaskId);
+                if (task == null)
+                    throw new Exception($"Task with ID {request.TaskId} not found.");
+                var projectId = task.ProjectId;
+
+                // Ghi log
                 await _activityLogService.LogAsync(new ActivityLog
                 {
-                    ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
+                    ProjectId = projectId,
                     TaskId = entity.TaskId,
-                    //SubtaskId = entity.Subtask,
                     RelatedEntityType = "TaskComment",
                     RelatedEntityId = entity.TaskId,
                     ActionType = "CREATE",
@@ -69,19 +83,14 @@ namespace IntelliPM.Services.TaskCommentServices
                     CreatedAt = DateTime.UtcNow
                 });
 
-                var task = await _taskRepo.GetByIdAsync(request.TaskId);
-                Console.WriteLine($"Creating comment for TaskId: {request.TaskId}");
-                if (task == null)
-                    throw new Exception($"Task with ID {request.TaskId} not found.");
-
-                var projectId = task.ProjectId;
-
+                // Lấy danh sách thành viên dự án (trừ người tạo)
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
                     .Where(m => m.AccountId != request.AccountId)
                     .Select(m => m.AccountId)
                     .ToList();
 
+                // Gửi thông báo + email
                 if (recipients.Count > 0)
                 {
                     var notification = new Notification
@@ -91,12 +100,13 @@ namespace IntelliPM.Services.TaskCommentServices
                         Priority = "NORMAL",
                         Message = $"Comment in task {request.TaskId}: {request.Content}",
                         RelatedEntityType = "Task",
-                        RelatedEntityId = entity.Id, 
+                        RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
                         RecipientNotification = new List<RecipientNotification>()
                     };
 
+                    var taskTitle = task.Title ?? $"Task {task.Id}";
                     foreach (var accId in recipients)
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
@@ -104,7 +114,14 @@ namespace IntelliPM.Services.TaskCommentServices
                             AccountId = accId,
                             IsRead = false
                         });
+
+                        var account = await _accountRepository.GetAccountById(accId);
+                        if (account != null && !string.IsNullOrEmpty(account.Email))
+                        {
+                            await _emailService.SendTaskCommentNotificationEmail(account.Email, account.FullName, entity.TaskId, taskTitle, request.Content);
+                        }
                     }
+
                     await _notificationRepo.Add(notification);
                 }
             }
@@ -116,6 +133,7 @@ namespace IntelliPM.Services.TaskCommentServices
             {
                 throw new Exception($"Failed to create task comment: {ex.Message}", ex);
             }
+
             return _mapper.Map<TaskCommentResponseDTO>(entity);
         }
 
