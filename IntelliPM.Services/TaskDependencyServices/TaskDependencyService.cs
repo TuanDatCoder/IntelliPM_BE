@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.TaskDependency.Request;
+using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Services.ProjectServices;
@@ -24,6 +25,51 @@ namespace IntelliPM.Services.TaskDependencyServices
             _mapper = mapper;
             _logger = logger;
             _taskDependencyRepo = taskDependencyRepo;
+        }
+
+        public async Task<TaskDependencyResponseDTO> CreateAsync(TaskDependencyRequestDTO dto)
+        {
+            var entity = _mapper.Map<TaskDependency>(dto);
+            await _taskDependencyRepo.Add(entity);
+            return _mapper.Map<TaskDependencyResponseDTO>(entity);
+        }
+
+        //public async Task<List<TaskDependencyResponseDTO>> CreateManyAsync(List<TaskDependencyRequestDTO> dtos)
+        //{
+        //    var entities = _mapper.Map<List<TaskDependency>>(dtos);
+        //    await _taskDependencyRepo.AddMany(entities);
+        //    return _mapper.Map<List<TaskDependencyResponseDTO>>(entities);
+        //}
+
+        public async Task<List<TaskDependencyResponseDTO>> CreateManyAsync(List<TaskDependencyIdRequestDTO> dtos)
+        {
+            var createDtos = dtos.Where(x => x.Id == 0).ToList();
+            var updateDtos = dtos.Where(x => x.Id != 0).ToList();
+
+            var createEntities = _mapper.Map<List<TaskDependency>>(createDtos);
+            var updateEntities = _mapper.Map<List<TaskDependency>>(updateDtos);
+
+            if (createEntities.Any())
+            {
+                await _taskDependencyRepo.AddMany(createEntities);
+            }
+
+            if (updateEntities.Any())
+            {
+                await _taskDependencyRepo.UpdateMany(updateEntities);
+            }
+
+            var result = new List<TaskDependency>();
+            result.AddRange(createEntities);
+            result.AddRange(updateEntities);
+
+            return _mapper.Map<List<TaskDependencyResponseDTO>>(result);
+        }
+
+        public async Task<List<TaskDependencyResponseDTO>> GetByLinkedFromAsync(string linkedFrom)
+        {
+            var dependencies = await _taskDependencyRepo.GetDependenciesByLinkedFromAsync(linkedFrom);
+            return _mapper.Map<List<TaskDependencyResponseDTO>>(dependencies);
         }
 
         //public async Task<TaskDependency> CreateDependencyAsync(TaskDependencyRequestDTO request)

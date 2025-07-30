@@ -515,8 +515,37 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
-       
+        [HttpGet("items")]
+        public async Task<IActionResult> GetProjectItems(string projectKey)
+        {
+            try
+            {
+                var items = await _service.GetProjectItemsAsync(projectKey);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    data = items
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project item: {ex.Message}"
+                });
+            }
+        }
 
     }
 }

@@ -254,6 +254,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // Task Dependency
             CreateMap<TaskDependencyRequestDTO, TaskDependency>();
+            CreateMap<TaskDependencyIdRequestDTO, TaskDependency>();
             CreateMap<TaskDependency, TaskDependencyResponseDTO>();
 
             // Requirement

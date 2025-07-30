@@ -53,8 +53,6 @@ using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
-using IntelliPM.Repositories.TaskDependencyRepos;
-using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Repositories.WorkItemLabelRepos;
@@ -119,6 +117,7 @@ using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.SystemConfigurationServices;
 using IntelliPM.Services.TaskAssignmentServices;
 using IntelliPM.Services.TaskCommentServices;
+using IntelliPM.Services.TaskDependencyServices;
 using IntelliPM.Services.TaskFileServices;
 using IntelliPM.Services.TaskServices;
 using IntelliPM.Services.WorkItemLabelServices;
@@ -251,6 +250,7 @@ builder.Services.AddScoped<INotificationPushService, SignalRNotificationPushServ
 builder.Services.AddScoped<INotificationService, NotificationService>();
 //builder.Services.AddSignalR(); 
 builder.Services.AddScoped<IMeetingDocumentService, MeetingDocumentService>();
+builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 
 
 
