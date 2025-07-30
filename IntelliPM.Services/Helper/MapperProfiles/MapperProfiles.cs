@@ -200,6 +200,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Milestone, MilestoneResponseDTO>();
+            CreateMap<Milestone, MilestoneDependencyResponseDTO>();
 
             // Task
             CreateMap<TaskRequestDTO, Tasks>();
@@ -209,8 +210,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
-                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
-                .ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
+                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null));
+                //.ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
 
             CreateMap<Tasks, TaskUpdateResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
@@ -359,6 +360,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
             CreateMap<Subtask, SubtaskFullResponseDTO>();
+            CreateMap<Subtask, SubtaskDependencyResponseDTO>();
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
