@@ -703,27 +703,44 @@ namespace IntelliPM.Services.ProjectServices
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var dependencies = await _taskDependencyRepo.GetByProjectIdAsync(project.Id);
 
-            // Group mapping
-            var dependenciesGrouped = _mapper.Map<List<TaskDependencyResponseDTO>>(dependencies)
-                .GroupBy(d => d.TaskId)
+            var dependencyDTOs = _mapper.Map<List<TaskDependencyResponseDTO>>(dependencies);
+
+            // Group theo from_id để dễ inject
+            var groupedDependencies = dependencyDTOs
+                .GroupBy(d => (d.LinkedFrom, d.FromType))
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var subtasksGrouped = _mapper.Map<List<SubtaskFullResponseDTO>>(subtasks)
+
+            var subtasksGrouped = _mapper.Map<List<SubtaskDependencyResponseDTO>>(subtasks)
                 .GroupBy(s => s.TaskId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Map task and inject dependencies & subtasks manually
             var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks);
             foreach (var t in taskDTOs)
             {
-                t.Dependencies = dependenciesGrouped.ContainsKey(t.Id) ? dependenciesGrouped[t.Id] : new();
                 t.Subtasks = subtasksGrouped.ContainsKey(t.Id) ? subtasksGrouped[t.Id] : new();
+                t.Dependencies = groupedDependencies.TryGetValue((t.Id, "task"), out var deps) ? deps : new();
             }
+
+            foreach (var t in taskDTOs)
+            {
+                foreach (var sub in t.Subtasks)
+                {
+                    sub.Dependencies = groupedDependencies.TryGetValue((sub.Id, "subtask"), out var sdeps) ? sdeps : new();
+                }
+            }
+
+            var milestoneDTOs = _mapper.Map<List<MilestoneDependencyResponseDTO>>(milestones);
+            foreach (var m in milestoneDTOs)
+            {
+                m.Dependencies = groupedDependencies.TryGetValue((m.Key, "milestone"), out var mdeps) ? mdeps : new();
+            }
+
 
             // Final result
             var projectDTO = _mapper.Map<ProjectViewDTO>(project);
             projectDTO.Sprints = _mapper.Map<List<SprintResponseDTO>>(sprints);
-            projectDTO.Milestones = _mapper.Map<List<MilestoneResponseDTO>>(milestones);
+            projectDTO.Milestones = milestoneDTOs;
             projectDTO.Tasks = taskDTOs;
 
             return projectDTO;
