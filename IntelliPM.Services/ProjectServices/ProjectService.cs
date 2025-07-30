@@ -48,7 +48,7 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IConfiguration _config;
         private readonly string _backendUrl;
-        private readonly string _forntendUrl;
+        private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
 
         public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, IConfiguration config, IServiceProvider serviceProvider)
@@ -70,7 +70,7 @@ namespace IntelliPM.Services.ProjectServices
             _config = config;
 #pragma warning disable CS8601
             _backendUrl = config["Environment:BE_URL"];
-            _forntendUrl = config["Environment:FE_URL"];
+            _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
@@ -260,7 +260,7 @@ namespace IntelliPM.Services.ProjectServices
             if (!projectInfo.Status.Equals("PLANNING"))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
 
-            var projectDetailsUrl = $"{_forntendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
+            var projectDetailsUrl = $"{_frontendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
             await _emailService.SendProjectCreationNotification(
                   pm.FullName,
@@ -305,7 +305,7 @@ namespace IntelliPM.Services.ProjectServices
 
             await ChangeProjectStatus(projectId, "CANCELLED");
 
-            var projectDetailsUrl = $"{_forntendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
+            var projectDetailsUrl = $"{_frontendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
             await _emailService.SendProjectReject(
                   pm.FullName,
@@ -340,9 +340,9 @@ namespace IntelliPM.Services.ProjectServices
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
 
-            var projectInfo = await GetProjectById(projectId);
+            var projectInfo = await _projectRepo.GetByIdAsync(projectId);
             if (projectInfo == null)
-                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.ddd");
 
             await ChangeProjectStatus(projectId, "IN_PROGRESS");
 
@@ -360,9 +360,10 @@ namespace IntelliPM.Services.ProjectServices
 
             foreach (var member in eligibleMembers)
             {
-                await ChangeProjectStatus(member.Id, "INVITED");
+                _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
 
-                var projectDetailsUrl = $"{_backendUrl}/api/project/{projectId}/projectmember/{member.Id}/status/ACTIVE";
+                var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={member.Id}";
+
                 await _emailService.SendTeamInvitation(
                     member.FullName,
                     member.Email,
@@ -371,7 +372,7 @@ namespace IntelliPM.Services.ProjectServices
                     projectInfo.Name,
                     projectInfo.ProjectKey,
                     projectId,
-                    projectDetailsUrl
+                    projectInvitationUrl
                 );
             }
 
