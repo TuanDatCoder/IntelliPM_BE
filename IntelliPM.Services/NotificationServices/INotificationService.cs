@@ -17,6 +17,7 @@ namespace IntelliPM.Services.NotificationServices
 
         Task<List<Notification>> GetNotificationsByUserId(int userId);
 
+        Task SendMeetingNotification(List<int> participantIds, int meetingId, string meetingTopic, int createdBy);
 
 
     }

@@ -83,12 +83,6 @@ public partial class Tasks
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
 
-    public virtual ICollection<TaskDependency> TaskDependencyLinkedFromNavigation { get; set; } = new List<TaskDependency>();
-
-    public virtual ICollection<TaskDependency> TaskDependencyLinkedToNavigation { get; set; } = new List<TaskDependency>();
-
-    public virtual ICollection<TaskDependency> TaskDependencyTask { get; set; } = new List<TaskDependency>();
-
     public virtual ICollection<TaskFile> TaskFile { get; set; } = new List<TaskFile>();
 
     public virtual ICollection<WorkItemLabel> WorkItemLabel { get; set; } = new List<WorkItemLabel>();
