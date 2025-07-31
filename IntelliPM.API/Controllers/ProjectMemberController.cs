@@ -189,6 +189,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+
+        [HttpGet("by-account/{accountId}")]
+        public async Task<IActionResult> GetProjectMemberByProjectIdAndAccountId(int projectId,int accountId)
+        {
+            try
+            {
+                var member = await _service.GetProjectMemberByProjectIdAndAccountId(projectId, accountId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved member successfully.",
+                    Data = member
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving member: {ex.Message}"
+                });
+            }
+        }
+
+
+
         [HttpPost("bulk-with-positions")]
         [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
         public async Task<IActionResult> CreateBulkWithPositions(int projectId, [FromBody] List<ProjectMemberWithPositionRequestDTO> requests)
