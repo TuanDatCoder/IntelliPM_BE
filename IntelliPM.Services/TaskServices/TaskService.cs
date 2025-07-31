@@ -89,15 +89,15 @@ namespace IntelliPM.Services.TaskServices
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
             var dto = _mapper.Map<TaskResponseDTO>(entity);
-            var dependencies = await _taskDependencyRepo.GetByTaskIdAsync(id);
-            dto.Dependencies = dependencies.Select(d => new TaskDependencyResponseDTO
-            {
-                Id = d.Id,
-                TaskId = d.TaskId,
-                LinkedFrom = d.LinkedFrom,
-                LinkedTo = d.LinkedTo,
-                Type = d.Type
-            }).ToList();
+            //var dependencies = await _taskDependencyRepo.GetByTaskIdAsync(id);
+            //dto.Dependencies = dependencies.Select(d => new TaskDependencyResponseDTO
+            //{
+            //    Id = d.Id,
+            //    TaskId = d.TaskId,
+            //    LinkedFrom = d.LinkedFrom,
+            //    LinkedTo = d.LinkedTo,
+            //    Type = d.Type
+            //}).ToList();
 
             return dto;
         }
@@ -200,21 +200,22 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
-            if (request.Dependencies != null)
-            {
-                await _taskDependencyRepo.DeleteByTaskIdAsync(id);
+            //if (request.Dependencies != null)
+            //{
+            //    await _taskDependencyRepo.DeleteByTaskIdAsync(id);
 
-                var newDeps = request.Dependencies.Select(d => new TaskDependency
-                {
-                    TaskId = id,
-                    LinkedFrom = d.LinkedFrom,
-                    LinkedTo = d.LinkedTo,
-                    Type = d.Type
-                }).ToList();
+            //    var newDeps = request.Dependencies.Select(d => new TaskDependency
+            //    {
+            //        FromType = d.FromType,
+            //        LinkedFrom = d.LinkedFrom,
+            //        ToType = d.ToType,
+            //        LinkedTo = d.LinkedTo,
+            //        Type = d.Type
+            //    }).ToList();
 
-                // Lưu lại
-                await _taskDependencyRepo.AddRangeAsync(newDeps);
-            }
+            //    // Lưu lại
+            //    await _taskDependencyRepo.AddRangeAsync(newDeps);
+            //}
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
@@ -674,9 +675,41 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
+            var actualHours = entity.ActualHours;
+            entity.RemainingHours = plannedHours - actualHours;
             entity.PlannedHours = plannedHours;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue && member.HourlyRate.HasValue)
+                {
+                    projectMembers.Add(member);
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal totalCost = 0;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+                    var memberAssignedHours = plannedHours * ratio;
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+                }
+
+                entity.PlannedResourceCost = totalCost;
+                entity.PlannedCost = totalCost;
+            }
 
             try
             {
@@ -841,8 +874,6 @@ namespace IntelliPM.Services.TaskServices
             }
 
         }
-
-
 
     }
 }

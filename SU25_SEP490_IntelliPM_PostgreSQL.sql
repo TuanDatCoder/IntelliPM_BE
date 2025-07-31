@@ -277,18 +277,29 @@ CREATE TABLE task_comment (
 );
 
 -- 16. task_dependency
+-- CREATE TABLE task_dependency (
+--     id SERIAL PRIMARY KEY,
+--     milestone_id INT NULL,
+--     task_id VARCHAR(255) NULL,
+--     linked_from VARCHAR(255) NOT NULL,
+--     linked_to VARCHAR(255) NOT NULL,
+--     type VARCHAR(50) NULL,
+--     FOREIGN KEY (milestone_id) REFERENCES milestone(id),
+--     FOREIGN KEY (task_id) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_from) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_to) REFERENCES tasks(id)
+-- );
+
+-- 16. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
-    milestone_id INT NULL,
-    task_id VARCHAR(255) NULL,
-    linked_from VARCHAR(255) NOT NULL,
+    from_type VARCHAR(50) NOT NULL,    
+    linked_from VARCHAR(255) NOT NULL, 
+    to_type VARCHAR(50) NOT NULL,      
     linked_to VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NULL,
-    FOREIGN KEY (milestone_id) REFERENCES milestone(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (linked_from) REFERENCES tasks(id),
-    FOREIGN KEY (linked_to) REFERENCES tasks(id)
+    type VARCHAR(50) NOT NULL         
 );
+
 
 -- 17. task_file
 CREATE TABLE task_file (
@@ -834,15 +845,26 @@ VALUES
     ('PROJD-2', 5, 'Design approved by client'),
     ('PROJE-2', 5, 'Automation tests in progress');
 
+-- -- Insert sample data into task_dependency
+-- INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+-- VALUES 
+--     ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
+--     ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
+--     ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
+--     ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
+--     ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
+--     ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+
 -- Insert sample data into task_dependency
-INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+INSERT INTO task_dependency (from_type, linked_from, to_type, linked_to, type)
 VALUES 
-    ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
-    ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
-    ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
-    ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
-    ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
-    ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+    ('task',     'PROJA-3', 'task',     'PROJA-4', 'FINISH_START'),
+    ('task',     'PROJA-4', 'task',     'PROJB-2', 'FINISH_START'),
+    ('task',     'PROJB-2', 'task',     'PROJC-2', 'START_START'),
+    ('task',     'PROJC-2', 'task',     'PROJD-2', 'FINISH_START'),
+    ('task',     'PROJD-2', 'task',     'PROJA-4', 'START_FINISH'),
+    ('task',     'PROJD-2', 'task',     'PROJE-2', 'FINISH_START');
+
 
 -- Insert sample data into task_file
 INSERT INTO task_file (task_id, title, url_file, status)

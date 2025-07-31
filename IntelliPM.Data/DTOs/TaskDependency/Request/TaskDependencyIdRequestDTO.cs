@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.DTOs.TaskDependency.Response
+namespace IntelliPM.Data.DTOs.TaskDependency.Request
 {
-    public class TaskDependencyResponseDTO
+    public class TaskDependencyIdRequestDTO
     {
         public int Id { get; set; }
         public string FromType { get; set; } = null!;
@@ -15,6 +15,4 @@ namespace IntelliPM.Data.DTOs.TaskDependency.Response
         public string LinkedTo { get; set; } = null!;
         public string Type { get; set; } = null!;
     }
-
-
 }
