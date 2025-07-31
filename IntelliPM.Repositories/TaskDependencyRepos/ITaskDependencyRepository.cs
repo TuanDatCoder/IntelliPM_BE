@@ -10,10 +10,14 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
     public interface ITaskDependencyRepository
     {
         Task<List<TaskDependency>> GetByProjectIdAsync(int projectId);
-        Task<List<TaskDependency>> GetByTaskIdAsync(string taskId);
-        Task DeleteByTaskIdAsync(string taskId);
+        //Task<List<TaskDependency>> GetByTaskIdAsync(string taskId);
+        Task DeleteByIdAsync(int id);
         Task AddRangeAsync(List<TaskDependency> dependencies);
         Task SaveChangesAsync();
+        Task Add(TaskDependency taskDependency);
+        Task<List<TaskDependency>> GetDependenciesByLinkedFromAsync(string linkedFrom);
+        Task AddMany(List<TaskDependency> dependencies);
+        Task UpdateMany(List<TaskDependency> dependencies);
     }
 
 }

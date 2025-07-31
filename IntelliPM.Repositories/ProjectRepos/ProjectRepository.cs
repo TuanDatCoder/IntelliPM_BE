@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -76,12 +77,15 @@ namespace IntelliPM.Repositories.ProjectRepos
             var project = await _context.Project.FirstOrDefaultAsync(p => p.Id == projectId);
             return project?.ProjectKey ?? string.Empty; 
         }
-
         public async Task<Project> GetProjectByKeyAsync(string projectKey)
         {
-            return await _context.Project.FirstOrDefaultAsync(p => p.ProjectKey == projectKey)
-                ?? null;
+            return await _context.Project
+                .Where(p => p.ProjectKey == projectKey)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
         }
+
+
         public async Task<Project> GetProjectByNameAsync(string projectName)
         {
             return await _context.Project.FirstOrDefaultAsync(p => p.Name == projectName)
@@ -100,5 +104,47 @@ namespace IntelliPM.Repositories.ProjectRepos
                     .ThenInclude(pm => pm.Account) 
                 .FirstOrDefaultAsync(p => p.Id == projectId);
         }
+
+        public async Task<List<ProjectItemDTO>> GetProjectItemsAsync(int projectId)
+        {
+            var taskIdList = await _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => t.Id)
+                .ToListAsync();
+
+            var taskDtos = await _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => new ProjectItemDTO
+                {
+                    Id = t.Id,
+                    Name = t.Title,
+                    Type = "Task"
+                }).ToListAsync();
+
+
+            var milestoneDtos = await _context.Milestone
+                .Where(m => m.ProjectId == projectId)
+                .Select(m => new ProjectItemDTO
+                {
+                    Id = m.Key,
+                    Name = m.Name,
+                    Type = "Milestone"
+                }).ToListAsync();
+
+            var subtaskDtos = await _context.Subtask
+                .Where(s => taskIdList.Contains(s.TaskId))
+                .Select(s => new ProjectItemDTO
+                {
+                    Id = s.Id,
+                    Name = s.Title,
+                    Type = "Subtask"
+                }).ToListAsync();
+
+            return taskDtos
+                .Concat(milestoneDtos)
+                .Concat(subtaskDtos)
+                .ToList();
+        }
+
     }
 }
