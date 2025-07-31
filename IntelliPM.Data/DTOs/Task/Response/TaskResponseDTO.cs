@@ -70,5 +70,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public DateTime UpdatedAt { get; set; }
 
         public List<TaskDependencyResponseDTO>? Dependencies { get; set; }
+
+        public List<string>? Warnings { get; set; }
     }
 }

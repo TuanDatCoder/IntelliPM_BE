@@ -63,5 +63,11 @@ namespace IntelliPM.Repositories.MilestoneRepos
                 .Where(m => m.ProjectId == projectId)
                 .ToListAsync();
         }
+
+        public async Task<Milestone?> GetByKeyAsync(string key)
+        {
+            return await _context.Milestone
+                .FirstOrDefaultAsync(m => m.Key == key);
+        }
     }
 }

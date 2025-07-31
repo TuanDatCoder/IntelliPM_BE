@@ -11,9 +11,11 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.GeminiServices;
@@ -46,8 +48,10 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IWorkLogService _workLogService;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IActivityLogService _activityLogService;
+        private readonly ITaskDependencyRepository _taskDependencyRepo;
+        private readonly IMilestoneRepository _milestoneRepo;
 
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService)
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -62,6 +66,8 @@ namespace IntelliPM.Services.SubtaskServices
             _workLogService = workLogService;
             _projectMemberRepo = projectMemberRepo;
             _activityLogService = activityLogService;
+            _taskDependencyRepo = taskDependencyRepo;
+            _milestoneRepo = milestoneRepo;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -250,7 +256,83 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
-            return _mapper.Map<SubtaskResponseDTO>(entity);
+            var dto = _mapper.Map<SubtaskResponseDTO>(entity);
+
+            var isInProgress = entity.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = entity.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Subtask");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                        }
+                        break;
+                }
+            }
+
+            dto.Warnings = warnings;
+            return dto;
         }
 
         public async Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId)
@@ -319,6 +401,76 @@ namespace IntelliPM.Services.SubtaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Subtask");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                        }
+                        break;
+                }
+            }
+
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -374,7 +526,10 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new Exception($"Failed to change subtask status: {ex.Message}", ex);
             }
 
-            return _mapper.Map<SubtaskResponseDTO>(entity);
+            // return _mapper.Map<SubtaskResponseDTO>(entity);
+            var result = _mapper.Map<SubtaskResponseDTO>(entity);
+            result.Warnings = warnings;
+            return result;
         }
 
         public async Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id)

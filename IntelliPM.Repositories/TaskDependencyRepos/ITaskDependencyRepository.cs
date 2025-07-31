@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,6 +19,8 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
         Task<List<TaskDependency>> GetDependenciesByLinkedFromAsync(string linkedFrom);
         Task AddMany(List<TaskDependency> dependencies);
         Task UpdateMany(List<TaskDependency> dependencies);
+        Task<IEnumerable<TaskDependency>> FindAllAsync(Expression<Func<TaskDependency, bool>> predicate);
+
     }
 
 }
