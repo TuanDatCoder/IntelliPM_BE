@@ -13,6 +13,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -55,8 +56,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly ISprintRepository _sprintRepo;
         private readonly IWorkLogService _workLogService;
         private readonly IActivityLogService _activityLogService;
+        private readonly IMilestoneRepository _milestoneRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -73,6 +75,7 @@ namespace IntelliPM.Services.TaskServices
             _workLogService = workLogService;
             _sprintRepo = sprintRepo;
             _activityLogService = activityLogService;
+            _milestoneRepo = milestoneRepo;
         }
       
 
@@ -89,16 +92,81 @@ namespace IntelliPM.Services.TaskServices
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
             var dto = _mapper.Map<TaskResponseDTO>(entity);
-            //var dependencies = await _taskDependencyRepo.GetByTaskIdAsync(id);
-            //dto.Dependencies = dependencies.Select(d => new TaskDependencyResponseDTO
-            //{
-            //    Id = d.Id,
-            //    TaskId = d.TaskId,
-            //    LinkedFrom = d.LinkedFrom,
-            //    LinkedTo = d.LinkedTo,
-            //    Type = d.Type
-            //}).ToList();
 
+            var isInProgress = entity.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = entity.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                        }
+                        break;
+                }
+            }
+
+            dto.Warnings = warnings;
             return dto;
         }
 
@@ -284,36 +352,63 @@ namespace IntelliPM.Services.TaskServices
 
             foreach (var dep in dependencies)
             {
-                var sourceTask = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                if (sourceTask == null) continue;
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
 
                 switch (dep.Type.ToUpper())
                 {
                     case "FINISH_START":
-                        if (isInProgress && !sourceTask.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải hoàn thành trước khi bắt đầu.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                         }
                         break;
 
                     case "START_START":
-                        if (isInProgress && !sourceTask.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải được bắt đầu trước.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
                         }
                         break;
 
                     case "FINISH_FINISH":
-                        if (isDone && !sourceTask.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải hoàn thành trước.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
                         }
                         break;
 
                     case "START_FINISH":
-                        if (isDone && !sourceTask.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' chỉ được hoàn thành khi task '{sourceTask.Id}' đã được bắt đầu.");
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
                         }
                         break;
                 }
