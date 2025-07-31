@@ -26,5 +26,6 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public DateTime UpdatedAt { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public List<string>? Warnings { get; set; }
     }
 }
