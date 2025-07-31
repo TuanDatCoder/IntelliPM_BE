@@ -546,6 +546,54 @@ namespace IntelliPM.Services.EmailServices
         }
 
 
+        //public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
+        //{
+        //    try
+        //    {
+        //        // Chuyển startTime sang giờ Việt Nam và định dạng AM/PM
+        //        var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); // Windows
+        //        var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
+
+        //        var email = new MimeMessage();
+        //        email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+        //        email.To.Add(MailboxAddress.Parse(toEmail));
+        //        email.Subject = $"[IntelliPM] Invitation: {meetingTopic}";
+
+        //        email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+        //        {
+        //            Text = $@"
+        //        <h2>Hi {fullName},</h2>
+        //        <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
+        //        <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
+        //        <p>Please confirm your attendance.</p>
+        //        <br/>
+        //        <p>IntelliPM Team</p>"
+        //        };
+
+        //        // Log chi tiết email
+        //        Console.WriteLine("=== Email Sent ===");
+        //        Console.WriteLine($"To: {toEmail}");
+        //        Console.WriteLine($"Subject: {email.Subject}");
+        //        Console.WriteLine("Body:");
+        //        Console.WriteLine(email.Body.ToString());
+        //        Console.WriteLine("==================");
+
+        //        using var smtp = new SmtpClient();
+        //        await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+        //        await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+        //        await smtp.SendAsync(email);
+        //        await smtp.DisconnectAsync(true);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[EmailError] Failed to send invitation to {toEmail}: {ex.Message}");
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
+        //        }
+        //    }
+        //}
+
         public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -555,19 +603,43 @@ namespace IntelliPM.Services.EmailServices
                 var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
 
                 var email = new MimeMessage();
-                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                // Tùy chỉnh phần "From" để hiển thị tên đẹp hơn
+                email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"])); // Tên + email người gửi
+
                 email.To.Add(MailboxAddress.Parse(toEmail));
                 email.Subject = $"[IntelliPM] Invitation: {meetingTopic}";
 
                 email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
                 {
                     Text = $@"
-                <h2>Hi {fullName},</h2>
-                <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
-                <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
-                <p>Please confirm your attendance.</p>
-                <br/>
-                <p>IntelliPM Team</p>"
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                }}
+                h2 {{
+                    color: #2c3e50;
+                }}
+                p {{
+                    font-size: 14px;
+                }}
+                a {{
+                    color: #2980b9;
+                    text-decoration: none;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>Hi {fullName},</h2>
+            <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
+            <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
+            <p>Please confirm your attendance.</p>
+            <br/>
+            <p>IntelliPM Team</p>
+        </body>
+        </html>"
                 };
 
                 // Log chi tiết email
@@ -594,6 +666,51 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
+        //public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
+        //{
+        //    try
+        //    {
+        //        var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        //        var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
+
+        //        var email = new MimeMessage();
+        //        email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+        //        email.To.Add(MailboxAddress.Parse(toEmail));
+        //        email.Subject = "📢 Cuộc họp đã bị hủy";
+
+        //        email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+        //        {
+        //            Text = $@"
+        //    <h2>Xin chào {fullName},</h2>
+        //    <p>Buổi họp với tiêu đề <b>'{meetingTopic}'</b> dự kiến diễn ra vào <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b> đã bị <span style='color:red;'><b>hủy bỏ</b></span>.</p>
+        //    <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ lại với ban tổ chức.</p>
+        //    <br/>
+        //    <p>Trân trọng,</p>
+        //    <p><b>IntelliPM Team</b></p>"
+        //        };
+
+        //        Console.WriteLine("=== Email Cancel Sent ===");
+        //        Console.WriteLine($"To: {toEmail}");
+        //        Console.WriteLine($"Subject: {email.Subject}");
+        //        Console.WriteLine("Body:");
+        //        Console.WriteLine(email.Body.ToString());
+        //        Console.WriteLine("=========================");
+
+        //        using var smtp = new SmtpClient();
+        //        await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+        //        await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+        //        await smtp.SendAsync(email);
+        //        await smtp.DisconnectAsync(true);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[EmailError] Failed to send cancellation email to {toEmail}: {ex.Message}");
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
+        //        }
+        //    }
+        //}
         public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -602,22 +719,49 @@ namespace IntelliPM.Services.EmailServices
                 var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
 
                 var email = new MimeMessage();
-                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                // Cập nhật phần "From" cho trang trọng hơn
+                email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"])); // Tên + Email người gửi
+
                 email.To.Add(MailboxAddress.Parse(toEmail));
-                email.Subject = "📢 Cuộc họp đã bị hủy";
+                email.Subject = "[IntelliPM] Meeting Cancellation Notice";
 
                 email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
                 {
                     Text = $@"
-            <h2>Xin chào {fullName},</h2>
-            <p>Buổi họp với tiêu đề <b>'{meetingTopic}'</b> dự kiến diễn ra vào <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b> đã bị <span style='color:red;'><b>hủy bỏ</b></span>.</p>
-            <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ lại với ban tổ chức.</p>
-            <br/>
-            <p>Trân trọng,</p>
-            <p><b>IntelliPM Team</b></p>"
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        color: #333;
+                    }}
+                    h2 {{
+                        color: #2c3e50;
+                    }}
+                    p {{
+                        font-size: 14px;
+                    }}
+                    span {{
+                        color: red;
+                    }}
+                    a {{
+                        color: #2980b9;
+                        text-decoration: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h2>Dear {fullName},</h2>
+                <p>We regret to inform you that the meeting titled <b>'{meetingTopic}'</b>, scheduled for <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>, has been <span><b>canceled</b></span>.</p>
+                <p>If you have any questions or concerns, please feel free to reach out to the organizing team.</p>
+                <br/>
+                <p>Best regards,</p>
+                <p><b>IntelliPM Team</b></p>
+            </body>
+            </html>"
                 };
 
-                Console.WriteLine("=== Email Cancel Sent ===");
+                Console.WriteLine("=== Email Cancellation Sent ===");
                 Console.WriteLine($"To: {toEmail}");
                 Console.WriteLine($"Subject: {email.Subject}");
                 Console.WriteLine("Body:");
