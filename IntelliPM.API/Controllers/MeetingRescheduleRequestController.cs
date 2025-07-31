@@ -60,15 +60,28 @@ namespace IntelliPM.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
 
-            var result = await _service.CreateAsync(request);
-            return StatusCode(201, new ApiResponseDTO
+            try
             {
-                IsSuccess = true,
-                Code = 201,
-                Message = "Reschedule request created successfully",
-                Data = result
-            });
+                var result = await _service.CreateAsync(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Reschedule request created successfully",
+                    Data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 409,
+                    Message = ex.Message
+                });
+            }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] MeetingRescheduleRequestDTO request)
