@@ -276,6 +276,49 @@ namespace IntelliPM.Services.TaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                var sourceTask = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                if (sourceTask == null) continue;
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !sourceTask.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải hoàn thành trước khi bắt đầu.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !sourceTask.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải được bắt đầu trước.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !sourceTask.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' phụ thuộc vào task '{sourceTask.Id}' phải hoàn thành trước.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !sourceTask.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' chỉ được hoàn thành khi task '{sourceTask.Id}' đã được bắt đầu.");
+                        }
+                        break;
+                }
+            }
+
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -329,7 +372,10 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to change task status: {ex.Message}", ex);
             }
 
-            return _mapper.Map<TaskResponseDTO>(entity);
+            //return _mapper.Map<TaskResponseDTO>(entity);
+            var result = _mapper.Map<TaskResponseDTO>(entity);
+            result.Warnings = warnings; 
+            return result;
         }
 
 
