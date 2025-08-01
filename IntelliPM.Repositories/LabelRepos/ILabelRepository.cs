@@ -14,5 +14,6 @@ namespace IntelliPM.Repositories.LabelRepos
         Task<List<Label>> GetAllLabelAsync();
         Task<Label?> GetByIdAsync(int id);
         Task Update(Label label);
+        Task<List<Label>> GetByProjectAsync(int projectId);
     }
 }

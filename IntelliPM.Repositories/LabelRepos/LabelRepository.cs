@@ -47,6 +47,15 @@ namespace IntelliPM.Repositories.LabelRepos
                 .FirstOrDefaultAsync(l => l.Id == id);
         }
 
+        public async Task<List<Label>> GetByProjectAsync(int projectId)
+        {
+            return await _context.Label
+                .Where(tf => tf.ProjectId == projectId)
+                .Include(l => l.Project)
+                .Include(l => l.WorkItemLabel)
+                .ToListAsync();
+        }
+
         public async Task Update(Label label)
         {
             _context.Label.Update(label);

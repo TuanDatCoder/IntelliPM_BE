@@ -1,9 +1,13 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Label.Request;
 using IntelliPM.Data.DTOs.Label.Response;
+using IntelliPM.Data.DTOs.TaskComment.Response;
+using IntelliPM.Data.DTOs.WorkItemLabel.Request;
+using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.LabelRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -20,13 +24,15 @@ namespace IntelliPM.Services.LabelServices
         private readonly ILabelRepository _repo;
         private readonly IProjectRepository _projectRepo;
         private readonly ILogger<LabelService> _logger;
+        private readonly IWorkItemLabelService _workItemLabelService;
 
-        public LabelService(IMapper mapper, ILabelRepository repo, IProjectRepository projectRepo, ILogger<LabelService> logger)
+        public LabelService(IMapper mapper, ILabelRepository repo, IProjectRepository projectRepo, ILogger<LabelService> logger, IWorkItemLabelService workItemLabelService)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _projectRepo = projectRepo;
+            _workItemLabelService = workItemLabelService;
         }
 
         public async Task<LabelResponseDTO> CreateLabel(LabelRequestDTO request)
@@ -58,6 +64,42 @@ namespace IntelliPM.Services.LabelServices
             }
             return _mapper.Map<LabelResponseDTO>(entity);
         }
+
+        public async Task<WorkItemLabelResponseDTO> CreateLabelAndAssignAsync(CreateLabelAndAssignDTO dto)
+        {
+            int count = 0;
+            if (!string.IsNullOrWhiteSpace(dto.TaskId)) count++;
+            if (!string.IsNullOrWhiteSpace(dto.EpicId)) count++;
+            if (!string.IsNullOrWhiteSpace(dto.SubtaskId)) count++;
+
+            if (count != 1)
+                throw new ArgumentException("Exactly one of TaskId, EpicId, or SubtaskId must be provided.");
+            // 1. Tạo Label
+            var labelRequest = new LabelRequestDTO
+            {
+                ProjectId = dto.ProjectId,
+                Name = dto.Name,
+                //ColorCode = dto.ColorCode,
+                //Description = dto.Description,
+                Status = "ACTIVE"
+            };
+
+            var createdLabel = await CreateLabel(labelRequest); // Gọi lại hàm CreateLabel đã có
+
+            // 2. Tạo WorkItemLabel gắn vào task/epic/subtask
+            var workItemLabelRequest = new WorkItemLabelRequestDTO
+            {
+                LabelId = createdLabel.Id,
+                TaskId = dto.TaskId,
+                EpicId = dto.EpicId,
+                SubtaskId = dto.SubtaskId,
+                IsDeleted = false,
+            };
+
+            var result = await _workItemLabelService.CreateWorkItemLabel(workItemLabelRequest); // Gọi lại hàm CreateWorkItemLabel đã có
+            return result;
+        }
+
 
         public async Task DeleteLabel(int id)
         {
@@ -92,6 +134,15 @@ namespace IntelliPM.Services.LabelServices
                 throw new KeyNotFoundException($"Label with ID {id} not found.");
 
             return _mapper.Map<LabelResponseDTO>(entity);
+        }
+
+        public async Task<List<LabelResponseDTO>> GetLabelByProject(int projectId)
+        {
+            var entity = await _repo.GetByProjectAsync(projectId);
+            if (entity == null)
+                throw new KeyNotFoundException($"Label with Project ID {projectId} not found.");
+
+            return _mapper.Map<List<LabelResponseDTO>>(entity);
         }
 
         public async Task<LabelResponseDTO> UpdateLabel(int id, LabelRequestDTO request)
