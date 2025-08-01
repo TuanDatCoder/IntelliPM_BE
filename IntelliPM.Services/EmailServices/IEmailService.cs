@@ -8,7 +8,6 @@ namespace IntelliPM.Services.EmailServices
 {
     public interface IEmailService
     {
-
         Task SendRegistrationEmail(string fullName, string userEmail, string verificationUrl);
         Task SendRegistrationEmail(string fullName, string userEmail);
         Task SendAccountResetPassword(string fullName, string userEmail, string OTP);
@@ -34,5 +33,9 @@ namespace IntelliPM.Services.EmailServices
         Task SendSubtaskCommentNotificationEmail(string toEmail, string fullName, string subtaskId, string subtaskTitle, string commentContent);
 
         Task SendEpicCommentNotificationEmail(string toEmail, string fullName, string epicId, string epicTitle, string commentContent);
+
+        Task SendTaskAssignmentEmail(string assigneeFullName, string assigneeEmail, string taskId, string taskTitle);
+
+        Task SendSubtaskAssignmentEmail(string assigneeFullName, string assigneeEmail, string subtaskId, string subtaskTitle);
     }
 }
