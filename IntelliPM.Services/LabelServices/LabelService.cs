@@ -1,20 +1,15 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Label.Request;
 using IntelliPM.Data.DTOs.Label.Response;
-using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.LabelRepos;
 using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Repositories.WorkItemLabelRepos;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.LabelServices
 {
@@ -25,14 +20,16 @@ namespace IntelliPM.Services.LabelServices
         private readonly IProjectRepository _projectRepo;
         private readonly ILogger<LabelService> _logger;
         private readonly IWorkItemLabelService _workItemLabelService;
+        private readonly IWorkItemLabelRepository _workItemLabelRepository;
 
-        public LabelService(IMapper mapper, ILabelRepository repo, IProjectRepository projectRepo, ILogger<LabelService> logger, IWorkItemLabelService workItemLabelService)
+        public LabelService(IMapper mapper, ILabelRepository repo, IProjectRepository projectRepo, ILogger<LabelService> logger, IWorkItemLabelService workItemLabelService, IWorkItemLabelRepository workItemLabelRepository)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _projectRepo = projectRepo;
             _workItemLabelService = workItemLabelService;
+            _workItemLabelRepository = workItemLabelRepository;
         }
 
         public async Task<LabelResponseDTO> CreateLabel(LabelRequestDTO request)
@@ -74,22 +71,39 @@ namespace IntelliPM.Services.LabelServices
 
             if (count != 1)
                 throw new ArgumentException("Exactly one of TaskId, EpicId, or SubtaskId must be provided.");
-            // 1. Tạo Label
-            var labelRequest = new LabelRequestDTO
+
+            var existingLabel = await _repo.GetByProjectIdAndNameAsync(dto.ProjectId, dto.Name);
+
+            LabelResponseDTO labelToUse;
+
+            if (existingLabel != null)
             {
-                ProjectId = dto.ProjectId,
-                Name = dto.Name,
-                //ColorCode = dto.ColorCode,
-                //Description = dto.Description,
-                Status = "ACTIVE"
-            };
+                // Sử dụng label đã tồn tại
+                labelToUse = _mapper.Map<LabelResponseDTO>(existingLabel);
+            }
+            else
+            {
+                // Tạo mới nếu chưa có
+                var labelRequest = new LabelRequestDTO
+                {
+                    ProjectId = dto.ProjectId,
+                    Name = dto.Name,
+                    Status = "ACTIVE"
+                };
 
-            var createdLabel = await CreateLabel(labelRequest); // Gọi lại hàm CreateLabel đã có
+                labelToUse = await CreateLabel(labelRequest);
+            }
 
-            // 2. Tạo WorkItemLabel gắn vào task/epic/subtask
+            bool isAlreadyAssigned = await _workItemLabelRepository.IsLabelAlreadyAssignedAsync(labelToUse.Id, dto.TaskId, dto.EpicId, dto.SubtaskId);
+
+            if (isAlreadyAssigned)
+                throw new InvalidOperationException("This label has already been assigned to this work item.");
+
+
+            // 3. Tạo WorkItemLabel gắn vào task/epic/subtask
             var workItemLabelRequest = new WorkItemLabelRequestDTO
             {
-                LabelId = createdLabel.Id,
+                LabelId = labelToUse.Id,
                 TaskId = dto.TaskId,
                 EpicId = dto.EpicId,
                 SubtaskId = dto.SubtaskId,
@@ -99,7 +113,6 @@ namespace IntelliPM.Services.LabelServices
             var result = await _workItemLabelService.CreateWorkItemLabel(workItemLabelRequest); // Gọi lại hàm CreateWorkItemLabel đã có
             return result;
         }
-
 
         public async Task DeleteLabel(int id)
         {

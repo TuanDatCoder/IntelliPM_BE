@@ -61,5 +61,12 @@ namespace IntelliPM.Repositories.LabelRepos
             _context.Label.Update(label);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<Label?> GetByProjectIdAndNameAsync(int projectId, string name)
+        {
+            return await _context.Label
+                .FirstOrDefaultAsync(l => l.ProjectId == projectId && l.Name == name && l.Status == "ACTIVE");
+        }
+
     }
 }
