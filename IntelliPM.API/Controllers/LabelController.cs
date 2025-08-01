@@ -52,6 +52,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("project/{projectId}")]
+        public async Task<IActionResult> GetByProjectId(int projectId)
+        {
+            if (projectId <= 0) return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid ID" });
+            try
+            {
+                var label = await _service.GetLabelByProject(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Label retrieved successfully",
+                    Data = label
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("create-label-and-assign")]
+        public async Task<IActionResult> CreateLabelAndAssign([FromBody] CreateLabelAndAssignDTO request)
+        {
+            var result = await _service.CreateLabelAndAssignAsync(request);
+            return Ok(result);
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] LabelRequestDTO request)
         {
