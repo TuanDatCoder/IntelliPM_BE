@@ -115,11 +115,11 @@ namespace IntelliPM.Services.TaskCommentServices
                             IsRead = false
                         });
 
-                        var account = await _accountRepository.GetAccountById(accId);
-                        if (account != null && !string.IsNullOrEmpty(account.Email))
-                        {
-                            await _emailService.SendTaskCommentNotificationEmail(account.Email, account.FullName, entity.TaskId, taskTitle, request.Content);
-                        }
+                        //var account = await _accountRepository.GetAccountById(accId);
+                        //if (account != null && !string.IsNullOrEmpty(account.Email))
+                        //{
+                        //    await _emailService.SendTaskCommentNotificationEmail(account.Email, account.FullName, entity.TaskId, taskTitle, request.Content);
+                        //}
                     }
 
                     await _notificationRepo.Add(notification);

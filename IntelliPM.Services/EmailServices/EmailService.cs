@@ -1002,6 +1002,65 @@ namespace IntelliPM.Services.EmailServices
                 Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
             }
         }
+
+        public async Task SendTaskAssignmentEmail(string fullName, string userEmail, string taskId, string taskTitle)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned task {taskId}: {taskTitle}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+        <h2>Hi {fullName},</h2>
+        <p>You have been assigned a new task:</p>
+        <ul>
+          <li><b>ID:</b> {taskId}</li>
+          <li><b>Title:</b> {taskTitle}</li>
+        </ul>
+       
+        <p>Please check the system for more details.</p>
+        <br/>
+        <p>Best regards,<br/>IntelliPM Notification System</p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+        public async Task SendSubtaskAssignmentEmail(string fullName, string userEmail, string subtaskId, string subtaskTitle)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned subtask {subtaskId}: {subtaskTitle}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+        <h2>Hi {fullName},</h2>
+        <p>You have been assigned a new subtask:</p>
+        <ul>
+          <li><b>ID:</b> {subtaskId}</li>
+          <li><b>Title:</b> {subtaskTitle}</li>
+        </ul>
+       
+        <p>Please check the system for more details.</p>
+        <br/>
+        <p>Best regards,<br/>IntelliPM Notification System</p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
     }
 
 

@@ -95,11 +95,11 @@ namespace IntelliPM.Services.EpicCommentServices
                         });
                     }
                     
-                    if (account != null && !string.IsNullOrEmpty(account.Email))
-                    {
-                        await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
-                    }
-                    await _notificationRepo.Add(notification);
+                    //if (account != null && !string.IsNullOrEmpty(account.Email))
+                    //{
+                    //    await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
+                    //}
+                    //await _notificationRepo.Add(notification);
                 }
             }
             catch (DbUpdateException ex)
