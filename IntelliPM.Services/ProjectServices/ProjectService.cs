@@ -52,7 +52,7 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IConfiguration _config;
-        private readonly string _backendUrl;
+       // private readonly string _backendUrl;
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
 
@@ -74,8 +74,8 @@ namespace IntelliPM.Services.ProjectServices
             _taskDependencyRepo = taskDependencyRepo;
             _subtaskRepo = subtaskRepo;
             _config = config;
-#pragma warning disable CS8601
-            _backendUrl = config["Environment:BE_URL"];
+                #pragma warning disable CS8601
+           // _backendUrl = config["Environment:BE_URL"];
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
@@ -224,6 +224,7 @@ namespace IntelliPM.Services.ProjectServices
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status,
+                    Email = pm.Account?.Email,
                     FullName = pm.Account?.FullName,
                     Username = pm.Account?.Username,
                     Picture = pm.Account?.Picture,
