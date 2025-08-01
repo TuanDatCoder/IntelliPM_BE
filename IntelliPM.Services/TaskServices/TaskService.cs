@@ -878,7 +878,7 @@ namespace IntelliPM.Services.TaskServices
             {
                 var sprint = await _sprintRepo.GetByIdAsync(sprintId);
                 if (sprint == null)
-                    throw new KeyNotFoundException($"Sprint with ID {id} not found.");
+                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
                 entity.SprintId = sprintId;
             }
 
