@@ -114,11 +114,11 @@ namespace IntelliPM.Services.SubtaskCommentServices
                             AccountId = accId,
                             IsRead = false
                         });
-                        var account = await _accountRepository.GetAccountById(accId);
-                        if (account != null && !string.IsNullOrEmpty(account.Email))
-                        {
-                            await _emailService.SendSubtaskCommentNotificationEmail(account.Email, account.FullName, entity.SubtaskId, subtaskTitle, request.Content);
-                        }
+                        //var account = await _accountRepository.GetAccountById(accId);
+                        //if (account != null && !string.IsNullOrEmpty(account.Email))
+                        //{
+                        //    await _emailService.SendSubtaskCommentNotificationEmail(account.Email, account.FullName, entity.SubtaskId, subtaskTitle, request.Content);
+                        //}
                     }
                     await _notificationRepo.Add(notification);
                 }

@@ -17,5 +17,8 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
         Task<List<WorkItemLabel>> GetByEpicIdAsync(string? epicId);
         Task<List<WorkItemLabel>> GetBySubtaskIdAsync(string? subtaskId);
         Task<List<WorkItemLabel>> GetByTaskIdAsync(string? taskId);
+
+        Task<bool> IsLabelAlreadyAssignedAsync(int labelId, string? taskId, string? epicId, string? subtaskId);
+
     }
 }
