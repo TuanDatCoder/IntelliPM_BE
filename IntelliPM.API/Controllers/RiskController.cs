@@ -100,6 +100,19 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [HttpGet("by-risk-key")]
+        public async Task<IActionResult> GetByKey(string key)
+        {
+            var result = await _riskService.GetByKeyAsync(key);
+            return Ok(new ApiResponseDTO
+            {
+                IsSuccess = true,
+                Code = 200,
+                Message = "Fetched risk detail successfully",
+                Data = result
+            });
+        }
+
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
         {
