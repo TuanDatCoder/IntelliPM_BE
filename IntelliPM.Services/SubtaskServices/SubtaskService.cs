@@ -474,6 +474,9 @@ namespace IntelliPM.Services.SubtaskServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            await UpdateSubtaskProgressAsync(entity);
+            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -531,6 +534,55 @@ namespace IntelliPM.Services.SubtaskServices
             result.Warnings = warnings;
             return result;
         }
+
+        private async Task UpdateSubtaskProgressAsync(Subtask subtask)
+        {
+            if (subtask.Status == "DONE")
+            {
+                subtask.PercentComplete = 100;
+            }
+            else if (subtask.Status == "TO_DO")
+            {
+                subtask.PercentComplete = 0;
+            }
+            else if (subtask.Status == "IN_PROGRESS")
+            {
+                if (subtask.PlannedHours > 0)
+                {
+                    var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
+                    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
+                }
+                else
+                {
+                    subtask.PercentComplete = 0;
+                }
+            }
+
+            subtask.UpdatedAt = DateTime.UtcNow;
+            await _subtaskRepo.Update(subtask);
+        }
+
+        private async Task UpdateTaskProgressBySubtasksAsync(string taskId)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null) return;
+
+            var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+
+            if (!subtasks.Any())
+            {
+                task.PercentComplete = 0;
+            }
+            else
+            {
+                var avg = subtasks.Average(st => st.PercentComplete ?? 0); 
+                task.PercentComplete = (int)Math.Round(avg);
+            }
+
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
+        }
+
 
         public async Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id)
         {
@@ -631,6 +683,8 @@ namespace IntelliPM.Services.SubtaskServices
             }
 
             await _subtaskRepo.Update(entity);
+            await UpdateSubtaskProgressAsync(entity);
+            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
             try
             {
