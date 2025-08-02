@@ -58,5 +58,7 @@ namespace IntelliPM.API.Controllers
             var result = await _service.GetRejectedFeedbacksByMeetingIdAsync(meetingId);
             return Ok(result);
         }
+
+
     }
 }

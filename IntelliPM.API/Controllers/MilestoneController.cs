@@ -105,6 +105,38 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpPost("quick")]
+        public async Task<IActionResult> CreateQuick([FromBody] MilestoneQuickRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            try
+            {
+                var result = await _service.CreateQuickMilestone(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Milestone created successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating milestone: {ex.Message}"
+                });
+            }
+        }
+
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] MilestoneRequestDTO request)
         {

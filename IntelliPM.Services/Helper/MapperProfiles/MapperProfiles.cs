@@ -27,6 +27,8 @@ using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
+using IntelliPM.Data.DTOs.MilestoneComment.Request;
+using IntelliPM.Data.DTOs.MilestoneComment.Response;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
 using IntelliPM.Data.DTOs.Notification.Request;
@@ -199,8 +201,23 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+
+            CreateMap<MilestoneQuickRequestDTO, Milestone>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+
             CreateMap<Milestone, MilestoneResponseDTO>();
             CreateMap<Milestone, MilestoneDependencyResponseDTO>();
+
+
+            // Milestone Comment
+            CreateMap<MilestoneCommentRequestDTO, MilestoneComment>();
+            CreateMap<MilestoneComment, MilestoneCommentResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // Task
             CreateMap<TaskRequestDTO, Tasks>();

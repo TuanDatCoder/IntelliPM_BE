@@ -20,5 +20,6 @@ namespace IntelliPM.Services.MilestoneServices
         Task<MilestoneResponseDTO> ChangeMilestoneStatus(int id, string status);
         Task<List<MilestoneResponseDTO>> GetMilestonesByProjectIdAsync(int projectId);
         Task<MilestoneResponseDTO> ChangeMilestoneSprint(string key, int sprintId);
+        Task<MilestoneResponseDTO> CreateQuickMilestone(MilestoneQuickRequestDTO request);
     }
 }
