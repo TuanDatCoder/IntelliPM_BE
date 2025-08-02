@@ -82,6 +82,45 @@ namespace IntelliPM.Services.MilestoneServices
 
             try
             {
+                await _repo.Add(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+
+                throw new Exception($"Failed to create milestone due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating milestone with key: {Key}", milestoneKey);
+                throw new Exception($"Failed to create milestone: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<MilestoneResponseDTO>(entity);
+        }
+
+
+
+        public async Task<MilestoneResponseDTO> CreateQuickMilestone(MilestoneQuickRequestDTO request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+            if (string.IsNullOrEmpty(request.Name))
+                throw new ArgumentException("Milestone name is required.", nameof(request.Name));
+
+            var project = await _projectRepo.GetByIdAsync(request.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
+
+            string milestoneKey = await GenerateMilestoneKeyAsync(request.ProjectId, project.ProjectKey);
+
+            var entity = _mapper.Map<Milestone>(request);
+            entity.Key = milestoneKey;
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+            entity.Status = "PLANNING";
+            try
+            {
                 _logger.LogInformation("Creating milestone with key: {Key} for project: {ProjectId}", milestoneKey, request.ProjectId);
                 await _repo.Add(entity);
             }
@@ -98,6 +137,8 @@ namespace IntelliPM.Services.MilestoneServices
 
             return _mapper.Map<MilestoneResponseDTO>(entity);
         }
+
+
 
         private async Task<string> GenerateMilestoneKeyAsync(int projectId, string projectKey)
         {
