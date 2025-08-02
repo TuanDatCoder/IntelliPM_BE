@@ -25,7 +25,6 @@ namespace IntelliPM.Services.TaskAssignmentServices
         private readonly ITaskRepository _taskRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IAccountRepository _accountRepo;
-        private readonly ITaskRepository _taskRepo;
         private readonly IEmailService _emailService;
         private readonly ILogger<TaskAssignmentService> _logger;
         
@@ -34,8 +33,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _taskRepo = taskRepo ?? throw new ArgumentNullException(nameof(taskRepo));
-            _projectMemberRepo = projectMemberRepo ?? throw new ArgumentNullException(nameof(projectMemberRepo));
+            _projectMemberRepo = projectMemberRepo;
             _accountRepo = accountRepo;
             _taskRepo = taskRepo;
             _emailService = emailService;
