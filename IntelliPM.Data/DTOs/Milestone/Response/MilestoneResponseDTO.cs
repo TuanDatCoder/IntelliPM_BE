@@ -9,6 +9,7 @@ namespace IntelliPM.Data.DTOs.Milestone.Response
     public class MilestoneResponseDTO
     {
         public int Id { get; set; }
+        public string Key { get; set; }
         public int ProjectId { get; set; }
         public int? SprintId { get; set; }
         public string Name { get; set; } = null!;
