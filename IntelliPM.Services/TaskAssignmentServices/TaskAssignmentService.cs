@@ -4,8 +4,10 @@ using IntelliPM.Data.DTOs.TaskAssignment.Request;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -22,15 +24,21 @@ namespace IntelliPM.Services.TaskAssignmentServices
         private readonly ITaskAssignmentRepository _repo;
         private readonly ITaskRepository _taskRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IEmailService _emailService;
         private readonly ILogger<TaskAssignmentService> _logger;
-
-        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ITaskRepository taskRepo, IProjectMemberRepository projectMemberRepo, ILogger<TaskAssignmentService> logger)
+        
+        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ILogger<TaskAssignmentService> logger, IAccountRepository accountRepo, ITaskRepository taskRepo, IEmailService emailService, IProjectMemberRepository projectMemberRepo)
         {
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _taskRepo = taskRepo ?? throw new ArgumentNullException(nameof(taskRepo));
             _projectMemberRepo = projectMemberRepo ?? throw new ArgumentNullException(nameof(projectMemberRepo));
+            _accountRepo = accountRepo;
+            _taskRepo = taskRepo;
+            _emailService = emailService;
         }
 
         public async Task<List<TaskAssignmentResponseDTO>> GetAllAsync()
@@ -113,6 +121,18 @@ namespace IntelliPM.Services.TaskAssignmentServices
             try
             {
                 await _repo.Add(entity);
+                var assignedUser = await _accountRepo.GetAccountById(entity.AccountId);
+                var task = await _taskRepo.GetByIdAsync(taskId);
+
+                if (assignedUser != null && task != null)
+                {
+                    await _emailService.SendTaskAssignmentEmail(
+                        assigneeFullName: assignedUser.FullName,
+                        assigneeEmail: assignedUser.Email,
+                        taskId: taskId,
+                        taskTitle: task.Title
+                    );
+                }
             }
             catch (DbUpdateException ex)
             {

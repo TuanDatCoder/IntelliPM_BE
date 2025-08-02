@@ -64,6 +64,14 @@ namespace IntelliPM.Repositories.MilestoneRepos
                 .ToListAsync();
         }
 
+        public async Task<List<Milestone>> GetByProjectIdDescendingAsync(int projectId)
+        {
+            return await _context.Milestone
+                .Where(m => m.ProjectId == projectId)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task<Milestone?> GetByKeyAsync(string key)
         {
             return await _context.Milestone

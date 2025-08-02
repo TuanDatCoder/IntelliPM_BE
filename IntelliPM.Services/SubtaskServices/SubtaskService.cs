@@ -18,6 +18,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
@@ -50,8 +51,8 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IActivityLogService _activityLogService;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IMilestoneRepository _milestoneRepo;
-
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo)
+        private readonly IEmailService _emailService;
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo, IEmailService emailService)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -68,6 +69,7 @@ namespace IntelliPM.Services.SubtaskServices
             _activityLogService = activityLogService;
             _taskDependencyRepo = taskDependencyRepo;
             _milestoneRepo = milestoneRepo;
+            _emailService = emailService;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -353,14 +355,32 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
+            var oldAssignedBy = entity.AssignedBy; // 👈 lưu lại giá trị cũ
+
             _mapper.Map(request, entity);
 
-            if(request.AssignedBy == 0) 
-            entity.AssignedBy = null;
+            if (request.AssignedBy == 0)
+                entity.AssignedBy = null;
 
             try
             {
                 await _subtaskRepo.Update(entity);
+
+                // 👇 Nếu AssignedBy thay đổi, thì gửi email
+                if (oldAssignedBy != entity.AssignedBy)
+                {
+                    // Gửi email ở đây, ví dụ:
+                    var assignee = await _accountRepo.GetAccountById(entity.AssignedBy ?? 0);
+                    if (assignee != null)
+                    {
+                        await _emailService.SendSubtaskAssignmentEmail(
+                            assignee.FullName,
+                            assignee.Email,
+                            entity.Id,
+                            entity.Title
+                        );
+                    }
+                }
 
                 await _activityLogService.LogAsync(new ActivityLog
                 {
@@ -371,11 +391,10 @@ namespace IntelliPM.Services.SubtaskServices
                     RelatedEntityId = entity.Id,
                     ActionType = "UPDATE",
                     Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
-                    CreatedBy = request.CreatedBy, 
+                    CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
                 });
             }
-
             catch (Exception ex)
             {
                 throw new Exception($"Failed to update Subtask: {ex.Message}", ex);
