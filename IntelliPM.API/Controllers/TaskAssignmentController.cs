@@ -328,5 +328,36 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("hours")]
+        public async Task<IActionResult> GetTaskAssignmentHour(string taskId)
+        {
+            var result = await _service.GetTaskAssignmentHoursByTaskIdAsync(taskId);
+            return Ok(new ApiResponseDTO
+            {
+                IsSuccess = true,
+                Code = (int)HttpStatusCode.OK,
+                Message = "View all task assignments successfully",
+                Data = result
+            });
+        }
+
+        [HttpPatch("update-actual-hours")]
+        public async Task<IActionResult> UpdateActualHours([FromBody] List<TaskAssignmentHourRequestDTO> updates)
+        {
+            if (updates == null || !updates.Any())
+                return BadRequest("No updates provided.");
+
+            var success = await _service.ChangeActualHoursAsync(updates);
+
+            if (!success)
+                return StatusCode(500, "Failed to update actual hours.");
+
+            return Ok(new
+            {
+                isSuccess = true,
+                message = "Actual hours updated successfully"
+            });
+        }
     }
 }
