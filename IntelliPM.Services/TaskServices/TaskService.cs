@@ -417,6 +417,8 @@ namespace IntelliPM.Services.TaskServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            await UpdateTaskProgressAsync(entity);
+
             try
             {
                 await _taskRepo.Update(entity);
@@ -471,6 +473,33 @@ namespace IntelliPM.Services.TaskServices
             var result = _mapper.Map<TaskResponseDTO>(entity);
             result.Warnings = warnings; 
             return result;
+        }
+
+        private async Task UpdateTaskProgressAsync(Tasks task)
+        {
+            if (task.Status == "DONE")
+            {
+                task.PercentComplete = 100;
+            }
+            else if (task.Status == "TO_DO")
+            {
+                task.PercentComplete = 0;
+            }
+            else if (task.Status == "IN_PROGRESS")
+            {
+                if (task.PlannedHours > 0)
+                {
+                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+                    task.PercentComplete = Math.Min((int)rawProgress, 99);
+                }
+                else
+                {
+                    task.PercentComplete = 0;
+                }
+            }
+
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
         }
 
 
@@ -855,6 +884,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await UpdateTaskProgressAsync(entity);
             }
             catch (Exception ex)
             {
