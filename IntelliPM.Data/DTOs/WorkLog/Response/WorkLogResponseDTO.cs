@@ -24,7 +24,7 @@ namespace IntelliPM.Data.DTOs.WorkLog.Response
 
         public DateTime UpdatedAt { get; set; }
 
-        public List<AccountBasicDTO>? Accounts { get; set; }
+        public List<AccountHourBasicDTO>? Accounts { get; set; }
 
     }
 }
