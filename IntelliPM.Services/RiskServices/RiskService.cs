@@ -459,6 +459,13 @@ namespace IntelliPM.Services.RiskServices
 
             return risks ?? new List<AIRiskResponseDTO>();
         }
+
+        public async Task<RiskResponseDTO> GetByKeyAsync(string key)
+        {
+            var risk = await _riskRepo.GetByKeyAsync(key)
+                ?? throw new Exception("Risk not found");
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
     }
 
 }
