@@ -435,33 +435,32 @@ namespace IntelliPM.Services.MeetingServices
             return _mapper.Map<List<MeetingResponseDTO>>(meetings);
         }
 
-        public async Task<List<object>> GetParticipantsWithMeetingConflict(DateTime date, DateTime startTime, DateTime endTime)
+        public async Task<List<int>> CheckMeetingConflictAsync(List<int> participantIds, DateTime date, DateTime startTime, DateTime endTime)
         {
-            var result = await _context.MeetingParticipant
-                .Include(mp => mp.Meeting)
-                .Include(mp => mp.Account)
-                .Where(mp =>
-                    mp.Meeting.MeetingDate.Date == date.Date &&
-                    mp.Meeting.Status != "CANCELLED" &&
-                    mp.Meeting.StartTime.HasValue &&
-                    mp.Meeting.EndTime.HasValue &&
-                    (
-                        (mp.Meeting.StartTime <= endTime && mp.Meeting.EndTime >= startTime)
-                    )
-                )
-                .Select(mp => new
-                {
-                    AccountId = mp.AccountId,
-                    FullName = mp.Account.FullName,
-                    MeetingDate = mp.Meeting.MeetingDate,
-                    StartTime = mp.Meeting.StartTime,
-                    EndTime = mp.Meeting.EndTime
-                })
-                .Cast<object>()  // Để hợp kiểu trả về object
-                .ToListAsync();
+            var validParticipantStatuses = new[] { "Active", "Present", "Absent" };
+            var conflictingAccountIds = new List<int>();
 
-            return result;
+            foreach (var accountId in participantIds)
+            {
+                // Find meetings for this account that overlap the requested time
+                var hasConflict = await _context.MeetingParticipant
+                    .Where(mp => mp.AccountId == accountId && validParticipantStatuses.Contains(mp.Status))
+                    .Join(_context.Meeting,
+                          mp => mp.MeetingId,
+                          m => m.Id,
+                          (mp, m) => m)
+                    .AnyAsync(m =>
+                        m.Status == "ACTIVE" &&
+                        m.MeetingDate.Date == date.Date &&
+                        m.StartTime < endTime &&
+                        m.EndTime > startTime
+                    );
+
+                if (hasConflict)
+                    conflictingAccountIds.Add(accountId);
+            }
+
+            return conflictingAccountIds;
         }
-
     }
 }
