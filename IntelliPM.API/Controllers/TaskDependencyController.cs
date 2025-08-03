@@ -120,6 +120,51 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteConnection([FromQuery] string linkedFrom, [FromQuery] string linkedTo)
+        {
+            try
+            {
+                var success = await _service.DeleteConnectionAsync(linkedFrom, linkedTo);
+                if (!success)
+                    return NotFound(new { message = "Dependency not found." });
+
+                return Ok(new { message = "Deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting task dependencies: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var result = await _service.DeleteTaskDependencyAsync(id);
+                if (!result)
+                {
+                    return NotFound(new { message = $"TaskDependency with id {id} not found." });
+                }
+                return Ok(new { message = "Deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting task dependencies: {ex.Message}"
+                });
+            }
+        }
+
 
     }
 }
