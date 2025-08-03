@@ -20,16 +20,12 @@ namespace IntelliPM.Repositories.AccountRepos
         }
 
 
-        public async Task<List<Account>> GetAccounts(int? page, int? size)
+        public async Task<List<Account>> GetAccounts()
         {
             try
             {
-                var pageIndex = (page.HasValue && page > 0) ? page.Value : 1;
-                var sizeIndex = (size.HasValue && size > 0) ? size.Value : 10;
-
                 return await _context.Account
-                    .Skip((pageIndex - 1) * sizeIndex)
-                    .Take(sizeIndex)
+                    .OrderBy(a => a.Id)
                     .ToListAsync();
             }
             catch (Exception ex)

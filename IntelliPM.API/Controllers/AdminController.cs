@@ -22,9 +22,9 @@ namespace IntelliPM.API.Controllers
         [HttpGet("account")]
         //[Authorize(Roles = "ADMIN,PROJECT MANAGER")]
         [Authorize(Roles = "ADMIN")]
-        public async Task<IActionResult> GetAccounts([FromQuery] int? page, [FromQuery] int? size)
+        public async Task<IActionResult> GetAccounts()
         {
-            var result = await _adminService.GetAllAccountsAsync(page, size);
+            var result = await _adminService.GetAllAccountsAsync();
             return Ok(new ApiResponseDTO
             {
                 IsSuccess = true,

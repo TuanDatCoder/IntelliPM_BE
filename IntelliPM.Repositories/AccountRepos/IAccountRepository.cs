@@ -16,7 +16,7 @@ namespace IntelliPM.Repositories.AccountRepos
         Task<int> AddAccount(Account account);
         Task<Account> Update(Account account);
         Task<Account> GetAccountById(int accountId);
-        Task<List<Account>> GetAccounts(int? page, int? size);
+        Task<List<Account>> GetAccounts();
         Task<int> GetTotalUsersAsync();
         Task<List<Account>> GetByIdsAsync(List<int> ids);
 
