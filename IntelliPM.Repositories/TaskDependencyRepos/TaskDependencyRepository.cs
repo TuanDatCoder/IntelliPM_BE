@@ -107,5 +107,21 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
             return await _context.TaskDependency.Where(predicate).ToListAsync();
         }
 
+        public async Task<TaskDependency?> GetByConnectionAsync(string linkedFrom, string linkedTo)
+        {
+            return await _context.TaskDependency
+                .FirstOrDefaultAsync(d => d.LinkedFrom == linkedFrom && d.LinkedTo == linkedTo);
+        }
+
+        public async Task DeleteAsync(TaskDependency dependency)
+        {
+            _context.TaskDependency.Remove(dependency);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<TaskDependency?> GetByIdAsync(int id)
+        {
+            return await _context.TaskDependency.FindAsync(id);
+        }
     }
 }
