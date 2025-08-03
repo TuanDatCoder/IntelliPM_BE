@@ -14,5 +14,7 @@ namespace IntelliPM.Services.TaskDependencyServices
         Task<TaskDependencyResponseDTO> CreateAsync(TaskDependencyRequestDTO dto);
         Task<List<TaskDependencyResponseDTO>> GetByLinkedFromAsync(string linkedFrom);
         Task<List<TaskDependencyResponseDTO>> CreateManyAsync(List<TaskDependencyIdRequestDTO> dtos);
+        Task<bool> DeleteConnectionAsync(string linkedFrom, string linkedTo);
+        Task<bool> DeleteTaskDependencyAsync(int id);
     }
 }
