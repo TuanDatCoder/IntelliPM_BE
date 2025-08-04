@@ -3,7 +3,6 @@ using IntelliPM.Data.DTOs;
 using IntelliPM.Services.AdminServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 using System.Net;
 
 namespace IntelliPM.API.Controllers
