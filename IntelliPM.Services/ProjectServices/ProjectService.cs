@@ -14,6 +14,7 @@ using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.MilestoneRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.SubtaskRepos;
@@ -42,6 +43,7 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IAccountRepository _accountRepo;
         private readonly IEmailService _emailService;
         private readonly IProjectMemberService _projectMemberService;
+        private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<ProjectService> _logger;
         private readonly IEpicService _epicService;
         private readonly ITaskService _taskService;
@@ -52,11 +54,11 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IConfiguration _config;
-        private readonly string _backendUrl;
+       // private readonly string _backendUrl;
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -73,9 +75,10 @@ namespace IntelliPM.Services.ProjectServices
             _milestoneRepo = milestoneRepo;
             _taskDependencyRepo = taskDependencyRepo;
             _subtaskRepo = subtaskRepo;
+            _projectMemberRepo = projectMemberRepo;
             _config = config;
-#pragma warning disable CS8601
-            _backendUrl = config["Environment:BE_URL"];
+                #pragma warning disable CS8601
+           // _backendUrl = config["Environment:BE_URL"];
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
@@ -224,6 +227,7 @@ namespace IntelliPM.Services.ProjectServices
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
                     Status = pm.Status,
+                    Email = pm.Account?.Email,
                     FullName = pm.Account?.FullName,
                     Username = pm.Account?.Username,
                     Picture = pm.Account?.Picture,
@@ -265,6 +269,8 @@ namespace IntelliPM.Services.ProjectServices
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
             if (!projectInfo.Status.Equals("PLANNING"))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
+
+            await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "INVITED");
 
             var projectDetailsUrl = $"{_frontendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
@@ -352,6 +358,10 @@ namespace IntelliPM.Services.ProjectServices
 
             await ChangeProjectStatus(projectId, "IN_PROGRESS");
 
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
+               if(pm != null)
+                    await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
+
 
             var eligibleMembers = membersWithPositions
                 .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
@@ -360,7 +370,6 @@ namespace IntelliPM.Services.ProjectServices
 
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
-
 
 
 

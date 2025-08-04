@@ -79,7 +79,7 @@ namespace IntelliPM.Services.EpicCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Đã bình luận trên epic {request.EpicId}: {request.Content}",
+                        Message = $"Comment in epic {request.EpicId}: {request.Content}",
                         RelatedEntityType = "Epic",
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
@@ -95,11 +95,11 @@ namespace IntelliPM.Services.EpicCommentServices
                         });
                     }
                     
-                    if (account != null && !string.IsNullOrEmpty(account.Email))
-                    {
-                        await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
-                    }
-                    await _notificationRepo.Add(notification);
+                    //if (account != null && !string.IsNullOrEmpty(account.Email))
+                    //{
+                    //    await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
+                    //}
+                    //await _notificationRepo.Add(notification);
                 }
             }
             catch (DbUpdateException ex)

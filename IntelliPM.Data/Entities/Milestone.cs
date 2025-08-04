@@ -27,6 +27,8 @@ public partial class Milestone
 
     public string? Status { get; set; }
 
+    public virtual ICollection<MilestoneComment> MilestoneComment { get; set; } = new List<MilestoneComment>();
+
     public virtual Project Project { get; set; } = null!;
 
     public virtual Sprint? Sprint { get; set; }

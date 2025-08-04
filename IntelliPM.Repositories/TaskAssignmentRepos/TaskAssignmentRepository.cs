@@ -91,7 +91,10 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
                 .ToListAsync();
         }
 
-
-
+        public async Task<TaskAssignment> GetByTaskAndAccountAsync(string taskId, int accountId)
+        {
+            return await _context.TaskAssignment
+            .FirstOrDefaultAsync(x => x.TaskId == taskId && x.AccountId == accountId);
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.TaskAssignment.Request;
+﻿using IntelliPM.Data.DTOs.Subtask.Response;
+using IntelliPM.Data.DTOs.TaskAssignment.Request;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using System;
 using System.Collections.Generic;
@@ -21,5 +22,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
         Task<TaskAssignmentResponseDTO> ChangeStatus(int id, string status);
         Task<List<TaskAssignmentResponseDTO>> CreateListTaskAssignment(List<TaskAssignmentRequestDTO> requests);
         Task DeleteByTaskAndAccount(string taskId, int accountId);
+        Task<List<TaskAssignmentHourDTO>> GetTaskAssignmentHoursByTaskIdAsync(string taskId);
+        // Task<TaskAssignmentHourDTO> ChangeActualHours(int id, decimal hours);
+        Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates);
     }
 }

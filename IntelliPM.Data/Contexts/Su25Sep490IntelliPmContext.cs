@@ -70,6 +70,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Milestone> Milestone { get; set; }
 
+    public virtual DbSet<MilestoneComment> MilestoneComment { get; set; }
+
     public virtual DbSet<MilestoneFeedback> MilestoneFeedback { get; set; }
 
     public virtual DbSet<Notification> Notification { get; set; }
@@ -951,6 +953,31 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("milestone_sprint_id_fkey");
         });
 
+        modelBuilder.Entity<MilestoneComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("milestone_comment_pkey");
+
+            entity.ToTable("milestone_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.MilestoneId).HasColumnName("milestone_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.MilestoneComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("milestone_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Milestone).WithMany(p => p.MilestoneComment)
+                .HasForeignKey(d => d.MilestoneId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("milestone_comment_milestone_id_fkey");
+        });
+
         modelBuilder.Entity<MilestoneFeedback>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("milestone_feedback_pkey");
@@ -1202,7 +1229,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Task).WithMany(p => p.ProjectRecommendation)
                 .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("project_recommendation_task_id_fkey");
         });
 
