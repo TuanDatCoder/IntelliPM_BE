@@ -22,6 +22,9 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
 
         Task<List<ProjectMember>> GetTeamLeaderByProjectId(int projectId);
 
+        Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds);
+
+
 
 
     }

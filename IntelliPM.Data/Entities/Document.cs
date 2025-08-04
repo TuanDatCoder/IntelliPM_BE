@@ -27,21 +27,27 @@ public partial class Document
 
     public bool IsActive { get; set; }
 
+    public string? Status { get; set; }
+
     public int CreatedBy { get; set; }
 
     public int? UpdatedBy { get; set; }
+
+    public int? ApproverId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
-    public string? Status { get; set; }
-
-    public int? ApproverId { get; set; }
+    public string? Visibility { get; set; }
 
     public virtual Account? Approver { get; set; }
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
+
+    public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
+
+    public virtual ICollection<DocumentExportFile> DocumentExportFile { get; set; } = new List<DocumentExportFile>();
 
     public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
 

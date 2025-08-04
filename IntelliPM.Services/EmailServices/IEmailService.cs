@@ -29,7 +29,10 @@ namespace IntelliPM.Services.EmailServices
 
         Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
 
+        //Task SendDocumentShareEmailMeeting(string toEmail, string documentTitle, string message, string fileUrl);
+        //Task SendDocumentShareEmailMeeting(string toEmail, string subject, string body, byte[] attachmentBytes, string fileName);
 
+        Task SendDocumentShareEmailMeeting(string toEmail, string subject, string body, byte[] fileBytes, string fileName);
 
     }
 }

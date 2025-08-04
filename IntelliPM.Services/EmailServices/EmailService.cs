@@ -646,16 +646,60 @@ namespace IntelliPM.Services.EmailServices
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
             email.To.Add(MailboxAddress.Parse(toEmail));
-            email.Subject = $"[IntelliPM] Document Shared: {documentTitle}";
+            email.Subject = $"[IntelliPM] 📄 {documentTitle} has been shared with you";
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+            var htmlBody = $@"
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='UTF-8' />
+  <title>Document Invitation</title>
+</head>
+<body style='background-color: #f9f9f9; padding: 50px 0; font-family: Arial, sans-serif;'>
+  <div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); text-align: center;'>
+    
+    <img src='{logoUrl}' alt='IntelliPM Logo' style='max-height: 40px; margin-bottom: 30px;' />
+
+    <h2 style='font-size: 20px; color: #333; margin-bottom: 10px;'>
+      You've been invited to collaborate on
+    </h2>
+
+    <h1 style='font-size: 24px; color: #00C875; margin-bottom: 20px;'>
+      ""{documentTitle}""
+    </h1>
+
+    <p style='color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;'>
+      {message}
+    </p>
+
+    <a href='{link}' target='_blank' style='
+      background-color: #00C875;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 12px 30px;
+      border-radius: 6px;
+      display: inline-block;
+      font-size: 16px;
+    '>
+      Accept Invitation
+    </a>
+
+    <p style='margin-top: 40px; font-size: 12px; color: #888;'>
+      If you didn’t expect this invitation, feel free to ignore this email.
+    </p>
+
+    <p style='font-size: 12px; color: #aaa; margin-top: 10px;'>
+      Sent via <strong>IntelliPM</strong> – your smart project management tool
+    </p>
+  </div>
+</body>
+</html>";
+
 
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
-                Text = $@"
-        <h2>📄 {documentTitle}</h2>
-        <p>{message}</p>
-        <p>👉 <a href='{link}' target='_blank'>Click here to view the document</a></p>
-        <br/>
-        <p>Sent via <b>IntelliPM</b></p>"
+                Text = htmlBody
             };
 
             using var smtp = new SmtpClient();
@@ -664,6 +708,7 @@ namespace IntelliPM.Services.EmailServices
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
+
 
         public async Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
@@ -748,11 +793,159 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
+        //        public async Task SendDocumentShareEmailMeeting(string toEmail, string documentTitle, string message, string fileUrl)
+        //        {
+        //            var subject = $"📄 Bạn nhận được tài liệu: {documentTitle}";
 
+        //            var body = $@"
+        //<!DOCTYPE html>
+        //<html lang='vi'>
+        //<head>
+        //    <meta charset='UTF-8'>
+        //    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        //    <title>Chia sẻ tài liệu</title>
+        //</head>
+        //<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #f5f5f5;'>
+        //    <table cellpadding='0' cellspacing='0' border='0' width='100%' style='background-color: #f5f5f5; padding: 20px 0;'>
+        //        <tr>
+        //            <td align='center'>
+        //                <table cellpadding='0' cellspacing='0' border='0' width='600' style='max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;'>
+        //                    <!-- Header -->
+        //                    <tr>
+        //                        <td style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 40px; text-align: center;'>
+        //                            <h1 style='color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;'>
+        //                                📄 Tài liệu mới được chia sẻ
+        //                            </h1>
+        //                            <p style='color: #e8f4fd; margin: 8px 0 0 0; font-size: 16px;'>
+        //                                Từ hệ thống IntelliPM
+        //                            </p>
+        //                        </td>
+        //                    </tr>
 
+        //                    <!-- Content -->
+        //                    <tr>
+        //                        <td style='padding: 40px;'>
+        //                            <!-- Message -->
+        //                            <div style='margin-bottom: 30px;'>
+        //                                <h2 style='color: #333333; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;'>
+        //                                    Tin nhắn:
+        //                                </h2>
+        //                                <div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;'>
+        //                                    <p style='color: #555555; line-height: 1.6; margin: 0; font-size: 15px;'>
+        //                                        {message}
+        //                                    </p>
+        //                                </div>
+        //                            </div>
+
+        //                            <!-- Document Info -->
+        //                            <div style='margin-bottom: 30px;'>
+        //                                <h2 style='color: #333333; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;'>
+        //                                    Tài liệu:
+        //                                </h2>
+        //                                <div style='background-color: #ffffff; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; position: relative;'>
+        //                                    <div style='display: flex; align-items: center; margin-bottom: 15px;'>
+        //                                        <div style='background-color: #667eea; color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px;'>
+        //                                            📄
+        //                                        </div>
+        //                                        <div>
+        //                                            <h3 style='color: #333333; margin: 0; font-size: 16px; font-weight: 600;'>
+        //                                                {documentTitle}
+        //                                            </h3>
+        //                                            <p style='color: #6c757d; margin: 5px 0 0 0; font-size: 14px;'>
+        //                                                Nhấn vào nút bên dưới để tải xuống
+        //                                            </p>
+        //                                        </div>
+        //                                    </div>
+
+        //                                    <!-- Download Button -->
+        //                                    <div style='text-align: center; margin-top: 20px;'>
+        //                                        <a href='{fileUrl}' target='_blank' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 25px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;'>
+        //                                            📥 Tải xuống tài liệu
+        //                                        </a>
+        //                                    </div>
+        //                                </div>
+        //                            </div>
+
+        //                            <!-- Tips -->
+        //                            <div style='background-color: #e8f5e8; border: 1px solid #c3e6c3; border-radius: 8px; padding: 15px; margin-bottom: 30px;'>
+        //                                <p style='color: #2d5a2d; margin: 0; font-size: 14px; line-height: 1.5;'>
+        //                                    💡 <strong>Mẹo:</strong> Nếu bạn không thể tải xuống trực tiếp, hãy sao chép liên kết và dán vào trình duyệt của bạn.
+        //                                </p>
+        //                            </div>
+        //                        </td>
+        //                    </tr>
+
+        //                    <!-- Footer -->
+        //                    <tr>
+        //                        <td style='background-color: #f8f9fa; padding: 30px 40px; text-align: center; border-top: 1px solid #e9ecef;'>
+        //                            <p style='color: #6c757d; margin: 0 0 10px 0; font-size: 14px;'>
+        //                                Trân trọng,<br/>
+        //                                <strong style='color: #333333;'>Đội ngũ IntelliPM</strong>
+        //                            </p>
+        //                            <div style='margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef;'>
+        //                                <p style='color: #6c757d; margin: 0; font-size: 12px; line-height: 1.4;'>
+        //                                    Email này được gửi tự động từ hệ thống IntelliPM<br/>
+        //                                    Vui lòng không trả lời email này
+        //                                </p>
+        //                            </div>
+        //                        </td>
+        //                    </tr>
+        //                </table>
+        //            </td>
+        //        </tr>
+        //    </table>
+        //</body>
+        //</html>";
+
+        //            var mimeMessage = new MimeMessage();
+        //            mimeMessage.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+        //            mimeMessage.To.Add(MailboxAddress.Parse(toEmail));
+        //            mimeMessage.Subject = subject;
+
+        //            var builder = new BodyBuilder
+        //            {
+        //                HtmlBody = body
+        //            };
+
+        //            mimeMessage.Body = builder.ToMessageBody();
+
+        //            using var smtp = new SmtpClient();
+        //            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+        //            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+        //            await smtp.SendAsync(mimeMessage);
+        //            await smtp.DisconnectAsync(true);
+        //        }
+
+        public async Task SendDocumentShareEmailMeeting(
+    string toEmail,
+    string subject,
+    string body,
+    byte[] fileBytes,
+    string fileName)
+        {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+
+            var builder = new BodyBuilder
+            {
+                TextBody = body
+            };
+
+            // 👇 Đính kèm file
+            builder.Attachments.Add(fileName, fileBytes);
+
+            message.Body = builder.ToMessageBody();
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
 
 
     }
-
 
 }

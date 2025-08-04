@@ -127,6 +127,21 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToDictionaryAsync(g => g.Status, g => g.Count);
         }
 
+        public async Task<List<int>> GetAccountIdsByEmailsAsync(List<string> emails)
+        {
+            return await _context.Account
+                .Where(a => emails.Contains(a.Email))
+                .Select(a => a.Id)
+                .ToListAsync();
+        }
+
+        public async Task<Dictionary<string, int>> GetAccountMapByEmailsAsync(List<string> emails)
+        {
+            return await _context.Account
+                .Where(a => emails.Contains(a.Email))
+                .ToDictionaryAsync(a => a.Email.ToLower(), a => a.Id);
+        }
+
 
 
 
