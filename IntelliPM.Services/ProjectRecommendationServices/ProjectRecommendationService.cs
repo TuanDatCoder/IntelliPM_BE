@@ -9,6 +9,7 @@ using IntelliPM.Repositories.ProjectMetricRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
@@ -31,10 +32,11 @@ namespace IntelliPM.Services.ProjectRecommendationServices
         private readonly IProjectRepository _projectRepo;
         private readonly ISprintRepository _sprintRepo;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly ISubtaskRepository _subtaskRepo;
         private readonly ILogger<ProjectRecommendationService> _logger;
         private readonly IGeminiService _geminiService;
 
-        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo)
+        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo, ISubtaskRepository subtaskRepo)
         {
             _mapper = mapper;
             _projectMetricRepo = projectMetricRepo;
@@ -43,6 +45,7 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             _sprintRepo = sprintRepo;
             _milestoneRepo = milestoneRepo;
             _projectRecommendationRepo = projectRecommendationRepo;
+            _subtaskRepo = subtaskRepo;
             _logger = logger;
             _geminiService = geminiService;
         }
@@ -70,6 +73,7 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
             var metric = await _projectMetricRepo.GetByProjectIdAsync(project.Id);
+            var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
 
             if (metric == null)
                 throw new Exception("ProjectMetric not found");
@@ -84,10 +88,40 @@ namespace IntelliPM.Services.ProjectRecommendationServices
                 metric,
                 tasks,
                 sprints,
-                milestones
+                milestones,
+                subtasks
             );
 
             return recommendations ?? new List<AIRecommendationDTO>();
+        }
+
+        public async Task<SimulatedMetricDTO> SimulateProjectMetricsAfterRecommendationsAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
+            var metric = await _projectMetricRepo.GetByProjectIdAsync(project.Id);
+            var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
+            var approvedRecommendtions = await _projectRecommendationRepo.GetByProjectIdAsync(project.Id);
+
+            if (metric == null)
+                throw new Exception("ProjectMetric not found");
+
+            // Gọi AI sinh forecast
+            var forecast = await _geminiService.SimulateProjectMetricsAfterRecommendationsAsync(
+                project,
+                metric,
+                tasks,
+                sprints,
+                milestones,
+                subtasks,
+                approvedRecommendtions
+            );
+
+            return forecast ?? new SimulatedMetricDTO();
         }
 
     }
