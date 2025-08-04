@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Admin;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using System;
 using System.Collections.Generic;
@@ -14,12 +16,14 @@ namespace IntelliPM.Services.AdminServices
     public class AdminService: IAdminService
     {
         private readonly IAccountRepository _accountRepository;
+        private readonly IProjectRepository _projectRepository;
         private readonly IMapper _mapper;
         private readonly IDecodeTokenHandler _decodeToken;
 
-        public AdminService(IAccountRepository accountRepository,  IMapper mapper, IDecodeTokenHandler decodeToken)
+        public AdminService(IAccountRepository accountRepository, IMapper mapper, IDecodeTokenHandler decodeToken, IProjectRepository projectRepository)
         {
             _accountRepository = accountRepository;
+            _projectRepository = projectRepository;
             _mapper = mapper;
             _decodeToken = decodeToken;
         }
@@ -31,7 +35,9 @@ namespace IntelliPM.Services.AdminServices
             return _mapper.Map<List<AccountResponseDTO>>(accounts);
         }
 
-      
-
+        public async Task<List<ProjectStatusReportDto>> GetProjectStatusReportsAsync()
+        {
+            return await _projectRepository.GetAllProjectStatusReportsAsync();
+        }
     }
 }
