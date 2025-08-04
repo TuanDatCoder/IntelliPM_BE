@@ -80,7 +80,13 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal EV = 0; // Earned Value
             decimal AC = 0; // Actual Cost
             decimal BAC = (decimal)project.Budget; // Budget At Completion
-            decimal DAC = 12; // Duration At Completion (tháng)
+            decimal DAC = 0; // Duration At Completion (tháng)
+            if (project.StartDate.HasValue && project.EndDate.HasValue)
+            {
+                var totalDays = (project.EndDate.Value - project.StartDate.Value).TotalDays;
+                DAC = Math.Round((decimal)(totalDays / 30.0), 0); // Làm tròn 1 chữ số sau dấu phẩy
+            }
+
 
             foreach (var task in tasks)
             {
@@ -137,7 +143,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                 existingMetric.EstimateAtCompletion = Math.Round(EAC, 0);
                 existingMetric.EstimateToComplete = Math.Round(ETC, 0);
                 existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
-                existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 1);
+                existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
                 existingMetric.UpdatedAt = DateTime.UtcNow;
 
                 await _repo.Update(existingMetric);
@@ -160,7 +166,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                     EstimateAtCompletion = Math.Round(EAC, 0),
                     EstimateToComplete = Math.Round(ETC, 0),
                     VarianceAtCompletion = Math.Round(VAC, 0),
-                    EstimateDurationAtCompletion = Math.Round(EDAC, 1),
+                    EstimateDurationAtCompletion = Math.Round(EDAC, 0),
                     CalculatedBy = "System",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -689,7 +695,16 @@ namespace IntelliPM.Services.ProjectMetricServices
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
-            var entity = await _repo.GetLatestByProjectIdAsync(project.Id);
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+
+            return _mapper.Map<NewProjectMetricResponseDTO>(entity);
+        }
+
+        public async Task<NewProjectMetricResponseDTO> GetProjectForecastByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "AI");
 
             return _mapper.Map<NewProjectMetricResponseDTO>(entity);
         }

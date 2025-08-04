@@ -13,6 +13,8 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
         Task Add(ProjectRecommendation recommendation);
         Task Update(ProjectRecommendation recommendation);
         Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type);
+        Task<ProjectRecommendation?> GetByIdAsync(int id);
+        Task Delete(ProjectRecommendation recommendation);
     }
 
 }
