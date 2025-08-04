@@ -66,6 +66,25 @@ namespace IntelliPM.Services.TaskDependencyServices
             return _mapper.Map<List<TaskDependencyResponseDTO>>(result);
         }
 
+        public async Task<bool> DeleteConnectionAsync(string linkedFrom, string linkedTo)
+        {
+            var dependency = await _taskDependencyRepo.GetByConnectionAsync(linkedFrom, linkedTo);
+            if (dependency == null) return false;
+
+            await _taskDependencyRepo.DeleteAsync(dependency);
+            return true;
+        }
+
+        public async Task<bool> DeleteTaskDependencyAsync(int id)
+        {
+            var existing = await _taskDependencyRepo.GetByIdAsync(id);
+            if (existing == null)
+                return false;
+
+            await _taskDependencyRepo.DeleteAsync(existing);
+            return true;
+        }
+
         public async Task<List<TaskDependencyResponseDTO>> GetByLinkedFromAsync(string linkedFrom)
         {
             var dependencies = await _taskDependencyRepo.GetDependenciesByLinkedFromAsync(linkedFrom);

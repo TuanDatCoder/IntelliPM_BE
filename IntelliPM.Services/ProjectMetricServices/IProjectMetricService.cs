@@ -15,6 +15,7 @@ namespace IntelliPM.Services.ProjectMetricServices
         Task<NewProjectMetricResponseDTO> GetByIdAsync(int id);
         Task<NewProjectMetricResponseDTO?> GetByProjectIdAsync(int projectId);
         Task<NewProjectMetricResponseDTO?> GetByProjectKeyAsync(string projectKey);
+        Task<NewProjectMetricResponseDTO> GetProjectForecastByProjectKeyAsync(string projectKey);
         Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey);
         Task<ProjectMetricRequestDTO> CalculateMetricsByAIAsync(int projectId);
         Task<ProjectHealthDTO> GetProjectHealthAsync(string projectKey);
