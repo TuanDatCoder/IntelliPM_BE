@@ -20,6 +20,9 @@ namespace IntelliPM.Repositories.TaskDependencyRepos
         Task AddMany(List<TaskDependency> dependencies);
         Task UpdateMany(List<TaskDependency> dependencies);
         Task<IEnumerable<TaskDependency>> FindAllAsync(Expression<Func<TaskDependency, bool>> predicate);
+        Task<TaskDependency?> GetByConnectionAsync(string linkedFrom, string linkedTo);
+        Task DeleteAsync(TaskDependency dependency);
+        Task<TaskDependency?> GetByIdAsync(int id);
 
     }
 

@@ -143,12 +143,27 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
         }
 
         [HttpGet("check-conflict")]
-        public async Task<IActionResult> CheckMeetingConflict(DateTime date, DateTime startTime, DateTime endTime)
+        public async Task<IActionResult> CheckMeetingConflict(
+            [FromQuery] List<int> participantIds,
+            [FromQuery] DateTime date,
+            [FromQuery] DateTime startTime,
+            [FromQuery] DateTime endTime)
         {
             try
             {
-                var result = await _service.GetParticipantsWithMeetingConflict(date, startTime, endTime);
-                return Ok(result);
+                if (participantIds == null || !participantIds.Any())
+                    return BadRequest(new { message = "Participant list cannot be empty." });
+
+                var conflictingAccountIds = await _service.CheckMeetingConflictAsync(participantIds, date, startTime, endTime);
+
+                if (conflictingAccountIds == null || !conflictingAccountIds.Any())
+                    return Ok(new { message = "No participant has a meeting conflict." });
+
+                return Ok(new
+                {
+                    message = "Some participants have conflicting meetings.",
+                    conflictingAccountIds
+                });
             }
             catch (Exception ex)
             {
@@ -156,6 +171,5 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
                 return StatusCode(500, new { message = "An error occurred while checking meeting conflicts." });
             }
         }
-
     }
 }

@@ -17,7 +17,9 @@ namespace IntelliPM.Data.DTOs.ProjectRecommendation.Response
         public List<string> AffectedTasks { get; set; }
         public string SuggestedTask { get; set; }
         public string ExpectedImpact { get; set; }
-        public Dictionary<string, object> SuggestedChanges { get; set; }
+        // public Dictionary<string, object> SuggestedChanges { get; set; }
+        public string SuggestedChanges { get; set; }
+        //public Dictionary<string, string> SuggestedChanges { get; set; }
     }
 
 }
