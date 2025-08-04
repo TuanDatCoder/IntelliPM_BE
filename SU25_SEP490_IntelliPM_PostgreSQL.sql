@@ -559,7 +559,7 @@ CREATE TABLE change_request (
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
+    task_id VARCHAR(255) NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
