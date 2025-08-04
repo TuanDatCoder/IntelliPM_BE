@@ -1,15 +1,22 @@
 using ConstructionEquipmentRental.API.Middlewares;
 using Hangfire;
 using Hangfire;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Hangfire.PostgreSql;
 using Hangfire.PostgreSql;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Repositories.DocumentCommentRepos;
+using IntelliPM.Repositories.DocumentExportFileRepos;
+using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicCommentRepos;
+using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Repositories.EpicFileRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -17,6 +24,7 @@ using IntelliPM.Repositories.LabelRepos;
 using IntelliPM.Repositories.MeetingLogRepos;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
+using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Repositories.MeetingSummaryRepos;
@@ -30,9 +38,13 @@ using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RecipientNotificationRepos;
+using IntelliPM.Repositories.RecipientNotificationRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
+using IntelliPM.Repositories.RiskCommentRepos;
+using IntelliPM.Repositories.RiskFileRepos;
 using IntelliPM.Repositories.RiskRepos;
+using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -44,23 +56,30 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
+using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Repositories.WorkItemLabelRepos;
 using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Repositories.WorkLogRepos;
+using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Services.AccountServices;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Services.ChatGPTServices;
+using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.DocumentCommentServices;
+using IntelliPM.Services.DocumentExportService;
 using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicCommentServices;
+using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Services.EpicServices;
@@ -74,21 +93,28 @@ using IntelliPM.Services.MeetingLogServices;
 using IntelliPM.Services.MeetingParticipantServices;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Services.MeetingRescheduleRequestServices;
+using IntelliPM.Services.MeetingRescheduleRequestServices;
 using IntelliPM.Services.MeetingServices;
 using IntelliPM.Services.MeetingSummaryServices;
 using IntelliPM.Services.MeetingTranscriptServices;
 using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.NotificationServices;
+using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ProjectRecommendationServices;
+using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.RecipientNotificationServices;
+using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Services.RequirementServices;
+using IntelliPM.Services.RiskCommentServices;
+using IntelliPM.Services.RiskFileServices;
 using IntelliPM.Services.RiskServices;
+using IntelliPM.Services.RiskSolutionServices;
 using IntelliPM.Services.SprintServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.SubtaskFileServices;
@@ -101,35 +127,14 @@ using IntelliPM.Services.TaskServices;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using IntelliPM.Services.WorkLogServices;
+using IntelliPM.Services.WorkLogServices;
 using IntelliPM.Shared.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Azure.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
-using IntelliPM.Services.MeetingRescheduleRequestServices;
-using IntelliPM.Repositories.RiskSolutionRepos;
-using IntelliPM.Repositories.TaskDependencyRepos;
-using IntelliPM.Services.ProjectRecommendationServices;
-using IntelliPM.Services.ChatGPTServices;
-using IntelliPM.Repositories.EpicFileRepos;
-using IntelliPM.Services.EpicFileServices;
-using IntelliPM.Repositories.WorkLogRepos;
-using IntelliPM.Services.WorkLogServices;
-using Hangfire;
-using Hangfire.PostgreSql;
-using IntelliPM.Repositories.ActivityLogRepos;
-using IntelliPM.Services.ActivityLogServices;
-using IntelliPM.Services.RecipientNotificationServices;
-using IntelliPM.Repositories.RecipientNotificationRepos;
-using IntelliPM.Services.NotificationServices;
-using IntelliPM.Services.RiskSolutionServices;
-using IntelliPM.Repositories.RiskFileRepos;
-using IntelliPM.Services.RiskFileServices;
-using IntelliPM.Services.RiskCommentServices;
-using IntelliPM.Repositories.RiskCommentRepos;
-using Microsoft.Azure.SignalR;
 
 
 
@@ -169,6 +174,9 @@ builder.Services.AddScoped<ISubtaskRepository, SubtaskRepository>();
 builder.Services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
 builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+builder.Services.AddScoped<IDocumentExportFileRepository, DocumentExportFileRepository>();
+builder.Services.AddScoped<IDocumentPermissionRepository, DocumentPermissionRepository>();
+
 
 //
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
@@ -194,6 +202,8 @@ builder.Services.AddScoped<IWorkLogRepository, WorkLogRepository>();
 builder.Services.AddScoped<IRecipientNotificationRepository, RecipientNotificationRepository>();
 builder.Services.AddScoped<IRiskFileRepository, RiskFileRepository>();
 builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
+builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
+
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -245,7 +255,11 @@ builder.Services.AddScoped<IRiskFileService, RiskFileService>();
 builder.Services.AddScoped<IRiskCommentService, RiskCommentService>();
 builder.Services.AddScoped<INotificationPushService, SignalRNotificationPushService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-//builder.Services.AddSignalR(); 
+builder.Services.AddScoped<DocumentExportService>();
+builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
+
+
+builder.Services.AddSignalR();
 
 
 
@@ -347,8 +361,8 @@ builder.Services.AddSwaggerGen(option =>
 });
 
 //appsettings
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration["Azure:SignalR:ConnectionString"]!);
+//builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+//builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration["Azure:SignalR:ConnectionString"]!);
 
 
 

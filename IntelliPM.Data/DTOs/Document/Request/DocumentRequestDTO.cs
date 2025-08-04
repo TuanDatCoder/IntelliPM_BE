@@ -17,8 +17,9 @@ namespace IntelliPM.Data.DTOs.Document.Request
         public string? Template { get; set; }
         public string? Content { get; set; }
         public string? FileUrl { get; set; }
-  
+        public string Visibility { get; set; } 
 
-     
+
+
     }
 }

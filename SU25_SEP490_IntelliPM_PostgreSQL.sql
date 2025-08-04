@@ -302,9 +302,59 @@ CREATE TABLE task_file (
 );
 
 -- 18. document
-CREATE TABLE document (
+CREATE TABLE document_comment (
     id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL,
+    document_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+
+  
+    CONSTRAINT fk_document FOREIGN KEY (document_id)
+        REFERENCES public.document (id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_author FOREIGN KEY (author_id)
+        REFERENCES public.account (id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE document_export_file (
+    id SERIAL PRIMARY KEY,
+    document_id INTEGER NOT NULL,
+    exported_file_url VARCHAR(1000) NOT NULL,
+    exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    exported_by INTEGER NOT NULL,
+
+    
+    CONSTRAINT fk_document_export FOREIGN KEY (document_id)
+        REFERENCES public.document(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
+        REFERENCES public.account(id) ON DELETE SET NULL
+);
+
+CREATE TABLE public.meeting_document (
+    meeting_id INTEGER PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    file_url VARCHAR(1024),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    account_id INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_meeting FOREIGN KEY (meeting_id)
+        REFERENCES public.meeting(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_account FOREIGN KEY (account_id)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+
+CREATE TABLE public.document (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL,
     task_id VARCHAR(255),
     epic_id VARCHAR(255),
     subtask_id VARCHAR(255),
@@ -315,20 +365,36 @@ CREATE TABLE document (
     file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     status VARCHAR(30) DEFAULT 'Draft',
-    created_by INT NOT NULL,
-    updated_by INT,
-    approver_id INT,
+    created_by INTEGER NOT NULL,
+    updated_by INTEGER,
+    approver_id INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-    FOREIGN KEY (created_by) REFERENCES account(id),
-    FOREIGN KEY (updated_by) REFERENCES account(id),
-    FOREIGN KEY (approver_id) REFERENCES account(id)
+    visibility VARCHAR(20),
+
+    CONSTRAINT fk_document_project FOREIGN KEY (project_id)
+        REFERENCES public.project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_task FOREIGN KEY (task_id)
+        REFERENCES public.tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_epic FOREIGN KEY (epic_id)
+        REFERENCES public.epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_subtask FOREIGN KEY (subtask_id)
+        REFERENCES public.subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_created_by FOREIGN KEY (created_by)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
+
+
 
 
 -- 19. document_permission
