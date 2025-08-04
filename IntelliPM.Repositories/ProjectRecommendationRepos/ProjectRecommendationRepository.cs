@@ -44,6 +44,17 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
             _context.ProjectRecommendation.Update(recommendation);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<ProjectRecommendation?> GetByIdAsync(int id)
+        {
+            return await _context.ProjectRecommendation.FindAsync(id);
+        }
+
+        public async Task Delete(ProjectRecommendation recommendation)
+        {
+            _context.ProjectRecommendation.Remove(recommendation);
+            await _context.SaveChangesAsync();
+        }
     }
 
 }
