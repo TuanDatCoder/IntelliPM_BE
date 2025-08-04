@@ -33,6 +33,13 @@ namespace IntelliPM.API.Controllers
                 Data = result
             });
         }
-      
+
+        [HttpGet("project-status")]
+        public async Task<IActionResult> GetProjectStatusReports()
+        {
+            var result = await _adminService.GetProjectStatusReportsAsync();
+            return Ok(result);
+        }
+
     }
 }
