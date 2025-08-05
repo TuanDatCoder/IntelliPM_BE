@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
+using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 
 namespace IntelliPM.Services.DocumentServices
 {
@@ -9,7 +10,7 @@ namespace IntelliPM.Services.DocumentServices
 
     public interface IDocumentService
     {
-        Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId);
+        Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId, int userId);
         Task<DocumentResponseDTO> GetDocumentById(int id);
         Task<List<DocumentResponseDTO>> GetAllDocuments();
 
@@ -40,6 +41,14 @@ namespace IntelliPM.Services.DocumentServices
         Task<Dictionary<string, int>> GetStatusCount();
 
         Task<Dictionary<string, int>> GetStatusCountByProject(int projectId);
+
+
+        Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId);
+
+        Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest request);
+
+        Task<string> GetUserPermissionLevel(int documentId, int userId);
+
 
 
 
