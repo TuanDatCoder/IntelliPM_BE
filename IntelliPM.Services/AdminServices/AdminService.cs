@@ -24,10 +24,10 @@ namespace IntelliPM.Services.AdminServices
             _decodeToken = decodeToken;
         }
        
-        public async Task<List<AccountResponseDTO>> GetAllAccountsAsync(int? page, int? size)
+        public async Task<List<AccountResponseDTO>> GetAllAccountsAsync()
         {
-            // Phân quyền đã được xử lý ở [Authorize] trong controller
-            var accounts = await _accountRepository.GetAccounts(page, size);
+           
+            var accounts = await _accountRepository.GetAccounts();
             return _mapper.Map<List<AccountResponseDTO>>(accounts);
         }
 

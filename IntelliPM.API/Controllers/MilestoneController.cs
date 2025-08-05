@@ -9,7 +9,6 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Yêu cầu xác thực cho toàn bộ controller
     public class MilestoneController : ControllerBase
     {
         private readonly IMilestoneService _service;
@@ -105,6 +104,38 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+        [HttpPost("quick")]
+        public async Task<IActionResult> CreateQuick([FromBody] MilestoneQuickRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            try
+            {
+                var result = await _service.CreateQuickMilestone(request);
+                return StatusCode(201, new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 201,
+                    Message = "Milestone created successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating milestone: {ex.Message}"
+                });
+            }
+        }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] MilestoneRequestDTO request)
@@ -225,6 +256,38 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+        [HttpPatch("{key}/sprint")]
+        public async Task<IActionResult> ChangeSprint(string key, [FromBody] int sprintId)
+        {
+            try
+            {
+                var updated = await _service.ChangeMilestoneSprint(key, sprintId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Milestone status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating Milestone sprint: {ex.Message}"
                 });
             }
         }

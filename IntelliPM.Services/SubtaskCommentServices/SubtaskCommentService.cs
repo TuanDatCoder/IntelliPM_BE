@@ -3,12 +3,14 @@ using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -30,8 +32,10 @@ namespace IntelliPM.Services.SubtaskCommentServices
         private readonly ILogger<SubtaskCommentService> _logger;
         private readonly IActivityLogService _activityLogService;
         private readonly ITaskRepository _taskRepo;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IEmailService _emailService;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, ILogger<SubtaskCommentService> logger)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, ILogger<SubtaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -41,6 +45,8 @@ namespace IntelliPM.Services.SubtaskCommentServices
             _projectMemberRepo = projectMemberRepo;
             _activityLogService = activityLogService;
             _taskRepo = taskRepo;
+            _accountRepository = accountRepository;
+            _emailService = emailService;
         }
 
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
@@ -100,6 +106,7 @@ namespace IntelliPM.Services.SubtaskCommentServices
                         RecipientNotification = new List<RecipientNotification>()
                     };
 
+                    var subtaskTitle = subtask.Title ?? $"Subtask {subtask.Id}";
                     foreach (var accId in recipients)
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
@@ -107,6 +114,11 @@ namespace IntelliPM.Services.SubtaskCommentServices
                             AccountId = accId,
                             IsRead = false
                         });
+                        //var account = await _accountRepository.GetAccountById(accId);
+                        //if (account != null && !string.IsNullOrEmpty(account.Email))
+                        //{
+                        //    await _emailService.SendSubtaskCommentNotificationEmail(account.Email, account.FullName, entity.SubtaskId, subtaskTitle, request.Content);
+                        //}
                     }
                     await _notificationRepo.Add(notification);
                 }

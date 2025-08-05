@@ -73,5 +73,30 @@ namespace IntelliPM.Repositories.SubtaskRepos
                 .Where(t => t.Status == "IN_PROGRESS")
                 .ToListAsync();
         }
+
+
+
+        public async Task<List<Subtask>> GetByAccountIdAsync(int id)
+        {
+            return await _context.Subtask
+                .Include(s => s.Task)
+                .Include(v => v.Reporter)
+                .Include(e => e.Sprint)
+                .Include(s => s.AssignedByNavigation)
+                .Where(s => s.AssignedBy == id)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<Subtask>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.Subtask
+                .Where(d => _context.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .Select(t => t.Id)
+                .Contains(d.TaskId))
+                .ToListAsync();
+        }
+
     }
 }

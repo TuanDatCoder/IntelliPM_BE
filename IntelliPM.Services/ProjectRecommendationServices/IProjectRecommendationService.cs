@@ -12,5 +12,6 @@ namespace IntelliPM.Services.ProjectRecommendationServices
     {
         Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(string projectKey);
         Task CreateAsync(ProjectRecommendationRequestDTO dto);
+        Task<SimulatedMetricDTO> SimulateProjectMetricsAfterRecommendationsAsync(string projectKey);
     }
 }

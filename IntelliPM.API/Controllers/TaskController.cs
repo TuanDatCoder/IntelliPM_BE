@@ -1,4 +1,4 @@
-﻿using IntelliPM.Data.DTOs;
+﻿ using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
@@ -835,6 +835,43 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+        [HttpGet("by-account-id/{accountId}")]
+        public async Task<IActionResult> GetByAccountId(int accountId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksByAccountIdAsync(accountId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Account ID {accountId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
+
+
 
     }
 }

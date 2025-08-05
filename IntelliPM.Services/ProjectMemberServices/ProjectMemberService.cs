@@ -283,6 +283,17 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<List<ProjectMemberResponseDTO>>(entities);
         }
 
+        public async Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId,int accountId)
+        {
+            var entity = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, projectId);
+
+            if (entity == null)
+                throw new KeyNotFoundException($"No members found for projectId {projectId}.");
+
+            return _mapper.Map<ProjectMemberResponseDTO>(entity);
+        }
+
+
 
 
         public async Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests)

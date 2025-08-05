@@ -59,6 +59,15 @@ namespace IntelliPM.Repositories.RiskRepos
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
+        public async Task<Risk?> GetByKeyAsync(string key)
+        {
+            return await _context.Risk
+                .Include(r => r.Responsible)
+                .Include(r => r.CreatedByNavigation)
+                .Include(r => r.RiskSolution)
+                .FirstOrDefaultAsync(s => s.RiskKey == key);
+        }
+
         public async Task<List<Risk>> GetByProjectIdAsync(int projectId)
         {
             return await _context.Risk

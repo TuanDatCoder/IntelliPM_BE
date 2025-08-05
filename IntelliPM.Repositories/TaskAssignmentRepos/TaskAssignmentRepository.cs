@@ -1,11 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Repositories.TaskAssignmentRepos
 {
@@ -73,7 +68,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         public async Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId)
         {
             return await _context.TaskAssignment
-                .Include(ta => ta.Task) 
+                .Include(ta => ta.Task)
                 .Where(ta => ta.Task.ProjectId == projectId)
                 .ToListAsync();
         }
@@ -85,6 +80,21 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
                .Include(ta => ta.Account)
                .Include(ta => ta.Task)
                .ToListAsync();
+        }
+
+        public async Task<List<TaskAssignment>> GetTasksByAccountIdAsync(int accountId)
+        {
+            return await _context.TaskAssignment
+                .Where(ta => ta.AccountId == accountId)
+                .Include(ta => ta.Task)
+                .OrderByDescending(ta => ta.Task.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<TaskAssignment> GetByTaskAndAccountAsync(string taskId, int accountId)
+        {
+            return await _context.TaskAssignment
+            .FirstOrDefaultAsync(x => x.TaskId == taskId && x.AccountId == accountId);
         }
     }
 }

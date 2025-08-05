@@ -29,5 +29,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId);
 
         Task<ProjectMemberResponseDTO> ChangeProjectMemberStatus(int id, string status);
+
+        Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId, int accountId);
     }
 }

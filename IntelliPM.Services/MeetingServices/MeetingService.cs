@@ -6,6 +6,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.NotificationServices;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -20,13 +21,15 @@ namespace IntelliPM.Services.MeetingServices
         private readonly Su25Sep490IntelliPmContext _context;
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
         public MeetingService(
             IMeetingRepository repo,
             IMeetingParticipantRepository meetingParticipantRepo,
             IMapper mapper,
             Su25Sep490IntelliPmContext context,
-             IEmailService emailService
+             IEmailService emailService,
+             INotificationService notificationService
             )
 
         {
@@ -35,6 +38,7 @@ namespace IntelliPM.Services.MeetingServices
             _mapper = mapper;
             _context = context;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
@@ -137,6 +141,14 @@ namespace IntelliPM.Services.MeetingServices
                     _context.MeetingLog.Add(log);
                     await _context.SaveChangesAsync();
                 }
+
+                await _notificationService.SendMeetingNotification(
+                    dto.ParticipantIds,
+                    meeting.Id,
+                    meeting.MeetingTopic,
+                    dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
+                );
+
 
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
@@ -247,6 +259,15 @@ namespace IntelliPM.Services.MeetingServices
                     _context.MeetingLog.Add(log);
                     await _context.SaveChangesAsync();
                 }
+                // Gửi notification tới tất cả participant được mời vào họp
+                await _notificationService.SendMeetingNotification(
+                    dto.ParticipantIds,
+                    meeting.Id,
+                    meeting.MeetingTopic,
+                    dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
+                );
+
+
 
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
@@ -332,29 +353,6 @@ namespace IntelliPM.Services.MeetingServices
             }
         }
 
-        //public async Task CancelMeeting(int id)
-        //{
-        //    try
-        //    {
-        //        var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
-        //        meeting.Status = "CANCELLED";
-
-        //        // Xóa tất cả participant liên quan
-        //        var participants = await _context.MeetingParticipant
-        //            .Where(mp => mp.MeetingId == id)
-        //            .ToListAsync();
-
-        //        _context.MeetingParticipant.RemoveRange(participants);
-
-        //        await _repo.UpdateAsync(meeting);
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error in CancelMeeting: " + ex.Message);
-        //        throw new Exception("An error occurred while cancelling the meeting.");
-        //    }
-        //}
         public async Task CancelMeeting(int id)
         {
             try
@@ -366,6 +364,7 @@ namespace IntelliPM.Services.MeetingServices
                 var participants = await _context.MeetingParticipant
                     .Where(mp => mp.MeetingId == id)
                     .ToListAsync();
+
 
                 // Gửi thông báo email hủy cuộc họp đến từng participant
                 foreach (var participant in participants)
@@ -418,6 +417,7 @@ namespace IntelliPM.Services.MeetingServices
         }
 
 
+
         public async Task<List<MeetingResponseDTO>> GetManagedMeetingsByAccount(int accountId)
         {
             // Lấy các MeetingId mà account này đã tạo (Action = "CREATE_MEETING")
@@ -435,33 +435,32 @@ namespace IntelliPM.Services.MeetingServices
             return _mapper.Map<List<MeetingResponseDTO>>(meetings);
         }
 
-        public async Task<List<object>> GetParticipantsWithMeetingConflict(DateTime date, DateTime startTime, DateTime endTime)
+        public async Task<List<int>> CheckMeetingConflictAsync(List<int> participantIds, DateTime date, DateTime startTime, DateTime endTime)
         {
-            var result = await _context.MeetingParticipant
-                .Include(mp => mp.Meeting)
-                .Include(mp => mp.Account)
-                .Where(mp =>
-                    mp.Meeting.MeetingDate.Date == date.Date &&
-                    mp.Meeting.Status != "CANCELLED" &&
-                    mp.Meeting.StartTime.HasValue &&
-                    mp.Meeting.EndTime.HasValue &&
-                    (
-                        (mp.Meeting.StartTime <= endTime && mp.Meeting.EndTime >= startTime)
-                    )
-                )
-                .Select(mp => new
-                {
-                    AccountId = mp.AccountId,
-                    FullName = mp.Account.FullName,
-                    MeetingDate = mp.Meeting.MeetingDate,
-                    StartTime = mp.Meeting.StartTime,
-                    EndTime = mp.Meeting.EndTime
-                })
-                .Cast<object>()  // Để hợp kiểu trả về object
-                .ToListAsync();
+            var validParticipantStatuses = new[] { "Active", "Present", "Absent" };
+            var conflictingAccountIds = new List<int>();
 
-            return result;
+            foreach (var accountId in participantIds)
+            {
+                // Find meetings for this account that overlap the requested time
+                var hasConflict = await _context.MeetingParticipant
+                    .Where(mp => mp.AccountId == accountId && validParticipantStatuses.Contains(mp.Status))
+                    .Join(_context.Meeting,
+                          mp => mp.MeetingId,
+                          m => m.Id,
+                          (mp, m) => m)
+                    .AnyAsync(m =>
+                        m.Status == "ACTIVE" &&
+                        m.MeetingDate.Date == date.Date &&
+                        m.StartTime < endTime &&
+                        m.EndTime > startTime
+                    );
+
+                if (hasConflict)
+                    conflictingAccountIds.Add(accountId);
+            }
+
+            return conflictingAccountIds;
         }
-
     }
 }

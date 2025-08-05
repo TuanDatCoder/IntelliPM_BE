@@ -101,5 +101,15 @@ namespace IntelliPM.Repositories.WorkItemLabelRepos
                 .Where(w => w.TaskId == taskId)
                 .ToListAsync();
         }
+
+        public async Task<bool> IsLabelAlreadyAssignedAsync(int labelId, string? taskId, string? epicId, string? subtaskId)
+        {
+            return await _context.WorkItemLabel.AnyAsync(l =>
+                l.LabelId == labelId &&
+                l.TaskId == taskId &&
+                l.EpicId == epicId &&
+                l.SubtaskId == subtaskId &&
+                !l.IsDeleted);
+        }
     }
 }
