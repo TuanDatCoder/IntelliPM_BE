@@ -546,6 +546,54 @@ namespace IntelliPM.Services.EmailServices
         }
 
 
+        //public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
+        //{
+        //    try
+        //    {
+        //        // Chuyển startTime sang giờ Việt Nam và định dạng AM/PM
+        //        var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); // Windows
+        //        var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
+
+        //        var email = new MimeMessage();
+        //        email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+        //        email.To.Add(MailboxAddress.Parse(toEmail));
+        //        email.Subject = $"[IntelliPM] Invitation: {meetingTopic}";
+
+        //        email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+        //        {
+        //            Text = $@"
+        //        <h2>Hi {fullName},</h2>
+        //        <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
+        //        <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
+        //        <p>Please confirm your attendance.</p>
+        //        <br/>
+        //        <p>IntelliPM Team</p>"
+        //        };
+
+        //        // Log chi tiết email
+        //        Console.WriteLine("=== Email Sent ===");
+        //        Console.WriteLine($"To: {toEmail}");
+        //        Console.WriteLine($"Subject: {email.Subject}");
+        //        Console.WriteLine("Body:");
+        //        Console.WriteLine(email.Body.ToString());
+        //        Console.WriteLine("==================");
+
+        //        using var smtp = new SmtpClient();
+        //        await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+        //        await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+        //        await smtp.SendAsync(email);
+        //        await smtp.DisconnectAsync(true);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[EmailError] Failed to send invitation to {toEmail}: {ex.Message}");
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
+        //        }
+        //    }
+        //}
+
         public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -555,19 +603,43 @@ namespace IntelliPM.Services.EmailServices
                 var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
 
                 var email = new MimeMessage();
-                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                // Tùy chỉnh phần "From" để hiển thị tên đẹp hơn
+                email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"])); // Tên + email người gửi
+
                 email.To.Add(MailboxAddress.Parse(toEmail));
                 email.Subject = $"[IntelliPM] Invitation: {meetingTopic}";
 
                 email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
                 {
                     Text = $@"
-                <h2>Hi {fullName},</h2>
-                <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
-                <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
-                <p>Please confirm your attendance.</p>
-                <br/>
-                <p>IntelliPM Team</p>"
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                }}
+                h2 {{
+                    color: #2c3e50;
+                }}
+                p {{
+                    font-size: 14px;
+                }}
+                a {{
+                    color: #2980b9;
+                    text-decoration: none;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>Hi {fullName},</h2>
+            <p>You have been invited to the meeting <b>'{meetingTopic}'</b> scheduled at <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>.</p>
+            <p>Meeting link: <a href='{meetingUrl}'>{meetingUrl}</a></p>
+            <p>Please confirm your attendance.</p>
+            <br/>
+            <p>IntelliPM Team</p>
+        </body>
+        </html>"
                 };
 
                 // Log chi tiết email
@@ -594,6 +666,51 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
+        //public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
+        //{
+        //    try
+        //    {
+        //        var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        //        var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
+
+        //        var email = new MimeMessage();
+        //        email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+        //        email.To.Add(MailboxAddress.Parse(toEmail));
+        //        email.Subject = "📢 Cuộc họp đã bị hủy";
+
+        //        email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+        //        {
+        //            Text = $@"
+        //    <h2>Xin chào {fullName},</h2>
+        //    <p>Buổi họp với tiêu đề <b>'{meetingTopic}'</b> dự kiến diễn ra vào <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b> đã bị <span style='color:red;'><b>hủy bỏ</b></span>.</p>
+        //    <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ lại với ban tổ chức.</p>
+        //    <br/>
+        //    <p>Trân trọng,</p>
+        //    <p><b>IntelliPM Team</b></p>"
+        //        };
+
+        //        Console.WriteLine("=== Email Cancel Sent ===");
+        //        Console.WriteLine($"To: {toEmail}");
+        //        Console.WriteLine($"Subject: {email.Subject}");
+        //        Console.WriteLine("Body:");
+        //        Console.WriteLine(email.Body.ToString());
+        //        Console.WriteLine("=========================");
+
+        //        using var smtp = new SmtpClient();
+        //        await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+        //        await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+        //        await smtp.SendAsync(email);
+        //        await smtp.DisconnectAsync(true);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[EmailError] Failed to send cancellation email to {toEmail}: {ex.Message}");
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
+        //        }
+        //    }
+        //}
         public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -602,22 +719,49 @@ namespace IntelliPM.Services.EmailServices
                 var localStartTime = TimeZoneInfo.ConvertTimeFromUtc(startTime.ToUniversalTime(), vietnamTimeZone);
 
                 var email = new MimeMessage();
-                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                // Cập nhật phần "From" cho trang trọng hơn
+                email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"])); // Tên + Email người gửi
+
                 email.To.Add(MailboxAddress.Parse(toEmail));
-                email.Subject = "📢 Cuộc họp đã bị hủy";
+                email.Subject = "[IntelliPM] Meeting Cancellation Notice";
 
                 email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
                 {
                     Text = $@"
-            <h2>Xin chào {fullName},</h2>
-            <p>Buổi họp với tiêu đề <b>'{meetingTopic}'</b> dự kiến diễn ra vào <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b> đã bị <span style='color:red;'><b>hủy bỏ</b></span>.</p>
-            <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ lại với ban tổ chức.</p>
-            <br/>
-            <p>Trân trọng,</p>
-            <p><b>IntelliPM Team</b></p>"
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        color: #333;
+                    }}
+                    h2 {{
+                        color: #2c3e50;
+                    }}
+                    p {{
+                        font-size: 14px;
+                    }}
+                    span {{
+                        color: red;
+                    }}
+                    a {{
+                        color: #2980b9;
+                        text-decoration: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <h2>Dear {fullName},</h2>
+                <p>We regret to inform you that the meeting titled <b>'{meetingTopic}'</b>, scheduled for <b>{localStartTime:hh:mm tt dd/MM/yyyy}</b>, has been <span><b>canceled</b></span>.</p>
+                <p>If you have any questions or concerns, please feel free to reach out to the organizing team.</p>
+                <br/>
+                <p>Best regards,</p>
+                <p><b>IntelliPM Team</b></p>
+            </body>
+            </html>"
                 };
 
-                Console.WriteLine("=== Email Cancel Sent ===");
+                Console.WriteLine("=== Email Cancellation Sent ===");
                 Console.WriteLine($"To: {toEmail}");
                 Console.WriteLine($"Subject: {email.Subject}");
                 Console.WriteLine("Body:");
@@ -793,128 +937,176 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-        //        public async Task SendDocumentShareEmailMeeting(string toEmail, string documentTitle, string message, string fileUrl)
-        //        {
-        //            var subject = $"📄 Bạn nhận được tài liệu: {documentTitle}";
+        public async Task SendTaskCommentNotificationEmail(string toEmail, string fullName, string taskId, string taskTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in task {taskId}: {taskTitle}";
 
-        //            var body = $@"
-        //<!DOCTYPE html>
-        //<html lang='vi'>
-        //<head>
-        //    <meta charset='UTF-8'>
-        //    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        //    <title>Chia sẻ tài liệu</title>
-        //</head>
-        //<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #f5f5f5;'>
-        //    <table cellpadding='0' cellspacing='0' border='0' width='100%' style='background-color: #f5f5f5; padding: 20px 0;'>
-        //        <tr>
-        //            <td align='center'>
-        //                <table cellpadding='0' cellspacing='0' border='0' width='600' style='max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;'>
-        //                    <!-- Header -->
-        //                    <tr>
-        //                        <td style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 40px; text-align: center;'>
-        //                            <h1 style='color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;'>
-        //                                📄 Tài liệu mới được chia sẻ
-        //                            </h1>
-        //                            <p style='color: #e8f4fd; margin: 8px 0 0 0; font-size: 16px;'>
-        //                                Từ hệ thống IntelliPM
-        //                            </p>
-        //                        </td>
-        //                    </tr>
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on task <b>{taskId}</b>: <b>{taskTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/work-item-detail?taskId={taskId}'>
+            View Task Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
 
-        //                    <!-- Content -->
-        //                    <tr>
-        //                        <td style='padding: 40px;'>
-        //                            <!-- Message -->
-        //                            <div style='margin-bottom: 30px;'>
-        //                                <h2 style='color: #333333; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;'>
-        //                                    Tin nhắn:
-        //                                </h2>
-        //                                <div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;'>
-        //                                    <p style='color: #555555; line-height: 1.6; margin: 0; font-size: 15px;'>
-        //                                        {message}
-        //                                    </p>
-        //                                </div>
-        //                            </div>
+        public async Task SendSubtaskCommentNotificationEmail(string toEmail, string fullName, string subtaskId, string subtaskTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in subtask {subtaskId}: {subtaskTitle}";
 
-        //                            <!-- Document Info -->
-        //                            <div style='margin-bottom: 30px;'>
-        //                                <h2 style='color: #333333; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;'>
-        //                                    Tài liệu:
-        //                                </h2>
-        //                                <div style='background-color: #ffffff; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; position: relative;'>
-        //                                    <div style='display: flex; align-items: center; margin-bottom: 15px;'>
-        //                                        <div style='background-color: #667eea; color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px;'>
-        //                                            📄
-        //                                        </div>
-        //                                        <div>
-        //                                            <h3 style='color: #333333; margin: 0; font-size: 16px; font-weight: 600;'>
-        //                                                {documentTitle}
-        //                                            </h3>
-        //                                            <p style='color: #6c757d; margin: 5px 0 0 0; font-size: 14px;'>
-        //                                                Nhấn vào nút bên dưới để tải xuống
-        //                                            </p>
-        //                                        </div>
-        //                                    </div>
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on subtask <b>{subtaskId}</b>: <b>{subtaskTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/child-work?subtaskId={subtaskId}'>
+            View Subtask Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
 
-        //                                    <!-- Download Button -->
-        //                                    <div style='text-align: center; margin-top: 20px;'>
-        //                                        <a href='{fileUrl}' target='_blank' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 25px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;'>
-        //                                            📥 Tải xuống tài liệu
-        //                                        </a>
-        //                                    </div>
-        //                                </div>
-        //                            </div>
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
 
-        //                            <!-- Tips -->
-        //                            <div style='background-color: #e8f5e8; border: 1px solid #c3e6c3; border-radius: 8px; padding: 15px; margin-bottom: 30px;'>
-        //                                <p style='color: #2d5a2d; margin: 0; font-size: 14px; line-height: 1.5;'>
-        //                                    💡 <strong>Mẹo:</strong> Nếu bạn không thể tải xuống trực tiếp, hãy sao chép liên kết và dán vào trình duyệt của bạn.
-        //                                </p>
-        //                            </div>
-        //                        </td>
-        //                    </tr>
+        public async Task SendEpicCommentNotificationEmail(string toEmail, string fullName, string epicId, string epicTitle, string commentContent)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = $"[IntelliPM] New comment in epic: {epicId}: {epicTitle}";
 
-        //                    <!-- Footer -->
-        //                    <tr>
-        //                        <td style='background-color: #f8f9fa; padding: 30px 40px; text-align: center; border-top: 1px solid #e9ecef;'>
-        //                            <p style='color: #6c757d; margin: 0 0 10px 0; font-size: 14px;'>
-        //                                Trân trọng,<br/>
-        //                                <strong style='color: #333333;'>Đội ngũ IntelliPM</strong>
-        //                            </p>
-        //                            <div style='margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef;'>
-        //                                <p style='color: #6c757d; margin: 0; font-size: 12px; line-height: 1.4;'>
-        //                                    Email này được gửi tự động từ hệ thống IntelliPM<br/>
-        //                                    Vui lòng không trả lời email này
-        //                                </p>
-        //                            </div>
-        //                        </td>
-        //                    </tr>
-        //                </table>
-        //            </td>
-        //        </tr>
-        //    </table>
-        //</body>
-        //</html>";
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = $@"
+        <h3>Hello {fullName},</h3>
+        <p>A new comment was added on epic <b>{epicId}</b>: <b>{epicTitle}</b>.</p>
+        <p>Comment content:</p>
+        <blockquote>{commentContent}</blockquote>
+        <p>
+            👉 <a href='http://localhost:5173/project/epic?epicId={epicId}'>
+            View Epic Detail
+            </a>
+        </p>
+        <br/>
+        <p>IntelliPM Notification System</p>"
+                };
 
-        //            var mimeMessage = new MimeMessage();
-        //            mimeMessage.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
-        //            mimeMessage.To.Add(MailboxAddress.Parse(toEmail));
-        //            mimeMessage.Subject = subject;
 
-        //            var builder = new BodyBuilder
-        //            {
-        //                HtmlBody = body
-        //            };
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailError] Failed to send comment email to {toEmail}: {ex.Message}");
+            }
+        }
 
-        //            mimeMessage.Body = builder.ToMessageBody();
+        public async Task SendTaskAssignmentEmail(string fullName, string userEmail, string taskId, string taskTitle)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned task {taskId}: {taskTitle}";
 
-        //            using var smtp = new SmtpClient();
-        //            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
-        //            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-        //            await smtp.SendAsync(mimeMessage);
-        //            await smtp.DisconnectAsync(true);
-        //        }
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+        <h2>Hi {fullName},</h2>
+        <p>You have been assigned a new task:</p>
+        <ul>
+          <li><b>ID:</b> {taskId}</li>
+          <li><b>Title:</b> {taskTitle}</li>
+        </ul>
+       
+        <p>Please check the system for more details.</p>
+        <br/>
+        <p>Best regards,<br/>IntelliPM Notification System</p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+        public async Task SendSubtaskAssignmentEmail(string fullName, string userEmail, string subtaskId, string subtaskTitle)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned subtask {subtaskId}: {subtaskTitle}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+        <h2>Hi {fullName},</h2>
+        <p>You have been assigned a new subtask:</p>
+        <ul>
+          <li><b>ID:</b> {subtaskId}</li>
+          <li><b>Title:</b> {subtaskTitle}</li>
+        </ul>
+       
+        <p>Please check the system for more details.</p>
+        <br/>
+        <p>Best regards,<br/>IntelliPM Notification System</p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+     
 
         public async Task SendDocumentShareEmailMeeting(
     string toEmail,

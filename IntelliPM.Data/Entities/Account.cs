@@ -69,6 +69,8 @@ public partial class Account
 
     public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestRequester { get; set; } = new List<MeetingRescheduleRequest>();
 
+    public virtual ICollection<MilestoneComment> MilestoneComment { get; set; } = new List<MilestoneComment>();
+
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
 
     public virtual ICollection<Notification> Notification { get; set; } = new List<Notification>();

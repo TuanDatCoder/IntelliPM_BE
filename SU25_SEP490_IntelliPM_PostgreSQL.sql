@@ -150,7 +150,18 @@ CREATE TABLE milestone (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 10. tasks
+-- 10. milestone _comment
+CREATE TABLE milestone_comment (
+    id SERIAL PRIMARY KEY,
+    milestone_id INT NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (milestone_id) REFERENCES milestone(id),
+    FOREIGN KEY (account_id) REFERENCES account(id) 
+);
+
+-- 11. tasks
 CREATE TABLE tasks (
     id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
@@ -186,7 +197,7 @@ CREATE TABLE tasks (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 11. task_assignment
+-- 12. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -200,7 +211,7 @@ CREATE TABLE task_assignment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 12. subtask
+-- 13. subtask
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -243,7 +254,7 @@ ALTER TABLE subtask ADD COLUMN IF NOT EXISTS evaluate VARCHAR(50) NULL;
 
 
 
--- 13. subtask_file
+-- 14. subtask_file
 CREATE TABLE subtask_file (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -254,7 +265,7 @@ CREATE TABLE subtask_file (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 14. subtask_comment
+-- 15. subtask_comment
 CREATE TABLE subtask_comment (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -265,7 +276,7 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 15. task_comment
+-- 16. task_comment
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -277,20 +288,31 @@ CREATE TABLE task_comment (
 );
 
 -- 16. task_dependency
+-- CREATE TABLE task_dependency (
+--     id SERIAL PRIMARY KEY,
+--     milestone_id INT NULL,
+--     task_id VARCHAR(255) NULL,
+--     linked_from VARCHAR(255) NOT NULL,
+--     linked_to VARCHAR(255) NOT NULL,
+--     type VARCHAR(50) NULL,
+--     FOREIGN KEY (milestone_id) REFERENCES milestone(id),
+--     FOREIGN KEY (task_id) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_from) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_to) REFERENCES tasks(id)
+-- );
+
+-- 17. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
-    milestone_id INT NULL,
-    task_id VARCHAR(255) NULL,
-    linked_from VARCHAR(255) NOT NULL,
+    from_type VARCHAR(50) NOT NULL,    
+    linked_from VARCHAR(255) NOT NULL, 
+    to_type VARCHAR(50) NOT NULL,      
     linked_to VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NULL,
-    FOREIGN KEY (milestone_id) REFERENCES milestone(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (linked_from) REFERENCES tasks(id),
-    FOREIGN KEY (linked_to) REFERENCES tasks(id)
+    type VARCHAR(50) NOT NULL         
 );
 
--- 17. task_file
+
+-- 18. task_file
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -301,58 +323,8 @@ CREATE TABLE task_file (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 18. document
-CREATE TABLE document_comment (
-    id SERIAL PRIMARY KEY,
-    document_id INTEGER NOT NULL,
-    author_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE,
-
-  
-    CONSTRAINT fk_document FOREIGN KEY (document_id)
-        REFERENCES public.document (id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_author FOREIGN KEY (author_id)
-        REFERENCES public.account (id) ON DELETE CASCADE
-);
-
-
-CREATE TABLE document_export_file (
-    id SERIAL PRIMARY KEY,
-    document_id INTEGER NOT NULL,
-    exported_file_url VARCHAR(1000) NOT NULL,
-    exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    exported_by INTEGER NOT NULL,
-
-    
-    CONSTRAINT fk_document_export FOREIGN KEY (document_id)
-        REFERENCES public.document(id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
-        REFERENCES public.account(id) ON DELETE SET NULL
-);
-
-CREATE TABLE public.meeting_document (
-    meeting_id INTEGER PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    file_url VARCHAR(1024),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    account_id INTEGER NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_meeting FOREIGN KEY (meeting_id)
-        REFERENCES public.meeting(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-
-    CONSTRAINT fk_account FOREIGN KEY (account_id)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
-);
-
-
-CREATE TABLE public.document (
+-- 19. document
+CREATE TABLE document (
     id SERIAL PRIMARY KEY,
     project_id INTEGER NOT NULL,
     task_id VARCHAR(255),
@@ -394,10 +366,39 @@ CREATE TABLE public.document (
         REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
+CREATE TABLE document_comment (
+    id SERIAL PRIMARY KEY,
+    document_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+
+  
+    CONSTRAINT fk_document FOREIGN KEY (document_id)
+        REFERENCES document (id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_author FOREIGN KEY (author_id)
+        REFERENCES account (id) ON DELETE CASCADE
+);
 
 
+CREATE TABLE document_export_file (
+    id SERIAL PRIMARY KEY,
+    document_id INTEGER NOT NULL,
+    exported_file_url VARCHAR(1000) NOT NULL,
+    exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    exported_by INTEGER NOT NULL,
 
--- 19. document_permission
+    
+    CONSTRAINT fk_document_export FOREIGN KEY (document_id)
+        REFERENCES document(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
+        REFERENCES account(id) ON DELETE SET NULL
+);
+
+-- 20. document_permission
 CREATE TABLE document_permission (
     id SERIAL PRIMARY KEY,
     document_id INT NOT NULL,
@@ -408,7 +409,7 @@ CREATE TABLE document_permission (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 20. project_position
+-- 21. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
     project_member_id INT NOT NULL,
@@ -417,7 +418,7 @@ CREATE TABLE project_position (
     FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 21. notification
+-- 22. notification
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     created_by INT NOT NULL,
@@ -431,7 +432,7 @@ CREATE TABLE notification (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 22. recipient_notification
+-- 23. recipient_notification
 CREATE TABLE recipient_notification (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
@@ -443,7 +444,7 @@ CREATE TABLE recipient_notification (
     FOREIGN KEY (notification_id) REFERENCES notification(id)
 );
 
--- 23. meeting
+-- 24. meeting
 CREATE TABLE meeting (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -458,7 +459,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 24. meeting_document
+-- 25. meeting_document
 CREATE TABLE meeting_document (
     meeting_id INT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -472,7 +473,7 @@ CREATE TABLE meeting_document (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 25. meeting_log
+-- 26. meeting_log
 CREATE TABLE meeting_log (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -483,7 +484,7 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 26. meeting_participant
+-- 27. meeting_participant
 CREATE TABLE meeting_participant (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -496,7 +497,7 @@ CREATE TABLE meeting_participant (
     UNIQUE (meeting_id, account_id)
 );
 
--- 27. meeting_transcript
+-- 28. meeting_transcript
 CREATE TABLE meeting_transcript (
     meeting_id INT PRIMARY KEY,
     transcript_text TEXT NOT NULL,
@@ -504,7 +505,7 @@ CREATE TABLE meeting_transcript (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id)
 );
 
--- 28. meeting_summary
+-- 29. meeting_summary
 CREATE TABLE meeting_summary (
     meeting_transcript_id INT PRIMARY KEY,
     summary_text TEXT NOT NULL,
@@ -512,7 +513,7 @@ CREATE TABLE meeting_summary (
     FOREIGN KEY (meeting_transcript_id) REFERENCES meeting_transcript(meeting_id)
 );
 
--- 29. milestone_feedback
+-- 30. milestone_feedback
 CREATE TABLE milestone_feedback (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -524,7 +525,7 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 30. risk
+-- 31. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     risk_key VARCHAR(20) NOT NULL UNIQUE,
@@ -551,7 +552,7 @@ CREATE TABLE risk (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 31. risk_solution
+-- 32. risk_solution
 CREATE TABLE risk_solution (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -562,7 +563,7 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 32. risk_file
+-- 33. risk_file
 CREATE TABLE risk_file (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -574,7 +575,7 @@ CREATE TABLE risk_file (
     FOREIGN KEY (uploaded_by) REFERENCES account(id)
 );
 
--- 33. risk_comment
+-- 34. risk_comment
 CREATE TABLE risk_comment (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -585,7 +586,7 @@ CREATE TABLE risk_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 34. change_request
+-- 35. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -599,11 +600,11 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 35. project_recommendation
+-- 36. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
+    task_id VARCHAR(255) NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -611,7 +612,7 @@ CREATE TABLE project_recommendation (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 36. label
+-- 37. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -622,7 +623,7 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 37. work_item_label
+-- 38. work_item_label
 CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
@@ -637,7 +638,7 @@ CREATE TABLE work_item_label (
     UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
--- 38. work_log
+-- 39. work_log
 CREATE TABLE work_log (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NULL,     
@@ -650,7 +651,7 @@ CREATE TABLE work_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 39. requirement
+-- 40. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -663,7 +664,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 40. project_metric
+-- 41. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -687,7 +688,7 @@ CREATE TABLE project_metric (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 41. system_configuration
+-- 42. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -703,7 +704,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 42. dynamic_category
+-- 43. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -718,7 +719,7 @@ CREATE TABLE dynamic_category (
     UNIQUE (category_group, name)
 );
 
--- 43. activity_log
+-- 44. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
@@ -738,7 +739,7 @@ CREATE TABLE activity_log (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 44. meeting_reschedule_request
+-- 46. meeting_reschedule_request
 CREATE TABLE meeting_reschedule_request (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -900,15 +901,26 @@ VALUES
     ('PROJD-2', 5, 'Design approved by client'),
     ('PROJE-2', 5, 'Automation tests in progress');
 
+-- -- Insert sample data into task_dependency
+-- INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+-- VALUES 
+--     ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
+--     ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
+--     ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
+--     ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
+--     ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
+--     ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+
 -- Insert sample data into task_dependency
-INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+INSERT INTO task_dependency (from_type, linked_from, to_type, linked_to, type)
 VALUES 
-    ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
-    ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
-    ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
-    ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
-    ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
-    ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+    ('task',     'PROJA-3', 'task',     'PROJA-4', 'FINISH_START'),
+    ('task',     'PROJA-4', 'task',     'PROJB-2', 'FINISH_START'),
+    ('task',     'PROJB-2', 'task',     'PROJC-2', 'START_START'),
+    ('task',     'PROJC-2', 'task',     'PROJD-2', 'FINISH_START'),
+    ('task',     'PROJD-2', 'task',     'PROJA-4', 'START_FINISH'),
+    ('task',     'PROJD-2', 'task',     'PROJE-2', 'FINISH_START');
+
 
 -- Insert sample data into task_file
 INSERT INTO task_file (task_id, title, url_file, status)
@@ -1300,10 +1312,12 @@ VALUES
     ('subtask_priority', 'LOW', 'Low', 'Low priority subtask', 4, NULL, NULL),
     ('subtask_priority', 'LOWEST', 'Lowest', 'Lowest priority subtask', 5, NULL, NULL),
     ('milestone_status', 'PLANNING', 'Planning', 'Milestone is in planning stage', 1, NULL, NULL),
-    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is in progress', 2, NULL, NULL),
-    ('milestone_status', 'COMPLETED', 'Completed', 'Milestone has been completed', 3, NULL, NULL),
-    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 4, NULL, NULL),
-    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone was cancelled', 5, NULL, NULL),
+    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is currently being worked on', 2, NULL, NULL),
+    ('milestone_status', 'AWAITING_REVIEW', 'Awaiting Client Review', 'Milestone completed and pending client approval', 3, NULL, NULL),
+    ('milestone_status', 'APPROVED', 'Approved by Client', 'Milestone has been reviewed and approved by the client', 4, NULL, NULL),
+    ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
+    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL);
     ('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),

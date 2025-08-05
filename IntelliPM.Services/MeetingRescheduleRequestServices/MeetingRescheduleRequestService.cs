@@ -19,14 +19,31 @@ namespace IntelliPM.Services.MeetingRescheduleRequestServices
             _mapper = mapper;
         }
 
+        //public async Task<MeetingRescheduleRequestResponseDTO> CreateAsync(MeetingRescheduleRequestDTO dto)
+        //{
+        //    var entity = _mapper.Map<MeetingRescheduleRequest>(dto);
+        //    entity.CreatedAt = DateTime.UtcNow;
+        //    entity.UpdatedAt = DateTime.UtcNow;
+        //    var saved = await _repo.AddAsync(entity);
+        //    return _mapper.Map<MeetingRescheduleRequestResponseDTO>(saved);
+        //}
+
         public async Task<MeetingRescheduleRequestResponseDTO> CreateAsync(MeetingRescheduleRequestDTO dto)
         {
+            var existing = await _repo.GetPendingByMeetingAndRequesterAsync(dto.MeetingId, dto.RequesterId);
+            if (existing != null)
+            {
+                throw new InvalidOperationException("A pending reschedule request already exists for this meeting and requester.");
+            }
+
             var entity = _mapper.Map<MeetingRescheduleRequest>(dto);
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
+
             var saved = await _repo.AddAsync(entity);
             return _mapper.Map<MeetingRescheduleRequestResponseDTO>(saved);
         }
+
 
         public async Task<MeetingRescheduleRequestResponseDTO> GetByIdAsync(int id)
         {

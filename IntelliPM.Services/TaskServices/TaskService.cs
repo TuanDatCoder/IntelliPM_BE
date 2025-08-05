@@ -13,6 +13,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -55,8 +56,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly ISprintRepository _sprintRepo;
         private readonly IWorkLogService _workLogService;
         private readonly IActivityLogService _activityLogService;
+        private readonly IMilestoneRepository _milestoneRepo;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -73,6 +75,7 @@ namespace IntelliPM.Services.TaskServices
             _workLogService = workLogService;
             _sprintRepo = sprintRepo;
             _activityLogService = activityLogService;
+            _milestoneRepo = milestoneRepo;
         }
       
 
@@ -89,16 +92,81 @@ namespace IntelliPM.Services.TaskServices
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
             var dto = _mapper.Map<TaskResponseDTO>(entity);
-            var dependencies = await _taskDependencyRepo.GetByTaskIdAsync(id);
-            dto.Dependencies = dependencies.Select(d => new TaskDependencyResponseDTO
-            {
-                Id = d.Id,
-                TaskId = d.TaskId,
-                LinkedFrom = d.LinkedFrom,
-                LinkedTo = d.LinkedTo,
-                Type = d.Type
-            }).ToList();
 
+            var isInProgress = entity.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
+            var isDone = entity.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                        }
+                        break;
+                }
+            }
+
+            dto.Warnings = warnings;
             return dto;
         }
 
@@ -200,21 +268,22 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
-            if (request.Dependencies != null)
-            {
-                await _taskDependencyRepo.DeleteByTaskIdAsync(id);
+            //if (request.Dependencies != null)
+            //{
+            //    await _taskDependencyRepo.DeleteByTaskIdAsync(id);
 
-                var newDeps = request.Dependencies.Select(d => new TaskDependency
-                {
-                    TaskId = id,
-                    LinkedFrom = d.LinkedFrom,
-                    LinkedTo = d.LinkedTo,
-                    Type = d.Type
-                }).ToList();
+            //    var newDeps = request.Dependencies.Select(d => new TaskDependency
+            //    {
+            //        FromType = d.FromType,
+            //        LinkedFrom = d.LinkedFrom,
+            //        ToType = d.ToType,
+            //        LinkedTo = d.LinkedTo,
+            //        Type = d.Type
+            //    }).ToList();
 
-                // Lưu lại
-                await _taskDependencyRepo.AddRangeAsync(newDeps);
-            }
+            //    // Lưu lại
+            //    await _taskDependencyRepo.AddRangeAsync(newDeps);
+            //}
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
@@ -275,8 +344,80 @@ namespace IntelliPM.Services.TaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
+            // Bổ sung check trước khi cập nhật trạng thái
+            var dependencies = await _taskDependencyRepo
+                .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
+
+            var warnings = new List<string>();
+
+            foreach (var dep in dependencies)
+            {
+                object? source = null;
+                string? sourceStatus = null;
+
+                switch (dep.FromType)
+                {
+                    case "task":
+                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (task == null) continue;
+                        source = task;
+                        sourceStatus = task.Status;
+                        break;
+
+                    case "subtask":
+                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (subtask == null) continue;
+                        source = subtask;
+                        sourceStatus = subtask.Status;
+                        break;
+
+                    case "milestone":
+                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                        if (milestone == null) continue;
+                        source = milestone;
+                        sourceStatus = milestone.Status;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                switch (dep.Type.ToUpper())
+                {
+                    case "FINISH_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                        }
+                        break;
+
+                    case "START_START":
+                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                        }
+                        break;
+
+                    case "FINISH_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                        }
+                        break;
+
+                    case "START_FINISH":
+                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        {
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                        }
+                        break;
+                }
+            }
+
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            await UpdateTaskProgressAsync(entity);
 
             try
             {
@@ -328,7 +469,37 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to change task status: {ex.Message}", ex);
             }
 
-            return _mapper.Map<TaskResponseDTO>(entity);
+            //return _mapper.Map<TaskResponseDTO>(entity);
+            var result = _mapper.Map<TaskResponseDTO>(entity);
+            result.Warnings = warnings; 
+            return result;
+        }
+
+        private async Task UpdateTaskProgressAsync(Tasks task)
+        {
+            if (task.Status == "DONE")
+            {
+                task.PercentComplete = 100;
+            }
+            else if (task.Status == "TO_DO")
+            {
+                task.PercentComplete = 0;
+            }
+            else if (task.Status == "IN_PROGRESS")
+            {
+                if (task.PlannedHours > 0)
+                {
+                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+                    task.PercentComplete = Math.Min((int)rawProgress, 99);
+                }
+                else
+                {
+                    task.PercentComplete = 0;
+                }
+            }
+
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
         }
 
 
@@ -674,13 +845,46 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
+            var actualHours = entity.ActualHours;
+            entity.RemainingHours = plannedHours - actualHours;
             entity.PlannedHours = plannedHours;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue && member.HourlyRate.HasValue)
+                {
+                    projectMembers.Add(member);
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal totalCost = 0;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+                    var memberAssignedHours = plannedHours * ratio;
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+                }
+
+                entity.PlannedResourceCost = totalCost;
+                entity.PlannedCost = totalCost;
+            }
 
             try
             {
                 await _taskRepo.Update(entity);
+                await UpdateTaskProgressAsync(entity);
             }
             catch (Exception ex)
             {
@@ -696,11 +900,19 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var sprint = await _sprintRepo.GetByIdAsync(sprintId);
-            if (sprint == null)
-                throw new KeyNotFoundException($"Sprint with ID {id} not found.");
+            if(sprintId == 0)
+            {
+                entity.SprintId = null;
+            }
+            else
+            {
+                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+                if (sprint == null)
+                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+                entity.SprintId = sprintId;
+            }
 
-            entity.SprintId = sprintId;
+            
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
@@ -776,15 +988,7 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
-        {
-            foreach (var dto in dtos)
-            {
-                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
-                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
-            }
-
-        }
+     
 
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status)
         {
@@ -800,7 +1004,48 @@ namespace IntelliPM.Services.TaskServices
             return dtos;
         }
 
-        //
+        public async Task<List<TaskBacklogResponseDTO>> GetTasksByAccountIdAsync(int accountId)
+        {
+            try
+            {
+                var account = await _accountRepo.GetAccountById(accountId);
+                if (account == null)
+                    throw new KeyNotFoundException($"Account with ID {accountId} not found.");
+
+                var taskAssignments = await _taskAssignmentRepo.GetTasksByAccountIdAsync(accountId);
+
+                var tasks = taskAssignments
+                    .Where(ta => ta.Task != null)
+                    .Select(ta => ta.Task)
+                    .ToList();
+
+                if (tasks == null || !tasks.Any())
+                {
+                    throw new KeyNotFoundException($"No tasks found for account with ID {accountId}.");
+                }
+
+
+                var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(tasks);
+                await EnrichTaskBacklogResponses(dtos);
+
+                return dtos;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to retrieve tasks for account {accountId}: {ex.Message}", ex);
+            }
+        }
+
+        private async Task EnrichTaskBacklogResponses(List<TaskBacklogResponseDTO> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
+                dto.TaskAssignments = _mapper.Map<List<TaskAssignmentResponseDTO>>(assignments);
+            }
+
+        }
+
     }
 }
 

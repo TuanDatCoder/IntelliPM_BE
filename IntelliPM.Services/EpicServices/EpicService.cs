@@ -19,6 +19,7 @@ using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Services.EpicServices
@@ -450,7 +451,15 @@ namespace IntelliPM.Services.EpicServices
             return result;
         }
 
+        public async Task<List<EpicResponseDTO>> GetEpicByAccountId(int accountId)
+        {
 
+            var account = _accountRepo.GetAccountById(accountId);
+            if (account != null) throw new KeyNotFoundException($"Account with key {accountId} not found.");
+            var entities = await _epicRepo.GetByAccountIdAsync(accountId);
+            //được quyển null
+            return  _mapper.Map<List<EpicResponseDTO>>(entities);
+        }
 
     }
 }

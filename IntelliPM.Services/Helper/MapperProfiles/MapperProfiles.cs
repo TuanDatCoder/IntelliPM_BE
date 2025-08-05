@@ -27,6 +27,8 @@ using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
+using IntelliPM.Data.DTOs.MilestoneComment.Request;
+using IntelliPM.Data.DTOs.MilestoneComment.Response;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
 using IntelliPM.Data.DTOs.Notification.Request;
@@ -126,6 +128,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Requirements, opt => opt.MapFrom(src => src.Requirement))
                 .ForMember(dest => dest.ProjectMembers, opt => opt.MapFrom(src => src.ProjectMember));
 
+            CreateMap<Project, ProjectViewDTO>();
+
             // ProjectMetric
             CreateMap<ProjectMetric, ProjectMetricResponseDTO>();
             CreateMap<ProjectMetricRequestDTO, ProjectMetric>()
@@ -197,7 +201,23 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
                 .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+
+            CreateMap<MilestoneQuickRequestDTO, Milestone>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate));
+
             CreateMap<Milestone, MilestoneResponseDTO>();
+            CreateMap<Milestone, MilestoneDependencyResponseDTO>();
+
+
+            // Milestone Comment
+            CreateMap<MilestoneCommentRequestDTO, MilestoneComment>();
+            CreateMap<MilestoneComment, MilestoneCommentResponseDTO>()
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
 
             // Task
             CreateMap<TaskRequestDTO, Tasks>();
@@ -207,8 +227,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
-                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
-                .ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
+                .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null));
+                //.ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
 
             CreateMap<Tasks, TaskUpdateResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
@@ -247,11 +267,12 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null))
                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null));
 
+            CreateMap<Tasks, TaskSubtaskDependencyResponseDTO>();
 
             // Task Dependency
             CreateMap<TaskDependencyRequestDTO, TaskDependency>();
+            CreateMap<TaskDependencyIdRequestDTO, TaskDependency>();
             CreateMap<TaskDependency, TaskDependencyResponseDTO>();
-
 
             // Requirement
             CreateMap<RequirementRequestDTO, Requirement>()
@@ -333,10 +354,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<SubtaskRequestDTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.PlannedStartDate, opt => opt.MapFrom(src => src.StartDate))
+                .ForMember(dest => dest.PlannedEndDate, opt => opt.MapFrom(src => src.EndDate));
             CreateMap<Subtask, SubtaskResponseDTO>()
                 .ForMember(dest => dest.AssignedByName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
-
+                .ForMember(dest => dest.AssignedByPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null))
+                .ForMember(dest => dest.ReporterPicture, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.Picture : null))
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
             CreateMap<SubtaskRequest1DTO, Subtask>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -356,6 +380,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
             CreateMap<Subtask, SubtaskFullResponseDTO>();
+            CreateMap<Subtask, SubtaskDependencyResponseDTO>();
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
@@ -459,6 +484,13 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AccountId, opt => opt.MapFrom(src => src.AccountId))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.PlannedHours, opt => opt.MapFrom(src => src.PlannedHours));
+
+            CreateMap<TaskAssignment, TaskAssignmentHourDTO>()
+                .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null))
+                .ForMember(dest => dest.AccountUsername, opt => opt.MapFrom(src => src.Account != null ? src.Account.Username : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null));
+
+            CreateMap<TaskAssignmentHourRequestDTO, TaskAssignment>();
 
             // MeetingSummary
             CreateMap<MeetingSummary, MeetingSummaryResponseDTO>();

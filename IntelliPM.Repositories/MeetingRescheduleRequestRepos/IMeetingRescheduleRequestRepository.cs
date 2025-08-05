@@ -13,5 +13,8 @@ namespace IntelliPM.Repositories.MeetingRescheduleRequestRepos
         Task DeleteAsync(MeetingRescheduleRequest request);
         Task<List<MeetingRescheduleRequest>> GetByRequesterIdAsync(int requesterId);
 
+        Task<MeetingRescheduleRequest?> GetPendingByMeetingAndRequesterAsync(int meetingId, int requesterId);
+
+
     }
 }
