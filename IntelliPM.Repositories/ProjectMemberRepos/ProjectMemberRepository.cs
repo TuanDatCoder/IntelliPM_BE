@@ -101,6 +101,13 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .ToListAsync();
         }
 
+
+        public async Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds)
+        {
+            return await _context.Account
+                .Where(a => userIds.Contains(a.Id))
+                .ToListAsync();
+}
         public async Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId)
         {
             var query = await _context.ProjectMember
@@ -128,6 +135,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .ToListAsync();
 
             return query;
+
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Data.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +24,9 @@ namespace IntelliPM.Data.DTOs.Document.Response
         public int? UpdatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string Visibility { get; set; }
+
+
 
 
     }
