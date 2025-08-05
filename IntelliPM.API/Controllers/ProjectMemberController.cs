@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntelliPM.API.Controllers
 {
@@ -340,6 +341,41 @@ namespace IntelliPM.API.Controllers
                     Message = $"Error updating project member status: {ex.Message}"
                 });
             }
+        }
+
+        [HttpGet("members/tasks")]
+        public async Task<IActionResult> GetProjectMembersWithTasks(int projectId)
+        {
+            try
+            {
+                var result = await _service.GetProjectMembersWithTasksAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved project member with tasks successfully",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project member with tasks: {ex.Message}"
+                });
+            }
+
         }
 
 
