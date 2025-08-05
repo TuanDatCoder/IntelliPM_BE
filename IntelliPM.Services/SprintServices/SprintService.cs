@@ -6,9 +6,11 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace IntelliPM.Services.SprintServices
 {
@@ -110,9 +112,187 @@ namespace IntelliPM.Services.SprintServices
                     return $"{latestName} 1";
                 }
             }
-            return $"{projectKey} 1";
+            return $"{projectKey} Sprint 1";
         }
 
+
+
+        public async Task<List<SprintResponseDTO>> CreateSprintAndAddTaskAsync(string projectKey, List<SprintWithTasksDTO> requests)
+        {
+            if (string.IsNullOrWhiteSpace(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.", nameof(projectKey));
+
+            if (requests == null || !requests.Any())
+                throw new ArgumentNullException(nameof(requests), "Request list cannot be null or empty.");
+
+            var projectEntity = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (projectEntity == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+            var projectStart = projectEntity.StartDate?.ToUniversalTime() ?? DateTime.UtcNow;
+            var projectEnd = projectEntity.EndDate?.ToUniversalTime() ?? projectStart.AddMonths(6);
+
+            var createdSprints = new List<SprintResponseDTO>();
+
+            foreach (SprintWithTasksDTO sprint in requests)
+            {
+                // Ensure UTC for sprint dates
+                var startDate = sprint.StartDate.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(sprint.StartDate, DateTimeKind.Utc)
+                    : sprint.StartDate.ToUniversalTime();
+                var endDate = sprint.EndDate.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(sprint.EndDate, DateTimeKind.Utc)
+                    : sprint.EndDate.ToUniversalTime();
+
+                // Validate sprint dates against project timeline
+                if (startDate < projectStart || endDate > projectEnd)
+                {
+                    _logger.LogWarning(
+                        "Invalid sprint dates for '{SprintTitle}': StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}, ProjectTimeline={ProjectStart:yyyy-MM-dd} to {ProjectEnd:yyyy-MM-dd}",
+                        sprint.Title, startDate, endDate, projectStart, projectEnd);
+                    throw new ArgumentException(
+                        $"Invalid sprint dates for '{sprint.Title}': Dates ({startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}) are not within project timeline ({projectStart:yyyy-MM-dd} to {projectEnd:yyyy-MM-dd}).");
+                }
+
+                // Validate sprint dates with CheckSprintDatesAsync
+                var (isValid, message) = await CheckSprintDatesAsync(projectKey, startDate, endDate);
+                if (!isValid)
+                {
+                    _logger.LogWarning("Invalid sprint dates for '{SprintTitle}': {Message}, StartDate={StartDate:yyyy-MM-dd}, EndDate={EndDate:yyyy-MM-dd}",
+                        sprint.Title, message, startDate, endDate);
+                    throw new ArgumentException($"Invalid sprint dates for '{sprint.Title}': {message}");
+                }
+
+                var entity = new Sprint
+                {
+                    ProjectId = projectEntity.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    Name = await GenerateSprintNameAsync(projectEntity.Id, projectEntity.ProjectKey),
+                    Goal = sprint.Title,
+                    Status = "FUTURE",
+                    StartDate = startDate,
+                    EndDate = endDate,
+                };
+
+                try
+                {
+                    await _repo.Add(entity);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Failed to create sprint '{SprintName}' due to database error.", entity.Name);
+                    throw new Exception($"Failed to create sprint '{entity.Name}' due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+                }
+
+                // Add tasks to sprint
+                if (sprint.Tasks != null && sprint.Tasks.Any())
+                {
+                    foreach (SprintTaskDTO task in sprint.Tasks)
+                    {
+                        var taskEntity = await _taskRepo.GetByIdAsync(task.TaskId);
+                        if (taskEntity == null)
+                        {
+                            _logger.LogWarning("Task with ID '{TaskId}' not found for sprint '{SprintName}'.", task.TaskId, entity.Name);
+                            throw new KeyNotFoundException($"Task with ID '{task.TaskId}' not found.");
+                        }
+
+                        taskEntity.UpdatedAt = DateTime.UtcNow;
+                        taskEntity.SprintId = entity.Id;
+                        taskEntity.Priority = task.Priority;
+                        taskEntity.PlannedHours = task.PlannedHours;
+
+                        try
+                        {
+                            await _taskRepo.Update(taskEntity);
+                        }
+                        catch (DbUpdateException ex)
+                        {
+                            _logger.LogError(ex, "Failed to assign task '{TaskId}' to sprint '{SprintName}'.", task.TaskId, entity.Name);
+                            throw new Exception($"Failed to assign task '{task.TaskId}' to sprint '{entity.Name}': {ex.InnerException?.Message ?? ex.Message}", ex);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("No tasks provided for sprint '{SprintName}'.", entity.Name);
+                }
+
+                createdSprints.Add(_mapper.Map<SprintResponseDTO>(entity));
+            }
+
+            return createdSprints;
+        }
+
+        public async Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate)
+        {
+            checkStartDate = checkStartDate.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(checkStartDate, DateTimeKind.Utc)
+                : checkStartDate.ToUniversalTime();
+            checkEndDate = checkEndDate.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(checkEndDate, DateTimeKind.Utc)
+                : checkEndDate.ToUniversalTime();
+
+            if (checkStartDate >= checkEndDate)
+            {
+                _logger.LogWarning("Start date ({StartDate:yyyy-MM-dd}) is not before end date ({EndDate:yyyy-MM-dd}).", checkStartDate, checkEndDate);
+                return (false, $"Start date ({checkStartDate:yyyy-MM-dd}) must be before end date ({checkEndDate:yyyy-MM-dd}).");
+            }
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+            {
+                _logger.LogError("Project with key '{ProjectKey}' not found.", projectKey);
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+            }
+
+            var projectStart = project.StartDate?.ToUniversalTime() ?? DateTime.UtcNow;
+            var projectEnd = project.EndDate?.ToUniversalTime() ?? projectStart.AddMonths(6);
+
+            // Explicitly check project timeline
+            if (checkStartDate < projectStart || checkEndDate > projectEnd)
+            {
+                _logger.LogWarning(
+                    "Sprint dates (Start: {StartDate:yyyy-MM-dd}, End: {EndDate:yyyy-MM-dd}) are not within project timeline (Start: {ProjectStart:yyyy-MM-dd}, End: {ProjectEnd:yyyy-MM-dd}).",
+                    checkStartDate, checkEndDate, projectStart, projectEnd);
+                return (false, $"Sprint dates are not within project timeline (Start: {projectStart:yyyy-MM-dd}, End: {projectEnd:yyyy-MM-dd}).");
+            }
+
+            // Check for overlaps with existing sprints
+            var existingSprints = await _repo.GetByProjectIdDescendingAsync(project.Id);
+            if (existingSprints == null || !existingSprints.Any())
+            {
+                _logger.LogInformation("No existing sprints for project '{ProjectKey}'. Dates are valid.", projectKey);
+                return (true, "Valid date: No existing sprints.");
+            }
+
+            foreach (var sprint in existingSprints)
+            {
+                if (!sprint.StartDate.HasValue || !sprint.EndDate.HasValue)
+                {
+                    _logger.LogWarning("Sprint '{SprintName}' has null dates. Skipping overlap check.", sprint.Name);
+                    continue;
+                }
+
+                var sprintStart = sprint.StartDate.Value.ToUniversalTime();
+                var sprintEnd = sprint.EndDate.Value.ToUniversalTime();
+
+                // Check for overlap
+                if (checkStartDate <= sprintEnd && checkEndDate >= sprintStart)
+                {
+                    _logger.LogWarning(
+                        "Sprint dates (Start: {StartDate:yyyy-MM-dd}, End: {EndDate:yyyy-MM-dd}) overlap with existing sprint '{SprintName}' (Start: {SprintStart:yyyy-MM-dd}, End: {SprintEnd:yyyy-MM-dd}).",
+                        checkStartDate, checkEndDate, sprint.Name, sprintStart, sprintEnd);
+                    return (false, $"Sprint dates overlap with existing sprint '{sprint.Name}' (Start: {sprintStart:yyyy-MM-dd}, End: {sprintEnd:yyyy-MM-dd}).");
+                }
+            }
+
+            _logger.LogInformation("Sprint dates (Start: {StartDate:yyyy-MM-dd}, End: {EndDate:yyyy-MM-dd}) are valid for project '{ProjectKey}'.", checkStartDate, checkEndDate, projectKey);
+            return (true, "Sprint dates are valid.");
+        }
+
+  
+    
 
 
         public async Task<SprintResponseDTO> CreateSprintQuickAsync(SprintQuickRequestDTO request)
@@ -367,7 +547,7 @@ namespace IntelliPM.Services.SprintServices
             return (false, $"Start date must be after end date ({latestSprint.EndDate.Value}).");
         }
 
-
+        
 
         public async Task<bool> IsSprintWithinProject(string projectKey, DateTime checkSprintDate)
         {

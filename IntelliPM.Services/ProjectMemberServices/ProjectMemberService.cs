@@ -442,6 +442,17 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<ProjectMemberResponseDTO>(entity);
         }
 
+        public async Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId)
+        {
+            return await _projectMemberRepo.GetProjectMembersWithTasksAsync(projectId);
+        }
+
+        //public async Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate)
+        //{
+        //    var entity = await _projectMemberRepo.GetByIdAsync(id);
+        //    if (entity == null)
+        //        throw new KeyNotFoundException($"ProjectMember with ID {id} not found.");
+        //}
     }
 }
 

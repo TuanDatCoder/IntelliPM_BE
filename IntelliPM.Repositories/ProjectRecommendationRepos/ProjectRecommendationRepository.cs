@@ -1,4 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -42,6 +44,17 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
         public async Task Update(ProjectRecommendation recommendation)
         {
             _context.ProjectRecommendation.Update(recommendation);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<ProjectRecommendation?> GetByIdAsync(int id)
+        {
+            return await _context.ProjectRecommendation.FindAsync(id);
+        }
+
+        public async Task Delete(ProjectRecommendation recommendation)
+        {
+            _context.ProjectRecommendation.Remove(recommendation);
             await _context.SaveChangesAsync();
         }
     }
