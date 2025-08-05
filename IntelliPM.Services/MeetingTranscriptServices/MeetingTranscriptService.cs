@@ -49,8 +49,9 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             _httpClientFactory = httpClientFactory;
 
             // Lấy API Key từ biến môi trường
-            _openAiApiKey = "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"; // Nếu không có biến môi trường, dùng appsettings.json (để phát triển)
-
+            _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                                    ?? config["OpenAI:ApiKey"]; // Nếu không có biến môi trường, dùng appsettings.json (để phát triển)
+           
             if (string.IsNullOrEmpty(_openAiApiKey))
             {
                 throw new Exception("API Key không được thiết lập.");
