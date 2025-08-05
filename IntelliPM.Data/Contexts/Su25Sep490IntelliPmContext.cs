@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
+using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -35,6 +35,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<DocumentExportFile> DocumentExportFile { get; set; }
 
     public virtual DbSet<DocumentPermission> DocumentPermission { get; set; }
+
+    public virtual DbSet<DocumentRequestMeeting> DocumentRequestMeeting { get; set; }
 
     public virtual DbSet<DynamicCategory> DynamicCategory { get; set; }
 
@@ -136,7 +138,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<WorkLog> WorkLog { get; set; }
 
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -152,7 +153,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
+    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -479,6 +480,52 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.DocumentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_permission_document_id_fkey");
+        });
+
+        modelBuilder.Entity<DocumentRequestMeeting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("document_request_meeting_pkey");
+
+            entity.ToTable("document_request_meeting");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ClientApprovalTime).HasColumnName("client_approval_time");
+            entity.Property(e => e.ClientApproved).HasColumnName("client_approved");
+            entity.Property(e => e.ClientViewed)
+                .HasDefaultValue(false)
+                .HasColumnName("client_viewed");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.FeedbackId).HasColumnName("feedback_id");
+            entity.Property(e => e.FileUrl).HasColumnName("file_url");
+            entity.Property(e => e.ProjectManagerId).HasColumnName("project_manager_id");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.SentToClient)
+                .HasDefaultValue(false)
+                .HasColumnName("sent_to_client");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasColumnName("status");
+            entity.Property(e => e.TeamLeaderId).HasColumnName("team_leader_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Feedback).WithMany(p => p.DocumentRequestMeeting)
+                .HasForeignKey(d => d.FeedbackId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("document_request_meeting_feedback_id_fkey");
+
+            entity.HasOne(d => d.ProjectManager).WithMany(p => p.DocumentRequestMeetingProjectManager)
+                .HasForeignKey(d => d.ProjectManagerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("document_request_meeting_project_manager_id_fkey");
+
+            entity.HasOne(d => d.TeamLeader).WithMany(p => p.DocumentRequestMeetingTeamLeader)
+                .HasForeignKey(d => d.TeamLeaderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("document_request_meeting_team_leader_id_fkey");
         });
 
         modelBuilder.Entity<DynamicCategory>(entity =>

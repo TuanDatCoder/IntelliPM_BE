@@ -250,6 +250,23 @@ namespace IntelliPM.Services.DocumentServices
             return ToResponse(doc);
         }
 
+        public async Task<bool> DeleteDocument(int id, int deletedBy)
+        {
+            var doc = await _repo.GetByIdAsync(id);
+            if (doc == null || !doc.IsActive)
+                throw new Exception("Document not found or already deleted");
+
+            doc.IsActive = false;
+            doc.UpdatedBy = deletedBy;
+            doc.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
+
+            return true;
+        }
+
+
 
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId)

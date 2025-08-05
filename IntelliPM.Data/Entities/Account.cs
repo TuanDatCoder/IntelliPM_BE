@@ -51,6 +51,10 @@ public partial class Account
 
     public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
 
+    public virtual ICollection<DocumentRequestMeeting> DocumentRequestMeetingProjectManager { get; set; } = new List<DocumentRequestMeeting>();
+
+    public virtual ICollection<DocumentRequestMeeting> DocumentRequestMeetingTeamLeader { get; set; } = new List<DocumentRequestMeeting>();
+
     public virtual ICollection<Document> DocumentUpdatedByNavigation { get; set; } = new List<Document>();
 
     public virtual ICollection<Epic> EpicAssignedByNavigation { get; set; } = new List<Epic>();

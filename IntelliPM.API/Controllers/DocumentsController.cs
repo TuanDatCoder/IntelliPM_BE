@@ -72,6 +72,18 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized();
+            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID");
+
+            await _documentService.DeleteDocument(id, userId);
+            return Ok(new { message = "Document deleted successfully" });
+        }
+
+
 
 
         [HttpGet("project/{projectId}")]

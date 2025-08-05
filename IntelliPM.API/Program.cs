@@ -10,6 +10,7 @@ using IntelliPM.Repositories.DocumentExportFileRepos;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
+using IntelliPM.Repositories.DocumentRequestMeetingRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicFileRepos;
@@ -61,6 +62,7 @@ using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DocumentCommentServices;
 using IntelliPM.Services.DocumentExportService;
+using IntelliPM.Services.DocumentRequestMeetingServices;
 using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
@@ -186,7 +188,7 @@ builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
 builder.Services.AddScoped<IMeetingDocumentRepository, MeetingDocumentRepository>();
 builder.Services.AddScoped<IMilestoneCommentRepository, MilestoneCommentRepository>();
 
-
+builder.Services.AddScoped<IDocumentRequestMeetingRepository, DocumentRequestMeetingRepository>();
 builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
 
 
@@ -246,6 +248,7 @@ builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
 builder.Services.AddScoped<DocumentExportService>();
 builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
+builder.Services.AddScoped<IDocumentRequestMeetingService, DocumentRequestMeetingService>();
 
 
 builder.Services.AddSignalR();

@@ -345,25 +345,25 @@ CREATE TABLE document (
     visibility VARCHAR(20),
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
-        REFERENCES public.project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_task FOREIGN KEY (task_id)
-        REFERENCES public.tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_epic FOREIGN KEY (epic_id)
-        REFERENCES public.epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_subtask FOREIGN KEY (subtask_id)
-        REFERENCES public.subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_created_by FOREIGN KEY (created_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 CREATE TABLE document_comment (
@@ -397,6 +397,10 @@ CREATE TABLE document_export_file (
     CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
         REFERENCES account(id) ON DELETE SET NULL
 );
+
+
+
+
 
 -- 20. document_permission
 CREATE TABLE document_permission (
@@ -523,6 +527,26 @@ CREATE TABLE milestone_feedback (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (meeting_id) REFERENCES meeting(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
+);
+
+CREATE TABLE document_request_meeting (
+    id SERIAL PRIMARY KEY,
+    file_url TEXT NOT NULL,
+    team_leader_id INT NOT NULL,
+    project_manager_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    reason TEXT,
+    feedback_id INT NOT NULL,
+    sent_to_client BOOLEAN DEFAULT FALSE,
+    client_viewed BOOLEAN DEFAULT FALSE,
+    client_approved BOOLEAN,
+    client_approval_time TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (team_leader_id) REFERENCES account(id),
+    FOREIGN KEY (project_manager_id) REFERENCES account(id),
+    FOREIGN KEY (feedback_id) REFERENCES milestone_feedback(id)
 );
 
 -- 31. risk
@@ -1317,7 +1341,7 @@ VALUES
     ('milestone_status', 'APPROVED', 'Approved by Client', 'Milestone has been reviewed and approved by the client', 4, NULL, NULL),
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
-    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL);
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
     ('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),

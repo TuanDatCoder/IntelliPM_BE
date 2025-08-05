@@ -18,6 +18,9 @@ namespace IntelliPM.Services.DocumentServices
         Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId);
 
         Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId);
+
+        Task<bool> DeleteDocument(int id, int deletedBy);
+
         Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId);
 
         Task<string> SummarizeContent(int documentId);
