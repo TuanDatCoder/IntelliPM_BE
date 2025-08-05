@@ -24,6 +24,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public DateTime? PlannedEndDate { get; set; }
         public DateTime? ActualStartDate { get; set; }
         public DateTime? ActualEndDate { get; set; }
+        public decimal? PlannedHours { get; set; }
         public string? Duration { get; set; }
         public string? Priority { get; set; }
         public string? Status { get; set; }

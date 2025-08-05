@@ -84,5 +84,45 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("by-project-key")]
+        public async Task<IActionResult> GetByProjectKey([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _service.GetByProjectKeyAsync(projectKey);
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    data = result,
+                    message = "Success"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _service.DeleteByIdAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
     }
 }

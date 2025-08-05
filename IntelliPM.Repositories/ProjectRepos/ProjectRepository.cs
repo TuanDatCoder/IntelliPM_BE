@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.Admin;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -144,6 +145,107 @@ namespace IntelliPM.Repositories.ProjectRepos
                 .Concat(milestoneDtos)
                 .Concat(subtaskDtos)
                 .ToList();
+        }
+
+        //public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync()
+        //{
+        //    var reports = await _context.Project
+        //        .Include(p => p.Sprint)
+        //        .Include(p => p.Milestone)
+        //        .Include(p => p.Tasks)
+        //            .ThenInclude(t => t.Subtask)
+        //        .Include(p => p.ProjectMember)
+        //            .ThenInclude(pm => pm.Account)
+        //        .Select(project => new ProjectStatusReportDto
+        //        {
+        //            ProjectId = project.Id,
+        //            ProjectName = project.Name,
+        //            ProjectKey = project.ProjectKey,
+        //            ProjectManager = project.ProjectMember
+        //                .Where(pm => pm.Account.Position == "PROJECT_MANAGER")
+        //                .Select(pm => pm.Account.FullName)
+        //                .FirstOrDefault(),
+
+        //            Budget = project.Budget,
+        //            ActualCost = project.Tasks.Sum(t => t.ActualCost) ?? 0,
+
+        //            TotalTasks = project.Tasks.Count(),
+        //            CompletedTasks = project.Tasks.Count(t => t.Status == "DONE"),
+        //            Progress = project.Tasks.Average(t => t.PercentComplete ?? 0),
+
+        //            SPI = CalculateSPI(project.Tasks),
+        //            CPI = CalculateCPI(project.Tasks),
+
+        //            OverdueTasks = project.Tasks.Count(t =>
+        //                t.PlannedEndDate < DateTime.UtcNow &&
+        //                (t.Status != "DONE")),
+
+        //            Milestones = project.Milestone.Select(m => new MilestoneDto
+        //            {
+        //                Name = m.Name,
+        //                Status = m.Status,
+        //                StartDate = m.StartDate,
+        //                EndDate = m.EndDate
+        //            }).ToList()
+        //        })
+        //        .ToListAsync();
+
+        //    return reports;
+        //}
+
+        public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync()
+        {
+            var projects = await _context.Project
+                .Include(p => p.Sprint)
+                .Include(p => p.Milestone)
+                .Include(p => p.Tasks)
+                    .ThenInclude(t => t.Subtask)
+                .Include(p => p.ProjectMember)
+                    .ThenInclude(pm => pm.Account)
+                .Include(p => p.ProjectMetric)
+                .ToListAsync();
+
+            var reports = projects.Select(project =>
+            {
+                var systemMetric = project.ProjectMetric
+                    .FirstOrDefault(m => m.CalculatedBy == "System");
+
+                return new ProjectStatusReportDto
+                {
+                    ProjectId = project.Id,
+                    ProjectName = project.Name,
+                    ProjectKey = project.ProjectKey,
+                    ProjectManager = project.ProjectMember
+                        .Where(pm => pm.Account.Position == "PROJECT_MANAGER")
+                        .Select(pm => pm.Account.FullName)
+                        .FirstOrDefault(),
+
+                    Budget = project.Budget,
+                    ActualCost = project.Tasks.Sum(t => t.ActualCost) ?? 0,
+
+                    TotalTasks = project.Tasks.Count(),
+                    CompletedTasks = project.Tasks.Count(t => t.Status == "DONE"),
+                    Progress = project.Tasks.Any() ? project.Tasks.Average(t => t.PercentComplete ?? 0) : 0,
+
+                    SPI = systemMetric?.SchedulePerformanceIndex ?? 0,
+                    CPI = systemMetric?.CostPerformanceIndex ?? 0,
+
+                    OverdueTasks = project.Tasks.Count(t =>
+                        t.PlannedEndDate < DateTime.UtcNow &&
+                        t.Status != "DONE"),
+
+                    Milestones = project.Milestone.Select(m => new MilestoneDto
+                    {
+                        Name = m.Name,
+                        Status = m.Status,
+                        StartDate = m.StartDate,
+                        EndDate = m.EndDate
+                    }).ToList()
+                };
+            }).ToList();
+
+
+            return reports;
         }
 
     }

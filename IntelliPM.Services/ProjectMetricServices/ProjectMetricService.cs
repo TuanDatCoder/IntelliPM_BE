@@ -695,7 +695,16 @@ namespace IntelliPM.Services.ProjectMetricServices
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
-            var entity = await _repo.GetLatestByProjectIdAsync(project.Id);
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+
+            return _mapper.Map<NewProjectMetricResponseDTO>(entity);
+        }
+
+        public async Task<NewProjectMetricResponseDTO> GetProjectForecastByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "AI");
 
             return _mapper.Map<NewProjectMetricResponseDTO>(entity);
         }

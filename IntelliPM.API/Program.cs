@@ -56,6 +56,7 @@ using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
+using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
@@ -246,12 +247,16 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMeetingDocumentService, MeetingDocumentService>();
 builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
+
 builder.Services.AddScoped<DocumentExportService>();
 builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
 builder.Services.AddScoped<IDocumentRequestMeetingService, DocumentRequestMeetingService>();
 
 
 builder.Services.AddSignalR();
+
+
+builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
 
 
 

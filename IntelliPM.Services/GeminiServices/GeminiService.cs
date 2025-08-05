@@ -861,10 +861,66 @@ All output must be written in English.
         if (string.IsNullOrWhiteSpace(changesDescription))
             throw new Exception("No approved suggested changes found to simulate.");
 
+        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
+        {
+            t.Id,
+            t.Title,
+            t.Description,
+            t.PlannedStartDate,
+            t.PlannedEndDate,
+            t.ActualStartDate,
+            t.ActualEndDate,
+            t.PercentComplete,
+            t.PlannedHours,
+            t.ActualHours,
+            t.PlannedCost,
+            t.ActualCost,
+            t.Status,
+            t.Priority
+        }), Formatting.Indented);
+
+        var subtaskList = JsonConvert.SerializeObject(subtasks.Select(st => new
+        {
+            st.Id,
+            st.Title,
+            st.Description,
+            st.TaskId,
+            st.Status,
+            st.PlannedStartDate,
+            st.PlannedEndDate,
+            st.ActualStartDate,
+            st.ActualEndDate,
+            st.PercentComplete,
+            st.PlannedHours,
+            st.ActualHours,
+        }), Formatting.Indented);
+
+        var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
+        {
+            s.Id,
+            s.Name,
+            s.Goal,
+            s.StartDate,
+            s.EndDate,
+            s.Status
+        }), Formatting.Indented);
+
+        var milestoneList = JsonConvert.SerializeObject(milestones.Select(m => new
+        {
+            m.Id,
+            m.Name,
+            m.Description,
+            m.StartDate,
+            m.EndDate,
+            m.Status
+        }), Formatting.Indented);
+
         var prompt = $@"
 You are a project control analyst. Your task is to estimate the updated key performance indicators (KPIs) of a software project after applying a set of approved changes. 
 
 Current project metrics:
+- BAC (Budget at Completion) = {currentMetric.BudgetAtCompletion}
+- DAC (Duration at Completion) = {currentMetric.DurationAtCompletion}
 - Planned Value (PV): {currentMetric.PlannedValue}
 - Earned Value (EV): {currentMetric.EarnedValue}
 - Actual Cost (AC): {currentMetric.ActualCost}
@@ -877,19 +933,29 @@ Changes Approved by Management:
 Please simulate the new metrics **after** applying the above changes. Return the result in the following JSON format:
 
 {{
-  ""SchedulePerformanceIndex"": number,    // new SPI
-  ""CostPerformanceIndex"": number,        // new CPI
-  ""EstimateAtCompletion"": number,        // new EAC
-  ""EstimateToComplete"": number,          // new ETC
+  ""SchedulePerformanceIndex"": number,    // new SPI (estimate)
+  ""CostPerformanceIndex"": number,        // new CPI (estimate)
+  ""EstimateAtCompletion"": number,        // new EAC = BAC / CPI
+  ""EstimateToComplete"": number,          // new ETC = EAC - AC
   ""VarianceAtCompletion"": number,        // new VAC = BAC - EAC
   ""EstimatedDurationAtCompletion"": number // new EDAC = DAC / SPI
 }}
 
 Rules:
-- BAC (Budget at Completion) = {currentMetric.BudgetAtCompletion}
-- DAC (Duration at Completion) = {currentMetric.DurationAtCompletion}
 - Use the standard EVM formulas to simulate realistic values
 - Output should be in JSON only. Do not include explanations or markdown.
+
+Task List:
+{taskList}
+
+Subtasks:
+{subtaskList}
+
+Sprint List:
+{sprintList}
+
+Milestone List:
+{milestoneList}
 
 ";
 

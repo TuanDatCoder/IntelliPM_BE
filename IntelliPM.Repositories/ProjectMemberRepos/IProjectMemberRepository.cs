@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,9 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
 
         Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds);
 
+
+
+        Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId);
 
 
 
