@@ -38,9 +38,6 @@ namespace IntelliPM.Data.DTOs.Project.Response
 
 
 
-    //===========================================
-
-
     public class EpicDTO
     {
         public string Type { get; set; }

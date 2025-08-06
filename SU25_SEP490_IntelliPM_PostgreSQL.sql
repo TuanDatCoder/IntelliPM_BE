@@ -232,7 +232,9 @@ CREATE TABLE subtask (
     FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id),
 	FOREIGN KEY (reporter_id) REFERENCES account(id)
+
 );
+
 
 -- Thêm các trường còn thiếu cho bảng subtask (tất cả đều cho phép NULL)
 ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_start_date TIMESTAMPTZ NULL;
@@ -275,6 +277,7 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
+
 
 -- 16. task_comment
 CREATE TABLE task_comment (
@@ -723,7 +726,9 @@ CREATE TABLE dynamic_category (
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
+
 	epic_id VARCHAR(255) NULL,
+
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
@@ -737,6 +742,9 @@ CREATE TABLE activity_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
+
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
 	FOREIGN KEY (epic_id) REFERENCES epic(id),
 );
@@ -788,7 +796,9 @@ CREATE TABLE ai_response_evaluation (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ai_response_id) REFERENCES ai_response_history(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL
+
 );
+
 
 
 --------------------------------------------------------------
@@ -1299,6 +1309,7 @@ VALUES
     ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_story_dwl198.svg', NULL),
     ('task_type', 'TASK', 'Task', 'General task', 2, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_task_pasp70.svg', NULL),
     ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_bug_qqjqkj.svg', NULL),
+
     ('document_type', 'PLAN', 'Plan', 'Project plan', 1, NULL, NULL),
     ('document_type', 'BRIEF', 'Brief', 'Project brief', 2, NULL, NULL),
     ('document_type', 'REPORT', 'Report', 'Project report', 3, NULL, NULL),

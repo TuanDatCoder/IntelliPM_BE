@@ -246,6 +246,7 @@ namespace IntelliPM.Services.EpicServices
         }
 
 
+
         //public async Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests)
         //{
         //    var decode = _decodeToken.Decode(token);
@@ -479,6 +480,7 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
+
         public async Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request)
         {
 
@@ -694,10 +696,6 @@ namespace IntelliPM.Services.EpicServices
             //được quyển null
             return  _mapper.Map<List<EpicResponseDTO>>(entities);
         }
-
-
-
-
 
     }
 }

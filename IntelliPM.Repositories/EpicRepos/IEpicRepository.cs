@@ -19,9 +19,11 @@ namespace IntelliPM.Repositories.EpicRepos
         Task Update(Epic epic);
         Task Delete(Epic epic);
         Task<List<Epic>> GetByAccountIdAsync(int accountId);
+
         Task<IDbContextTransaction> BeginTransactionAsync();
         Task SaveChangesAsync();
         Task AddRangeAsync(List<Epic> epics);
         Su25Sep490IntelliPmContext GetContext();
+
     }
 }

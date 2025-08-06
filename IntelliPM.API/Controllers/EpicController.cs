@@ -399,6 +399,7 @@ namespace IntelliPM.API.Controllers
         }
 
 
+
         [HttpPost("projects/{projectId}/epics/batch")]
         public async Task<IActionResult> CreateEpicsWithTasksAndAssignments(int projectId, [FromBody] List<EpicWithTaskRequestDTO> requests, [FromHeader(Name = "Authorization")] string token)
         {
@@ -428,6 +429,7 @@ namespace IntelliPM.API.Controllers
                 return StatusCode(500, new { isSuccess = false, code = 500, message = $"Failed to create epics: {ex.Message}" });
             }
         }
+
 
     }
 }

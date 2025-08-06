@@ -1,4 +1,4 @@
-﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
