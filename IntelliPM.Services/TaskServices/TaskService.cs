@@ -422,9 +422,12 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                var project = await _taskRepo.GetByIdAsync(entity.Id);
+                var projectId = project?.ProjectId ?? throw new Exception("ProjectId is null");
                 await _activityLogService.LogAsync(new ActivityLog
                 {
-                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    //ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    ProjectId = projectId,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
                     RelatedEntityType = "Task",
@@ -487,9 +490,9 @@ namespace IntelliPM.Services.TaskServices
             }
             else if (task.Status == "IN_PROGRESS")
             {
-                if (task.PlannedHours > 0)
+                if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
                 {
-                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
                     task.PercentComplete = Math.Min((int)rawProgress, 99);
                 }
                 else
