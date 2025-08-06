@@ -41,7 +41,6 @@ public partial class Document
 
     public string? Visibility { get; set; }
 
-
     public virtual Account? Approver { get; set; }
 
     public virtual Account CreatedByNavigation { get; set; } = null!;

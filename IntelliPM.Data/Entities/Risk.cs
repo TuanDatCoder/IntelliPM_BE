@@ -12,7 +12,6 @@ public partial class Risk
     public int? ResponsibleId { get; set; }
 
     public int CreatedBy { get; set; }
-    public int? ResponsibleId { get; set; }
 
     public int ProjectId { get; set; }
 
@@ -53,7 +52,6 @@ public partial class Risk
     public virtual ICollection<RiskComment> RiskComment { get; set; } = new List<RiskComment>();
 
     public virtual ICollection<RiskFile> RiskFile { get; set; } = new List<RiskFile>();
-
 
     public virtual ICollection<RiskSolution> RiskSolution { get; set; } = new List<RiskSolution>();
 

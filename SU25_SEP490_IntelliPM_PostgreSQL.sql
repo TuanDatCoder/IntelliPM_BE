@@ -726,9 +726,7 @@ CREATE TABLE dynamic_category (
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
-
 	epic_id VARCHAR(255) NULL,
-
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
@@ -742,11 +740,8 @@ CREATE TABLE activity_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-
-    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
-
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-	FOREIGN KEY (epic_id) REFERENCES epic(id),
+	FOREIGN KEY (epic_id) REFERENCES epic(id)
 );
 
 -- 46. meeting_reschedule_request
@@ -1309,7 +1304,6 @@ VALUES
     ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_story_dwl198.svg', NULL),
     ('task_type', 'TASK', 'Task', 'General task', 2, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_task_pasp70.svg', NULL),
     ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_bug_qqjqkj.svg', NULL),
-
     ('document_type', 'PLAN', 'Plan', 'Project plan', 1, NULL, NULL),
     ('document_type', 'BRIEF', 'Brief', 'Project brief', 2, NULL, NULL),
     ('document_type', 'REPORT', 'Report', 'Project report', 3, NULL, NULL),
@@ -1379,11 +1373,11 @@ VALUES
     ('milestone_status', 'APPROVED', 'Approved by Client', 'Milestone has been reviewed and approved by the client', 4, NULL, NULL),
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
-    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL);
-    ('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
-    ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
-    ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
-    ('task-dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
+     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
+    ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
+    ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
     ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),

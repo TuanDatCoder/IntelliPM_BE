@@ -6,6 +6,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -34,8 +35,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
         private readonly ITaskRepository _taskRepo;
         private readonly IAccountRepository _accountRepository;
         private readonly IEmailService _emailService;
+        private readonly IProjectRepository _projectRepo;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, ILogger<SubtaskCommentService> logger)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -47,6 +49,7 @@ namespace IntelliPM.Services.SubtaskCommentServices
             _taskRepo = taskRepo;
             _accountRepository = accountRepository;
             _emailService = emailService;
+            _projectRepo = projectRepo;
         }
 
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
@@ -70,6 +73,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     throw new Exception($"Task with ID {request.SubtaskId} not found.");
 
                 var projectId = subtask.Task.ProjectId;
+                var project = await _projectRepo.GetByIdAsync(projectId);
+                if (project == null)
+                    throw new Exception($"Project with ID {projectId} not found");
 
                 await _activityLogService.LogAsync(new ActivityLog
                 {
@@ -98,7 +104,7 @@ namespace IntelliPM.Services.SubtaskCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Comment in subtask {request.SubtaskId}: {request.Content}",
+                        Message = $"Comment in project {project.ProjectKey} - subtask {request.SubtaskId}: {request.Content}",
                         RelatedEntityType = "Subtask",
                         RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,

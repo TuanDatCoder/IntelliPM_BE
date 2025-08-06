@@ -566,7 +566,7 @@ namespace IntelliPM.Services.SubtaskServices
             }
             else if (subtask.Status == "IN_PROGRESS")
             {
-                if (subtask.PlannedHours > 0)
+                if (subtask.PlannedHours.HasValue && subtask.PlannedHours > 0)
                 {
                     var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
                     subtask.PercentComplete = Math.Min((int)rawProgress, 99);
