@@ -5,6 +5,7 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Repositories.AiResponseEvaluationRepos;
 using IntelliPM.Repositories.AiResponseHistoryRepos;
 using IntelliPM.Repositories.DocumentCommentRepos;
 using IntelliPM.Repositories.DocumentExportFileRepos;
@@ -56,6 +57,7 @@ using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
+using IntelliPM.Services.AiResponseEvaluationServices;
 using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
@@ -187,7 +189,7 @@ builder.Services.AddScoped<IMeetingDocumentRepository, MeetingDocumentRepository
 builder.Services.AddScoped<IMilestoneCommentRepository, MilestoneCommentRepository>();
 builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
 builder.Services.AddScoped<IAiResponseHistoryRepository, AiResponseHistoryRepository>();
-
+builder.Services.AddScoped<IAiResponseEvaluationRepository, AiResponseEvaluationRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -245,10 +247,8 @@ builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
 builder.Services.AddScoped<DocumentExportService>();
 builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
 builder.Services.AddScoped<IAiResponseHistoryService, AiResponseHistoryService>();
-
+builder.Services.AddScoped<IAiResponseEvaluationService, AiResponseEvaluationService>();
 builder.Services.AddSignalR();
-
-
 builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
 
 
