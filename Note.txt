@@ -1,0 +1,111 @@
+Gmail: intelliPM@team
+Các tài khoản trong DB
+{
+  "username": "teammember+viết tắt",
+  "password": "Test@123"
+}
+
+
+---------------------------------------------------------------------------------------
+1/ dotnet tool install --global dotnet-ef
+
+2/
+
+dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force --no-pluralize
+
+
+dotnet ef dbcontext scaffold "Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir "Entities" --context-dir "Contexts" --force --no-pluralize
+
+
+--------------------------------------------------------------------------------------
+3/ DBcontext 
+ public static string GetConnectionString(string connectionStringName)
+ {
+     var config = new ConfigurationBuilder()
+         .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+         .AddJsonFile("appsettings.json")
+         .Build();
+
+     string connectionString = config.GetConnectionString(connectionStringName);
+     return connectionString;
+ }
+ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+     => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
+
+
+----------------------------------------------------------------------------------------------------
+4/
+appsettings.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;"
+  }
+}
+
+-----------------------------------------------------------------------------------------------------
+5/ Cách commit
+- git status
+- git add .
+- git commit -m "CRUD 2 tables system_configuration, dynamic_category and change database date field to    	TIMESTAMPTZ"
+- git push origin main
+
+- Làm lại nếu mà có lỗi git rm -r --cached .vs
+
+
+-------------------------------------------------------------------------------------------------------
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+					****** Các bước làm API ******
+Data
+Mô tả: Định nghĩa schema (database table) và entity (C# class).
+
+Bước 1:
+
+Tạo bảng trong DB (VD: CREATE TABLE project (...)).
+
+Tạo entity class (VD: Project.cs) ánh xạ với bảng.
+
+Repository
+Mô tả: Tầng giao tiếp với DB, chứa logic truy vấn.
+
+Bước 2:
+
+Tạo interface (VD: IProjectRepository).
+
+Triển khai class (VD: ProjectRepository) với các phương thức CRUD (GetAll, GetById, Add, Update, Delete) dùng EF Core.
+
+Services
+Mô tả: Tầng logic nghiệp vụ, xử lý dữ liệu từ repository và trả về DTO.
+
+Bước 3:
+
+Tạo DTOs (ProjectRequestDTO, ProjectResponseDTO).
+
+Tạo interface (VD: IProjectService).
+
+Triển khai class (VD: ProjectService) gọi repository, ánh xạ DTO bằng AutoMapper, xử lý lỗi.
+
+Controller
+Mô tả: Tầng API, nhận request và trả response.
+
+Bước 4:
+
+Tạo controller (VD: ProjectController).
+
+Định nghĩa các endpoint ([HttpGet], [HttpPost], v.v.) gọi service, trả về ApiResponseDTO.
+
+Thêm
+Cấu hình AutoMapper trong MapperProfiles.cs để ánh xạ entity-DTO.
+
+Đăng ký DI trong Program.cs (VD: builder.Services.AddScoped<IProjectRepository, ProjectRepository>();).
+

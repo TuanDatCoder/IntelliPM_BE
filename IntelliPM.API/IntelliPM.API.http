@@ -1,0 +1,6 @@
+@IntelliPM.API_HostAddress = http://localhost:5097
+
+GET {{IntelliPM.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
