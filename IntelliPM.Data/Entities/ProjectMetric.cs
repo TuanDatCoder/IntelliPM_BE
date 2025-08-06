@@ -19,25 +19,17 @@ public partial class ProjectMetric
 
     public decimal? ActualCost { get; set; }
 
-    public decimal? SchedulePerformanceIndex { get; set; }
+    public decimal? Spi { get; set; }
 
-    public decimal? CostPerformanceIndex { get; set; }
+    public decimal? Cpi { get; set; }
 
-    public decimal? BudgetAtCompletion { get; set; }
+    public int? DelayDays { get; set; }
 
-    public decimal? DurationAtCompletion { get; set; }
+    public decimal? BudgetOverrun { get; set; }
 
-    public decimal? CostVariance { get; set; }
+    public DateTime? ProjectedFinishDate { get; set; }
 
-    public decimal? ScheduleVariance { get; set; }
-
-    public decimal? EstimateAtCompletion { get; set; }
-
-    public decimal? EstimateToComplete { get; set; }
-
-    public decimal? VarianceAtCompletion { get; set; }
-
-    public decimal? EstimateDurationAtCompletion { get; set; }
+    public decimal? ProjectedTotalCost { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

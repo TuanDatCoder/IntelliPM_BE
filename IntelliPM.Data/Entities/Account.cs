@@ -43,11 +43,7 @@ public partial class Account
 
     public virtual ICollection<Document> DocumentApprover { get; set; } = new List<Document>();
 
-    public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
-
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();
-
-    public virtual ICollection<DocumentExportFile> DocumentExportFile { get; set; } = new List<DocumentExportFile>();
 
     public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
 
@@ -69,8 +65,6 @@ public partial class Account
 
     public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestRequester { get; set; } = new List<MeetingRescheduleRequest>();
 
-    public virtual ICollection<MilestoneComment> MilestoneComment { get; set; } = new List<MilestoneComment>();
-
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
 
     public virtual ICollection<Notification> Notification { get; set; } = new List<Notification>();
@@ -83,13 +77,7 @@ public partial class Account
 
     public virtual ICollection<RefreshToken> RefreshToken { get; set; } = new List<RefreshToken>();
 
-    public virtual ICollection<RiskComment> RiskComment { get; set; } = new List<RiskComment>();
-
-    public virtual ICollection<Risk> RiskCreatedByNavigation { get; set; } = new List<Risk>();
-
-    public virtual ICollection<RiskFile> RiskFile { get; set; } = new List<RiskFile>();
-
-    public virtual ICollection<Risk> RiskResponsible { get; set; } = new List<Risk>();
+    public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
 
     public virtual ICollection<Subtask> SubtaskAssignedByNavigation { get; set; } = new List<Subtask>();
 
