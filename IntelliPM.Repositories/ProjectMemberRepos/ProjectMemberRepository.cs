@@ -1,4 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -99,5 +101,41 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .ToListAsync();
         }
 
+
+        public async Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds)
+        {
+            return await _context.Account
+                .Where(a => userIds.Contains(a.Id))
+                .ToListAsync();
+}
+        public async Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId)
+        {
+            var query = await _context.ProjectMember
+                .Where(pm => pm.ProjectId == projectId)
+                .Select(pm => new ProjectMemberWithTasksResponseDTO
+                {
+                    Id = pm.Id,
+                    AccountId = pm.AccountId,
+                    FullName = pm.Account.FullName,
+                    Username = pm.Account.Username,
+                    AccountPicture = pm.Account.Picture,
+                    HourlyRate = pm.HourlyRate,
+                    WorkingHoursPerDay = pm.WorkingHoursPerDay,
+                    Tasks = pm.Account.TaskAssignment
+                        .Where(ta => ta.Task.ProjectId == projectId)
+                        .Select(ta => new TaskBasicDTO
+                        {
+                            Id = ta.Task.Id,
+                            Title = ta.Task.Title,
+                            Status = ta.Task.Status,
+                            PercentComplete = ta.Task.PercentComplete
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return query;
+
+        }
     }
 }

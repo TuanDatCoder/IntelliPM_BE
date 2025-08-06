@@ -1,4 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;

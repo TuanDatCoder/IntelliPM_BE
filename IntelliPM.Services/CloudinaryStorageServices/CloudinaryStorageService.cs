@@ -40,7 +40,8 @@ namespace IntelliPM.Services.CloudinaryStorageServices
             {
                 File = new FileDescription(originalFileName, fileStream),
                 PublicId = uniqueFileName,
-                Overwrite = true
+                Overwrite = true,
+                Type = "upload"
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);

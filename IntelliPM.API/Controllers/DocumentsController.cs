@@ -1,6 +1,7 @@
 using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
+using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 using IntelliPM.Services.DocumentServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -76,7 +77,15 @@ namespace IntelliPM.API.Controllers
         [HttpGet("project/{projectId}")]
         public async Task<ActionResult<List<DocumentResponseDTO>>> GetByProject(int projectId)
         {
-            var result = await _documentService.GetDocumentsByProject(projectId);
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format");
+
+            var result = await _documentService.GetDocumentsByProject(projectId, userId);
             return Ok(result);
         }
 
@@ -244,6 +253,48 @@ namespace IntelliPM.API.Controllers
             var result = await _documentService.GetStatusCountByProject(projectId);
             return Ok(result);
         }
+
+        [HttpPost("{id}/generate-from-tasks")]
+        public async Task<ActionResult<GenerateDocumentResponse>> GenerateFromTasks(int id)
+        {
+            var result = await _documentService.GenerateFromExistingDocument(id);
+            return Ok(result); 
+        }
+
+
+        [HttpPost("share-via-email")]
+        //public async Task<IActionResult> ShareDocumentViaEmail([FromBody] ShareDocumentViaEmailRequest req)
+        //{
+        //    await _documentService.ShareDocumentViaEmail(req);
+        //    return Ok(new { message = "Emails sent successfully" });
+        //}
+        public async Task<IActionResult> ShareViaEmailWithFile([FromForm] ShareDocumentViaEmailRequest request)
+        {
+            try
+            {
+                await _documentService.ShareDocumentViaEmailWithFile(request);
+                return Ok(new { message = "Email sent successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{documentId}/permission/current-user")]
+        public async Task<IActionResult> GetMyPermission(int documentId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            if (!int.TryParse(userIdClaim, out var userId)) return BadRequest("Invalid account ID");
+
+            var permission = await _documentService.GetUserPermissionLevel(documentId, userId);
+            return Ok(new { permission = permission ?? "none" });
+        }
+
+
+
+
 
     }
 }
