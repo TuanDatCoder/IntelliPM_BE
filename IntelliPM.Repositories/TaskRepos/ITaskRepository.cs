@@ -24,6 +24,8 @@ namespace IntelliPM.Repositories.TaskRepos
         Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
         Task<List<Tasks>> GetBySprintIdAndByStatusAsync(int sprintId, string status);
 
+        Task AddRangeAsync(List<Tasks> tasks);
+        Task SaveChangesAsync();
 
     }
 }

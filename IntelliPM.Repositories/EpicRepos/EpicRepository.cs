@@ -1,16 +1,24 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace IntelliPM.Repositories.EpicRepos
 {
     public class EpicRepository : IEpicRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public EpicRepository(Su25Sep490IntelliPmContext context)
+        public EpicRepository(Su25Sep490IntelliPmContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
+        }
+        public Su25Sep490IntelliPmContext GetContext()
+        {
+            return _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<Su25Sep490IntelliPmContext>();
         }
 
         public async Task<List<Epic>> GetAllEpics()
@@ -92,5 +100,20 @@ namespace IntelliPM.Repositories.EpicRepos
             _context.Epic.Remove(epic);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
+        }
+        public async Task AddRangeAsync(List<Epic> epics)
+        {
+            await _context.Epic.AddRangeAsync(epics);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

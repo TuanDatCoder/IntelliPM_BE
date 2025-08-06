@@ -261,8 +261,9 @@ namespace IntelliPM.Services.ProjectServices
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-            if (!pm.Status.Equals("CREATED"))
+            if (pm.Status.Equals("ACTIVE"))
                 throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
+   
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -346,22 +347,19 @@ namespace IntelliPM.Services.ProjectServices
             if (currentAccount == null)
                 throw new KeyNotFoundException("User not found.");
 
-
             var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
             if (membersWithPositions == null || !membersWithPositions.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
-
             var projectInfo = await _projectRepo.GetByIdAsync(projectId);
             if (projectInfo == null)
-                throw new KeyNotFoundException($"Project with ID {projectId} not found.ddd");
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
             await ChangeProjectStatus(projectId, "IN_PROGRESS");
 
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
-               if(pm != null)
-                    await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
-
+            if (pm != null)
+                await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
 
             var eligibleMembers = membersWithPositions
                 .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
@@ -371,25 +369,42 @@ namespace IntelliPM.Services.ProjectServices
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
 
-
-
             foreach (var member in eligibleMembers)
             {
-                _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
-
-                var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={member.Id}";
-
-                await _emailService.SendTeamInvitation(
-                    member.FullName,
-                    member.Email,
-                    currentAccount.FullName,
-                    currentAccount.Username,
-                    projectInfo.Name,
-                    projectInfo.ProjectKey,
-                    projectId,
-                    projectInvitationUrl
-                );
+                await _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
             }
+
+            // Giới hạn gửi 5 email một lúc
+            var semaphore = new SemaphoreSlim(5);
+            var emailTasks = eligibleMembers.Select(async member =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={member.Id}";
+
+                    await _emailService.SendTeamInvitation(
+                        member.FullName,
+                        member.Email,
+                        currentAccount.FullName,
+                        currentAccount.Username,
+                        projectInfo.Name,
+                        projectInfo.ProjectKey,
+                        projectId,
+                        projectInvitationUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to send email to {member.Email}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(emailTasks);
 
             return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
         }
