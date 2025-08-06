@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
@@ -6,6 +7,7 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -34,8 +36,9 @@ namespace IntelliPM.Services.TaskCommentServices
         private readonly IActivityLogService _activityLogService;
         private readonly IAccountRepository _accountRepository;
         private readonly IEmailService _emailService;
+        private readonly IProjectRepository _projectRepo;
 
-        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IEmailService emailService, IAccountRepository accountRepository, ILogger<TaskCommentService> logger)
+        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IEmailService emailService, IAccountRepository accountRepository, IProjectRepository projectRepo, ILogger<TaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -46,6 +49,7 @@ namespace IntelliPM.Services.TaskCommentServices
             _activityLogService = activityLogService;
             _accountRepository = accountRepository;
             _emailService = emailService;
+            _projectRepo = projectRepo;
         }
 
         public async Task<TaskCommentResponseDTO> CreateTaskComment(TaskCommentRequestDTO request)
@@ -70,6 +74,9 @@ namespace IntelliPM.Services.TaskCommentServices
                     throw new Exception($"Task with ID {request.TaskId} not found.");
                 var projectId = task.ProjectId;
 
+                var project = await _projectRepo.GetByIdAsync(projectId);
+                if (project == null)
+                    throw new Exception($"Project with ID {projectId} not found");
                 // Ghi log
                 await _activityLogService.LogAsync(new ActivityLog
                 {
@@ -98,7 +105,7 @@ namespace IntelliPM.Services.TaskCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Comment in task {request.TaskId}: {request.Content}",
+                        Message = $"Comment in project {project.ProjectKey} - task {request.TaskId}: {request.Content}",
                         RelatedEntityType = "Task",
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
