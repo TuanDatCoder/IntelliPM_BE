@@ -39,13 +39,15 @@ public partial class Account
 
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
+    public virtual ICollection<AiResponseEvaluation> AiResponseEvaluation { get; set; } = new List<AiResponseEvaluation>();
+
+    public virtual ICollection<AiResponseHistory> AiResponseHistory { get; set; } = new List<AiResponseHistory>();
+
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
     public virtual ICollection<Document> DocumentApprover { get; set; } = new List<Document>();
 
-
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
-
 
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();
 
@@ -71,9 +73,7 @@ public partial class Account
 
     public virtual ICollection<MeetingRescheduleRequest> MeetingRescheduleRequestRequester { get; set; } = new List<MeetingRescheduleRequest>();
 
-
     public virtual ICollection<MilestoneComment> MilestoneComment { get; set; } = new List<MilestoneComment>();
-
 
     public virtual ICollection<MilestoneFeedback> MilestoneFeedback { get; set; } = new List<MilestoneFeedback>();
 
@@ -94,12 +94,6 @@ public partial class Account
     public virtual ICollection<RiskFile> RiskFile { get; set; } = new List<RiskFile>();
 
     public virtual ICollection<Risk> RiskResponsible { get; set; } = new List<Risk>();
-
-    public virtual ICollection<Subtask> SubtaskAssignedByNavigation { get; set; } = new List<Subtask>();
-
-    public virtual ICollection<SubtaskComment> SubtaskComment { get; set; } = new List<SubtaskComment>();
-
-    public virtual ICollection<Subtask> SubtaskReporter { get; set; } = new List<Subtask>();
 
     public virtual ICollection<Subtask> SubtaskAssignedByNavigation { get; set; } = new List<Subtask>();
 

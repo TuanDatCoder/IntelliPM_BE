@@ -11,7 +11,6 @@ public partial class ProjectRecommendation
 
     public string? TaskId { get; set; }
 
-
     public string Type { get; set; } = null!;
 
     public string Recommendation { get; set; } = null!;

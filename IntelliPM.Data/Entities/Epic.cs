@@ -29,6 +29,8 @@ public partial class Epic
 
     public string? Status { get; set; }
 
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
     public virtual Account? AssignedByNavigation { get; set; }
 
     public virtual ICollection<Document> Document { get; set; } = new List<Document>();
