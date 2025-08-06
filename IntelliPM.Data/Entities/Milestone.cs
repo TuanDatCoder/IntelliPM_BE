@@ -32,4 +32,8 @@ public partial class Milestone
     public virtual Project Project { get; set; } = null!;
 
     public virtual Sprint? Sprint { get; set; }
+
+
+    public virtual ICollection<TaskDependency> TaskDependency { get; set; } = new List<TaskDependency>();
+
 }

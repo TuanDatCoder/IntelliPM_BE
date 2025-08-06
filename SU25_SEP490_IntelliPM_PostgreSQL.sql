@@ -232,7 +232,9 @@ CREATE TABLE subtask (
     FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id),
 	FOREIGN KEY (reporter_id) REFERENCES account(id)
+
 );
+
 
 -- Thêm các trường còn thiếu cho bảng subtask (tất cả đều cho phép NULL)
 ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_start_date TIMESTAMPTZ NULL;
@@ -275,6 +277,7 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
+
 
 -- 16. task_comment
 CREATE TABLE task_comment (
@@ -723,6 +726,9 @@ CREATE TABLE dynamic_category (
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
+
+	epic_id VARCHAR(255) NULL,
+
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
@@ -736,7 +742,11 @@ CREATE TABLE activity_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
+
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+	FOREIGN KEY (epic_id) REFERENCES epic(id),
 );
 
 -- 46. meeting_reschedule_request
@@ -756,6 +766,57 @@ CREATE TABLE meeting_reschedule_request (
     FOREIGN KEY (requester_id) REFERENCES account(id),
     FOREIGN KEY (pm_id) REFERENCES account(id)
 );
+
+
+
+-- 47. ai_response_history
+-- Bảng lưu lịch sử trả lời của AI
+CREATE TABLE ai_response_history (
+    id SERIAL PRIMARY KEY,
+    ai_feature VARCHAR(100) NOT NULL, -- Lưu tên tính năng AI (TASK_PLANNING, SPRINT_CREATION, v.v.)
+    project_id INT  NULL,
+    response_json JSONB NOT NULL, -- Lưu phản hồi AI dưới dạng JSON
+    created_by INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES account(id) ON DELETE SET NULL
+);
+
+-- 48. ai_response_evaluation
+-- Bảng lưu đánh giá câu trả lời của AI
+CREATE TABLE ai_response_evaluation (
+    id SERIAL PRIMARY KEY,
+    ai_response_id INT NOT NULL,
+    account_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5), -- Điểm đánh giá từ 1 đến 5
+    feedback TEXT NULL, -- Phản hồi chi tiết về chất lượng
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ai_response_id) REFERENCES ai_response_history(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL
+
+);
+
+
+
+--------------------------------------------------------------
+DO $$
+DECLARE
+    p_key text;
+BEGIN
+    FOR p_key IN (SELECT project_key FROM project)
+    LOOP
+        -- Xóa sequence cũ
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_epic_id_seq');
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_task_id_seq');
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_subtask_id_seq');
+        -- Tạo sequence chung
+        EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I START 1', lower(p_key) || '_id_seq');
+    END LOOP;
+END $$;
+
 --------------------------------------------------------------
 
 -- Insert sample data into account
@@ -1245,9 +1306,10 @@ VALUES
     ('task_status', 'TO_DO', 'To Do', 'Task to do', 1, NULL, '##dddee1'),
     ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2, NULL, '#87b1e1'),
     ('task_status', 'DONE', 'Done', 'Task completed', 3, NULL, '#b2da73'),
-    ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://drive.google.com/file/d/1aCfATSVY-FdeeTNLoJl3o3k49NtP9lUg/view?usp=drive_link', NULL),
-    ('task_type', 'TASK', 'Task', 'General task', 2, 'https://drive.google.com/file/d/1ebm-P9XekWL5vOYc2ErwFk5jT-dSkGSD/view?usp=drive_link', NULL),
-    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://drive.google.com/file/d/1b7WqqObZEqSAhFa8QOQN3hLAQqkS99vS/view?usp=drive_link', NULL),
+    ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_story_dwl198.svg', NULL),
+    ('task_type', 'TASK', 'Task', 'General task', 2, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_task_pasp70.svg', NULL),
+    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_bug_qqjqkj.svg', NULL),
+
     ('document_type', 'PLAN', 'Plan', 'Project plan', 1, NULL, NULL),
     ('document_type', 'BRIEF', 'Brief', 'Project brief', 2, NULL, NULL),
     ('document_type', 'REPORT', 'Report', 'Project report', 3, NULL, NULL),
@@ -1332,7 +1394,20 @@ VALUES
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
     ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
-    ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14');
+    ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
+	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
+    ('ai_response_evaluation_status', 'APPROVED', 'Approved', 'Evaluation has been approved', 2, NULL, '#4CAF50'),
+    ('ai_response_evaluation_status', 'REJECTED', 'Rejected', 'Evaluation has been rejected', 3, NULL, '#F44336'),
+	('ai_history_status', 'ACTIVE', 'Active', 'Response is active and visible', 1, NULL, '#4CAF50'),
+    ('ai_history_status', 'ARCHIVED', 'Archived', 'Response is archived', 2, NULL, '#FFC107'),
+    ('ai_history_status', 'DELETED', 'Deleted', 'Response has been deleted', 3, NULL, '#F44336'),
+	('ai_feature', 'TASK_PLANNING', 'Task Planning', 'AI generates epics and tasks for project planning', 1, 'https://example.com/icons/task-planning.png', '#4CAF50'),
+    ('ai_feature', 'SPRINT_CREATION', 'Sprint Creation', 'AI creates sprints and assigns tasks from backlog', 2, 'https://example.com/icons/sprint-creation.png', '#2196F3'),
+    ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
+    ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
+    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0');
+
+
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

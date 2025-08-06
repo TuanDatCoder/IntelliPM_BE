@@ -1,4 +1,6 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.Entities;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +19,11 @@ namespace IntelliPM.Repositories.EpicRepos
         Task Update(Epic epic);
         Task Delete(Epic epic);
         Task<List<Epic>> GetByAccountIdAsync(int accountId);
+
+        Task<IDbContextTransaction> BeginTransactionAsync();
+        Task SaveChangesAsync();
+        Task AddRangeAsync(List<Epic> epics);
+        Su25Sep490IntelliPmContext GetContext();
+
     }
 }
