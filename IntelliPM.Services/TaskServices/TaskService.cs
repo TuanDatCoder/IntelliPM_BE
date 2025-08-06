@@ -422,12 +422,9 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
-                var project = await _taskRepo.GetByIdAsync(entity.Id);
-                var projectId = project?.ProjectId ?? throw new Exception("ProjectId is null");
                 await _activityLogService.LogAsync(new ActivityLog
                 {
-                    //ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
-                    ProjectId = projectId,
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
                     RelatedEntityType = "Task",
