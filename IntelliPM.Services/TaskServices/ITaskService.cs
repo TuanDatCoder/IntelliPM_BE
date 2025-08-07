@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,5 +40,8 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId);
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status);
         Task<List<TaskBacklogResponseDTO>> GetTasksByAccountIdAsync(int accountId);
+        Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId);
+
+        Task<List<TaskResponseDTO>> GenerateTaskPreviewByEpicAsync(string epicId);
     }
 }

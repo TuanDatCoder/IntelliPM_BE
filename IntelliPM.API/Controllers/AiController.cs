@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.Ai.ProjectTaskPlanning.Request;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.SubtaskServices;
+using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -14,13 +15,15 @@ namespace IntelliPM.API.Controllers
     {
         private readonly ITaskPlanningService _taskPlanningService;
         private readonly ISubtaskService _subtaskService;
+        private readonly ITaskService _taskService;
         private readonly ISprintPlanningService _sprintPlanningService;
 
-        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService)
+        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService, ITaskService taskService )
         {
             _taskPlanningService = taskPlanningService ?? throw new ArgumentNullException(nameof(taskPlanningService));
             _subtaskService = subtaskService ?? throw new ArgumentNullException( nameof(subtaskService));
             _sprintPlanningService = sprintPlanningService ?? throw new ArgumentNullException(nameof(sprintPlanningService));
+            _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
         }
 
         // Đạt: AI tạo gợi ý tạo các task cho project
@@ -93,6 +96,56 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpPost("{projectId}/generate-task")]
+        public async Task<IActionResult> GenerateTaskFromProjectDescription(int projectId)
+        {
+            try
+            {
+                var task = await _taskService.GenerateTaskPreviewAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task generated successfully (not saved)",
+                    Data = task
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating Task: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("{epicId}/generate-task-by-epic")]
+        public async Task<IActionResult> GenerateTaskFromEpicDescription(string epicId)
+        {
+            try
+            {
+                var epic = await _taskService.GenerateTaskPreviewByEpicAsync(epicId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task generated successfully (not saved)",
+                    Data = epic
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating Task: {ex.Message}"
+                });
+            }
+        }
 
 
         [HttpPost("project/{id}/sprint-planning")]

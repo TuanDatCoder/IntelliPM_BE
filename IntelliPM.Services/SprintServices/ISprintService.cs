@@ -30,5 +30,7 @@ namespace IntelliPM.Services.SprintServices
         Task<List<SprintResponseDTO>> CreateSprintAndAddTaskAsync(string projectKey, List<SprintWithTasksDTO> requests);
         Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate);
 
+        Task<(bool IsValid, string Message)> CheckActiveSprintStartDateAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate, int activeSprintId);
+
     }
 }
