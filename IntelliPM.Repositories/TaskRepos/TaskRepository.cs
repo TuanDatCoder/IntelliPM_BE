@@ -159,7 +159,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 {
                     Id = st.Id,
                     TaskId = st.TaskId,
-                    AssignedBy = (int)st.AssignedBy,
+                    AssignedBy = st.AssignedBy,
                     PlannedHours = st.PlannedHours,
                     ActualHours = st.ActualHours
                 }).ToList()
