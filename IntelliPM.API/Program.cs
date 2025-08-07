@@ -5,6 +5,8 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Repositories.AiResponseEvaluationRepos;
+using IntelliPM.Repositories.AiResponseHistoryRepos;
 using IntelliPM.Repositories.DocumentCommentRepos;
 using IntelliPM.Repositories.DocumentExportFileRepos;
 using IntelliPM.Repositories.DocumentPermissionRepos;
@@ -55,6 +57,8 @@ using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
+using IntelliPM.Services.AiResponseEvaluationServices;
+using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
@@ -158,9 +162,6 @@ builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>(
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 builder.Services.AddScoped<IDocumentExportFileRepository, DocumentExportFileRepository>();
 builder.Services.AddScoped<IDocumentPermissionRepository, DocumentPermissionRepository>();
-
-
-//
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
 builder.Services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
 builder.Services.AddScoped<IMilestoneFeedbackRepository, MilestoneFeedbackRepository>();
@@ -186,10 +187,9 @@ builder.Services.AddScoped<IRiskFileRepository, RiskFileRepository>();
 builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
 builder.Services.AddScoped<IMeetingDocumentRepository, MeetingDocumentRepository>();
 builder.Services.AddScoped<IMilestoneCommentRepository, MilestoneCommentRepository>();
-
-
 builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
-
+builder.Services.AddScoped<IAiResponseHistoryRepository, AiResponseHistoryRepository>();
+builder.Services.AddScoped<IAiResponseEvaluationRepository, AiResponseEvaluationRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -241,18 +241,14 @@ builder.Services.AddScoped<IRiskFileService, RiskFileService>();
 builder.Services.AddScoped<IRiskCommentService, RiskCommentService>();
 builder.Services.AddScoped<INotificationPushService, SignalRNotificationPushService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-
 builder.Services.AddScoped<IMeetingDocumentService, MeetingDocumentService>();
 builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
-
 builder.Services.AddScoped<DocumentExportService>();
 builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
-
-
+builder.Services.AddScoped<IAiResponseHistoryService, AiResponseHistoryService>();
+builder.Services.AddScoped<IAiResponseEvaluationService, AiResponseEvaluationService>();
 builder.Services.AddSignalR();
-
-
 builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
 
 
