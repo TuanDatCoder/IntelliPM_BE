@@ -1,17 +1,59 @@
-﻿using IntelliPM.Data.Entities;
+using IntelliPM.Data.Contexts;
+using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace IntelliPM.Services.Utilities
 {
     public static class IdGenerator
     {
+        public static async Task<string> GenerateNextId(string projectKey, Su25Sep490IntelliPmContext context)
+        {
+            if (string.IsNullOrEmpty(projectKey))
+                throw new ArgumentException("Project key cannot be null or empty.");
+
+            // Kiểm tra project tồn tại
+            var project = await context.Project
+                .Where(p => p.ProjectKey == projectKey)
+                .FirstOrDefaultAsync();
+
+            if (project == null)
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+
+            // Tên sequence chung
+            var sequenceName = $"{projectKey.ToLower()}_id_seq";
+            var sequenceExistsQuery = @"
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_catalog.pg_class c
+                    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relkind = 'S' AND c.relname = @p0
+                ) AS ""Value""";
+            var sequenceExists = await context.Database
+                .SqlQueryRaw<bool>(sequenceExistsQuery, sequenceName)
+                .FirstOrDefaultAsync();
+
+            if (!sequenceExists)
+            {
+                // Tạo sequence nếu chưa tồn tại
+                await context.Database.ExecuteSqlRawAsync($"CREATE SEQUENCE {sequenceName} START 1");
+            }
+
+            // Lấy số tiếp theo từ sequence
+            var nextValQuery = $"SELECT NEXTVAL('{sequenceName}') AS \"Value\"";
+            var nextVal = await context.Database
+                .SqlQueryRaw<long>(nextValQuery)
+                .FirstOrDefaultAsync();
+
+            return $"{projectKey}-{nextVal}";
+        }
+
+
+
         public static async Task<string> GenerateNextId(string projectKey, IEpicRepository epicRepo, ITaskRepository taskRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo)
         {
             if (string.IsNullOrEmpty(projectKey))
@@ -60,5 +102,11 @@ namespace IntelliPM.Services.Utilities
             // Trả về ID mới với số tiếp theo
             return $"{projectKey}-{maxNumber + 1}";
         }
+
+
     }
 }
+
+
+
+
