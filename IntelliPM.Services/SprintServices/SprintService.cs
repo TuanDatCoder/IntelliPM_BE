@@ -515,6 +515,75 @@ namespace IntelliPM.Services.SprintServices
         }
 
 
+
+        public async Task<(bool IsValid, string Message)> CheckActiveSprintStartDateAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate, int activeSprintId)
+        {
+            checkStartDate = checkStartDate.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(checkStartDate, DateTimeKind.Utc)
+                : checkStartDate.ToUniversalTime();
+            checkEndDate = checkEndDate.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(checkEndDate, DateTimeKind.Utc)
+                : checkEndDate.ToUniversalTime();
+
+            if (checkStartDate >= checkEndDate)
+            {
+                return (false, $"Start date ({checkStartDate:yyyy-MM-dd}) must be before end date ({checkEndDate:yyyy-MM-dd}).");
+            }
+
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null)
+            {
+                throw new KeyNotFoundException($"Project with key '{projectKey}' not found.");
+            }
+
+            var activeSprint = await _repo.GetByIdAsync(activeSprintId);
+            if (activeSprint == null || activeSprint.ProjectId != project.Id)
+            {
+                throw new KeyNotFoundException($"Active sprint with ID '{activeSprintId}' not found or does not belong to project '{projectKey}'.");
+            }
+
+            var projectStart = project.StartDate?.ToUniversalTime() ?? DateTime.UtcNow;
+            var projectEnd = project.EndDate?.ToUniversalTime() ?? projectStart.AddMonths(6);
+
+            if (checkStartDate < projectStart || checkEndDate > projectEnd)
+            {
+                return (false, $"Sprint dates ({checkStartDate:yyyy-MM-dd} to {checkEndDate:yyyy-MM-dd}) must be within project timeline (Start: {projectStart:yyyy-MM-dd}, End: {projectEnd:yyyy-MM-dd}).");
+            }
+
+            var existingSprints = await _repo.GetByProjectIdDescendingAsync(project.Id);
+            if (existingSprints == null || !existingSprints.Any())
+            {
+                return (true, "Valid dates: No existing sprints.");
+            }
+
+            foreach (var sprint in existingSprints)
+            {
+                if (sprint.Id == activeSprintId)
+                {
+                    continue;
+                }
+
+                if (!sprint.StartDate.HasValue || !sprint.EndDate.HasValue)
+                {
+                    continue;
+                }
+
+                var sprintStart = sprint.StartDate.Value.ToUniversalTime();
+                var sprintEnd = sprint.EndDate.Value.ToUniversalTime();
+
+                if (checkStartDate <= sprintEnd && checkEndDate >= sprintStart)
+                {
+                    return (false, $"Sprint dates ({checkStartDate:yyyy-MM-dd} to {checkEndDate:yyyy-MM-dd}) overlap with existing sprint '{sprint.Name}' (Start: {sprintStart:yyyy-MM-dd}, End: {sprintEnd:yyyy-MM-dd}).");
+                }
+            }
+
+            return (true, "Sprint dates are valid.");
+        }
+
+
+
+
+
         public async Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
