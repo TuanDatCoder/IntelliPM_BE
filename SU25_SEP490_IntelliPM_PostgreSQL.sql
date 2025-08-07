@@ -1,4 +1,4 @@
-﻿-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
+-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
 
 -- Create database
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
