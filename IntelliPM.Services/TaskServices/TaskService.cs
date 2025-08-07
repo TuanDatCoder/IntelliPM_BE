@@ -22,6 +22,7 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
@@ -57,8 +58,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IWorkLogService _workLogService;
         private readonly IActivityLogService _activityLogService;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly IGeminiService _geminiService;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -76,8 +78,67 @@ namespace IntelliPM.Services.TaskServices
             _sprintRepo = sprintRepo;
             _activityLogService = activityLogService;
             _milestoneRepo = milestoneRepo;
+            _geminiService = geminiService;
         }
-      
+        public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+            // Gọi AI service và nhận về danh sách task đề xuất có title + description
+            var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
+
+            if (suggestions == null || !suggestions.Any())
+                return new List<TaskResponseDTO>();
+
+            var now = DateTime.UtcNow;
+
+            var tasks = suggestions.Select(s => new Tasks
+            {
+                ProjectId = projectId,
+                Title = s.Title?.Trim() ?? "Untitled Task",
+                Description = s.Description?.Trim() ?? string.Empty,
+                Type = s.Type?.Trim() ?? string.Empty,
+                Status = "TO-DO",
+                ManualInput = false,
+                GenerationAiInput = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            return _mapper.Map<List<TaskResponseDTO>>(tasks);
+        }
+
+        public async Task<List<TaskResponseDTO>> GenerateTaskPreviewByEpicAsync(string epicId)
+        {
+            var project = await _epicRepo.GetByIdAsync(epicId);
+            if (project == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
+
+            // Gọi AI service và nhận về danh sách task đề xuất có title + description
+            var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
+
+            if (suggestions == null || !suggestions.Any())
+                return new List<TaskResponseDTO>();
+
+            var now = DateTime.UtcNow;
+
+            var tasks = suggestions.Select(s => new Tasks
+            {
+                EpicId = epicId,
+                Title = s.Title?.Trim() ?? "Untitled Task",
+                Description = s.Description?.Trim() ?? string.Empty,
+                Type = s.Type?.Trim() ?? string.Empty,
+                Status = "TO-DO",
+                ManualInput = false,
+                GenerationAiInput = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            return _mapper.Map<List<TaskResponseDTO>>(tasks);
+        }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
         {
