@@ -738,10 +738,13 @@ namespace IntelliPM.Services.ProjectServices
 
 
             var subtasksGrouped = _mapper.Map<List<SubtaskDependencyResponseDTO>>(subtasks)
+                .OrderBy(s => s.StartDate ?? DateTime.MaxValue)
                 .GroupBy(s => s.TaskId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks);
+            var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks)
+                .OrderBy(t => t.PlannedStartDate ?? DateTime.MaxValue)
+                .ToList();
             foreach (var t in taskDTOs)
             {
                 t.Subtasks = subtasksGrouped.ContainsKey(t.Id) ? subtasksGrouped[t.Id] : new();
@@ -756,7 +759,9 @@ namespace IntelliPM.Services.ProjectServices
                 }
             }
 
-            var milestoneDTOs = _mapper.Map<List<MilestoneDependencyResponseDTO>>(milestones);
+            var milestoneDTOs = _mapper.Map<List<MilestoneDependencyResponseDTO>>(milestones)
+                .OrderBy(m => m.StartDate ?? DateTime.MaxValue)
+                .ToList();
             foreach (var m in milestoneDTOs)
             {
                 m.Dependencies = groupedDependencies.TryGetValue((m.Key, "milestone"), out var mdeps) ? mdeps : new();

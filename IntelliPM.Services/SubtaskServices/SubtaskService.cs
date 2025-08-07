@@ -304,30 +304,35 @@ namespace IntelliPM.Services.SubtaskServices
                 switch (dep.Type.ToUpper())
                 {
                     case "FINISH_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
                             warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                         }
                         break;
 
                     case "START_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                         }
                         break;
 
+
                     case "FINISH_FINISH":
+                        // Subtask chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
                         if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                         }
                         break;
 
                     case "START_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
                         }
                         break;
                 }
@@ -461,30 +466,35 @@ namespace IntelliPM.Services.SubtaskServices
                 switch (dep.Type.ToUpper())
                 {
                     case "FINISH_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
                             warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                         }
                         break;
 
                     case "START_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                         }
                         break;
 
+
                     case "FINISH_FINISH":
+                        // Subtask chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
                         if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                         }
                         break;
 
                     case "START_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Subtask chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
                         }
                         break;
                 }
@@ -566,15 +576,28 @@ namespace IntelliPM.Services.SubtaskServices
             }
             else if (subtask.Status == "IN_PROGRESS")
             {
-                if (subtask.PlannedHours.HasValue && subtask.PlannedHours > 0)
+                var actual = subtask.ActualHours ?? 0;
+                var planned = subtask.PlannedHours ?? 0;
+
+                if (planned > 0)
                 {
-                    var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
+                    var rawProgress = (actual / planned) * 100;
                     subtask.PercentComplete = Math.Min((int)rawProgress, 99);
                 }
                 else
                 {
                     subtask.PercentComplete = 0;
                 }
+
+                //if (subtask.PlannedHours.HasValue && subtask.PlannedHours > 0)
+                //{
+                //    var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
+                //    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
+                //}
+                //else
+                //{
+                //    subtask.PercentComplete = 0;
+                //}
             }
 
             subtask.UpdatedAt = DateTime.UtcNow;

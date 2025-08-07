@@ -10,7 +10,7 @@ namespace IntelliPM.Data.DTOs.Subtask.Response
     {
         public string Id { get; set; } = null!;
         public string TaskId { get; set; } = null!;
-        public int AssignedBy { get; set; }
+        public int? AssignedBy { get; set; }
         public decimal? PlannedHours { get; set; }
         public decimal? ActualHours { get; set; }
     }
