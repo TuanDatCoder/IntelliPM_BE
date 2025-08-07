@@ -1,4 +1,5 @@
 using ConstructionEquipmentRental.API.Middlewares;
+using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
 using IntelliPM.Data.Contexts;
@@ -227,6 +228,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMeetingDocumentService, MeetingDocumentService>();
 builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
+builder.Services.AddTransient<CloudConvertService>();
+
 
 
 

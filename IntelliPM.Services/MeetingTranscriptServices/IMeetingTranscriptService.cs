@@ -11,4 +11,7 @@ public interface IMeetingTranscriptService
 {
     Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto);
     Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId);
+
+    Task<MeetingTranscriptResponseDTO> UploadTranscriptFromUrlAsync(MeetingTranscriptFromUrlRequestDTO dto);
+
 }
