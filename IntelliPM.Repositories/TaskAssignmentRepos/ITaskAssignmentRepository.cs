@@ -21,5 +21,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
         Task<List<TaskAssignment>> GetByProjectIdAsync(int projectId);
         Task<List<TaskAssignment>> GetTasksByAccountIdAsync(int accountId);
 
+        Task AddRangeAsync(List<TaskAssignment> taskAssignments);
+        Task SaveChangesAsync();
     }
 }

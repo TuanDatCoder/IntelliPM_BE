@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Sprint.Request;
+using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.SprintServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -132,6 +133,50 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("project/{projectKey}/sprints-with-tasks")]
+        public async Task<IActionResult> CreateSprintsWithTasks(string projectKey, [FromBody] List<SprintWithTasksDTO> requests)
+        {
+            try
+            {
+                var sprints = await _service.CreateSprintAndAddTaskAsync(projectKey, requests);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Sprints and tasks created successfully",
+                    Data = sprints
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error creating sprints: {ex.Message}"
+                });
+            }
+        }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] SprintRequestDTO request)
@@ -395,6 +440,56 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+
+        [HttpPost("check-active-sprint-start-date")]
+        public async Task<IActionResult> CheckActiveSprintStartDate([FromBody] CheckActiveSprintStartDateRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Invalid request data"
+                });
+            }
+
+            try
+            {
+                var (isValid, message) = await _service.CheckActiveSprintStartDateAsync(
+                   request.ProjectKey,
+                   request.CheckStartDate,
+                   request.CheckEndDate,
+                   request.ActiveSprintId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = message,
+                    Data = new { IsValid = isValid }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error checking sprint dates: {ex.Message}"
+                });
+            }
+        }
+
 
 
         [HttpPost("check-within-project")]

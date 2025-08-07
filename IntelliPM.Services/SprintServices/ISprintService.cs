@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
+using IntelliPM.Services.AiServices.SprintPlanningServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,10 @@ namespace IntelliPM.Services.SprintServices
         Task<bool> IsSprintWithinProject(string projectKey, DateTime checkSprintDate);
         Task<string> MoveTaskToSprint(int sprintOldId, int sprintNewId, string type);
         Task<SprintResponseDTO> GetActiveSprintWithTasksByProjectKeyAsync(string projectKey);
+        Task<List<SprintResponseDTO>> CreateSprintAndAddTaskAsync(string projectKey, List<SprintWithTasksDTO> requests);
+        Task<(bool IsValid, string Message)> CheckSprintDatesAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate);
+
+        Task<(bool IsValid, string Message)> CheckActiveSprintStartDateAsync(string projectKey, DateTime checkStartDate, DateTime checkEndDate, int activeSprintId);
 
     }
 }

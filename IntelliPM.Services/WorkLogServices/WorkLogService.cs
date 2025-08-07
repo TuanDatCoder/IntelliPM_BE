@@ -483,7 +483,7 @@ namespace IntelliPM.Services.WorkLogServices
             }
             else if (task.Status == "IN_PROGRESS")
             {
-                if (task.PlannedHours > 0)
+                if (task.PlannedHours.HasValue && task.PlannedHours > 0)
                 {
                     var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
                     task.PercentComplete = Math.Min((int)rawProgress, 99);

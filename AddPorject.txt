@@ -1,6 +1,6 @@
 client@gmail.com, tuandatdq03@gmail.com, tuandatdinhquoc@gmail.com, dinhhoangdat789@gmail.com,teamMemberfe3@gmail.com, teamMemberbe2@gmail.com
 
-ngothaovy305@gmail.com, tuandatdq03@gmail.com, tuandatdinhquoc@gmail.com, dinhhoangdat789@gmail.com. teamMemberfe3@gmail.com, vynptse161509@fpt.edu.vn, teamMemberbe3@gmail.com, duylnpse171722@fpt.edu.vn, khangdase171370@fpt.edu.vn, hanntnse171332@fpt.edu.vn
+ngothaovy305@gmail.com, tuandatdq03@gmail.com, tuandatdinhquoc@gmail.com,vynptse161509@fpt.edu.vn, teamMemberbe3@gmail.com, duylnpse171722@fpt.edu.vn, khangdase171370@fpt.edu.vn, hanntnse171332@fpt.edu.vn
 
 
 ================================================================================
@@ -259,7 +259,7 @@ PROJECT OVERVIEW - SmartHome360
 
 ===========================================================================
 🆔 Project Key: FLEET360  
-📛 Project Name: FleetTrack360 – Smart Vehicle & Logistics Tracking Platform  
+📛 Project Name: FleetTrack360 – Smart Vehicle Logistics Tracking Platform  
 💬 Description:
   FleetTrack360 is a real-time fleet management system designed for logistics companies. 
   It allows tracking vehicle locations, driver performance, delivery statuses, 

@@ -790,16 +790,60 @@ namespace IntelliPM.Services.EmailServices
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
             email.To.Add(MailboxAddress.Parse(toEmail));
-            email.Subject = $"[IntelliPM] Document Shared: {documentTitle}";
+            email.Subject = $"[IntelliPM] 📄 {documentTitle} has been shared with you";
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+            var htmlBody = $@"
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='UTF-8' />
+  <title>Document Invitation</title>
+</head>
+<body style='background-color: #f9f9f9; padding: 50px 0; font-family: Arial, sans-serif;'>
+  <div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); text-align: center;'>
+    
+    <img src='{logoUrl}' alt='IntelliPM Logo' style='max-height: 40px; margin-bottom: 30px;' />
+
+    <h2 style='font-size: 20px; color: #333; margin-bottom: 10px;'>
+      You've been invited to collaborate on
+    </h2>
+
+    <h1 style='font-size: 24px; color: #00C875; margin-bottom: 20px;'>
+      ""{documentTitle}""
+    </h1>
+
+    <p style='color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;'>
+      {message}
+    </p>
+
+    <a href='{link}' target='_blank' style='
+      background-color: #00C875;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 12px 30px;
+      border-radius: 6px;
+      display: inline-block;
+      font-size: 16px;
+    '>
+      Accept Invitation
+    </a>
+
+    <p style='margin-top: 40px; font-size: 12px; color: #888;'>
+      If you didn’t expect this invitation, feel free to ignore this email.
+    </p>
+
+    <p style='font-size: 12px; color: #aaa; margin-top: 10px;'>
+      Sent via <strong>IntelliPM</strong> – your smart project management tool
+    </p>
+  </div>
+</body>
+</html>";
+
 
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
-                Text = $@"
-        <h2>📄 {documentTitle}</h2>
-        <p>{message}</p>
-        <p>👉 <a href='{link}' target='_blank'>Click here to view the document</a></p>
-        <br/>
-        <p>Sent via <b>IntelliPM</b></p>"
+                Text = htmlBody
             };
 
             using var smtp = new SmtpClient();
@@ -808,6 +852,7 @@ namespace IntelliPM.Services.EmailServices
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
+
 
         public async Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
@@ -1061,7 +1106,38 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-    }
+     
 
+        public async Task SendDocumentShareEmailMeeting(
+    string toEmail,
+    string subject,
+    string body,
+    byte[] fileBytes,
+    string fileName)
+        {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+
+            var builder = new BodyBuilder
+            {
+                TextBody = body
+            };
+
+            // 👇 Đính kèm file
+            builder.Attachments.Add(fileName, fileBytes);
+
+            message.Body = builder.ToMessageBody();
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+
+
+    }
 
 }

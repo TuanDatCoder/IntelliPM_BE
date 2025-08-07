@@ -12,6 +12,7 @@ using IntelliPM.Data.DTOs.Risk.Request;
 using AutoMapper;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Risk.Response;
+using IntelliPM.Data.DTOs.Task.Request;
 
 public class GeminiService : IGeminiService
 {
@@ -112,6 +113,218 @@ Return only valid JSON.";
         {
             var checklistItems = JsonConvert.DeserializeObject<List<GeminiChecklistItem>>(replyText);
             return checklistItems.Select(x => x.title).ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error deserializing checklist items from Gemini reply:\n" + replyText + "\n" + ex.Message);
+        }
+    }
+
+    public async Task<List<TaskSuggestionRequestDTO>> GenerateTaskAsync(string projectDescription)
+    {
+        var prompt = @$"You are given the following project or epic description:
+
+""{projectDescription}""
+
+Based on this, generate **exactly 5 to 7 distinct and actionable tasks** that are required to successfully implement the project.
+
+Each task must include:
+- A clear and realistic **title**.
+- A concise but informative **description** that explains what the task involves.
+- A valid **type**, which must be one of:
+  - ""BUG"": For fixing a software/system issue or malfunction.
+  - ""STORY"": A feature or piece of functionality contributing to a larger project.
+  - ""TASK"": Technical, administrative, or other necessary work not tied to a feature or bug.
+
+### Output Format:
+Return a valid **JSON array** only (no markdown, no explanation). Use the exact format below for each task:
+
+[
+  {{
+    ""title"": ""Task title 1"",
+    ""description"": ""A short, specific description for task 1."",
+    ""status"": ""TO_DO"",
+    ""manualInput"": false,
+    ""generationAiInput"": true,
+    ""type"": ""STORY""
+  }},
+  ...
+]
+
+### Guidelines:
+- Each task must be **unique** — avoid redundancy or overlapping responsibilities.
+- Tasks must be **clear, practical, and achievable**, reflecting real-world development or project steps.
+- Do **not** include markdown formatting, comments, or any explanations — only return raw JSON.
+- Make sure the final output is a valid, parsable JSON array starting with '[' and ending with ']'.";
+
+
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[]
+                {
+                    new { text = prompt }
+                }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+        }
+
+        if (string.IsNullOrWhiteSpace(responseString))
+        {
+            throw new Exception("Gemini response is empty.");
+        }
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+        {
+            throw new Exception("Gemini did not return any text response.");
+        }
+
+        // Loại bỏ ``` nếu có
+        if (replyText.StartsWith("```"))
+        {
+            replyText = replyText.Replace("```json", "")
+                                 .Replace("```", "")
+                                 .Replace("json", "")
+                                 .Trim();
+        }
+
+        if (!replyText.StartsWith("["))
+        {
+            throw new Exception("Gemini reply is not a JSON array:\n" + replyText);
+        }
+
+        try
+        {
+            var checklistItems = JsonConvert.DeserializeObject<List<TaskSuggestionRequestDTO>>(replyText);
+            return checklistItems;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error deserializing checklist items from Gemini reply:\n" + replyText + "\n" + ex.Message);
+        }
+    }
+
+    public async Task<List<TaskSuggestionRequestDTO>> GenerateTaskByEpicAsync(string epicDescription)
+    {
+        var prompt = @$"Given the following project description:
+
+""{epicDescription}""
+
+Generate a list of 5 to 7 detailed **tasks** needed to implement the project. 
+Each task must include:
+- a realistic and concise `title`,
+- a clear and actionable `description`,
+- a valid `type` from the list below.
+
+Allowed types:
+- ""BUG"": Used to track software/system errors or issues.
+- ""STORY"": A small unit of work contributing to a larger Epic or project.
+- ""TASK"": Work that needs to be done but doesn't necessarily add a new feature or fix a bug.
+
+Each task must follow **exactly** the following JSON format (return JSON array only, no markdown or explanation):
+
+[
+  {{
+    ""title"": ""Example title"",
+    ""description"": ""Detailed and clear explanation of what needs to be done."",
+    ""status"": ""TO_DO"",
+    ""manualInput"": false,
+    ""generationAiInput"": true,
+    ""type"": ""STORY""
+  }}
+]
+
+Important rules:
+- All tasks must contain valid and non-empty title, description, and type.
+- Only return a valid raw JSON array. No markdown, no explanation, no extra characters.
+- Each task should be specific, not too general.
+
+Example:
+[
+  {{
+    ""title"": ""Design login page UI"",
+    ""description"": ""Create a responsive login page with email and password input, including validation and error handling."",
+    ""status"": ""TO_DO"",
+    ""manualInput"": false,
+    ""generationAiInput"": true,
+    ""type"": ""STORY""
+  }}
+]
+";
+
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[]
+                {
+                    new { text = prompt }
+                }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+        }
+
+        if (string.IsNullOrWhiteSpace(responseString))
+        {
+            throw new Exception("Gemini response is empty.");
+        }
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+        {
+            throw new Exception("Gemini did not return any text response.");
+        }
+
+        // Loại bỏ ``` nếu có
+        if (replyText.StartsWith("```"))
+        {
+            replyText = replyText.Replace("```json", "")
+                                 .Replace("```", "")
+                                 .Replace("json", "")
+                                 .Trim();
+        }
+
+        if (!replyText.StartsWith("["))
+        {
+            throw new Exception("Gemini reply is not a JSON array:\n" + replyText);
+        }
+
+        try
+        {
+            var checklistItems = JsonConvert.DeserializeObject<List<TaskSuggestionRequestDTO>>(replyText);
+            return checklistItems;
         }
         catch (Exception ex)
         {
@@ -861,10 +1074,66 @@ All output must be written in English.
         if (string.IsNullOrWhiteSpace(changesDescription))
             throw new Exception("No approved suggested changes found to simulate.");
 
+        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
+        {
+            t.Id,
+            t.Title,
+            t.Description,
+            t.PlannedStartDate,
+            t.PlannedEndDate,
+            t.ActualStartDate,
+            t.ActualEndDate,
+            t.PercentComplete,
+            t.PlannedHours,
+            t.ActualHours,
+            t.PlannedCost,
+            t.ActualCost,
+            t.Status,
+            t.Priority
+        }), Formatting.Indented);
+
+        var subtaskList = JsonConvert.SerializeObject(subtasks.Select(st => new
+        {
+            st.Id,
+            st.Title,
+            st.Description,
+            st.TaskId,
+            st.Status,
+            st.PlannedStartDate,
+            st.PlannedEndDate,
+            st.ActualStartDate,
+            st.ActualEndDate,
+            st.PercentComplete,
+            st.PlannedHours,
+            st.ActualHours,
+        }), Formatting.Indented);
+
+        var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
+        {
+            s.Id,
+            s.Name,
+            s.Goal,
+            s.StartDate,
+            s.EndDate,
+            s.Status
+        }), Formatting.Indented);
+
+        var milestoneList = JsonConvert.SerializeObject(milestones.Select(m => new
+        {
+            m.Id,
+            m.Name,
+            m.Description,
+            m.StartDate,
+            m.EndDate,
+            m.Status
+        }), Formatting.Indented);
+
         var prompt = $@"
 You are a project control analyst. Your task is to estimate the updated key performance indicators (KPIs) of a software project after applying a set of approved changes. 
 
 Current project metrics:
+- BAC (Budget at Completion) = {currentMetric.BudgetAtCompletion}
+- DAC (Duration at Completion) = {currentMetric.DurationAtCompletion}
 - Planned Value (PV): {currentMetric.PlannedValue}
 - Earned Value (EV): {currentMetric.EarnedValue}
 - Actual Cost (AC): {currentMetric.ActualCost}
@@ -877,19 +1146,29 @@ Changes Approved by Management:
 Please simulate the new metrics **after** applying the above changes. Return the result in the following JSON format:
 
 {{
-  ""SchedulePerformanceIndex"": number,    // new SPI
-  ""CostPerformanceIndex"": number,        // new CPI
-  ""EstimateAtCompletion"": number,        // new EAC
-  ""EstimateToComplete"": number,          // new ETC
+  ""SchedulePerformanceIndex"": number,    // new SPI (estimate)
+  ""CostPerformanceIndex"": number,        // new CPI (estimate)
+  ""EstimateAtCompletion"": number,        // new EAC = BAC / CPI
+  ""EstimateToComplete"": number,          // new ETC = EAC - AC
   ""VarianceAtCompletion"": number,        // new VAC = BAC - EAC
   ""EstimatedDurationAtCompletion"": number // new EDAC = DAC / SPI
 }}
 
 Rules:
-- BAC (Budget at Completion) = {currentMetric.BudgetAtCompletion}
-- DAC (Duration at Completion) = {currentMetric.DurationAtCompletion}
 - Use the standard EVM formulas to simulate realistic values
 - Output should be in JSON only. Do not include explanations or markdown.
+
+Task List:
+{taskList}
+
+Subtasks:
+{subtaskList}
+
+Sprint List:
+{sprintList}
+
+Milestone List:
+{milestoneList}
 
 ";
 

@@ -96,5 +96,17 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
             return await _context.TaskAssignment
             .FirstOrDefaultAsync(x => x.TaskId == taskId && x.AccountId == accountId);
         }
+
+        public async Task AddRangeAsync(List<TaskAssignment> taskAssignments)
+        {
+            await _context.TaskAssignment.AddRangeAsync(taskAssignments);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
+
     }
 }
