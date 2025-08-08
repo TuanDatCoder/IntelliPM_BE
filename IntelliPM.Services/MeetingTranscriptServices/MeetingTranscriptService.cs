@@ -57,7 +57,6 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                             ?? config["OpenAI:ApiKey"]; // Nếu không có biến môi trường, dùng appsettings.json (để phát triển)
 
-            if (string.IsNullOrEmpty(_openAiApiKey))
             {
                 throw new Exception("API Key không được thiết lập.");
             }
@@ -133,7 +132,6 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 throw;
             }
         }
-
         public async Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto)
         {
             try
@@ -156,6 +154,14 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 // Call Whisper API
                 string transcript = await GenerateTranscriptAsync(wavPath);
 
+                _logger.LogInformation("Generated transcript: {Transcript}", transcript);
+
+                if (string.IsNullOrWhiteSpace(transcript))
+                {
+                    _logger.LogWarning("Transcript is empty or null for meeting ID: {MeetingId}", dto.MeetingId);
+                    transcript = "[Transcript could not be generated.]";
+                }
+
                 try
                 {
                     if (File.Exists(mp3Path)) File.Delete(mp3Path);
@@ -177,7 +183,15 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 string summary;
                 try
                 {
-                    summary = await _geminiService.SummarizeTextAsync(transcript);
+                    if (string.IsNullOrWhiteSpace(transcript) || transcript.Contains("Transcript could not be generated"))
+                    {
+                        summary = "Cannot auto-generate summary.";
+                    }
+                    else
+                    {
+                        summary = await _geminiService.SummarizeTextAsync(transcript);
+                        _logger.LogInformation("Generated summary: {Summary}", summary);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -203,6 +217,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 throw;
             }
         }
+
+       
 
         public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
         {
@@ -236,6 +252,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Whisper API raw response: {Response}", responseString);
+
             using var doc = JsonDocument.Parse(responseString);
 
             string text = doc.RootElement.GetProperty("text").GetString() ?? "";
