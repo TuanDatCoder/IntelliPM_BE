@@ -160,18 +160,14 @@ namespace IntelliPM.API.Controllers
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
             }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
             try
             {
-                var results = new List<TaskResponseDTO>();
-                foreach (var request in requests)
-                {
-                    if (!ModelState.IsValid)
-                    {
-                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
-                    }
-                    var result = await _service.CreateTask(request);
-                    results.Add(result);
-                }
+                var results = await _service.CreateTasksBulkAsync(requests);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -179,6 +175,10 @@ namespace IntelliPM.API.Controllers
                     Message = "Tasks created successfully",
                     Data = results
                 });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -190,6 +190,7 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] TaskRequestDTO request)

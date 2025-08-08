@@ -1405,7 +1405,9 @@ VALUES
     ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
     ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
 
-
+	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025
