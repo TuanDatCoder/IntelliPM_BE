@@ -371,10 +371,10 @@ namespace IntelliPM.Services.SubtaskServices
             {
                 await _subtaskRepo.Update(entity);
 
-                // 👇 Nếu AssignedBy thay đổi, thì gửi email
+                
                 if (oldAssignedBy != entity.AssignedBy)
                 {
-                    // Gửi email ở đây, ví dụ:
+                    
                     var assignee = await _accountRepo.GetAccountById(entity.AssignedBy ?? 0);
                     if (assignee != null)
                     {

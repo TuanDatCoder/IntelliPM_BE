@@ -28,7 +28,7 @@ namespace IntelliPM.Services.TaskServices
         Task<TaskResponseDTO> ChangeTaskDescription(string id, string description, int createdBy);
         Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy);
         Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy);
-        Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId);
+        Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy);
         Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId);
         Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id);
         Task<List<TaskDetailedResponseDTO>> GetTasksByProjectIdDetailed(int projectId);
