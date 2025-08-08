@@ -33,5 +33,6 @@ namespace IntelliPM.Services.RiskServices
         Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel);
         Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability);
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey);
+        Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey);
     }
 }

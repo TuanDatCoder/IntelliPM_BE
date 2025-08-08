@@ -1236,7 +1236,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.WorkingHoursPerDay)
-                .HasDefaultValue(8)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("8")
                 .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
@@ -2169,6 +2170,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_log_task_id_fkey");
         });
+        modelBuilder.HasSequence("course_id_seq");
         modelBuilder.HasSequence("flower_id_seq");
         modelBuilder.HasSequence("intellipm_id_seq");
         modelBuilder.HasSequence("projc_id_seq");

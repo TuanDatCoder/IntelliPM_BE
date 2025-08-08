@@ -466,6 +466,17 @@ namespace IntelliPM.Services.RiskServices
                 ?? throw new Exception("Risk not found");
             return _mapper.Map<RiskResponseDTO>(risk);
         }
+
+        public async Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var risks = await _geminiService.DetectTaskRisksAsync(project, tasks);
+
+            return risks ?? new List<AIRiskResponseDTO>();
+        }
     }
 
 }
