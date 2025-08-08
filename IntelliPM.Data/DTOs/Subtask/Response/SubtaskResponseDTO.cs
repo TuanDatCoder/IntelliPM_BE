@@ -15,6 +15,8 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public string? AssignedByPicture { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
+        public int? SprintId { get; set; }
+        public string? SprintName { get; set; }
         public int? ReporterId { get; set; }
         public string? ReporterName { get; set; }
         public string? ReporterPicture { get; set; }
