@@ -25,6 +25,8 @@ namespace IntelliPM.Data.DTOs.Task.Request
         public string Title { get; set; } = null!;
 
         public string? Description { get; set; }
+        public string? Priority { get; set; }
+        public decimal? PlannedHours { get; set; }
 
         public DateTime? PlannedStartDate { get; set; }
 

@@ -1,5 +1,7 @@
-﻿using IntelliPM.Data.DTOs.Task.Response;
+﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +28,8 @@ namespace IntelliPM.Repositories.TaskRepos
         Task AddRangeAsync(List<Tasks> tasks);
         Task SaveChangesAsync();
         Task UpdateRange(List<Tasks> tasks);
+        Su25Sep490IntelliPmContext GetContext();
+        Task AddRangeAsync(List<Tasks> tasks, Su25Sep490IntelliPmContext context);
 
     }
 }
