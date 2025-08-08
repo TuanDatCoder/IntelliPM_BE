@@ -18,6 +18,8 @@ namespace IntelliPM.Repositories.SubtaskRepos
         Task<List<Subtask>> GetInProgressAsync();
         Task<List<Subtask>> GetByAccountIdAsync(int id);
         Task<List<Subtask>> GetByProjectIdAsync(int projectId);
-
+        Task<List<Subtask>> GetByProjectAndAccountAsync(int projectId, int accountId);
+        Task<List<Subtask>> GetByAssignedByAsync(int accountId);
+        Task UpdateRange(List<Subtask> subtasks);
     }
 }

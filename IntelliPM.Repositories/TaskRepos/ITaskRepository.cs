@@ -27,8 +27,9 @@ namespace IntelliPM.Repositories.TaskRepos
         Task<List<Tasks>> GetBySprintIdAndByStatusAsync(int sprintId, string status);
         Task AddRangeAsync(List<Tasks> tasks);
         Task SaveChangesAsync();
+        Task UpdateRange(List<Tasks> tasks);
         Su25Sep490IntelliPmContext GetContext();
-
         Task AddRangeAsync(List<Tasks> tasks, Su25Sep490IntelliPmContext context);
+
     }
 }

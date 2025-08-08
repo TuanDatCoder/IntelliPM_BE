@@ -22,6 +22,8 @@ namespace IntelliPM.Services.GeminiServices
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);
         Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(Project project, ProjectMetric metric, List<Tasks> tasks, List<Sprint> sprints, List<Milestone> milestones, List<Subtask> subtasks);
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(Project project, List<Tasks> tasks);
+        // Task<List<AIRiskResponseDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);
+        Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks);
         Task<SimulatedMetricDTO> SimulateProjectMetricsAfterRecommendationsAsync(Project project, ProjectMetric currentMetric, List<Tasks> tasks, List<Sprint> sprints, List<Milestone> milestones, List<Subtask> subtasks, List<ProjectRecommendation> approvedRecommendations);
     }
 }
