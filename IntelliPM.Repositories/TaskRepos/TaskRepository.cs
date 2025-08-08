@@ -176,6 +176,13 @@ namespace IntelliPM.Repositories.TaskRepos
             await _context.SaveChangesAsync();
         }
 
+        public async Task UpdateRange(List<Tasks> tasks)
+        {
+            if (tasks == null || !tasks.Any())
+                return;
 
+            _context.Tasks.UpdateRange(tasks);
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -62,7 +62,7 @@ CREATE TABLE project_member (
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     hourly_rate DECIMAL(10, 2) NULL,
-    working_hours_per_day INT NULL DEFAULT 8, 
+    working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)

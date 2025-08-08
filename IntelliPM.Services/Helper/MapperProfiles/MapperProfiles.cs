@@ -401,6 +401,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ProjectPositions, opt => opt.MapFrom(src => src.ProjectPosition));
 
             CreateMap<ProjectMemberNoProjectIdRequestDTO, ProjectMember>();
+            CreateMap<ProjectMember, ProjectMemberWithTasksResponseDTO>();
+            CreateMap<ProjectMemberWithTasksResponseDTO, ProjectMember>();
 
             // ProjectPosition
             CreateMap<ProjectPosition, ProjectPositionResponseDTO>();

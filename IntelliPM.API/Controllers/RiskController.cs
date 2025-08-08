@@ -335,11 +335,41 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("ai-suggestion-risk-task")]
+        public async Task<IActionResult> ViewAIDetectTaskRisksAsyncAsync([FromQuery] string projectKey)
+        {
+            try
+            {
+                var risks = await _riskService.ViewAIDetectTaskRisksAsyncAsync(projectKey);
+                if (!risks.Any())
+                {
+                    return Ok(new
+                    {
+                        isSuccess = true,
+                        code = 200,
+                        message = "No risks detected for the tasks. Check task data or Gemini API response.",
+                        data = risks
+                    });
+                }
 
-
-
-
-
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Task risks detected successfully",
+                    data = risks
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = $"Error detecting task risks: {ex.Message}"
+                });
+            }
+        }
 
         [HttpGet("unapproved-ai-risks")]
         public async Task<IActionResult> GetUnapprovedAIRisks([FromQuery] int projectId)

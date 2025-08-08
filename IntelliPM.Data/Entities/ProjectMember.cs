@@ -19,7 +19,7 @@ public partial class ProjectMember
 
     public decimal? HourlyRate { get; set; }
 
-    public int? WorkingHoursPerDay { get; set; }
+    public decimal? WorkingHoursPerDay { get; set; }
 
     public virtual Account Account { get; set; } = null!;
 
