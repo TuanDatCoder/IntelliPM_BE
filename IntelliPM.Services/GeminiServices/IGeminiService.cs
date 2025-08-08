@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
+using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,8 @@ namespace IntelliPM.Services.GeminiServices
     public interface IGeminiService
     {
         Task<List<string>> GenerateSubtaskAsync(string taskTitle);
+        Task<List<TaskSuggestionRequestDTO>> GenerateTaskAsync(string projectDescription);
+        Task<List<TaskSuggestionRequestDTO>> GenerateTaskByEpicAsync(string epicDescription);
         Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
         Task<string> SummarizeTextAsync(string transcriptText);
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);

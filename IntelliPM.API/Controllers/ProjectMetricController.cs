@@ -85,6 +85,32 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("ai-forecast")]
+        public async Task<IActionResult> GetProjectForecastByProjectKeyAsync([FromQuery] string projectKey)
+        {
+            try
+            {
+                var result = await _service.GetProjectForecastByProjectKeyAsync(projectKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Success",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Internal Server Error: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
         [HttpGet("health-dashboard")]
         public async Task<IActionResult> GetProjectHealth([FromQuery] string projectKey)
         {

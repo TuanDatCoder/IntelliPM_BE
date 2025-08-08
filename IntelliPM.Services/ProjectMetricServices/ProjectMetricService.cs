@@ -84,24 +84,23 @@ namespace IntelliPM.Services.ProjectMetricServices
             if (project.StartDate.HasValue && project.EndDate.HasValue)
             {
                 var totalDays = (project.EndDate.Value - project.StartDate.Value).TotalDays;
-                DAC = Math.Round((decimal)(totalDays / 30.0), 0); // Làm tròn 1 chữ số sau dấu phẩy
+                DAC = Math.Round((decimal)(totalDays / 30.0), 0); 
             }
-
 
             foreach (var task in tasks)
             {
                 // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
                 if (task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
                 {
-                    var now = DateTime.UtcNow;
-                    if (now >= task.PlannedStartDate && now <= task.PlannedEndDate)
+                    var now = DateTime.UtcNow.Date; // Use date-only to ignore time component
+                    if (now >= task.PlannedStartDate.Value.Date && now <= task.PlannedEndDate.Value.Date)
                     {
                         var totalPlannedDuration = (task.PlannedEndDate - task.PlannedStartDate)?.TotalDays ?? 1;
                         var elapsed = (now - task.PlannedStartDate)?.TotalDays ?? 0;
                         var progress = (decimal)(elapsed / totalPlannedDuration);
                         PV += (task.PlannedCost ?? 0) * progress;
                     }
-                    else if (now > task.PlannedEndDate)
+                    else if (now > task.PlannedEndDate.Value.Date)
                     {
                         PV += task.PlannedCost ?? 0;
                     }
@@ -501,15 +500,21 @@ namespace IntelliPM.Services.ProjectMetricServices
                 costDto.VarianceAtCompletion = Math.Round(costDto.VarianceAtCompletion, 0);
 
                 // Tính trạng thái thời gian: nếu SPI < 1 thì đang chậm
-                if (costDto.SchedulePerformanceIndex < 1)
+                if (progress == 0 && costDto.SchedulePerformanceIndex == 0)
                 {
-                    var behindPercent = (1 - (double)costDto.SchedulePerformanceIndex) * 100;
-                    timeStatus = $"{Math.Round(behindPercent, 2)}% behind";
+                    timeStatus = "Project not started";
+                }
+                else if (costDto.SchedulePerformanceIndex < 1)
+                {
+                    timeStatus = $"{Math.Round((1 - (double)costDto.SchedulePerformanceIndex) * 100, 2)}% behind";
                 }
                 else if (costDto.SchedulePerformanceIndex > 1)
                 {
-                    var aheadPercent = ((double)costDto.SchedulePerformanceIndex - 1) * 100;
-                    timeStatus = $"{Math.Round(aheadPercent, 2)}% ahead";
+                    timeStatus = $"{Math.Round(((double)costDto.SchedulePerformanceIndex - 1) * 100, 2)}% ahead";
+                }
+                else 
+                {
+                    timeStatus = "On time";
                 }
 
                 costStatus = costDto.CostPerformanceIndex;
@@ -568,7 +573,6 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
 
-            // Lấy tất cả subtasks
             var subtasks = new List<Subtask>();
             foreach (var task in tasks)
             {
@@ -632,8 +636,18 @@ namespace IntelliPM.Services.ProjectMetricServices
             double actualCompletion = taskInfos.Count == 0 ? 0 : taskInfos.Average(t => t.AvgPercentComplete);
 
             // Phân loại status
-            double diff = actualCompletion - plannedCompletion;
-            string status = diff > 5 ? "Ahead" : (diff < -5 ? "Behind" : "On Time");
+            //double diff = actualCompletion - plannedCompletion;
+            //string status = diff > 5 ? "Ahead" : (diff < -5 ? "Behind" : "On Time");
+            string status;
+            if (actualCompletion == 0 && plannedCompletion >= 0)
+            {
+                status = "Not Started";
+            }
+            else
+            {
+                double diff = actualCompletion - plannedCompletion;
+                status = diff > 5 ? "Ahead" : (diff < -5 ? "Behind" : "On Time");
+            }
 
             return new
             {
@@ -695,7 +709,16 @@ namespace IntelliPM.Services.ProjectMetricServices
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
-            var entity = await _repo.GetLatestByProjectIdAsync(project.Id);
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+
+            return _mapper.Map<NewProjectMetricResponseDTO>(entity);
+        }
+
+        public async Task<NewProjectMetricResponseDTO> GetProjectForecastByProjectKeyAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "AI");
 
             return _mapper.Map<NewProjectMetricResponseDTO>(entity);
         }

@@ -3,6 +3,10 @@ using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ActivityLog.Request;
 using IntelliPM.Data.DTOs.ActivityLog.Response;
+using IntelliPM.Data.DTOs.AiResponseEvaluation.Request;
+using IntelliPM.Data.DTOs.AiResponseEvaluation.Response;
+using IntelliPM.Data.DTOs.AiResponseHistory.Request;
+using IntelliPM.Data.DTOs.AiResponseHistory.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;
@@ -521,6 +525,27 @@ namespace IntelliPM.Services.Helper.MapperProfiles
 
             // WorkLog
             CreateMap<WorkLog, WorkLogResponseDTO>();
+
+            //Ai Response History
+            CreateMap<AiResponseHistoryRequestDTO, AiResponseHistory>()
+               .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+               .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+               .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            CreateMap<AiResponseHistory, AiResponseHistoryResponseDTO>()
+                .ForMember(dest => dest.CreatedByFullname, opt => opt.MapFrom(src => src.CreatedByNavigation.FullName))
+                .ForMember(dest => dest.CreatedByPicture, opt => opt.MapFrom(src => src.CreatedByNavigation.Picture));
+
+            // Ai Response Evaluation
+            CreateMap<AiResponseEvaluationRequestDTO, AiResponseEvaluation>()
+                .ForMember(dest => dest.AccountId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            CreateMap<AiResponseEvaluation, AiResponseEvaluationResponseDTO>()
+                .ForMember(dest => dest.AccountFullname, opt => opt.MapFrom(src => src.Account.FullName))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account.Picture));
+
         }
     }
 }

@@ -23,6 +23,8 @@ namespace IntelliPM.Repositories.TaskRepos
         Task<List<Tasks>> GetInProgressAsync();
         Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
         Task<List<Tasks>> GetBySprintIdAndByStatusAsync(int sprintId, string status);
+        Task AddRangeAsync(List<Tasks> tasks);
+        Task SaveChangesAsync();
 
 
     }

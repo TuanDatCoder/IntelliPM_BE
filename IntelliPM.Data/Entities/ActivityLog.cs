@@ -9,6 +9,8 @@ public partial class ActivityLog
 
     public int? ProjectId { get; set; }
 
+    public string? EpicId { get; set; }
+
     public string? TaskId { get; set; }
 
     public string? SubtaskId { get; set; }
@@ -32,6 +34,8 @@ public partial class ActivityLog
     public DateTime CreatedAt { get; set; }
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
+
+    public virtual Epic? Epic { get; set; }
 
     public virtual Subtask? Subtask { get; set; }
 

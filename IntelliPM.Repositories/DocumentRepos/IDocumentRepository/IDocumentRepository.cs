@@ -39,6 +39,11 @@ namespace IntelliPM.Repositories.DocumentRepos
 
         Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId);
 
+        Task<List<int>> GetAccountIdsByEmailsAsync(List<string> emails);
+        Task<Dictionary<string, int>> GetAccountMapByEmailsAsync(List<string> emails);
+
+
+
 
 
 
