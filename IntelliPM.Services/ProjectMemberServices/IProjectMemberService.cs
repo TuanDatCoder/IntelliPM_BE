@@ -33,6 +33,7 @@ namespace IntelliPM.Services.ProjectMemberServices
 
         Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId, int accountId);
         Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId);
-        //Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate);
+        Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate);
+        Task<ProjectMemberWithTasksResponseDTO> ChangeWorkingHoursPerDay(int id, decimal workingHoursPerDay);
     }
 }

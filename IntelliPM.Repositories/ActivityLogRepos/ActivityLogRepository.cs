@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +13,16 @@ namespace IntelliPM.Repositories.ActivityLogRepos
     public class ActivityLogRepository : IActivityLogRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
-
-        public ActivityLogRepository(Su25Sep490IntelliPmContext context)
+        private readonly IServiceProvider _serviceProvider;
+        public ActivityLogRepository(Su25Sep490IntelliPmContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
+        }
+
+        public Su25Sep490IntelliPmContext GetContext()
+        {
+            return _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<Su25Sep490IntelliPmContext>();
         }
 
         public async Task Add(ActivityLog activityLog)
@@ -64,6 +71,15 @@ namespace IntelliPM.Repositories.ActivityLogRepos
                 .Where(t => t.SubtaskId == subtaskId)
                 .OrderByDescending(tf => tf.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+        public async Task AddRangeAsync(List<ActivityLog> activityLogs)
+        {
+            await _context.ActivityLog.AddRangeAsync(activityLogs);
         }
     }
 }

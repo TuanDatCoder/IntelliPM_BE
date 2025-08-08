@@ -98,5 +98,28 @@ namespace IntelliPM.Repositories.SubtaskRepos
                 .ToListAsync();
         }
 
+        public async Task<List<Subtask>> GetByAssignedByAsync(int accountId)
+        {
+            return await _context.Subtask
+                .Where(s => s.AssignedBy == accountId)
+                .ToListAsync();
+        }
+
+        public async Task UpdateRange(List<Subtask> subtasks)
+        {
+            if (subtasks == null || !subtasks.Any())
+                return;
+
+            _context.Subtask.UpdateRange(subtasks);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Subtask>> GetByProjectAndAccountAsync(int projectId, int accountId)
+        {
+            return await _context.Subtask
+            .Where(s => s.Task != null && s.Task.ProjectId == projectId)
+            .Where(s => s.AssignedBy == accountId)
+            .ToListAsync();
+        }
     }
 }

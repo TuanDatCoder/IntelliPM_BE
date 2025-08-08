@@ -62,7 +62,7 @@ CREATE TABLE project_member (
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     hourly_rate DECIMAL(10, 2) NULL,
-    working_hours_per_day INT NULL DEFAULT 8, 
+    working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)
@@ -607,12 +607,12 @@ CREATE TABLE change_request (
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
+    details TEXT NULL,
+    suggested_changes TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id)
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
 -- 37. label
@@ -686,6 +686,9 @@ CREATE TABLE project_metric (
     estimate_to_complete DECIMAL(15, 2) NULL,
     variance_at_completion DECIMAL(15, 2) NULL,
     estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    is_improved BOOLEAN NOT NULL DEFAULT FALSE,
+    improvement_summary TEXT NULL DEFAULT '',
+    confidence_score DECIMAL(5, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id)
@@ -1162,13 +1165,13 @@ VALUES
     (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
-INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
+INSERT INTO project_recommendation (project_id, type, recommendation)
 VALUES 
-    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
-    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
-    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
-    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
-    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
+    (1, 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'MARKETING', 'Increase ad spend'),
+    (3, 'RESEARCH', 'Use additional sources'),
+    (4, 'DESIGN', 'Improve color contrast'),
+    (5, 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
@@ -1399,9 +1402,12 @@ VALUES
     ('ai_feature', 'SPRINT_CREATION', 'Sprint Creation', 'AI creates sprints and assigns tasks from backlog', 2, 'https://example.com/icons/sprint-creation.png', '#2196F3'),
     ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
-    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0');
+    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
 
-
+	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025
@@ -1416,16 +1422,16 @@ VALUES
 -- Insert sample data for project_member (at least 10 members)
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-    (1, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
-    (2, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
-    (4, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
-    (5, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (6, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (7, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (8, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (9, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (12, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
-    (19, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
+    (1, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'ACTIVE'), -- Admin
+    (2, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'ACTIVE'), -- Team Leader
+    (4, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'ACTIVE'), -- Project Manager
+    (5, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (6, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (7, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (8, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'ACTIVE'), -- Backend Developer
+    (9, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'ACTIVE'), -- Backend Developer
+    (12, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'ACTIVE'), -- Tester
+    (19, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'ACTIVE'); -- Designer
 
 -- Insert sample data for project_position
 INSERT INTO project_position (project_member_id, position, assigned_at)
@@ -1471,15 +1477,15 @@ VALUES
 -- Insert project members
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'IN_PROGRESS'),
-(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'IN_PROGRESS'),
-(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'IN_PROGRESS'),
-(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'IN_PROGRESS'),
-(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'IN_PROGRESS'),
-(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'IN_PROGRESS'),
-(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'IN_PROGRESS'),
-(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'IN_PROGRESS'),
-(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'IN_PROGRESS');
+(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'ACTIVE'),
+(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'ACTIVE'),
+(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'ACTIVE'),
+(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'ACTIVE'),
+(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'ACTIVE'),
+(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'ACTIVE'),
+(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'ACTIVE'),
+(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'ACTIVE'),
+(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'ACTIVE');
 
 -- Insert project positions
 INSERT INTO project_position (project_member_id, position, assigned_at)

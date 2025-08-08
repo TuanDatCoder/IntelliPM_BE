@@ -1,4 +1,5 @@
 using ConstructionEquipmentRental.API.Middlewares;
+using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
 using IntelliPM.Data.Contexts;
@@ -34,7 +35,6 @@ using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RecipientNotificationRepos;
-using IntelliPM.Repositories.RecipientNotificationRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Repositories.RiskCommentRepos;
@@ -55,11 +55,11 @@ using IntelliPM.Repositories.WorkItemLabelRepos;
 using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ActivityLogServices;
-using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AiResponseEvaluationServices;
 using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
+using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
@@ -250,7 +250,8 @@ builder.Services.AddScoped<IAiResponseHistoryService, AiResponseHistoryService>(
 builder.Services.AddScoped<IAiResponseEvaluationService, AiResponseEvaluationService>();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
-
+builder.Services.AddTransient<CloudConvertService>();
+builder.Services.AddScoped<ISprintTaskPlanningService, SprintTaskPlanningService>();
 
 
 // ------------------------- HttpClient -----------------------------

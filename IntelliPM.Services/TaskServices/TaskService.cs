@@ -11,6 +11,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -29,9 +30,11 @@ using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Intrinsics.Arm;
@@ -59,8 +62,10 @@ namespace IntelliPM.Services.TaskServices
         private readonly IActivityLogService _activityLogService;
         private readonly IMilestoneRepository _milestoneRepo;
         private readonly IGeminiService _geminiService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly object _idGenerationLock = new object();
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -79,6 +84,7 @@ namespace IntelliPM.Services.TaskServices
             _activityLogService = activityLogService;
             _milestoneRepo = milestoneRepo;
             _geminiService = geminiService;
+            _serviceProvider = serviceProvider;
         }
         public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
         {
@@ -314,6 +320,28 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+
+
+        public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                throw new ArgumentException("Request list cannot be null or empty.");
+            }
+
+            var results = new List<TaskResponseDTO>();
+
+            foreach (var request in requests)
+            {
+
+                var result = await CreateTask(request);
+                results.Add(result);
+            }
+
+            return results;
+        }
+
 
         public async Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request)
         {

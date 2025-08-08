@@ -45,6 +45,7 @@ using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.RecipientNotification.Request;
 using IntelliPM.Data.DTOs.RecipientNotification.Response;
@@ -144,8 +145,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMetric, NewProjectMetricResponseDTO>();
 
             // ProjectRecommendation
-            CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>()
-                .ForMember(dest => dest.TaskTitle, opt => opt.MapFrom(src => src.Task.Title));
+            CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>();
+            CreateMap<ProjectRecommendationRequestDTO, ProjectRecommendation>();
 
             // Epic
             CreateMap<EpicRequestDTO, Epic>()
@@ -401,6 +402,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ProjectPositions, opt => opt.MapFrom(src => src.ProjectPosition));
 
             CreateMap<ProjectMemberNoProjectIdRequestDTO, ProjectMember>();
+            CreateMap<ProjectMember, ProjectMemberWithTasksResponseDTO>();
+            CreateMap<ProjectMemberWithTasksResponseDTO, ProjectMember>();
 
             // ProjectPosition
             CreateMap<ProjectPosition, ProjectPositionResponseDTO>();

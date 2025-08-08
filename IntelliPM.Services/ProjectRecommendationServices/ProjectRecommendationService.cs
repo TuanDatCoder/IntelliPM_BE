@@ -55,9 +55,10 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var entity = new ProjectRecommendation
             {
                 ProjectId = dto.ProjectId,
-                TaskId = dto.TaskId,
                 Type = dto.Type,
                 Recommendation = dto.Recommendation,
+                SuggestedChanges = dto.SuggestedChanges,
+                Details = dto.Details,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -156,7 +157,6 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             if (metric == null)
                 throw new Exception("ProjectMetric not found");
 
-            // Gọi AI sinh forecast
             var forecast = await _geminiService.SimulateProjectMetricsAfterRecommendationsAsync(
                 project,
                 metric,
@@ -180,6 +180,9 @@ namespace IntelliPM.Services.ProjectRecommendationServices
                     existingAIMetric.VarianceAtCompletion = Math.Round((decimal)forecast.VarianceAtCompletion, 0);
                     existingAIMetric.EstimateDurationAtCompletion = Math.Round((decimal)forecast.EstimatedDurationAtCompletion, 0);
                     existingAIMetric.UpdatedAt = DateTime.UtcNow;
+                    existingAIMetric.IsImproved = forecast.IsImproved;
+                    existingAIMetric.ImprovementSummary = forecast.ImprovementSummary;
+                    existingAIMetric.ConfidenceScore = forecast.ConfidenceScore;
 
                     await _projectMetricRepo.Update(existingAIMetric);
                 }
@@ -196,6 +199,9 @@ namespace IntelliPM.Services.ProjectRecommendationServices
                         EstimateToComplete = Math.Round((decimal)forecast.EstimateToComplete, 0),
                         VarianceAtCompletion = Math.Round((decimal)forecast.VarianceAtCompletion, 0),
                         EstimateDurationAtCompletion = Math.Round((decimal)forecast.EstimatedDurationAtCompletion, 0),
+                        IsImproved = forecast.IsImproved,
+                        ImprovementSummary = forecast.ImprovementSummary,
+                        ConfidenceScore = forecast.ConfidenceScore,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -209,6 +215,40 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             return new SimulatedMetricDTO();
         }
 
+        public async Task<SimulatedMetricDTO> GetProjectMetricForecastAsync(string projectKey)
+        {
+            // Validate projectKey
+            if (string.IsNullOrWhiteSpace(projectKey))
+                throw new ArgumentException("Project key cannot be empty.", nameof(projectKey));
 
+            // Fetch project data
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception($"Project with key {projectKey} not found");
+
+            // Fetch related data
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
+            var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
+            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, "System")
+                ?? throw new Exception($"ProjectMetric for project {projectKey} not found");
+            var approvedRecommendations = await _projectRecommendationRepo.GetByProjectIdAsync(project.Id);
+
+            // Generate forecast using Gemini service
+            var forecast = await _geminiService.SimulateProjectMetricsAfterRecommendationsAsync(
+                project,
+                metric,
+                tasks,
+                sprints,
+                milestones,
+                subtasks,
+                approvedRecommendations
+            );
+
+            if (forecast == null)
+                throw new Exception("Failed to generate forecast.");
+
+            return forecast;
+        }
     }
 }
