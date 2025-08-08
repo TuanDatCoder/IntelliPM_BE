@@ -607,12 +607,12 @@ CREATE TABLE change_request (
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
+    details TEXT NULL,
+    suggested_changes TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id)
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
 -- 37. label
@@ -686,6 +686,9 @@ CREATE TABLE project_metric (
     estimate_to_complete DECIMAL(15, 2) NULL,
     variance_at_completion DECIMAL(15, 2) NULL,
     estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    is_improved BOOLEAN NOT NULL DEFAULT FALSE,
+    improvement_summary TEXT NULL DEFAULT '',
+    confidence_score DECIMAL(5, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id)
@@ -1162,13 +1165,13 @@ VALUES
     (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
-INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
+INSERT INTO project_recommendation (project_id, type, recommendation)
 VALUES 
-    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
-    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
-    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
-    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
-    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
+    (1, 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'MARKETING', 'Increase ad spend'),
+    (3, 'RESEARCH', 'Use additional sources'),
+    (4, 'DESIGN', 'Improve color contrast'),
+    (5, 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
@@ -1399,7 +1402,8 @@ VALUES
     ('ai_feature', 'SPRINT_CREATION', 'Sprint Creation', 'AI creates sprints and assigns tasks from backlog', 2, 'https://example.com/icons/sprint-creation.png', '#2196F3'),
     ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
-    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0');
+    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
 
 
 

@@ -13,6 +13,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="14.0.0" />
+		<PackageReference Include="CloudConvert.API" Version="1.4.0" />
 		<PackageReference Include="FirebaseAdmin" Version="3.2.0" />
 		<PackageReference Include="Google.Cloud.Storage.V1" Version="4.13.0" />
 		<PackageReference Include="MailKit" Version="4.12.1" />

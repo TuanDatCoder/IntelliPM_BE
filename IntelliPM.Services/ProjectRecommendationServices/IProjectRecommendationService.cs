@@ -15,5 +15,6 @@ namespace IntelliPM.Services.ProjectRecommendationServices
         Task<SimulatedMetricDTO> SimulateProjectMetricsAfterRecommendationsAsync(string projectKey);
         Task<List<ProjectRecommendationResponseDTO>> GetByProjectKeyAsync(string projectKey);
         Task DeleteByIdAsync(int id);
+        Task<SimulatedMetricDTO> GetProjectMetricForecastAsync(string projectKey);
     }
 }

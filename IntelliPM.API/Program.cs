@@ -1,4 +1,5 @@
 using ConstructionEquipmentRental.API.Middlewares;
+using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
 using IntelliPM.Data.Contexts;
@@ -250,6 +251,8 @@ builder.Services.AddScoped<IAiResponseHistoryService, AiResponseHistoryService>(
 builder.Services.AddScoped<IAiResponseEvaluationService, AiResponseEvaluationService>();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
+builder.Services.AddTransient<CloudConvertService>();
+
 
 
 
