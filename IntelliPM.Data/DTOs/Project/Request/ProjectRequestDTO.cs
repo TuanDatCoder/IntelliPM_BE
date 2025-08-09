@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using IntelliPM.Common.Attributes;
+
 
 namespace IntelliPM.Data.DTOs.Project.Request
 {
@@ -20,6 +22,7 @@ namespace IntelliPM.Data.DTOs.Project.Request
 
         [Required(ErrorMessage = "Project type is required")]
         [MaxLength(50, ErrorMessage = "Project type cannot exceed 50 characters")]
+        [DynamicCategoryValidation("project_type", Required = true)]
         public string ProjectType { get; set; } = null!;
 
         public DateTime? StartDate { get; set; }

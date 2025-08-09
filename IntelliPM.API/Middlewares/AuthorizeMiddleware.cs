@@ -4,7 +4,7 @@ using IntelliPM.Services.Helper.CustomExceptions;
 using System.Net;
 using System.Security.Claims;
 
-namespace ConstructionEquipmentRental.API.Middlewares
+namespace IntelliPM.API.Middlewares
 {
     public class AuthorizeMiddleware
     {
