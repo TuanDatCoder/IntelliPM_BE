@@ -151,6 +151,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
+
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
@@ -412,21 +413,23 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AuthorId).HasColumnName("author_id");
+            entity.Property(e => e.Comment).HasColumnName("comment");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.DocumentId).HasColumnName("document_id");
+            entity.Property(e => e.FromPos).HasColumnName("from_pos");
+            entity.Property(e => e.ToPos).HasColumnName("to_pos");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
             entity.HasOne(d => d.Author).WithMany(p => p.DocumentComment)
                 .HasForeignKey(d => d.AuthorId)
-                .HasConstraintName("fk_author");
+                .HasConstraintName("document_comment_author_id_fkey");
 
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentComment)
                 .HasForeignKey(d => d.DocumentId)
-                .HasConstraintName("fk_document");
+                .HasConstraintName("document_comment_document_id_fkey");
         });
 
         modelBuilder.Entity<DocumentExportFile>(entity =>

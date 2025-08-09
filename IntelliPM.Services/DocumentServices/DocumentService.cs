@@ -412,8 +412,8 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 throw new Exception("Document not found");
 
             var failedToSend = new List<string>();
-            var failedToFind = new List<string>();
 
+            // Chuẩn hoá danh sách email
             var lowerInputEmails = req.Emails?
                 .Where(e => !string.IsNullOrWhiteSpace(e))
                 .Select(e => e.Trim().ToLower())
@@ -428,48 +428,42 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                     FailedEmails = new List<string>()
                 };
             }
+
             var permissionType = req.PermissionType?.ToUpper() ?? "VIEW";
             var mode = permissionType == "EDIT" ? "edit" : "view";
 
             // 🔗 Tạo link chia sẻ
             var projectKey = string.IsNullOrWhiteSpace(req.ProjectKey) ? "DEFAULTKEY" : req.ProjectKey;
-            var link = $"http://localhost:5173/project/projects/form/view/{document.Id}?projectKey={projectKey}&mode={mode}";
+            var link = $"http://localhost:5173/project/projects/form/document/{document.Id}?mode={mode}";
 
-            // ✅ Lấy danh sách tài khoản theo email
+
+            // ✅ Lấy danh sách account có tồn tại trong hệ thống
             var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<email, accountId>
-            var matchedEmails = accountMap.Keys;
-            failedToFind = lowerInputEmails.Except(matchedEmails).ToList();
 
-            if (accountMap.Count == 0)
+            // 🗑 Xoá các quyền trùng loại nếu đã có
+            if (accountMap.Count > 0)
             {
-                return new ShareDocumentResponseDTO
+                var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
+                var toRemove = existingPermissions
+                    .Where(p => accountMap.Values.Contains(p.AccountId) && p.PermissionType == req.PermissionType)
+                    .ToList();
+
+                _permissionRepo.RemoveRange(toRemove);
+
+                // ➕ Thêm quyền mới cho các email có account
+                var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
-                    Success = false,
-                    FailedEmails = failedToFind
-                };
+                    DocumentId = documentId,
+                    AccountId = accountId,
+                    PermissionType = req.PermissionType
+                });
+
+                await _permissionRepo.AddRangeAsync(newPermissions);
+                await _permissionRepo.SaveChangesAsync();
             }
 
-            // 🗑 Xoá các quyền trùng loại PermissionType nếu đã tồn tại
-            var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
-            var toRemove = existingPermissions
-                .Where(p => accountMap.Values.Contains(p.AccountId) && p.PermissionType == req.PermissionType)
-                .ToList();
-
-            _permissionRepo.RemoveRange(toRemove);
-
-            // ➕ Thêm quyền mới
-            var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
-            {
-                DocumentId = documentId,
-                AccountId = accountId,
-                PermissionType = req.PermissionType
-            });
-
-            await _permissionRepo.AddRangeAsync(newPermissions);
-            await _permissionRepo.SaveChangesAsync();
-
-            // 📧 Gửi email
-            foreach (var email in matchedEmails)
+            // 📧 Gửi email đến TẤT CẢ email nhập vào, không phân biệt có account hay không
+            foreach (var email in lowerInputEmails)
             {
                 try
                 {
@@ -483,17 +477,32 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 catch (Exception ex)
                 {
                     failedToSend.Add(email);
-                    _logger.LogError(ex, $"Failed to send email to {email}");
+                    _logger.LogError(ex,
+                        """
+                ❌ Failed to send share document email
+                Email: {Email}
+                Title: {Title}
+                Message: {Message}
+                Link: {Link}
+                Error: {ErrorMessage}
+                """,
+                        email,
+                        document.Title,
+                        req.Message ?? "(No message)",
+                        link,
+                        ex.Message
+                    );
                 }
             }
 
-            // ✅ Trả kết quả
+            // ✅ Trả kết quả cuối cùng
             return new ShareDocumentResponseDTO
             {
-                Success = failedToFind.Count == 0 && failedToSend.Count == 0,
-                FailedEmails = failedToFind.Concat(failedToSend).Distinct().ToList()
+                Success = failedToSend.Count == 0,
+                FailedEmails = failedToSend
             };
         }
+
 
         //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         //{
@@ -714,13 +723,29 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
                 throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
 
-            var response = await GenerateContentWithGemini(prompt);
+         
+            var htmlPrompt = $@"
+Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+
+Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
+-  <h3> cho tiêu đề
+- <p> cho đoạn văn
+- <ul><li> cho danh sách gạch đầu dòng
+- <table><thead><tbody><tr><th><td> cho bảng
+
+Chỉ trả về HTML, không thêm mô tả bên ngoài.
+
+Yêu cầu:
+{prompt}";
+
+            var response = await GenerateContentWithGemini(htmlPrompt);
 
             if (string.IsNullOrWhiteSpace(response))
                 throw new Exception("AI không thể trả lời yêu cầu.");
 
             return response;
         }
+
 
         public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
         {

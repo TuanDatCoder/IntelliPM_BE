@@ -21,11 +21,12 @@ namespace IntelliPM.Repositories.DocumentCommentRepos
         public async Task<List<DocumentComment>> GetByDocumentIdAsync(int documentId)
         {
             return await _context.DocumentComment
+                .Include(c => c.Author) // 👈 cần dòng này
                 .Where(c => c.DocumentId == documentId)
-                .Include(c => c.Author)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync();
         }
+
 
         public async Task<DocumentComment> AddAsync(DocumentComment comment)
         {
