@@ -12,7 +12,6 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Request
     {
         public int? AssignedBy { get; set; }
         public int? SprintId { get; set; }
-        [DynamicCategoryValidation("subtask_priority", Required = false)]
         public string? Priority { get; set; }
         public string? Title { get; set; } = null!;
         public string? Description { get; set; }
