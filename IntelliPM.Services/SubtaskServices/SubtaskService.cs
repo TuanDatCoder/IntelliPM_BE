@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -20,6 +21,7 @@ using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
@@ -52,7 +54,8 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly IMilestoneRepository _milestoneRepo;
         private readonly IEmailService _emailService;
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo, IEmailService emailService)
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo, IEmailService emailService, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -70,6 +73,7 @@ namespace IntelliPM.Services.SubtaskServices
             _taskDependencyRepo = taskDependencyRepo;
             _milestoneRepo = milestoneRepo;
             _emailService = emailService;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
@@ -78,13 +82,17 @@ namespace IntelliPM.Services.SubtaskServices
             if (task == null)
                 throw new KeyNotFoundException($"Task with ID {taskId} not found.");
 
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
+            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
+
             var checklistTitles = await _geminiService.GenerateSubtaskAsync(task.Title);
 
             var checklists = checklistTitles.Select(title => new Subtask
             {
                 TaskId = taskId,
                 Title = title,
-                Status = "TO-DO",
+                Priority = dynamicPriority,
+                Status = dynamicStatus,
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = DateTime.UtcNow,
@@ -111,13 +119,14 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new KeyNotFoundException($"Project with ID {task.ProjectId} not found.");
 
             var projectKey = project.ProjectKey;
-
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
+            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
             var entity = _mapper.Map<Subtask>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Status = "TO-DO";
+            entity.Status = dynamicStatus;
             entity.ManualInput = true;
             entity.GenerationAiInput = false;
-            entity.Priority = "MEDIUM";
+            entity.Priority = dynamicPriority;
 
             try
             {
@@ -167,13 +176,15 @@ namespace IntelliPM.Services.SubtaskServices
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {task.ProjectId} not found.");
 
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
+            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
             var projectKey = project.ProjectKey;
 
             var entity = _mapper.Map<Subtask>(request);
 
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Status = "TO_DO";
-            entity.Priority = "MEDIUM";
+            entity.Status = dynamicStatus;
+            entity.Priority = dynamicPriority;
             entity.AssignedBy = null;
             entity.ManualInput = true;
             entity.GenerationAiInput = false;
@@ -760,7 +771,7 @@ namespace IntelliPM.Services.SubtaskServices
             if (account != null) throw new KeyNotFoundException($"Account with key {accountId} not found.");
 
             var entity = await _subtaskRepo.GetByAccountIdAsync(accountId);
-            //được quyển null
+           
             return _mapper.Map<List<SubtaskResponseDTO>>(entity);
         }
         public async Task<SubtaskFullResponseDTO> GetFullSubtaskById(string id)
