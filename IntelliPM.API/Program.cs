@@ -1,4 +1,4 @@
-using ConstructionEquipmentRental.API.Middlewares;
+using IntelliPM.API.Middlewares;
 using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -369,9 +369,13 @@ app.UseSwaggerUI(c =>
 });
 
 
-app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowAll");
+
+app.UseMiddleware<DynamicCategoryValidationMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
+
+
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

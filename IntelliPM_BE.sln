@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntelliPM.Services", "Intel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntelliPM.Shared", "IntelliPM.Shared\IntelliPM.Shared.csproj", "{768BF0A2-C799-4B3C-A1DF-54D4656138B9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntelliPM.Common", "IntelliPM.Common\IntelliPM.Common.csproj", "{2C597FD0-CD90-4CCD-8274-614D6F066584}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{768BF0A2-C799-4B3C-A1DF-54D4656138B9}.Release|x64.Build.0 = Release|Any CPU
 		{768BF0A2-C799-4B3C-A1DF-54D4656138B9}.Release|x86.ActiveCfg = Release|Any CPU
 		{768BF0A2-C799-4B3C-A1DF-54D4656138B9}.Release|x86.Build.0 = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|x64.Build.0 = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Debug|x86.Build.0 = Debug|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|x64.ActiveCfg = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|x64.Build.0 = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|x86.ActiveCfg = Release|Any CPU
+		{2C597FD0-CD90-4CCD-8274-614D6F066584}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
