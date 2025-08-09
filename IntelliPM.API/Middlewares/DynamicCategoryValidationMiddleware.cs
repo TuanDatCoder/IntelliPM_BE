@@ -1,9 +1,9 @@
 ﻿using IntelliPM.Common.Attributes;
 using IntelliPM.Data.DTOs;
-using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Services.Utilities;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -64,7 +64,20 @@ namespace IntelliPM.API.Middlewares
                 var errors = new List<string>();
                 var replacements = new List<(string propName, string group, string rawValue, bool isRequired)>();
 
-                ExtractAttributesFromJson(jsonElement, replacements, errors);
+                // 🔹 Lấy DTO type của action hiện tại
+                var endpoint = context.GetEndpoint();
+                var actionDescriptor = endpoint?.Metadata.GetMetadata<ControllerActionDescriptor>();
+                var dtoType = actionDescriptor?.Parameters
+                    .FirstOrDefault(p =>
+                        p.ParameterType.Namespace != null &&
+                        p.ParameterType.Namespace.StartsWith("IntelliPM.Data.DTOs") &&
+                        p.ParameterType.IsClass)
+                    ?.ParameterType;
+
+                if (dtoType != null)
+                {
+                    ExtractAttributesFromJson(jsonElement, dtoType, replacements, errors);
+                }
 
                 if (errors.Any())
                 {
@@ -110,28 +123,32 @@ namespace IntelliPM.API.Middlewares
 
         private void ExtractAttributesFromJson(
             JsonElement element,
+            Type dtoType,
             List<(string propName, string group, string rawValue, bool isRequired)> replacements,
             List<string> errors)
         {
             if (element.ValueKind != JsonValueKind.Object) return;
 
-            var dtoType = typeof(RequirementRequestDTO);
+            var propsWithAttr = dtoType
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(p => new { Prop = p, Attr = p.GetCustomAttribute<DynamicCategoryValidationAttribute>() })
+                .Where(x => x.Attr != null)
+                .ToList();
 
             foreach (var property in element.EnumerateObject())
             {
-                var propName = property.Name;
-                var propInfo = dtoType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                var match = propsWithAttr
+                    .FirstOrDefault(p => string.Equals(p.Prop.Name, property.Name, StringComparison.OrdinalIgnoreCase));
 
-                if (propInfo == null) continue;
+                if (match == null) continue;
 
-                var attr = propInfo.GetCustomAttribute<DynamicCategoryValidationAttribute>();
-                if (attr == null) continue;
+                var attr = match.Attr!;
 
                 if (property.Value.ValueKind == JsonValueKind.Null || property.Value.ValueKind == JsonValueKind.Undefined)
                 {
                     if (attr.Required)
                     {
-                        errors.Add($"Property '{propName}' (CategoryGroup='{attr.CategoryGroup}') is required but was null.");
+                        errors.Add($"Property '{property.Name}' (CategoryGroup='{attr.CategoryGroup}') is required but was null.");
                     }
                     continue;
                 }
@@ -142,10 +159,10 @@ namespace IntelliPM.API.Middlewares
                     if (string.IsNullOrWhiteSpace(value))
                     {
                         if (attr.Required)
-                            errors.Add($"Property '{propName}' (CategoryGroup='{attr.CategoryGroup}') cannot be empty.");
+                            errors.Add($"Property '{property.Name}' (CategoryGroup='{attr.CategoryGroup}') cannot be empty.");
                         continue;
                     }
-                    replacements.Add((propName, attr.CategoryGroup, value, attr.Required));
+                    replacements.Add((property.Name, attr.CategoryGroup, value!, attr.Required));
                 }
                 else if (property.Value.ValueKind == JsonValueKind.Array)
                 {
@@ -156,7 +173,7 @@ namespace IntelliPM.API.Middlewares
                             var value = item.GetString();
                             if (!string.IsNullOrWhiteSpace(value))
                             {
-                                replacements.Add((propName, attr.CategoryGroup, value, attr.Required));
+                                replacements.Add((property.Name, attr.CategoryGroup, value!, attr.Required));
                             }
                         }
                     }
