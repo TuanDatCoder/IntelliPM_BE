@@ -92,6 +92,23 @@ namespace IntelliPM.Services.DocumentRequestMeetingServices
             CreatedAt = d.CreatedAt,
             UpdatedAt = d.UpdatedAt
         };
+
+        public async Task<List<DocumentRequestMeetingResponseDTO>> GetInboxForPMAsync(
+       int pmId, string? status = null, bool? sentToClient = null, bool? clientViewed = null,
+       int? page = null, int? pageSize = null)
+        {
+            int? skip = null, take = null;
+            if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
+            {
+                skip = (page.Value - 1) * pageSize.Value;
+                take = pageSize.Value;
+            }
+
+            var list = await _repo.GetByProjectManagerAsync(pmId, status, sentToClient, clientViewed, skip, take);
+            return list.Select(MapToDTO).ToList();
+        }
+
+
     }
 
 }

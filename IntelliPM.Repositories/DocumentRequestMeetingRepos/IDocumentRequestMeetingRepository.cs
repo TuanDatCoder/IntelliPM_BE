@@ -14,6 +14,10 @@ namespace IntelliPM.Repositories.DocumentRequestMeetingRepos
         Task<List<DocumentRequestMeeting>> GetAllAsync();
         Task UpdateAsync(DocumentRequestMeeting entity);
         Task DeleteAsync(DocumentRequestMeeting entity);
+
+        Task<List<DocumentRequestMeeting>> GetByProjectManagerAsync(
+     int pmId, string? status = null, bool? sentToClient = null, bool? clientViewed = null,
+     int? skip = null, int? take = null);
         Task SaveChangesAsync();
     }
 

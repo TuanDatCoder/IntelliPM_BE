@@ -52,6 +52,24 @@ namespace IntelliPM.API.Controllers
             await _service.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpGet("pm/incoming")]
+        public async Task<IActionResult> GetIncomingForPM(
+      [FromQuery] string? status,
+      [FromQuery] bool? sentToClient,
+      [FromQuery] bool? clientViewed,
+      [FromQuery] int? page,
+      [FromQuery] int? pageSize)
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized();
+
+            if (!int.TryParse(accountIdClaim, out var pmId))
+                return BadRequest("Invalid user ID in token.");
+
+            var result = await _service.GetInboxForPMAsync(pmId, status, sentToClient, clientViewed, page, pageSize);
+            return Ok(result);
+        }
     }
 
 }

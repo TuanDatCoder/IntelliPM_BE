@@ -14,6 +14,10 @@ namespace IntelliPM.Services.DocumentRequestMeetingServices
         Task<DocumentRequestMeetingResponseDTO> UpdateAsync(int id, UpdateDocumentRequestMeetingDTO dto);
         Task<List<DocumentRequestMeetingResponseDTO>> GetAllAsync();
         Task<DocumentRequestMeetingResponseDTO?> GetByIdAsync(int id);
+
+        Task<List<DocumentRequestMeetingResponseDTO>> GetInboxForPMAsync(
+    int pmId, string? status = null, bool? sentToClient = null, bool? clientViewed = null,
+    int? page = null, int? pageSize = null);
         Task DeleteAsync(int id);
     }
 }
