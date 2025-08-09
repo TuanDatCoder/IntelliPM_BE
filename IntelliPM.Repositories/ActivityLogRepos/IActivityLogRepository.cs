@@ -22,5 +22,6 @@ namespace IntelliPM.Repositories.ActivityLogRepos
         Task AddRangeAsync(List<ActivityLog> tasks);
         Task SaveChangesAsync();
         Su25Sep490IntelliPmContext GetContext();
+        Task<List<ActivityLog>> GetByRiskKeyAsync(string riskKey);
     }
 }
