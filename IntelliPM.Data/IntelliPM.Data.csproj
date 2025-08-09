@@ -22,4 +22,8 @@
     <Folder Include="Contexts\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\IntelliPM.Common\IntelliPM.Common.csproj" />
+  </ItemGroup>
+
 </Project>

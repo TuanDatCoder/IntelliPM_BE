@@ -2,7 +2,9 @@
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.RequirementRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -18,12 +20,15 @@ namespace IntelliPM.Services.RequirementServices
         private readonly IMapper _mapper;
         private readonly IRequirementRepository _repo;
         private readonly ILogger<RequirementService> _logger;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public RequirementService(IMapper mapper, IRequirementRepository repo, ILogger<RequirementService> logger)
+        public RequirementService(IMapper mapper, IRequirementRepository repo, ILogger<RequirementService> logger, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
+
         }
 
         public async Task<List<RequirementResponseDTO>> GetAllRequirements(int projectId)
@@ -135,14 +140,19 @@ namespace IntelliPM.Services.RequirementServices
 
         public async Task<RequirementResponseDTO> ChangeRequirementPriority(int id, string priority)
         {
-            if (string.IsNullOrEmpty(priority))
-                throw new ArgumentException("Priority cannot be null or empty.");
+            // Kiểm tra và ánh xạ priority
+            string validatedPriority = await DynamicCategoryUtility.ValidateAndMapAsync(
+                _dynamicCategoryRepo,
+                "requirement_priority",
+                priority,
+                isRequired: true);
 
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Requirement with ID {id} not found.");
 
-            entity.Priority = priority;
+            entity.Priority = validatedPriority;
+            entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -150,6 +160,7 @@ namespace IntelliPM.Services.RequirementServices
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to change requirement priority for ID {Id}", id);
                 throw new Exception($"Failed to change requirement priority: {ex.Message}", ex);
             }
 

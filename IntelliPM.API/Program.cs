@@ -1,4 +1,4 @@
-using ConstructionEquipmentRental.API.Middlewares;
+using IntelliPM.API.Middlewares;
 using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -369,6 +369,8 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+
+app.UseMiddleware<DynamicCategoryValidationMiddleware>();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
