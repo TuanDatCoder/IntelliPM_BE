@@ -145,7 +145,7 @@ namespace IntelliPM.Services.RequirementServices
                 _dynamicCategoryRepo,
                 "requirement_priority",
                 priority,
-                isRequired: true);
+                true);
 
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)

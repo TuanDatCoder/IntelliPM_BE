@@ -1,13 +1,13 @@
 ﻿using IntelliPM.Common.Attributes;
-using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Requirement.Request;
-using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -28,9 +28,15 @@ namespace IntelliPM.API.Middlewares
             _logger = logger;
         }
 
-        public async Task InvokeAsync(HttpContext context, Su25Sep490IntelliPmContext dbContext)
+        public async Task InvokeAsync(HttpContext context)
         {
-            // Only process JSON requests with a body
+            // Bỏ qua các request không cần validate
+            if (context.Request.Method == HttpMethod.Options.Method || context.Request.Method == HttpMethod.Get.Method)
+            {
+                await _next(context);
+                return;
+            }
+
             if (context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) != true)
             {
                 await _next(context);
@@ -41,71 +47,51 @@ namespace IntelliPM.API.Middlewares
 
             try
             {
-                // Read and deserialize the body into a JsonElement
-                context.Request.Body.Position = 0;
-                var jsonElement = await JsonSerializer.DeserializeAsync<JsonElement>(
-                    context.Request.Body,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                // Reset stream for downstream middleware/controller
+                using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+                var body = await reader.ReadToEndAsync();
                 context.Request.Body.Position = 0;
 
-                // Extract dynamic category validations
-                var requiredByGroup = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-                var replacements = new List<(string propName, string group, string rawValue)>();
-                var errors = new List<string>();
-
-                // Process the JSON element
-                ExtractAttributesFromJson(jsonElement, requiredByGroup, replacements, errors);
-
-                if (errors.Any())
-                {
-                    await ReturnBadRequest(context, string.Join(" ", errors));
-                    return;
-                }
-
-                if (!requiredByGroup.Any())
+                if (string.IsNullOrWhiteSpace(body))
                 {
                     await _next(context);
                     return;
                 }
 
-                // Query DB once for all category groups
-                var groups = requiredByGroup.Keys.ToList();
-                var categories = await dbContext.DynamicCategory
-                    .Where(dc => dc.IsActive && groups.Contains(dc.CategoryGroup))
-                    .ToListAsync();
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(
+                    body,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                // Check for missing categories
-                var missingMessages = new List<string>();
-                foreach (var kv in requiredByGroup)
+                var errors = new List<string>();
+                var replacements = new List<(string propName, string group, string rawValue, bool isRequired)>();
+
+                ExtractAttributesFromJson(jsonElement, replacements, errors);
+
+                if (errors.Any())
                 {
-                    var group = kv.Key;
-                    var wanted = kv.Value;
-                    var foundSet = categories
-                        .Where(c => string.Equals(c.CategoryGroup, group, StringComparison.OrdinalIgnoreCase))
-                        .SelectMany(c => new[] { c.Name, c.Label })
-                        .Where(v => !string.IsNullOrWhiteSpace(v))
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                    var missingValues = wanted.Where(w => !foundSet.Contains(w)).ToList();
-                    if (missingValues.Any())
-                    {
-                        missingMessages.Add($"Invalid {group}: {string.Join(", ", missingValues)} is not a valid value.");
-                    }
-                }
-
-                if (missingMessages.Any())
-                {
-                    _logger.LogWarning("DynamicCategoryValidationMiddleware: invalid categories {Messages}", missingMessages);
-                    await ReturnBadRequest(context, string.Join(" ", missingMessages));
+                    _logger.LogError("DynamicCategoryValidationMiddleware: Validation errors: {Errors}", string.Join(" ", errors));
+                    await ReturnBadRequest(context, string.Join(" ", errors));
                     return;
                 }
 
-                // Map Label to Name in the request body
-                if (replacements.Any())
+                if (!replacements.Any())
                 {
-                    var modifiedBody = await ModifyRequestBody(context, jsonElement, categories, replacements);
+                    await _next(context);
+                    return;
+                }
+
+                // Lấy repository từ DI container
+                var categoryRepo = context.RequestServices.GetRequiredService<IDynamicCategoryRepository>();
+
+                var modifiedBody = await ValidateAndMapValues(categoryRepo, jsonElement, replacements, errors);
+                if (errors.Any())
+                {
+                    _logger.LogError("DynamicCategoryValidationMiddleware: Validation errors: {Errors}", string.Join(" ", errors));
+                    await ReturnBadRequest(context, string.Join(" ", errors));
+                    return;
+                }
+
+                if (modifiedBody != null)
+                {
                     context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(modifiedBody));
                 }
 
@@ -122,12 +108,14 @@ namespace IntelliPM.API.Middlewares
             }
         }
 
-        private void ExtractAttributesFromJson(JsonElement element, Dictionary<string, HashSet<string>> requiredByGroup, List<(string propName, string group, string rawValue)> replacements, List<string> errors)
+        private void ExtractAttributesFromJson(
+            JsonElement element,
+            List<(string propName, string group, string rawValue, bool isRequired)> replacements,
+            List<string> errors)
         {
             if (element.ValueKind != JsonValueKind.Object) return;
 
-            // Assume the DTO type for this endpoint
-            var dtoType = typeof(RequirementRequestDTO); // Adjust based on your endpoint
+            var dtoType = typeof(RequirementRequestDTO);
 
             foreach (var property in element.EnumerateObject())
             {
@@ -157,8 +145,7 @@ namespace IntelliPM.API.Middlewares
                             errors.Add($"Property '{propName}' (CategoryGroup='{attr.CategoryGroup}') cannot be empty.");
                         continue;
                     }
-                    AddRequired(requiredByGroup, attr.CategoryGroup, value);
-                    replacements.Add((propName, attr.CategoryGroup, value));
+                    replacements.Add((propName, attr.CategoryGroup, value, attr.Required));
                 }
                 else if (property.Value.ValueKind == JsonValueKind.Array)
                 {
@@ -169,8 +156,7 @@ namespace IntelliPM.API.Middlewares
                             var value = item.GetString();
                             if (!string.IsNullOrWhiteSpace(value))
                             {
-                                AddRequired(requiredByGroup, attr.CategoryGroup, value);
-                                replacements.Add((propName, attr.CategoryGroup, value));
+                                replacements.Add((propName, attr.CategoryGroup, value, attr.Required));
                             }
                         }
                     }
@@ -178,36 +164,39 @@ namespace IntelliPM.API.Middlewares
             }
         }
 
-        private static async Task<string> ModifyRequestBody(HttpContext context, JsonElement originalElement, List<DynamicCategory> categories, List<(string propName, string group, string rawValue)> replacements)
+        private async Task<string?> ValidateAndMapValues(
+            IDynamicCategoryRepository categoryRepo,
+            JsonElement originalElement,
+            List<(string propName, string group, string rawValue, bool isRequired)> replacements,
+            List<string> errors)
         {
-            var jsonObj = originalElement.Deserialize<Dictionary<string, object>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, object>();
+            if (!replacements.Any()) return null;
+
+            var jsonObj = originalElement.Deserialize<Dictionary<string, object>>(
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, object>();
 
             foreach (var rep in replacements)
             {
-                var match = categories
-                    .FirstOrDefault(c =>
-                        string.Equals(c.CategoryGroup, rep.group, StringComparison.OrdinalIgnoreCase) &&
-                        (string.Equals(c.Label, rep.rawValue, StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(c.Name, rep.rawValue, StringComparison.OrdinalIgnoreCase)));
-
-                if (match != null && !string.Equals(rep.rawValue, match.Name, StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    jsonObj[rep.propName] = match.Name;
+                    var mappedValue = await DynamicCategoryUtility.ValidateAndMapAsync(
+                        categoryRepo,
+                        rep.group,
+                        rep.rawValue,
+                        rep.isRequired);
+
+                    if (!string.Equals(rep.rawValue, mappedValue, StringComparison.OrdinalIgnoreCase))
+                    {
+                        jsonObj[rep.propName] = mappedValue;
+                    }
+                }
+                catch (ArgumentException ex)
+                {
+                    errors.Add(ex.Message);
                 }
             }
 
-            return JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-
-        private static void AddRequired(Dictionary<string, HashSet<string>> dict, string group, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return;
-            if (!dict.TryGetValue(group, out var set))
-            {
-                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                dict[group] = set;
-            }
-            set.Add(value.Trim());
+            return errors.Any() ? null : JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
 
         private async Task ReturnBadRequest(HttpContext context, string message)

@@ -16,5 +16,6 @@ namespace IntelliPM.Services.DynamicCategoryServices
         Task<DynamicCategoryResponseDTO> UpdateDynamicCategory(int id, DynamicCategoryRequestDTO request);
         Task DeleteDynamicCategory(int id);
         Task<DynamicCategoryResponseDTO> ChangeDynamicCategoryStatus(int id, bool isActive);
+       
     }
 }
