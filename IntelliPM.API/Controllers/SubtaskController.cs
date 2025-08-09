@@ -300,11 +300,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-hours")]
-        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours, int createdBy)
         {
             try
             {
-                var updated = await _service.ChangePlannedHours(id, hours);
+                var updated = await _service.ChangePlannedHours(id, hours, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -328,6 +328,39 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error updating subtask plannedHours: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/actual-hours")]
+        public async Task<IActionResult> ChangeActualHours(string id, [FromBody] decimal hours, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeActualHours(id, hours, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask actualHours updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask actualHours: {ex.Message}"
                 });
             }
         }

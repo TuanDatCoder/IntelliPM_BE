@@ -720,7 +720,7 @@ CREATE TABLE dynamic_category (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     icon_link TEXT NULL,
-    color VARCHAR(10) NULL,
+    color VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
@@ -732,6 +732,7 @@ CREATE TABLE activity_log (
 	epic_id VARCHAR(255) NULL,
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
+    risk_key VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
     related_entity_id VARCHAR(255) NULL,
     action_type VARCHAR(100) NOT NULL,
@@ -744,7 +745,8 @@ CREATE TABLE activity_log (
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-	FOREIGN KEY (epic_id) REFERENCES epic(id)
+	FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (risk_key) REFERENCES risk(risk_key)
 );
 
 -- 46. meeting_reschedule_request
@@ -1377,7 +1379,7 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
-     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
@@ -1385,11 +1387,13 @@ VALUES
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
     ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 4, NULL, NULL),
+    ('activity_log_action_type', 'CREATE', 'Create', 'Record create action', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1, NULL, NULL),
     ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
     ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
+    ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
     ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
 	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),

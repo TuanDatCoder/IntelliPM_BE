@@ -24,11 +24,11 @@ namespace IntelliPM.Services.RiskServices
         Task<List<RiskRequestDTO>> DetectAndSaveProjectRisksAsync(int projectId);
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(int projectId);
         Task<List<RiskRequestDTO>> SaveProjectRisksAsync(List<RiskRequestDTO> risks);
-        Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status);
+        Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status, int createdBy);
         Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type);
         Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId);
         Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate);
-        Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title);
+        Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title, int createdBy);
         Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description);
         Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel);
         Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability);

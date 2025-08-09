@@ -114,11 +114,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateStatusAsync(id, status);
+                var updated = await _riskService.UpdateStatusAsync(id, status, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -206,11 +206,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/title")]
-        public async Task<IActionResult> UpdateTitle(int id, [FromBody] string title)
+        public async Task<IActionResult> UpdateTitle(int id, [FromBody] string title, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateTitleAsync(id, title);
+                var updated = await _riskService.UpdateTitleAsync(id, title, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 

@@ -676,11 +676,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-hours")]
-        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours, int createdBy)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedHours(id, hours);
+                var updated = await _service.ChangeTaskPlannedHours(id, hours, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

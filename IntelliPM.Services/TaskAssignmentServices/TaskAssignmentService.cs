@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using IntelliPM.Services.ActivityLogServices;
 
 namespace IntelliPM.Services.TaskAssignmentServices
 {
@@ -27,8 +28,10 @@ namespace IntelliPM.Services.TaskAssignmentServices
         private readonly IAccountRepository _accountRepo;
         private readonly IEmailService _emailService;
         private readonly ILogger<TaskAssignmentService> _logger;
-        
-        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ILogger<TaskAssignmentService> logger, IAccountRepository accountRepo, ITaskRepository taskRepo, IEmailService emailService, IProjectMemberRepository projectMemberRepo)
+        private readonly IActivityLogService _activityLogService;
+
+
+        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ILogger<TaskAssignmentService> logger, IAccountRepository accountRepo, ITaskRepository taskRepo, IEmailService emailService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService)
         {
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
@@ -37,6 +40,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             _accountRepo = accountRepo;
             _taskRepo = taskRepo;
             _emailService = emailService;
+            _activityLogService = activityLogService;
         }
 
         public async Task<List<TaskAssignmentResponseDTO>> GetAllAsync()
@@ -299,7 +303,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             };
         }
 
-        public async Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates)
+        public async Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates, int createdBy)
         {
             var taskAssignmentsToUpdate = new List<TaskAssignment>();
             var taskIdMap = new Dictionary<string, List<TaskAssignment>>();
@@ -354,6 +358,18 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 await UpdateTaskProgressAsync(task);
                 await _taskRepo.Update(task);
 
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = task.ProjectId,
+                    TaskId = task.Id,
+                    SubtaskId = null,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = task.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated actual hours for task '{task.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             return true;
         }

@@ -588,16 +588,6 @@ namespace IntelliPM.Services.SubtaskServices
                 {
                     subtask.PercentComplete = 0;
                 }
-
-                //if (subtask.PlannedHours.HasValue && subtask.PlannedHours > 0)
-                //{
-                //    var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
-                //    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-                //}
-                //else
-                //{
-                //    subtask.PercentComplete = 0;
-                //}
             }
 
             subtask.UpdatedAt = DateTime.UtcNow;
@@ -707,7 +697,7 @@ namespace IntelliPM.Services.SubtaskServices
             dto.Labels = labelDtos;
         }
 
-        public async Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours)
+        public async Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours, int createdBy)
         {
             var entity = await _subtaskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -721,7 +711,10 @@ namespace IntelliPM.Services.SubtaskServices
                 var member = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
                 if (member != null && member.HourlyRate.HasValue)
                 {
-                    entity.PlannedResourceCost = hours * (member.HourlyRate ?? 0);                }
+                    decimal plannedResourceCost = hours * (member.HourlyRate ?? 0);
+                    entity.PlannedResourceCost = plannedResourceCost;
+                    entity.PlannedCost = plannedResourceCost;
+                }
             }
 
             await _subtaskRepo.Update(entity);
@@ -736,13 +729,99 @@ namespace IntelliPM.Services.SubtaskServices
 
                 if (task != null)
                 {
-                    var actualHours = task.ActualHours;
+                    var actualHours = task.ActualHours ?? 0;
                     task.RemainingHours = totalPlannedHours - actualHours;
                     task.PlannedHours = totalPlannedHours;
                     task.PlannedResourceCost = totalPlannedResourceCost;
                     task.PlannedCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
+
+                //var relatedEntityTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_related_entity_type");
+                //var actionTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_action_type");
+
+                //var relatedEntityType = relatedEntityTypes.FirstOrDefault(s => s.Name == "SUBTASK")?.Name;
+                //var actionType = actionTypes.FirstOrDefault(s => s.Name == "UPDATE")?.Name;
+
+                //if (relatedEntityType == null || actionType == null)
+                //{
+                //    throw new InvalidOperationException("Required activity log values (SUBTASK, UPDATE) not found in dynamic_category table.");
+                //}
+
+                // Ghi log hoạt động
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = task?.ProjectId,
+                    TaskId = task?.Id,
+                    SubtaskId = entity.Id,
+                    RelatedEntityType = "Subtask",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated planned hours for subtask '{entity.Id}' to {hours} under task '{task?.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update task values: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
+
+        public async Task<SubtaskFullResponseDTO> ChangeActualHours(string id, decimal hours, int createdBy)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            entity.ActualHours = hours;
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task != null && entity.AssignedBy != null)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
+                if (member != null && member.HourlyRate.HasValue)
+                {
+                    decimal actualResourceCost = hours * (member.HourlyRate ?? 0);
+                    entity.ActualResourceCost = actualResourceCost;
+                    entity.ActualCost = actualResourceCost;
+                }
+            }
+
+            await _subtaskRepo.Update(entity);
+            await UpdateSubtaskProgressAsync(entity);
+            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
+
+            try
+            {
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+                var totalActualHours = subtasks.Sum(s => s.ActualHours ?? 0);
+                var totalActualResourceCost = subtasks.Sum(s => s.ActualResourceCost ?? 0);
+
+                if (task != null)
+                {
+                    var plannedHours = task.PlannedHours ?? 0;
+                    task.RemainingHours = plannedHours - totalActualHours;
+                    task.ActualHours = totalActualHours;
+                    task.ActualResourceCost = totalActualResourceCost;
+                    task.ActualCost = totalActualResourceCost;
+                    await _taskRepo.Update(task);
+                }
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = task?.ProjectId,
+                    TaskId = task?.Id,
+                    SubtaskId = entity.Id,
+                    RelatedEntityType = "Subtask",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated actual hours for subtask '{entity.Id}' to {hours} under task '{task?.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

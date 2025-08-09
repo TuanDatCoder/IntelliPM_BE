@@ -33,9 +33,13 @@ public partial class ActivityLog
 
     public DateTime CreatedAt { get; set; }
 
+    public string? RiskKey { get; set; }
+
     public virtual Account CreatedByNavigation { get; set; } = null!;
 
     public virtual Epic? Epic { get; set; }
+
+    public virtual Risk? RiskKeyNavigation { get; set; }
 
     public virtual Subtask? Subtask { get; set; }
 
