@@ -370,11 +370,13 @@ app.UseSwaggerUI(c =>
 });
 
 
-app.UseMiddleware<DynamicCategoryValidationMiddleware>();
-
-app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowAll");
+
+app.UseMiddleware<DynamicCategoryValidationMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
+
+
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
