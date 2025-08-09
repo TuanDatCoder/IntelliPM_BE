@@ -312,11 +312,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/sprint")]
-        public async Task<IActionResult> ChangeSprint(string id, [FromBody] int sprintId)
+        public async Task<IActionResult> ChangeSprint(string id, [FromBody] ChangeTaskSprintRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskSprint(id, sprintId);
+                var updated = await _service.ChangeTaskSprint(id, dto.SprintId, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

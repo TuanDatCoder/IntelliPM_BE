@@ -838,6 +838,51 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (sprintId == 0)
+            {
+                entity.SprintId = null;
+            }
+            else
+            {
+                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+                if (sprint == null)
+                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+                entity.SprintId = sprintId;
+            }
+
+
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed sprint of task '{entity.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
@@ -993,39 +1038,6 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId)
-        {
-            var entity = await _taskRepo.GetByIdAsync(id);
-            if (entity == null)
-                throw new KeyNotFoundException($"Task with ID {id} not found.");
-
-            if(sprintId == 0)
-            {
-                entity.SprintId = null;
-            }
-            else
-            {
-                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
-                if (sprint == null)
-                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
-                entity.SprintId = sprintId;
-            }
-
-            
-            entity.UpdatedAt = DateTime.UtcNow;
-
-            try
-            {
-                await _taskRepo.Update(entity);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
-            }
-
-            return _mapper.Map<TaskResponseDTO>(entity);
-        }
-
         public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
@@ -1086,8 +1098,6 @@ namespace IntelliPM.Services.TaskServices
             await EnrichTaskBacklogResponses(dtos);
             return dtos;
         }
-
-     
 
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status)
         {

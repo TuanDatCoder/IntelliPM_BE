@@ -10,6 +10,8 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Request
     public class SubtaskRequestDTO
     {
         public int? AssignedBy { get; set; }
+
+        public int? SprintId { get; set; }
         public string? Priority { get; set; }
         public string? Title { get; set; } = null!;
         public string? Description { get; set; }
