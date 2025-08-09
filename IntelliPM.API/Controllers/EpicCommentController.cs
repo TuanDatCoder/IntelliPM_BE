@@ -1,5 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.EpicComment.Request;
+using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Services.EpicCommentServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -113,12 +115,12 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, DeleteEpicCommentRequestDTO dto)
         {
             if (id <= 0) return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid ID" });
             try
             {
-                await _service.DeleteEpicComment(id);
+                await _service.DeleteEpicComment(id, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.EpicComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
@@ -8,9 +9,12 @@ using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,8 +33,9 @@ namespace IntelliPM.Services.EpicCommentServices
         private readonly ILogger<EpicCommentService> _logger;
         private readonly IAccountRepository _accountRepository;
         private readonly IEmailService _emailService;
-
-        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepository, IEmailService emailService, ILogger<EpicCommentService> logger)
+        private readonly IActivityLogService _activityLogService;
+        private readonly IProjectRepository _projectRepo;
+        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepository, IActivityLogService activityLogService, IEmailService emailService, ILogger<EpicCommentService> logger, IProjectRepository projectRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -40,6 +45,8 @@ namespace IntelliPM.Services.EpicCommentServices
             _projectMemberRepo = projectMemberRepo;
             _accountRepository = accountRepository;
             _emailService = emailService;
+            _activityLogService = activityLogService;
+            _projectRepo = projectRepo;
         }
 
         public async Task<EpicCommentResponseDTO> CreateEpicComment(EpicCommentRequestDTO request)
@@ -59,13 +66,26 @@ namespace IntelliPM.Services.EpicCommentServices
 
             try
             {
-                await _repo.Add(entity);
-
                 var epic = await _epicRepo.GetByIdAsync(request.EpicId);
                 if (epic == null)
                     throw new Exception($"Epic with ID {request.EpicId} not found.");
 
                 var projectId = epic.ProjectId;
+
+                await _repo.Add(entity);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    EpicId = entity.EpicId,
+                    RelatedEntityType = "EpicComment",
+                    RelatedEntityId = entity.EpicId,
+                    ActionType = "CREATE",
+                    Message = $"Create comment in epic '{entity.EpicId}' is '{request.Content}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+                
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
                     .Where(m => m.AccountId != request.AccountId)
@@ -99,7 +119,7 @@ namespace IntelliPM.Services.EpicCommentServices
                     //{
                     //    await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
                     //}
-                    //await _notificationRepo.Add(notification);
+                    await _notificationRepo.Add(notification);
                 }
             }
             catch (DbUpdateException ex)
@@ -113,7 +133,7 @@ namespace IntelliPM.Services.EpicCommentServices
             return _mapper.Map<EpicCommentResponseDTO>(entity);
         }
 
-        public async Task DeleteEpicComment(int id)
+        public async Task DeleteEpicComment(int id, int createdBy)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -121,7 +141,24 @@ namespace IntelliPM.Services.EpicCommentServices
 
             try
             {
+                var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
+                if (epic == null)
+                    throw new Exception($"Epic with ID {entity.EpicId} not found.");
+
+                var projectId = epic.ProjectId;
+
                 await _repo.Delete(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    EpicId = entity.EpicId,
+                    RelatedEntityType = "EpicComment",
+                    RelatedEntityId = entity.EpicId,
+                    ActionType = "CREATE",
+                    Message = $"Create comment in epic '{entity.EpicId}' is '{entity.Content}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -171,11 +208,28 @@ namespace IntelliPM.Services.EpicCommentServices
                 throw new KeyNotFoundException($"Account with ID {request.AccountId} not found.");
 
             _mapper.Map(request, entity);
-            entity.CreatedAt = DateTime.UtcNow; // Cập nhật thời gian (nếu cần, nhưng thường chỉ dùng UpdatedAt)
+            entity.CreatedAt = DateTime.UtcNow; 
 
             try
             {
+                var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
+                if (epic == null)
+                    throw new Exception($"Epic with ID {entity.EpicId} not found.");
+
+                var projectId = epic.ProjectId;
+
                 await _repo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    EpicId = entity.EpicId,
+                    RelatedEntityType = "EpicComment",
+                    RelatedEntityId = entity.EpicId,
+                    ActionType = "DELETE",
+                    Message = $"Delete comment in epic '{entity.EpicId}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

@@ -13,11 +13,12 @@ namespace IntelliPM.Services.ActivityLogServices
     public interface IActivityLogService
     {
         Task LogAsync(ActivityLog log);
-        Task LogFieldChangeAsync(string entityType, string? entityId, int projectId, string field, string? oldValue, string? newValue, string actionType, int userId, string? taskId = null, string? subtaskId = null);
+        Task LogFieldChangeAsync(string entityType, string? entityId, int projectId, string field, string? oldValue, string? newValue, string actionType, int userId, string? taskId = null, string? subtaskId = null, string? epicId = null);
         Task<List<ActivityLogResponseDTO>> GetAllActivityLogList();
         Task<ActivityLogResponseDTO> GetActivityLogById(int id);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsByProjectId(int projectId);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsByTaskId(string taskId);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsBySubtaskId(string subtaskId);
+        Task<List<ActivityLogResponseDTO>> GetActivityLogsByEpicId(string epicId);
     }
 }
