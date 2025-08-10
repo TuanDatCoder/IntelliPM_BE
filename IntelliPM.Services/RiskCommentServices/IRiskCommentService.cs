@@ -14,7 +14,7 @@ namespace IntelliPM.Services.RiskCommentServices
         Task<RiskCommentResponseDTO> GetById(int id);
         Task<RiskCommentResponseDTO> CreateRiskComment(RiskCommentRequestDTO request);
         Task<RiskCommentResponseDTO> UpdateRiskComment(int id, RiskCommentRequestDTO request);
-        Task DeleteRiskComment(int id);
+        Task DeleteRiskComment(int id, int createdBy);
         Task<List<RiskCommentResponseDTO>> GetByRiskIdAsync(int riskId);
     }
 }

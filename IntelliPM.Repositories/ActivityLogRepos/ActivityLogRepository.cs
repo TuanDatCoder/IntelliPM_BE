@@ -81,5 +81,14 @@ namespace IntelliPM.Repositories.ActivityLogRepos
         {
             await _context.ActivityLog.AddRangeAsync(activityLogs);
         }
+
+        public async Task<List<ActivityLog>> GetByRiskKeyAsync(string riskKey)
+        {
+            return await _context.ActivityLog
+                .Include(s => s.CreatedByNavigation)
+                .Where(t => t.RiskKey == riskKey)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

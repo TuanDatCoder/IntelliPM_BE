@@ -59,11 +59,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/contigency-plan")]
-        public async Task<IActionResult> UpdateContigencyPlan(int id, [FromBody] string impactLevel)
+        public async Task<IActionResult> UpdateContigencyPlan(int id, [FromBody] string impactLevel, int createdBy)
         {
             try
             {
-                var updated = await _service.UpdateContigencyPlanAsync(id, impactLevel);
+                var updated = await _service.UpdateContigencyPlanAsync(id, impactLevel, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -82,11 +82,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/mitigation-plan")]
-        public async Task<IActionResult> UpdateMitigationPlan(int id, [FromBody] string mitigationPlan)
+        public async Task<IActionResult> UpdateMitigationPlan(int id, [FromBody] string mitigationPlan, int createdBy)
         {
             try
             {
-                var updated = await _service.UpdateMitigationPlanAsync(id, mitigationPlan);
+                var updated = await _service.UpdateMitigationPlanAsync(id, mitigationPlan, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -105,11 +105,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, int createdBy)
         {
             try
             {
-                await _service.DeleteRiskSolution(id);
+                await _service.DeleteRiskSolution(id, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -132,5 +132,60 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpDelete("{id}/mitigation-plan")]
+        public async Task<IActionResult> DeleteMitigationPlan(int id, int createdBy)
+        {
+            try
+            {
+                await _service.DeleteMitigationPlan(id, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Deleted risk solution successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting risk solution: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpDelete("{id}/contingency-plan")]
+        public async Task<IActionResult> DeleteContingencyPlan(int id, int createdBy)
+        {
+            try
+            {
+                await _service.DeleteContingencyPlan(id, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Deleted risk solution successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error deleting risk solution: {ex.Message}"
+                });
+            }
+        }
     }
 }

@@ -35,7 +35,7 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskResponseDTO>> GetTasksByEpicIdAsync(string epicId);
         //Task<TaskResponseDTO> CalculatePlannedHoursAsync(string id);
         //Task DistributePlannedHoursAsync(string taskId);
-        Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours);
+        Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy);
         Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id);
         Task<List<TaskBacklogResponseDTO>> GetBacklogTasksAsync(string projectKey);
         Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId);

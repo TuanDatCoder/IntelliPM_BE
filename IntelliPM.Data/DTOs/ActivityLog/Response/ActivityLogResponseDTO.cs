@@ -18,6 +18,8 @@ namespace IntelliPM.Data.DTOs.ActivityLog.Response
         public string? SubtaskId { get; set; }
         public string? EpicId { get; set; }
 
+        public string? RiskKey { get; set; }
+
         public string RelatedEntityType { get; set; } = null!;
 
         public string? RelatedEntityId { get; set; }

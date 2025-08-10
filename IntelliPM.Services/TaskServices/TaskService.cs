@@ -982,13 +982,13 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours)
+        public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var actualHours = entity.ActualHours;
+            var actualHours = entity.ActualHours ?? 0;
             entity.RemainingHours = plannedHours - actualHours;
             entity.PlannedHours = plannedHours;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1014,10 +1014,19 @@ namespace IntelliPM.Services.TaskServices
             {
                 foreach (var member in projectMembers)
                 {
-                    var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
-                    var memberAssignedHours = plannedHours * ratio;
-                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    //var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+                    //var memberAssignedHours = plannedHours * ratio;
+                    //var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
+                    var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
                     totalCost += memberCost;
+
+                    var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
+                    if (taskAssignment != null)
+                    {
+                        taskAssignment.PlannedHours = memberAssignedHours;
+                        await _taskAssignmentRepo.Update(taskAssignment);
+                    }
                 }
 
                 entity.PlannedResourceCost = totalCost;
@@ -1028,6 +1037,19 @@ namespace IntelliPM.Services.TaskServices
             {
                 await _taskRepo.Update(entity);
                 await UpdateTaskProgressAsync(entity);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = entity.ProjectId,
+                    TaskId = id,
+                    SubtaskId = null,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated plan hours for task '{id}' to {plannedHours}",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

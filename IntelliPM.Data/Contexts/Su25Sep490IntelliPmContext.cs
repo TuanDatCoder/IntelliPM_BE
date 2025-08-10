@@ -245,6 +245,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.RelatedEntityType)
                 .HasMaxLength(100)
                 .HasColumnName("related_entity_type");
+            entity.Property(e => e.RiskKey)
+                .HasMaxLength(255)
+                .HasColumnName("risk_key");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -260,6 +263,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.HasOne(d => d.Epic).WithMany(p => p.ActivityLog)
                 .HasForeignKey(d => d.EpicId)
                 .HasConstraintName("activity_log_epic_id_fkey");
+
+            entity.HasOne(d => d.RiskKeyNavigation).WithMany(p => p.ActivityLog)
+                .HasPrincipalKey(p => p.RiskKey)
+                .HasForeignKey(d => d.RiskKey)
+                .HasConstraintName("fk_activity_log_risk");
 
             entity.HasOne(d => d.Subtask).WithMany(p => p.ActivityLog)
                 .HasForeignKey(d => d.SubtaskId)
@@ -569,7 +577,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
             entity.Property(e => e.Color)
-                .HasMaxLength(10)
+                .HasMaxLength(50)
                 .HasColumnName("color");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")

@@ -102,6 +102,18 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.Password, opt => opt.Ignore())
                 .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
 
+
+            CreateMap<Account, ProfileResponseDTO>()
+                .ForMember(dest => dest.TotalProjects, opt => opt.Ignore())
+                .ForMember(dest => dest.UpcomingProjects, opt => opt.Ignore())
+                .ForMember(dest => dest.ActiveProjects, opt => opt.Ignore())
+                .ForMember(dest => dest.CompletedProjects, opt => opt.Ignore())
+                .ForMember(dest => dest.CancelledProjects, opt => opt.Ignore())
+                .ForMember(dest => dest.ProjectList, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalPositions, opt => opt.Ignore())
+                .ForMember(dest => dest.PositionsList, opt => opt.Ignore())
+                .ForMember(dest => dest.RecentPositions, opt => opt.Ignore());
+
             CreateMap<Account, AccountResponseDTO>()
                 .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
 
@@ -233,7 +245,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.EpicName, opt => opt.MapFrom(src => src.Epic != null ? src.Epic.Name : null));
-                //.ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
+            //.ForMember(dest => dest.Dependencies, opt => opt.MapFrom(src => src.TaskDependencyTask));
 
             CreateMap<Tasks, TaskUpdateResponseDTO>()
                 .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project != null ? src.Project.Name : null))
@@ -385,14 +397,21 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
-            CreateMap<Subtask, SubtaskFullResponseDTO>();
+            CreateMap<Subtask, SubtaskFullResponseDTO>()
+                .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
+                .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null))
+                .ForMember(dest => dest.AssignedPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null));
             CreateMap<Subtask, SubtaskDependencyResponseDTO>();
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<ProjectMember, ProjectMemberResponseDTO>()
+                .ForMember(dest => dest.AccountEmail, opt => opt.MapFrom(src => src.Account != null ? src.Account.Email : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null))
                 .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null));
+
+
             CreateMap<ProjectMember, ProjectMemberWithPositionsResponseDTO>()
                 .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
@@ -408,6 +427,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             // ProjectPosition
             CreateMap<ProjectPosition, ProjectPositionResponseDTO>();
             CreateMap<ProjectPositionNoMemberIdRequestDTO, ProjectPosition>();
+            CreateMap<ProjectPositionWithProjectInfoDTO, ProjectPositionResponseDTO>();
+            CreateMap<ProjectPositionResponseDTO, ProjectPositionWithProjectInfoDTO>();
+
 
             // TaskComment
             CreateMap<TaskCommentRequestDTO, TaskComment>()

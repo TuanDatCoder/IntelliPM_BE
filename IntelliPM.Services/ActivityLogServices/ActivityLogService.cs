@@ -144,5 +144,15 @@ namespace IntelliPM.Services.ActivityLogServices
 
             await _activityLogRepository.Add(log);
         }
+
+        public async Task<List<ActivityLogResponseDTO>> GetActivityLogsByRiskKey(string riskKey)
+        {
+            var entities = await _activityLogRepository.GetByRiskKeyAsync(riskKey);
+
+            if (entities == null || !entities.Any())
+                throw new KeyNotFoundException($"No activityLogs found for risk key {riskKey}.");
+
+            return _mapper.Map<List<ActivityLogResponseDTO>>(entities);
+        }
     }
 }

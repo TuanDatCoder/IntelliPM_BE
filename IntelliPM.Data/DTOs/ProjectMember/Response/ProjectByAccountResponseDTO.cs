@@ -12,6 +12,8 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public string ProjectName { get; set; } = null!;
         public string ProjectStatus { get; set; } = null!;
         public string ProjectKey { get; set; } = null!;
+        public string? ProjectType { get; set; }
+        public DateTime? ProjectCreateAt { get; set; }
         public string? IconUrl { get; set; }
         public DateTime? JoinedAt { get; set; }
         public DateTime InvitedAt { get; set; }

@@ -720,7 +720,7 @@ CREATE TABLE dynamic_category (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     icon_link TEXT NULL,
-    color VARCHAR(10) NULL,
+    color VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
@@ -732,6 +732,7 @@ CREATE TABLE activity_log (
 	epic_id VARCHAR(255) NULL,
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
+    risk_key VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
     related_entity_id VARCHAR(255) NULL,
     action_type VARCHAR(100) NOT NULL,
@@ -744,7 +745,8 @@ CREATE TABLE activity_log (
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-	FOREIGN KEY (epic_id) REFERENCES epic(id)
+	FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (risk_key) REFERENCES risk(risk_key)
 );
 
 -- 46. meeting_reschedule_request
@@ -1076,11 +1078,11 @@ VALUES
 -- Insert sample data into meeting
 INSERT INTO meeting (project_id, meeting_topic, meeting_date, meeting_url, status, start_time, end_time, attendees)
 VALUES 
-    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'SCHEDULED', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
+    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'COMPLETED', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
     (2, 'Campaign Review', '2025-07-10 14:00:00+00', 'http://meet.example.com/2', 'COMPLETED', '2025-07-10 14:00:00+00', '2025-07-10 15:00:00+00', 3),
     (3, 'Research Sync', '2025-08-15 09:00:00+00', 'http://meet.example.com/3', 'CANCELLED', '2025-08-15 09:00:00+00', '2025-08-15 10:00:00+00', 2),
     (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'COMPLETED', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
-    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'SCHEDULED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
+    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'COMPLETED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
 
 -- Insert sample data into meeting_document
 INSERT INTO meeting_document (meeting_id, title, description, file_url, is_active, account_id)
@@ -1103,11 +1105,11 @@ VALUES
 -- Insert sample data into meeting_participant
 INSERT INTO meeting_participant (meeting_id, account_id, role, status)
 VALUES 
-    (1, 1, 'PROJECT_MANAGER', 'ATTENDED'),
-    (1, 2, 'TEAM_MEMBER', 'ATTENDED'),
-    (2, 3, 'TEAM_MEMBER', 'ATTENDED'),
-    (3, 4, 'TEAM_MEMBER', 'ABSENT'),
-    (4, 5, 'PROJECT_MANAGER', 'ATTENDED');
+    (1, 1, 'PROJECT_MANAGER', 'Absent'),
+    (1, 2, 'TEAM_MEMBER', 'Absent'),
+    (2, 3, 'TEAM_MEMBER', 'Absent'),
+    (3, 4, 'TEAM_MEMBER', 'Absent'),
+    (4, 5, 'PROJECT_MANAGER', 'Absent');
 
 -- Insert sample data into meeting_transcript
 INSERT INTO meeting_transcript (meeting_id, transcript_text)
@@ -1130,11 +1132,11 @@ VALUES
 -- Insert sample data into milestone_feedback
 INSERT INTO milestone_feedback (meeting_id, account_id, feedback_text, status)
 VALUES 
-    (1, 1, 'Good progress', 'REVIEWED'),
-    (2, 2, 'Needs more effort', 'PENDING'),
+    (1, 1, 'Good progress', 'APPROVED'),
+    (2, 2, 'Needs more effort', 'APPROVED'),
     (3, 3, 'Delayed', 'REVIEWED'),
     (4, 4, 'Excellent work', 'APPROVED'),
-    (5, 5, 'On schedule', 'PENDING');
+    (5, 5, 'On schedule', 'APPROVED');
 
 -- Insert sample data into risk
 -- Insert sample data into risk with the 'due_date' column
@@ -1249,6 +1251,8 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
+    ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
     ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
 	('requirement_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
@@ -1322,21 +1326,20 @@ VALUES
     ('recipient_notification_status', 'RECEIVED', 'Received', 'Notification received', 1, NULL, NULL),
     ('recipient_notification_status', 'READ', 'Read', 'Notification read', 2, NULL, NULL),
     ('recipient_notification_status', 'DELETED', 'Deleted', 'Deleted notification', 3, NULL, NULL),
-    ('meeting_status', 'SCHEDULED', 'Scheduled', 'Meeting scheduled', 1, NULL, NULL),
+    ('meeting_status', 'ACTIVE', 'Active', 'Meeting scheduled', 1, NULL, NULL),
     ('meeting_status', 'COMPLETED', 'Completed', 'Meeting completed', 2, NULL, NULL),
     ('meeting_status', 'CANCELLED', 'Cancelled', 'Meeting cancelled', 3, NULL, NULL),
     ('meeting_status', 'DELETED', 'Deleted', 'Deleted meeting', 4, NULL, NULL),
-    ('meeting_participant_status', 'ATTENDED', 'Attended', 'Participant attended', 1, NULL, NULL),
+    ('meeting_participant_status', 'ACTIVE', 'Active', 'Participant attended', 1, NULL, NULL),
     ('meeting_participant_status', 'ABSENT', 'Absent', 'Participant absent', 2, NULL, NULL),
     ('meeting_participant_status', 'DELETED', 'Deleted', 'Deleted participant', 3, NULL, NULL),
     ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1, NULL, NULL),
     ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2, NULL, NULL),
     ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3, NULL, NULL),
-    ('milestone_feedback_status', 'DELETED', 'Deleted', 'Deleted feedback', 4, NULL, NULL),
-    ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, NULL),
-    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, NULL),
-    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, NULL),
-    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, NULL),
+    ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, 'blue-100,blue-700'),
+    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, 'gray-100,gray-700'),
+    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, 'green-100,green-700'),
+    ('milestone_feedback_status', 'REJECT', 'Reject', 'Deleted feedback', 4, NULL, NULL),
     ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
     ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
     ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
@@ -1377,7 +1380,7 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
-     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
@@ -1385,11 +1388,15 @@ VALUES
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
     ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 4, NULL, NULL),
+    ('activity_log_action_type', 'CREATE', 'Create', 'Record create action', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1, NULL, NULL),
     ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
     ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
+    ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
+	('activity_log_action_type', 'TRANSCRIPT_FROM_URL_CREATED', 'Transcript From URL Created', TRUE, NOW(), 1),
+    ('activity_log_action_type', 'TRANSCRIPT_CREATED', 'Transcript Created', TRUE, NOW(), 2),
     ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
 	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
@@ -1403,11 +1410,24 @@ VALUES
     ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
     ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
-    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+    ('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
+    ('risk_impact_level', 'MEDIUM', 'Medium', 'Medium impact level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_impact_level', 'HIGH', 'High', 'High impact level', 3, NULL, 'red-100,red-700'),
+    ('risk_probability_level', 'LOW', 'Low', 'Low probability level', 1, NULL, 'green-100,green-700'),
+    ('risk_probability_level', 'MEDIUM', 'Medium', 'Medium probability level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_probability_level', 'HIGH', 'High', 'High probability level', 3, NULL, 'red-100,red-700'),
+    ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
+    ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
 ('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
+
+INSERT INTO dynamic_category (category_group, name, label, description, is_active, order_index, icon_link, color)
+VALUES 
+    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', false, 3, NULL, 'red-100,red-700');
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

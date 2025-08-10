@@ -1137,7 +1137,133 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
+        public async Task SendRiskAssignmentEmail(string assigneeFullName, string assigneeEmail, string riskKey, string riskTitle, string projectKey, string severityLevel, DateTime? dueDate, string riskDetailUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(assigneeEmail));
+            email.Subject = $"[IntelliPM] You have been assigned risk {riskKey}: {riskTitle}";
 
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }}
+        .header {{
+            background-color: #007bff;
+            padding: 20px;
+            text-align: center;
+        }}
+        .header img {{
+            max-width: 150px;
+        }}
+        .content {{
+            padding: 20px;
+            color: #333333;
+        }}
+        .content h2 {{
+            color: #007bff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }}
+        .content p {{
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }}
+        .details {{
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }}
+        .details ul {{
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }}
+        .details ul li {{
+            margin-bottom: 8px;
+        }}
+        .details ul li strong {{
+            display: inline-block;
+            width: 120px;
+            color: #555555;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }}
+        .footer {{
+            background-color: #f4f4f4;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{logoUrl}' alt='IntelliPM Logo'>
+        </div>
+        <div class='content'>
+            <h2>Hi {assigneeFullName},</h2>
+            <p>You have been assigned a new risk in the IntelliPM system. Please review the details below and take appropriate action.</p>
+            <div class='details'>
+                <ul>
+                    <li><strong>Risk ID:</strong> {riskKey}</li>
+                    <li><strong>Title:</strong> {riskTitle}</li>
+                    <li><strong>Project:</strong> {projectKey}</li>
+                    <li><strong>Severity:</strong> {severityLevel}</li>
+                    <li><strong>Due Date:</strong> {(dueDate.HasValue ? dueDate.Value.ToString("MMM dd, yyyy") : "Not specified")}</li>
+                </ul>
+            </div>
+            <p>Please log in to the IntelliPM system to view full details and manage this risk.</p>
+            <a href='{riskDetailUrl}' class='button'>View Risk Details</a>
+        </div>
+        <div class='footer'>
+            <p>Best regards,<br>IntelliPM Notification System</p>
+            <p>&copy; {DateTime.UtcNow.Year} IntelliPM. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
     }
 
 }
