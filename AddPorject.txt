@@ -1,9 +1,13 @@
+client@gmail.com, tuandatdq03@gmail.com, tuandatdinhquoc@gmail.com, dinhhoangdat789@gmail.com,teamMemberfe3@gmail.com, teamMemberbe2@gmail.com
+
+ngothaovy305@gmail.com, tuandatdq03@gmail.com, tuandatdinhquoc@gmail.com,vynptse161509@fpt.edu.vn, teamMemberbe3@gmail.com, duylnpse171722@fpt.edu.vn, khangdase171370@fpt.edu.vn, hanntnse171332@fpt.edu.vn
+
 
 ================================================================================
 PROJECT OVERVIEW - EduTrack360
 ================================================================================
 
-🆔 Project Key: EDUTRACK  
+🆔 Project Key:    
 📛 Project Name: EduTrack360 – Online Learning Management System  
 💬 Description:
   EduTrack360 is a modern web-based Learning Management System (LMS) designed 
@@ -93,7 +97,7 @@ PROJECT OVERVIEW - EduTrack360
 
  10. System Scalability for Multi-Tenant Support
      → Type: NON_FUNCTIONAL  
-     → Desc: Architecture allows future onboarding of multiple schools/orgs  
+     → Desc: System Scalability for Multi-Tenant Support  
      → Priority: MEDIUM
 
 ================================================================================
@@ -204,5 +208,197 @@ PROJECT OVERVIEW - SmartHome360
      → Priority: MEDIUM
 
 
+
+================================================================================
+
+
+
+🆔 Project Key: AGRISENSE  
+📛 Project Name: AgriSenseAI – Smart Agricultural Monitoring System  
+💬 Description:
+  AgriSenseAI is an intelligent IoT platform that helps farmers monitor and manage 
+  their crops in real-time using sensors, AI predictions, and remote automation. 
+  It supports soil condition tracking, irrigation scheduling, pest alerts, and 
+  growth analytics via mobile/web dashboards.
+  
+  Key features include:
+  - Sensor-based soil and weather monitoring
+  - AI-driven crop health diagnostics
+  - Real-time alerts for pests or abnormal conditions
+  - Integration with automatic irrigation systems
+  - Scalable backend using Node.js, Firebase, and PostgreSQL
+
+💰 Budget: 2,000,000 VND  
+📂 Project Type: IOT_AGRI_PLATFORM  
+📅 Start Date: 2025-08-01  
+📅 End Date:   2025-12-20  
+
+👥 Project Members & Roles:
+  1. manager.agri@gmail.com → Teamlead  
+  2. tuandatdq03@gmail.com → PROJECT_MANAGER  
+  3. farmer1@gmail.com → CLIENT  
+  4. dev.frontend1@gmail.com → FRONTEND_DEVELOPER  
+  5. dev.backend1@gmail.com → BACKEND_DEVELOPER  
+  6. uxdesigner.agri@gmail.com → UX_UI_DESIGNER  
+  All members joined: 2025-08-01  
+
+📋 Project Requirements:
+  1. Soil Sensor Sync & Management → FUNCTIONAL → HIGH  
+  2. Crop Health AI Detection → FUNCTIONAL → HIGH  
+  3. Automated Irrigation Scheduler → FUNCTIONAL → MEDIUM  
+  4. Multi-Field Dashboard View → FUNCTIONAL → MEDIUM  
+  5. Pest Outbreak Notifications → FUNCTIONAL → HIGH  
+  6. Weather API Integration → NON_FUNCTIONAL → MEDIUM  
+  7. Offline Mode with Sync → NON_FUNCTIONAL → HIGH  
+  8. Mobile-Friendly UI → NON_FUNCTIONAL → HIGH  
+  9. MQTT-Based Real-time Updates → NON_FUNCTIONAL → HIGH  
+ 10. Scalable Microservice Architecture → NON_FUNCTIONAL → MEDIUM  
+
+
+
+
+===========================================================================
+🆔 Project Key: FLEET360  
+📛 Project Name: FleetTrack360 – Smart Vehicle Logistics Tracking Platform  
+💬 Description:
+  FleetTrack360 is a real-time fleet management system designed for logistics companies. 
+  It allows tracking vehicle locations, driver performance, delivery statuses, 
+  and maintenance schedules. The system supports IoT integration via GPS/OBD devices, 
+  and alerts for route deviations, fuel consumption anomalies, or delays.
+  
+  Key features include:
+  - Real-time vehicle tracking with Map APIs
+  - Geo-fencing and route deviation detection
+  - Driver behavior analytics (speeding, idling, etc.)
+  - Maintenance and fuel management module
+  - Role-based dashboards for Dispatcher, Admin, Driver
+
+💰 Budget: 2,200,000 VND  
+📂 Project Type: IOT_LOGISTICS_PLATFORM  
+📅 Start Date: 2025-07-15  
+📅 End Date:   2025-12-15  
+
+👥 Project Members & Roles:
+  1. fleetadmin@gmail.com → Teamlead  
+  2. tuandatdq03@gmail.com → PROJECT_MANAGER  
+  3. dispatch@gmail.com → CLIENT  
+  4. backenddev1@gmail.com → BACKEND_DEVELOPER  
+  5. frontendmapdev@gmail.com → FRONTEND_DEVELOPER  
+  6. uxfleet@gmail.com → UX_UI_DESIGNER  
+  All members joined: 2025-07-15  
+
+📋 Project Requirements:
+  1. GPS Sync from Fleet Devices → FUNCTIONAL → HIGH  
+  2. Route Optimization Engine → FUNCTIONAL → MEDIUM  
+  3. Driver Score & Report System → FUNCTIONAL → HIGH  
+  4. Maintenance Schedule Tracker → FUNCTIONAL → MEDIUM  
+  5. Fuel Efficiency Monitoring → FUNCTIONAL → MEDIUM  
+  6. Real-Time Map & Dashboard → NON_FUNCTIONAL → HIGH  
+  7. Alerts for Route Deviations → FUNCTIONAL → HIGH  
+  8. Role-Based Dashboard Access → NON_FUNCTIONAL → HIGH  
+  9. Integration with External APIs (MapBox, Google Maps) → NON_FUNCTIONAL → HIGH  
+ 10. Data Sync for Offline Logs → NON_FUNCTIONAL → MEDIUM  
+
+
+
+
+Dưới đây là **2 project mới** được viết theo đúng cấu trúc như của `EduTrack360`. Mỗi project có ý tưởng khác biệt và phù hợp với định hướng phần mềm doanh nghiệp, học thuật hoặc xã hội hóa.
+
+---
+
+================================================================================
+PROJECT OVERVIEW - IntelliPM
+================================================================================
+
+🆔 Project Key: IntelliPM  
+📛 Project Name: IntelliPM – AI-Powered Project Management Software  
+💬 Description:
+  IntelliPM is an intelligent project management system that helps Project 
+  Managers simulate real-world scenarios, manage tasks, track progress, and 
+  enhance decision-making using data insights and AI recommendations.  
+
+  The system supports different roles (Admin, PM, Team Member, Client) and 
+  provides separate role-based interfaces. It includes sprint planning, 
+  mood check-in, meeting documentation, time logs, and AI-powered scenario 
+  simulations for Project Managers to practice critical thinking.
+
+  Key features include:
+  - Task management, sprint planning, workload tracking
+  - AI-driven scenario simulation for PMs
+  - SPI/CPI calculation & performance dashboards
+  - Mood check-ins and time logs for team members
+  - Audit logs and skill scoring for evaluation
+  - Admin role for user & permission control
+
+💰 Budget: 2,000,000 VND  
+📂 Project Type: ENTERPRISE_WEB_APP  
+📅 Start Date: 2025-06-01  
+📅 End Date:   2025-10-30  
+
+--------------------------------------------------------------------------------
+👥 Project Members & Roles:
+
+  1. dinhquocdatpm@gmail.com       → PROJECT_MANAGER
+  2. thutrang.admin@gmail.com      → ADMIN
+  3. nguyenthienclient@gmail.com   → CLIENT
+  4. hoangdevfe@gmail.com          → FRONTEND_DEVELOPER
+  5. tamdevbe@gmail.com            → BACKEND_DEVELOPER
+  6. linhuxds@gmail.com            → DESIGNER
+
+  All members joined: 2025-06-01  
+  Invited between: 2025-05-20 → 2025-05-28
+
+--------------------------------------------------------------------------------
+📋 Project Requirements:
+
+  1. Sprint & Task Management
+     → Type: FUNCTIONAL  
+     → Desc: Create tasks, assign sprints, and track status updates  
+     → Priority: HIGH
+
+  2. Scenario Simulation Engine
+     → Type: FUNCTIONAL  
+     → Desc: PMs go through AI-powered situations and receive evaluations  
+     → Priority: HIGH
+
+  3. Mood Check-In & Time Log
+     → Type: FUNCTIONAL  
+     → Desc: Team members check mood daily and log working hours  
+     → Priority: MEDIUM
+
+  4. SPI/CPI Dashboard
+     → Type: FUNCTIONAL  
+     → Desc: Visual performance indicators for project tracking  
+     → Priority: HIGH
+
+  5. Meeting Reports & AI Summarizer
+     → Type: FUNCTIONAL  
+     → Desc: Auto-generate summaries from meeting notes  
+     → Priority: MEDIUM
+
+  6. Audit Log & Skill Score System
+     → Type: FUNCTIONAL  
+     → Desc: Track activities and evaluate PM skills per action  
+     → Priority: MEDIUM
+
+  7. Role-Based Interface
+     → Type: NON_FUNCTIONAL  
+     → Desc: Separate UI per user type (PM, Client, Admin)  
+     → Priority: HIGH
+
+  8. Multi-Platform Support
+     → Type: NON_FUNCTIONAL  
+     → Desc: Web and mobile support with responsive layout  
+     → Priority: HIGH
+
+  9. Notification System
+     → Type: NON_FUNCTIONAL  
+     → Desc: Real-time notification system for task updates  
+     → Priority: MEDIUM
+
+ 10. Data Privacy Compliance
+     → Type: NON_FUNCTIONAL  
+     → Desc: Ensure data security and GDPR-style compliance  
+     → Priority: HIGH
 
 ================================================================================

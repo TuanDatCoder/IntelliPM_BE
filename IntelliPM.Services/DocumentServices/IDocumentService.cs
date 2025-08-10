@@ -1,13 +1,8 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
-using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
-using IntelliPM.Data.DTOs.Document.Request;
+using IntelliPM.Data.DTOs.ShareDocument.Response;
+using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 
 namespace IntelliPM.Services.DocumentServices
 {
@@ -15,11 +10,14 @@ namespace IntelliPM.Services.DocumentServices
 
     public interface IDocumentService
     {
-        Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId);
+        Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId, int userId);
         Task<DocumentResponseDTO> GetDocumentById(int id);
+        Task<List<DocumentResponseDTO>> GetAllDocuments();
 
+        Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId);
         Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId);
-        Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req);
+
+        Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId);
         Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId);
 
         Task<string> SummarizeContent(int documentId);
@@ -40,8 +38,16 @@ namespace IntelliPM.Services.DocumentServices
 
         Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId);
 
+        Task<Dictionary<string, int>> GetStatusCount();
+
+        Task<Dictionary<string, int>> GetStatusCountByProject(int projectId);
 
 
+        Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId);
+
+        Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest request);
+
+        Task<string> GetUserPermissionLevel(int documentId, int userId);
 
 
 

@@ -18,6 +18,11 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                              .Where(d => d.ProjectId == projectId && d.IsActive)
                              .ToListAsync();
 
+        public async Task<List<Document>> GetAllAsync()
+            => await _context.Document
+                             .Where(d => d.IsActive)
+                             .ToListAsync();
+
         public async Task<Document?> GetByIdAsync(int id)
             => await _context.Document.FindAsync(id);
 
@@ -103,6 +108,40 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                     d => d.Id
                 );
         }
+
+        public async Task<Dictionary<string, int>> CountByStatusAsync()
+        {
+            return await _context.Document
+                .Where(d => d.IsActive)
+                .GroupBy(d => d.Status ?? "Unknown")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Status, g => g.Count);
+        }
+
+        public async Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId)
+        {
+            return await _context.Document
+                .Where(d => d.IsActive && d.ProjectId == projectId)
+                .GroupBy(d => d.Status ?? "Unknown")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Status, g => g.Count);
+        }
+
+        public async Task<List<int>> GetAccountIdsByEmailsAsync(List<string> emails)
+        {
+            return await _context.Account
+                .Where(a => emails.Contains(a.Email))
+                .Select(a => a.Id)
+                .ToListAsync();
+        }
+
+        public async Task<Dictionary<string, int>> GetAccountMapByEmailsAsync(List<string> emails)
+        {
+            return await _context.Account
+                .Where(a => emails.Contains(a.Email))
+                .ToDictionaryAsync(a => a.Email.ToLower(), a => a.Id);
+        }
+
 
 
 

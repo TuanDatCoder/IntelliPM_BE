@@ -185,14 +185,12 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
-
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] SubtaskRequest3DTO dto)
         {
             try
             {
-                var updated = await _service.ChangeSubtaskStatus(id, status);
+                var updated = await _service.ChangeSubtaskStatus(id, dto.Status, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -302,11 +300,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-hours")]
-        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours, int createdBy)
         {
             try
             {
-                var updated = await _service.ChangePlannedHours(id, hours);
+                var updated = await _service.ChangePlannedHours(id, hours, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -331,6 +329,59 @@ namespace IntelliPM.API.Controllers
                     Code = 500,
                     Message = $"Error updating subtask plannedHours: {ex.Message}"
                 });
+            }
+        }
+
+        [HttpPatch("{id}/actual-hours")]
+        public async Task<IActionResult> ChangeActualHours(string id, [FromBody] decimal hours, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeActualHours(id, hours, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask actualHours updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask actualHours: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("{id}/full-detailed")]
+        public async Task<IActionResult> GetFullDetailedById(string id)
+        {
+            try
+            {
+                var taskCheckList = await _service.GetFullSubtaskById(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Subtask retrieved successfully",
+                    Data = taskCheckList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
         }
 

@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +16,17 @@ namespace IntelliPM.Repositories.TaskRepos
     public class TaskRepository : ITaskRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public TaskRepository(Su25Sep490IntelliPmContext context)
+        public TaskRepository(Su25Sep490IntelliPmContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
+        }
+
+        public Su25Sep490IntelliPmContext GetContext()
+        {
+            return _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<Su25Sep490IntelliPmContext>();
         }
 
         public async Task<List<Tasks>> GetAllTasks()
@@ -28,6 +36,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
                 .OrderBy(t => t.Id)
+                                                                                                                                                
                 .ToListAsync();
         }
 
@@ -74,6 +83,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(e => e.Epic)
                 .Include(e => e.Sprint)
                 .Where(t => t.ProjectId == projectId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
@@ -84,6 +94,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
                 .Where(t => t.EpicId == epicId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
 
@@ -93,9 +104,25 @@ namespace IntelliPM.Repositories.TaskRepos
                 .Include(v => v.Project)
                 .Include(a => a.Reporter)
                 .Include(e => e.Sprint)
+                .Include(e => e.Epic)
                 .Where(t => t.SprintId == sprintId)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
+
+
+        public async Task<List<Tasks>> GetBySprintIdAndByStatusAsync(int sprintId, string status)
+        {
+            return await _context.Tasks
+                .Include(v => v.Project)
+                .Include(a => a.Reporter)
+                .Include(e => e.Sprint)
+                .Include(e => e.Epic)
+                .Where(t => t.SprintId == sprintId && t.Status.ToUpper() == status.ToUpper())
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync();
+        }
+
 
         public async Task<string> GetProjectKeyByTaskIdAsync(string taskId)
         {
@@ -129,6 +156,7 @@ namespace IntelliPM.Repositories.TaskRepos
                 Id = task.Id,
                 PlannedHours = task.PlannedHours,
                 ActualHours = task.ActualHours,
+                RemainingHours = task.RemainingHours,
                 Accounts = task.TaskAssignment.Select(ta => new AccountBasicDTO
                 {
                     Id = ta.Account.Id,
@@ -139,12 +167,33 @@ namespace IntelliPM.Repositories.TaskRepos
                 {
                     Id = st.Id,
                     TaskId = st.TaskId,
-                    AssignedBy = (int)st.AssignedBy,
+                    AssignedBy = st.AssignedBy,
                     PlannedHours = st.PlannedHours,
                     ActualHours = st.ActualHours
                 }).ToList()
             };
         }
 
+        public async Task AddRangeAsync(List<Tasks> tasks)
+        {
+            await _context.Tasks.AddRangeAsync(tasks);
+        }
+        public async Task AddRangeAsync(List<Tasks> tasks, Su25Sep490IntelliPmContext context)
+        {
+            await context.Tasks.AddRangeAsync(tasks);
+        }
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateRange(List<Tasks> tasks)
+        {
+            if (tasks == null || !tasks.Any())
+                return;
+
+            _context.Tasks.UpdateRange(tasks);
+            await _context.SaveChangesAsync();
+        }
     }
 }

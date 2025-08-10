@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Data.DTOs.Meeting.Response;
+using IntelliPM.Data.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -27,7 +28,7 @@ namespace IntelliPM.Services.MeetingServices
 
         Task CompleteMeeting(int meetingId);
 
-
+        Task<List<int>> CheckMeetingConflictAsync(List<int> participantIds, DateTime date, DateTime startTime, DateTime endTime);
     }
 }
 

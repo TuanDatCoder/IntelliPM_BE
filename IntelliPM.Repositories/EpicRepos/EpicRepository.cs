@@ -1,21 +1,26 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace IntelliPM.Repositories.EpicRepos
 {
     public class EpicRepository : IEpicRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public EpicRepository(Su25Sep490IntelliPmContext context)
+        public EpicRepository(Su25Sep490IntelliPmContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
+        }
+        public Su25Sep490IntelliPmContext GetContext()
+        {
+            return _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<Su25Sep490IntelliPmContext>();
         }
 
         public async Task<List<Epic>> GetAllEpics()
@@ -38,7 +43,21 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Include(e => e.Sprint)
+                .OrderBy(e => e.CreatedAt)
                 .FirstOrDefaultAsync(e => e.Id == id);
+        }
+
+        public async Task<List<Epic>> GetByAccountIdAsync(int accountId)
+        {
+            return await _context.Epic
+                .Include(e => e.Project)
+                .Include(e => e.Reporter)
+                .Include(e => e.Sprint)
+                .Include(e => e.AssignedByNavigation)
+                .Include(e => e.Sprint)
+                .Where(e => e.AssignedBy == accountId)
+                .OrderBy(e => e.Id)
+                .ToListAsync();
         }
 
         public async Task<List<Epic>> GetByNameAsync(string name)
@@ -54,7 +73,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .ToListAsync();
         }
 
-        public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey) 
+        public async Task<List<Epic>> GetByProjectKeyAsync(string projectKey)
         {
             return await _context.Epic
                 .Include(e => e.Project)
@@ -62,6 +81,7 @@ namespace IntelliPM.Repositories.EpicRepos
                 .Include(e => e.Sprint)
                 .Include(e => e.AssignedByNavigation)
                 .Where(e => e.Project != null && e.Project.ProjectKey == projectKey)
+                .OrderBy(e => e.Id)
                 .ToListAsync();
         }
 
@@ -82,5 +102,20 @@ namespace IntelliPM.Repositories.EpicRepos
             _context.Epic.Remove(epic);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
+        }
+        public async Task AddRangeAsync(List<Epic> epics)
+        {
+            await _context.Epic.AddRangeAsync(epics);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

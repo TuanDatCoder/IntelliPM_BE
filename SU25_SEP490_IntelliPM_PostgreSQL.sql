@@ -1,4 +1,4 @@
-﻿-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
+-- Database schema for SU25_SEP490_IntelliPM with TIMESTAMPTZ and standardized data
 
 -- Create database
 -- CREATE DATABASE SU25_SEP490_IntelliPM;
@@ -62,7 +62,7 @@ CREATE TABLE project_member (
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     hourly_rate DECIMAL(10, 2) NULL,
-    working_hours_per_day INT NULL DEFAULT 8, 
+    working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)
@@ -83,6 +83,13 @@ CREATE TABLE sprint (
     status VARCHAR(50) NULL,
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
+
+ALTER TABLE sprint
+ADD COLUMN planned_start_date TIMESTAMPTZ NULL;
+
+ALTER TABLE sprint
+ADD COLUMN planned_end_date TIMESTAMPTZ NULL;
+
 
 
 -- 6. epic
@@ -143,7 +150,18 @@ CREATE TABLE milestone (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 10. tasks
+-- 10. milestone _comment
+CREATE TABLE milestone_comment (
+    id SERIAL PRIMARY KEY,
+    milestone_id INT NOT NULL,
+    account_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (milestone_id) REFERENCES milestone(id),
+    FOREIGN KEY (account_id) REFERENCES account(id) 
+);
+
+-- 11. tasks
 CREATE TABLE tasks (
     id VARCHAR(255) PRIMARY KEY,
     reporter_id INT NOT NULL,
@@ -179,7 +197,7 @@ CREATE TABLE tasks (
     FOREIGN KEY (sprint_id) REFERENCES sprint(id)
 );
 
--- 11. task_assignment
+-- 12. task_assignment
 CREATE TABLE task_assignment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -193,7 +211,7 @@ CREATE TABLE task_assignment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 12. subtask
+-- 13. subtask
 CREATE TABLE subtask (
     id VARCHAR(255) PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -214,7 +232,9 @@ CREATE TABLE subtask (
     FOREIGN KEY (assigned_by) REFERENCES account(id),
     FOREIGN KEY (sprint_id) REFERENCES sprint(id),
 	FOREIGN KEY (reporter_id) REFERENCES account(id)
+
 );
+
 
 -- Thêm các trường còn thiếu cho bảng subtask (tất cả đều cho phép NULL)
 ALTER TABLE subtask ADD COLUMN IF NOT EXISTS planned_start_date TIMESTAMPTZ NULL;
@@ -236,7 +256,7 @@ ALTER TABLE subtask ADD COLUMN IF NOT EXISTS evaluate VARCHAR(50) NULL;
 
 
 
--- 13. subtask_file
+-- 14. subtask_file
 CREATE TABLE subtask_file (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -247,7 +267,7 @@ CREATE TABLE subtask_file (
     FOREIGN KEY (subtask_id) REFERENCES subtask(id)
 );
 
--- 14. subtask_comment
+-- 15. subtask_comment
 CREATE TABLE subtask_comment (
     id SERIAL PRIMARY KEY,
     subtask_id VARCHAR(255) NOT NULL,
@@ -258,7 +278,8 @@ CREATE TABLE subtask_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 15. task_comment
+
+-- 16. task_comment
 CREATE TABLE task_comment (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -270,20 +291,31 @@ CREATE TABLE task_comment (
 );
 
 -- 16. task_dependency
+-- CREATE TABLE task_dependency (
+--     id SERIAL PRIMARY KEY,
+--     milestone_id INT NULL,
+--     task_id VARCHAR(255) NULL,
+--     linked_from VARCHAR(255) NOT NULL,
+--     linked_to VARCHAR(255) NOT NULL,
+--     type VARCHAR(50) NULL,
+--     FOREIGN KEY (milestone_id) REFERENCES milestone(id),
+--     FOREIGN KEY (task_id) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_from) REFERENCES tasks(id),
+--     FOREIGN KEY (linked_to) REFERENCES tasks(id)
+-- );
+
+-- 17. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
-    milestone_id INT NULL,
-    task_id VARCHAR(255) NULL,
-    linked_from VARCHAR(255) NOT NULL,
+    from_type VARCHAR(50) NOT NULL,    
+    linked_from VARCHAR(255) NOT NULL, 
+    to_type VARCHAR(50) NOT NULL,      
     linked_to VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NULL,
-    FOREIGN KEY (milestone_id) REFERENCES milestone(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (linked_from) REFERENCES tasks(id),
-    FOREIGN KEY (linked_to) REFERENCES tasks(id)
+    type VARCHAR(50) NOT NULL         
 );
 
--- 17. task_file
+
+-- 18. task_file
 CREATE TABLE task_file (
     id SERIAL PRIMARY KEY,
     task_id VARCHAR(255) NOT NULL,
@@ -294,10 +326,10 @@ CREATE TABLE task_file (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 18. document
+-- 19. document
 CREATE TABLE document (
     id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL,
+    project_id INTEGER NOT NULL,
     task_id VARCHAR(255),
     epic_id VARCHAR(255),
     subtask_id VARCHAR(255),
@@ -308,23 +340,68 @@ CREATE TABLE document (
     file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     status VARCHAR(30) DEFAULT 'Draft',
-    created_by INT NOT NULL,
-    updated_by INT,
-    approver_id INT,
+    created_by INTEGER NOT NULL,
+    updated_by INTEGER,
+    approver_id INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (epic_id) REFERENCES epic(id),
-    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-    FOREIGN KEY (created_by) REFERENCES account(id),
-    FOREIGN KEY (updated_by) REFERENCES account(id),
-    FOREIGN KEY (approver_id) REFERENCES account(id)
+    visibility VARCHAR(20),
+
+    CONSTRAINT fk_document_project FOREIGN KEY (project_id)
+        REFERENCES public.project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_task FOREIGN KEY (task_id)
+        REFERENCES public.tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_epic FOREIGN KEY (epic_id)
+        REFERENCES public.epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_subtask FOREIGN KEY (subtask_id)
+        REFERENCES public.subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_created_by FOREIGN KEY (created_by)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+
+    CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
+        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+CREATE TABLE document_comment (
+    id SERIAL PRIMARY KEY,
+    document_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+
+  
+    CONSTRAINT fk_document FOREIGN KEY (document_id)
+        REFERENCES document (id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_author FOREIGN KEY (author_id)
+        REFERENCES account (id) ON DELETE CASCADE
 );
 
 
--- 19. document_permission
+CREATE TABLE document_export_file (
+    id SERIAL PRIMARY KEY,
+    document_id INTEGER NOT NULL,
+    exported_file_url VARCHAR(1000) NOT NULL,
+    exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    exported_by INTEGER NOT NULL,
+
+    
+    CONSTRAINT fk_document_export FOREIGN KEY (document_id)
+        REFERENCES document(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
+        REFERENCES account(id) ON DELETE SET NULL
+);
+
+-- 20. document_permission
 CREATE TABLE document_permission (
     id SERIAL PRIMARY KEY,
     document_id INT NOT NULL,
@@ -335,7 +412,7 @@ CREATE TABLE document_permission (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 20. project_position
+-- 21. project_position
 CREATE TABLE project_position (
     id SERIAL PRIMARY KEY,
     project_member_id INT NOT NULL,
@@ -344,7 +421,7 @@ CREATE TABLE project_position (
     FOREIGN KEY (project_member_id) REFERENCES project_member(id)
 );
 
--- 21. notification
+-- 22. notification
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     created_by INT NOT NULL,
@@ -358,7 +435,7 @@ CREATE TABLE notification (
     FOREIGN KEY (created_by) REFERENCES account(id)
 );
 
--- 22. recipient_notification
+-- 23. recipient_notification
 CREATE TABLE recipient_notification (
     id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
@@ -370,7 +447,7 @@ CREATE TABLE recipient_notification (
     FOREIGN KEY (notification_id) REFERENCES notification(id)
 );
 
--- 23. meeting
+-- 24. meeting
 CREATE TABLE meeting (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -385,7 +462,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 24. meeting_document
+-- 25. meeting_document
 CREATE TABLE meeting_document (
     meeting_id INT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -399,7 +476,7 @@ CREATE TABLE meeting_document (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 25. meeting_log
+-- 26. meeting_log
 CREATE TABLE meeting_log (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -410,7 +487,7 @@ CREATE TABLE meeting_log (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 26. meeting_participant
+-- 27. meeting_participant
 CREATE TABLE meeting_participant (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -423,7 +500,7 @@ CREATE TABLE meeting_participant (
     UNIQUE (meeting_id, account_id)
 );
 
--- 27. meeting_transcript
+-- 28. meeting_transcript
 CREATE TABLE meeting_transcript (
     meeting_id INT PRIMARY KEY,
     transcript_text TEXT NOT NULL,
@@ -431,7 +508,7 @@ CREATE TABLE meeting_transcript (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id)
 );
 
--- 28. meeting_summary
+-- 29. meeting_summary
 CREATE TABLE meeting_summary (
     meeting_transcript_id INT PRIMARY KEY,
     summary_text TEXT NOT NULL,
@@ -439,7 +516,7 @@ CREATE TABLE meeting_summary (
     FOREIGN KEY (meeting_transcript_id) REFERENCES meeting_transcript(meeting_id)
 );
 
--- 29. milestone_feedback
+-- 30. milestone_feedback
 CREATE TABLE milestone_feedback (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -451,10 +528,12 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 30. risk
+-- 31. risk
 CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
+    risk_key VARCHAR(20) NOT NULL UNIQUE,
     responsible_id INT NULL,
+    created_by INT NOT NULL,
     project_id INT NOT NULL,
     task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
@@ -472,10 +551,11 @@ CREATE TABLE risk (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (responsible_id) REFERENCES account(id),
+    FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- 31. risk_solution
+-- 32. risk_solution
 CREATE TABLE risk_solution (
     id SERIAL PRIMARY KEY,
     risk_id INT NOT NULL,
@@ -486,7 +566,30 @@ CREATE TABLE risk_solution (
     FOREIGN KEY (risk_id) REFERENCES risk(id)
 );
 
--- 32. change_request
+-- 33. risk_file
+CREATE TABLE risk_file (
+    id SERIAL PRIMARY KEY,
+    risk_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_url VARCHAR(1024) NOT NULL, 
+    uploaded_by INT NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (uploaded_by) REFERENCES account(id)
+);
+
+-- 34. risk_comment
+CREATE TABLE risk_comment (
+    id SERIAL PRIMARY KEY,
+    risk_id INT NOT NULL,
+    account_id INT NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (risk_id) REFERENCES risk(id),
+    FOREIGN KEY (account_id) REFERENCES account(id)
+);
+
+-- 35. change_request
 CREATE TABLE change_request (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -500,19 +603,19 @@ CREATE TABLE change_request (
     FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
--- 33. project_recommendation
+-- 36. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
+    details TEXT NULL,
+    suggested_changes TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id)
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 34. label
+-- 37. label
 CREATE TABLE label (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -523,7 +626,7 @@ CREATE TABLE label (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 35. work_item_label
+-- 38. work_item_label
 CREATE TABLE work_item_label (
     id SERIAL PRIMARY KEY,
     label_id INT NOT NULL,
@@ -538,7 +641,20 @@ CREATE TABLE work_item_label (
     UNIQUE (label_id, task_id, epic_id, subtask_id) 
 );
 
--- 36. requirement
+-- 39. work_log
+CREATE TABLE work_log (
+    id SERIAL PRIMARY KEY,
+    task_id VARCHAR(255) NULL,     
+    subtask_id VARCHAR(255) NULL,      
+    log_date TIMESTAMPTZ NOT NULL,   
+    hours DECIMAL(8, 2) NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+);
+
+-- 40. requirement
 CREATE TABLE requirement (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -551,7 +667,7 @@ CREATE TABLE requirement (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 37. project_metric
+-- 41. project_metric
 CREATE TABLE project_metric (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
@@ -560,18 +676,25 @@ CREATE TABLE project_metric (
     planned_value DECIMAL(15, 2) NULL,
     earned_value DECIMAL(15, 2) NULL,
     actual_cost DECIMAL(15, 2) NULL,
-    spi DECIMAL(15, 2) NULL,
-    cpi DECIMAL(15, 2) NULL,
-    delay_days INT NULL,
-    budget_overrun DECIMAL(15, 2) NULL,
-    projected_finish_date TIMESTAMPTZ NULL,
-    projected_total_cost DECIMAL(15, 2) NULL,
+    schedule_performance_index DECIMAL(15, 2) NULL,
+    cost_performance_index DECIMAL(15, 2) NULL,
+    budget_at_completion DECIMAL(15, 2) NULL,
+    duration_at_completion DECIMAL(15, 2) NULL,
+    cost_variance DECIMAL(15, 2) NULL,
+    schedule_variance DECIMAL(15, 2) NULL,
+    estimate_at_completion DECIMAL(15, 2) NULL,
+    estimate_to_complete DECIMAL(15, 2) NULL,
+    variance_at_completion DECIMAL(15, 2) NULL,
+    estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    is_improved BOOLEAN NOT NULL DEFAULT FALSE,
+    improvement_summary TEXT NULL DEFAULT '',
+    confidence_score DECIMAL(5, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 38. system_configuration
+-- 42. system_configuration
 CREATE TABLE system_configuration (
     id SERIAL PRIMARY KEY,
     config_key VARCHAR(255) NOT NULL UNIQUE,
@@ -587,7 +710,7 @@ CREATE TABLE system_configuration (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 39. dynamic_category
+-- 43. dynamic_category
 CREATE TABLE dynamic_category (
     id SERIAL PRIMARY KEY,
     category_group VARCHAR(100) NOT NULL,
@@ -597,17 +720,19 @@ CREATE TABLE dynamic_category (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     icon_link TEXT NULL,
-    color VARCHAR(10) NULL,
+    color VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
 
--- 40. activity_log
+-- 44. activity_log
 CREATE TABLE activity_log (
     id SERIAL PRIMARY KEY,
     project_id INT NULL,
+	epic_id VARCHAR(255) NULL,
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
+    risk_key VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
     related_entity_id VARCHAR(255) NULL,
     action_type VARCHAR(100) NOT NULL,
@@ -619,10 +744,12 @@ CREATE TABLE activity_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (subtask_id) REFERENCES subtask(id)
+    FOREIGN KEY (subtask_id) REFERENCES subtask(id),
+	FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (risk_key) REFERENCES risk(risk_key)
 );
 
--- 41. meeting_reschedule_request
+-- 46. meeting_reschedule_request
 CREATE TABLE meeting_reschedule_request (
     id SERIAL PRIMARY KEY,
     meeting_id INT NOT NULL,
@@ -639,6 +766,57 @@ CREATE TABLE meeting_reschedule_request (
     FOREIGN KEY (requester_id) REFERENCES account(id),
     FOREIGN KEY (pm_id) REFERENCES account(id)
 );
+
+
+
+-- 47. ai_response_history
+-- Bảng lưu lịch sử trả lời của AI
+CREATE TABLE ai_response_history (
+    id SERIAL PRIMARY KEY,
+    ai_feature VARCHAR(100) NOT NULL, -- Lưu tên tính năng AI (TASK_PLANNING, SPRINT_CREATION, v.v.)
+    project_id INT  NULL,
+    response_json JSONB NOT NULL, -- Lưu phản hồi AI dưới dạng JSON
+    created_by INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES account(id) ON DELETE SET NULL
+);
+
+-- 48. ai_response_evaluation
+-- Bảng lưu đánh giá câu trả lời của AI
+CREATE TABLE ai_response_evaluation (
+    id SERIAL PRIMARY KEY,
+    ai_response_id INT NOT NULL,
+    account_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5), -- Điểm đánh giá từ 1 đến 5
+    feedback TEXT NULL, -- Phản hồi chi tiết về chất lượng
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ai_response_id) REFERENCES ai_response_history(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL
+
+);
+
+
+
+--------------------------------------------------------------
+DO $$
+DECLARE
+    p_key text;
+BEGIN
+    FOR p_key IN (SELECT project_key FROM project)
+    LOOP
+        -- Xóa sequence cũ
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_epic_id_seq');
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_task_id_seq');
+        EXECUTE format('DROP SEQUENCE IF EXISTS %I', lower(p_key) || '_subtask_id_seq');
+        -- Tạo sequence chung
+        EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I START 1', lower(p_key) || '_id_seq');
+    END LOOP;
+END $$;
+
 --------------------------------------------------------------
 
 -- Insert sample data into account
@@ -730,12 +908,12 @@ VALUES
 -- Insert sample data into sprint
 INSERT INTO sprint (project_id, name, goal, start_date, end_date, status)
 VALUES 
-    (1, 'Sprint 1', 'Implement login', '2025-06-01 00:00:00+00', '2025-06-15 00:00:00+00', 'COMPLETED'),
-    (1, 'Sprint 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-30 00:00:00+00', 'IN_PROGRESS'),
-    (2, 'Sprint 3', 'Launch campaign', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'PLANNING'),
-    (3, 'Sprint 4', 'Initial research', '2025-08-01 00:00:00+00', '2025-08-15 00:00:00+00', 'ON_HOLD'),
-    (4, 'Sprint 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-10 00:00:00+00', 'COMPLETED'),
-    (5, 'Sprint 6', 'Test automation', '2025-10-01 00:00:00+00', '2025-10-15 00:00:00+00', 'IN_PROGRESS');
+    (1, 'Sprint 1', 'Implement login', '2025-06-01 00:00:00+00', '2025-06-15 00:00:00+00', 'FUTURE'),
+    (1, 'Sprint 2', 'Add dashboard', '2025-06-16 00:00:00+00', '2025-06-30 00:00:00+00', 'FUTURE'),
+    (2, 'Sprint 3', 'Launch campaign', '2025-07-01 00:00:00+00', '2025-07-15 00:00:00+00', 'FUTURE'),
+    (3, 'Sprint 4', 'Initial research', '2025-08-01 00:00:00+00', '2025-08-15 00:00:00+00', 'FUTURE'),
+    (4, 'Sprint 5', 'Design UI', '2025-09-01 00:00:00+00', '2025-09-10 00:00:00+00', 'FUTURE'),
+    (5, 'Sprint 6', 'Test automation', '2025-10-01 00:00:00+00', '2025-10-15 00:00:00+00', 'FUTURE');
 
 -- Insert sample data into milestone
 INSERT INTO milestone (project_id, key, name, description, start_date, end_date, status)
@@ -784,15 +962,26 @@ VALUES
     ('PROJD-2', 5, 'Design approved by client'),
     ('PROJE-2', 5, 'Automation tests in progress');
 
+-- -- Insert sample data into task_dependency
+-- INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+-- VALUES 
+--     ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
+--     ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
+--     ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
+--     ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
+--     ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
+--     ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+
 -- Insert sample data into task_dependency
-INSERT INTO task_dependency (task_id, linked_from, linked_to, type)
+INSERT INTO task_dependency (from_type, linked_from, to_type, linked_to, type)
 VALUES 
-    ('PROJA-3', 'PROJA-3', 'PROJA-4', 'FINISH_START'),
-    ('PROJA-4', 'PROJA-4', 'PROJB-2', 'FINISH_START'),
-    ('PROJB-2', 'PROJB-2', 'PROJC-2', 'START_START'),
-    ('PROJC-2', 'PROJC-2', 'PROJD-2', 'FINISH_START'),
-    ('PROJD-2', 'PROJD-2', 'PROJA-4', 'START_FINISH'),
-    ('PROJE-2', 'PROJD-2', 'PROJE-2', 'FINISH_START');
+    ('task',     'PROJA-3', 'task',     'PROJA-4', 'FINISH_START'),
+    ('task',     'PROJA-4', 'task',     'PROJB-2', 'FINISH_START'),
+    ('task',     'PROJB-2', 'task',     'PROJC-2', 'START_START'),
+    ('task',     'PROJC-2', 'task',     'PROJD-2', 'FINISH_START'),
+    ('task',     'PROJD-2', 'task',     'PROJA-4', 'START_FINISH'),
+    ('task',     'PROJD-2', 'task',     'PROJE-2', 'FINISH_START');
+
 
 -- Insert sample data into task_file
 INSERT INTO task_file (task_id, title, url_file, status)
@@ -951,13 +1140,13 @@ VALUES
 
 -- Insert sample data into risk
 -- Insert sample data into risk with the 'due_date' column
-INSERT INTO risk (responsible_id, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved, due_date)
+INSERT INTO risk (risk_key, responsible_id, created_by, project_id, task_id, risk_scope, title, description, status, type, generated_by, probability, impact_level, severity_level, is_approved, due_date)
 VALUES 
-    (1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE, '2025-07-20 00:00:00+00'),
-    (2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE, '2025-07-25 00:00:00+00'),
-    (3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE, '2025-09-10 00:00:00+00'),
-    (4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE, '2025-09-15 00:00:00+00'),
-    (5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE, '2025-10-25 00:00:00+00');
+    ('RISK-001', 1, 1, 1, 'PROJA-3', 'SCHEDULE', 'Delay Risk', 'Possible delay in delivery', 'OPEN', 'SCHEDULE', 'AI', 'Medium', 'High', 'Moderate', FALSE, '2025-07-20 00:00:00+00'),
+    ('RISK-002', 2, 2, 2, 'PROJB-2', 'BUDGET', 'Cost Overrun', 'Budget might exceed', 'OPEN', 'FINANCIAL', 'Manual', 'Low', 'Medium', 'Low', FALSE, '2025-07-25 00:00:00+00'),
+    ('RISK-003', 3, 3, 3, 'PROJC-2', 'RESOURCE', 'Staff Shortage', 'Lack of resources', 'CLOSED', 'RESOURCE', 'AI', 'High', 'High', 'High', TRUE, '2025-09-10 00:00:00+00'),
+    ('RISK-004', 4, 4, 4, 'PROJD-2', 'QUALITY', 'Bug Risk', 'Potential bugs', 'OPEN', 'QUALITY', 'Manual', 'Medium', 'Low', 'Low', FALSE, '2025-09-15 00:00:00+00'),
+    ('RISK-005', 5, 5, 5, 'PROJE-2', 'SCOPE', 'Scope Creep', 'Expanding scope', 'OPEN', 'SCOPE', 'AI', 'Low', 'Medium', 'Moderate', FALSE, '2025-10-25 00:00:00+00');
 
 -- Insert sample data into risk_solution
 INSERT INTO risk_solution (risk_id, mitigation_plan, contingency_plan)
@@ -978,13 +1167,13 @@ VALUES
     (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
-INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
+INSERT INTO project_recommendation (project_id, type, recommendation)
 VALUES 
-    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
-    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
-    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
-    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
-    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
+    (1, 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'MARKETING', 'Increase ad spend'),
+    (3, 'RESEARCH', 'Use additional sources'),
+    (4, 'DESIGN', 'Improve color contrast'),
+    (5, 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
@@ -1015,13 +1204,20 @@ VALUES
     (5, 'Test Coverage', 'FUNCTIONAL', 'Cover all cases', 'LOW');
 
 -- Insert sample data into project_metric
-INSERT INTO project_metric (project_id, calculated_by, is_approved, planned_value, earned_value, actual_cost, spi, cpi, delay_days, budget_overrun, projected_finish_date, projected_total_cost)
-VALUES 
-    (1, 'user1', FALSE, 100000.00, 80000.00, 75000.00, 0.90, 0.95, 5, 5000.00, '2025-12-10 00:00:00+00', 105000.00),
-    (2, 'user2', TRUE, 50000.00, 45000.00, 48000.00, 0.85, 0.90, 3, 3000.00, '2025-09-10 00:00:00+00', 53000.00),
-    (3, 'user3', FALSE, 75000.00, 60000.00, 65000.00, 0.80, 0.88, 10, 7000.00, '2025-11-15 00:00:00+00', 82000.00),
-    (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 2, 1000.00, '2025-10-05 00:00:00+00', 31000.00),
-    (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 4, 2000.00, '2025-12-10 00:00:00+00', 42000.00);
+INSERT INTO project_metric (
+    project_id, calculated_by, is_approved,
+    planned_value, earned_value, actual_cost,
+    schedule_performance_index, cost_performance_index,
+    budget_at_completion, duration_at_completion,
+    cost_variance, schedule_variance,
+    estimate_at_completion, estimate_to_complete,
+    variance_at_completion, estimate_duration_at_completion
+) VALUES
+    (1, 'user1', FALSE, 100000.00, 80000.00, 75000.00, 0.90, 0.95, 110000.00, 120.00, 5000.00, -20000.00, 105000.00, 25000.00, -5000.00, 125.00),
+    (2, 'user2', TRUE, 50000.00, 45000.00, 48000.00, 0.85, 0.90, 55000.00, 90.00, 2000.00, -5000.00, 53000.00, 8000.00, -3000.00, 95.00),
+    (3, 'user3', FALSE, 75000.00, 60000.00, 65000.00, 0.80, 0.88, 80000.00, 110.00, -5000.00, -15000.00, 82000.00, 22000.00, -2000.00, 115.00),
+    (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 31000.00, 60.00, -1000.00, -2000.00, 31000.00, 3000.00, -1000.00, 62.00),
+    (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 42000.00, 75.00, -1000.00, -5000.00, 42000.00, 6000.00, -2000.00, 78.00);
 
 	-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
@@ -1110,9 +1306,9 @@ VALUES
     ('task_status', 'TO_DO', 'To Do', 'Task to do', 1, NULL, '##dddee1'),
     ('task_status', 'IN_PROGRESS', 'In Progress', 'Task in progress', 2, NULL, '#87b1e1'),
     ('task_status', 'DONE', 'Done', 'Task completed', 3, NULL, '#b2da73'),
-    ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://drive.google.com/file/d/1aCfATSVY-FdeeTNLoJl3o3k49NtP9lUg/view?usp=drive_link', NULL),
-    ('task_type', 'TASK', 'Task', 'General task', 2, 'https://drive.google.com/file/d/1ebm-P9XekWL5vOYc2ErwFk5jT-dSkGSD/view?usp=drive_link', NULL),
-    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://drive.google.com/file/d/1b7WqqObZEqSAhFa8QOQN3hLAQqkS99vS/view?usp=drive_link', NULL),
+    ('task_type', 'STORY', 'Story', 'User story tasks', 1, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_story_dwl198.svg', NULL),
+    ('task_type', 'TASK', 'Task', 'General task', 2, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_task_pasp70.svg', NULL),
+    ('task_type', 'BUG', 'Bug', 'Bug fix tasks', 3, 'https://res.cloudinary.com/dpl1oiolz/image/upload/v1754475970/type_bug_qqjqkj.svg', NULL),
     ('document_type', 'PLAN', 'Plan', 'Project plan', 1, NULL, NULL),
     ('document_type', 'BRIEF', 'Brief', 'Project brief', 2, NULL, NULL),
     ('document_type', 'REPORT', 'Report', 'Project report', 3, NULL, NULL),
@@ -1142,11 +1338,14 @@ VALUES
     ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, NULL),
     ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, NULL),
     ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, NULL),
+    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, NULL),
     ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
     ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
     ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
     ('risk_type', 'QUALITY', 'Quality', 'Quality risk', 4, NULL, NULL),
     ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5, NULL, NULL),
+    ('risk_type', 'TECHNICAL', 'Technical', 'Technical risk', 6, NULL, NULL),
+    ('risk_type', 'SECURITY', 'Security', 'Security risk', 7, NULL, NULL),
     ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1, NULL, NULL),
     ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
     ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
@@ -1174,23 +1373,45 @@ VALUES
     ('subtask_priority', 'LOW', 'Low', 'Low priority subtask', 4, NULL, NULL),
     ('subtask_priority', 'LOWEST', 'Lowest', 'Lowest priority subtask', 5, NULL, NULL),
     ('milestone_status', 'PLANNING', 'Planning', 'Milestone is in planning stage', 1, NULL, NULL),
-    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is in progress', 2, NULL, NULL),
-    ('milestone_status', 'COMPLETED', 'Completed', 'Milestone has been completed', 3, NULL, NULL),
-    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 4, NULL, NULL),
-    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone was cancelled', 5, NULL, NULL),
-    ('task-dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
-    ('task-dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
-    ('task-dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
-    ('task-dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+    ('milestone_status', 'IN_PROGRESS', 'In Progress', 'Milestone is currently being worked on', 2, NULL, NULL),
+    ('milestone_status', 'AWAITING_REVIEW', 'Awaiting Client Review', 'Milestone completed and pending client approval', 3, NULL, NULL),
+    ('milestone_status', 'APPROVED', 'Approved by Client', 'Milestone has been reviewed and approved by the client', 4, NULL, NULL),
+    ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
+    ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
+    ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
+    ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
+    ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
+    ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
     ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
     ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 4, NULL, NULL),
+    ('activity_log_action_type', 'CREATE', 'Create', 'Record create action', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1, NULL, NULL),
     ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
     ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
-    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL);
+    ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
+    ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
+    ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
+    ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
+	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
+    ('ai_response_evaluation_status', 'APPROVED', 'Approved', 'Evaluation has been approved', 2, NULL, '#4CAF50'),
+    ('ai_response_evaluation_status', 'REJECTED', 'Rejected', 'Evaluation has been rejected', 3, NULL, '#F44336'),
+	('ai_history_status', 'ACTIVE', 'Active', 'Response is active and visible', 1, NULL, '#4CAF50'),
+    ('ai_history_status', 'ARCHIVED', 'Archived', 'Response is archived', 2, NULL, '#FFC107'),
+    ('ai_history_status', 'DELETED', 'Deleted', 'Response has been deleted', 3, NULL, '#F44336'),
+	('ai_feature', 'TASK_PLANNING', 'Task Planning', 'AI generates epics and tasks for project planning', 1, 'https://example.com/icons/task-planning.png', '#4CAF50'),
+    ('ai_feature', 'SPRINT_CREATION', 'Sprint Creation', 'AI creates sprints and assigns tasks from backlog', 2, 'https://example.com/icons/sprint-creation.png', '#2196F3'),
+    ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
+    ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
+    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
+
+	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025
@@ -1205,16 +1426,16 @@ VALUES
 -- Insert sample data for project_member (at least 10 members)
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-    (1, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'IN_PROGRESS'), -- Admin
-    (2, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'IN_PROGRESS'), -- Team Leader
-    (4, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'IN_PROGRESS'), -- Project Manager
-    (5, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (6, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (7, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'IN_PROGRESS'), -- Frontend Developer
-    (8, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (9, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'IN_PROGRESS'), -- Backend Developer
-    (12, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'), -- Tester
-    (19, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'IN_PROGRESS'); -- Designer
+    (1, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-10 00:00:00+07', 'ACTIVE'), -- Admin
+    (2, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-11 00:00:00+07', 'ACTIVE'), -- Team Leader
+    (4, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-12 00:00:00+07', 'ACTIVE'), -- Project Manager
+    (5, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-13 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (6, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-14 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (7, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-15 00:00:00+07', 'ACTIVE'), -- Frontend Developer
+    (8, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-16 00:00:00+07', 'ACTIVE'), -- Backend Developer
+    (9, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-17 00:00:00+07', 'ACTIVE'), -- Backend Developer
+    (12, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'ACTIVE'), -- Tester
+    (19, (SELECT id FROM project WHERE project_key = 'FLOWER'), '2025-06-19 00:00:00+07', '2025-06-18 00:00:00+07', 'ACTIVE'); -- Designer
 
 -- Insert sample data for project_position
 INSERT INTO project_position (project_member_id, position, assigned_at)
@@ -1260,15 +1481,15 @@ VALUES
 -- Insert project members
 INSERT INTO project_member (account_id, project_id, joined_at, invited_at, status)
 VALUES 
-(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'IN_PROGRESS'),
-(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'IN_PROGRESS'),
-(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'IN_PROGRESS'),
-(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'IN_PROGRESS'),
-(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'IN_PROGRESS'),
-(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'IN_PROGRESS'),
-(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'IN_PROGRESS'),
-(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'IN_PROGRESS'),
-(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'IN_PROGRESS');
+(1, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-10', 'ACTIVE'),
+(2, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-11', 'ACTIVE'),
+(3, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-12', 'ACTIVE'),
+(4, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-13', 'ACTIVE'),
+(5, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-14', 'ACTIVE'),
+(6, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-15', 'ACTIVE'),
+(7, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-16', 'ACTIVE'),
+(8, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-17', 'ACTIVE'),
+(9, (SELECT id FROM project WHERE project_key = 'COURSE'), '2025-06-20', '2025-06-18', 'ACTIVE');
 
 -- Insert project positions
 INSERT INTO project_position (project_member_id, position, assigned_at)

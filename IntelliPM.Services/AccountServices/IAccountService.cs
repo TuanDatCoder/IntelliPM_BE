@@ -14,5 +14,7 @@ namespace  IntelliPM.Services.AccountServices
         Task<string> UploadPictureAsync(string token, Stream fileStream, string fileName);
         Task<AccountResponseDTO> ChangeAccountStatus(int id, string newStatus);
         Task<AccountResponseDTO> GetAccountByEmail(string email);
+        Task<AccountWithWorkItemDTO> GetAccountAndWorkItemById(int accountId);
+        Task<ProfileResponseDTO> GetProfileByEmail(string email);
     }
 }

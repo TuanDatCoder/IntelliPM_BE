@@ -1,6 +1,8 @@
 ﻿using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using System;
@@ -21,6 +23,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<ProjectMemberResponseDTO> CreateProjectMember(int ProjectId,ProjectMemberNoProjectIdRequestDTO request);
         Task DeleteProjectMember(int id);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId);
+        Task<List<ProjectPositionWithProjectInfoDTO>> GetProjectPositionsByAccountId(int accountId);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
@@ -29,5 +32,10 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId);
 
         Task<ProjectMemberResponseDTO> ChangeProjectMemberStatus(int id, string status);
+
+        Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId, int accountId);
+        Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId);
+        Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate);
+        Task<ProjectMemberWithTasksResponseDTO> ChangeWorkingHoursPerDay(int id, decimal workingHoursPerDay);
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntelliPM.API.Controllers
 {
@@ -189,6 +190,35 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+
+        [HttpGet("by-account/{accountId}")]
+        public async Task<IActionResult> GetProjectMemberByProjectIdAndAccountId(int projectId,int accountId)
+        {
+            try
+            {
+                var member = await _service.GetProjectMemberByProjectIdAndAccountId(projectId, accountId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved member successfully.",
+                    Data = member
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving member: {ex.Message}"
+                });
+            }
+        }
+
+
+
         [HttpPost("bulk-with-positions")]
         [Authorize(Roles = "PROJECT_MANAGER, TEAM_LEADER")]
         public async Task<IActionResult> CreateBulkWithPositions(int projectId, [FromBody] List<ProjectMemberWithPositionRequestDTO> requests)
@@ -313,6 +343,105 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("members/tasks")]
+        public async Task<IActionResult> GetProjectMembersWithTasks(int projectId)
+        {
+            try
+            {
+                var result = await _service.GetProjectMembersWithTasksAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Retrieved project member with tasks successfully",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving project member with tasks: {ex.Message}"
+                });
+            }
 
+        }
+
+        [HttpPatch("{id}/hourly-rate")]
+        public async Task<IActionResult> ChangeHourlyRate(int id, [FromBody] decimal hourlyRate)
+        {
+            try
+            {
+                var updated = await _service.ChangeHourlyRate(id, hourlyRate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Hourly rate updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating hourly rate: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/working-hours-per-day")]
+        public async Task<IActionResult> ChangeWorkingHoursPerDay(int id, [FromBody] decimal workingHoursPerDay)
+        {
+            try
+            {
+                var updated = await _service.ChangeWorkingHoursPerDay(id, workingHoursPerDay);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Working hours per day updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating working hours per day: {ex.Message}"
+                });
+            }
+        }
     }
 }

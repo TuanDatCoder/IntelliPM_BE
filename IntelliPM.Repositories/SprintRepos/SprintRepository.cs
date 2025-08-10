@@ -61,7 +61,26 @@ namespace IntelliPM.Repositories.SprintRepos
         {
             return await _context.Sprint
                 .Where(m => m.ProjectId == projectId)
+                .OrderBy(m => m.PlannedStartDate)
                 .ToListAsync();
         }
+
+        public async Task<List<Sprint>> GetByProjectIdDescendingAsync(int projectId)
+        {
+            return await _context.Sprint
+                .Where(m => m.ProjectId == projectId)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<Sprint?> GetActiveSprintByProjectIdAsync(int projectId)
+        {
+            return await _context.Sprint
+                .Where(s => s.ProjectId == projectId && s.Status.ToUpper() == "ACTIVE")
+                .OrderBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+
     }
 }

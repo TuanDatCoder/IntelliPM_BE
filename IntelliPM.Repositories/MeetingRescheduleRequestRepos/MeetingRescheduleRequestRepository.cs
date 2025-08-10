@@ -51,5 +51,15 @@ namespace IntelliPM.Repositories.MeetingRescheduleRequestRepos
                                  .ToListAsync();
         }
 
+        public async Task<MeetingRescheduleRequest?> GetPendingByMeetingAndRequesterAsync(int meetingId, int requesterId)
+        {
+            return await _context.MeetingRescheduleRequest
+                .FirstOrDefaultAsync(x =>
+                    x.MeetingId == meetingId &&
+                    x.RequesterId == requesterId &&
+                    x.Status == "PENDING");
+        }
+
+
     }
 }

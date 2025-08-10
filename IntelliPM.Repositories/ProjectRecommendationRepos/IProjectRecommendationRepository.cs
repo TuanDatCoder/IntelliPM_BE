@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,9 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
         Task<List<ProjectRecommendation>> GetByProjectIdAsync(int projectId);
         Task Add(ProjectRecommendation recommendation);
         Task Update(ProjectRecommendation recommendation);
-        Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type);
+        //Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type);
+        Task<ProjectRecommendation?> GetByIdAsync(int id);
+        Task Delete(ProjectRecommendation recommendation);
     }
 
 }

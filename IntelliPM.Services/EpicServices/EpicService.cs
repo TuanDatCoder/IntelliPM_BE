@@ -19,6 +19,7 @@ using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Services.EpicServices
@@ -244,6 +245,242 @@ namespace IntelliPM.Services.EpicServices
             epicDetailedDTO.Type = "EPIC";
         }
 
+
+
+        //public async Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests)
+        //{
+        //    var decode = _decodeToken.Decode(token);
+        //    if (decode == null || string.IsNullOrEmpty(decode.username))
+        //        throw new UnauthorizedAccessException("Invalid token data.");
+
+        //    var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+        //    if (currentAccount == null)
+        //        throw new KeyNotFoundException("User not found.");
+
+        //    if (requests == null || !requests.Any())
+        //        throw new ArgumentNullException(nameof(requests), "Request list cannot be null or empty.");
+
+        //    var project = await _projectRepo.GetByIdAsync(projectId);
+        //    if (project == null)
+        //        throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+        //    var projectKey = await _projectRepo.GetProjectKeyAsync(projectId);
+        //    if (string.IsNullOrEmpty(projectKey))
+        //        throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
+
+        //    var createdEpicIds = new List<string>();
+
+        //    // Use a single transaction for all epics
+        //    using var transaction = await _epicRepo.BeginTransactionAsync();
+        //    try
+        //    {
+        //        foreach (var request in requests)
+        //        {
+        //            if (string.IsNullOrEmpty(request.Title))
+        //                throw new ArgumentException("Epic Title is required.", nameof(request.Title));
+
+        //            if (request.StartDate > request.EndDate)
+        //                throw new ArgumentException("Epic EndDate must be after StartDate.", nameof(request.EndDate));
+
+        //            foreach (var task in request.Tasks)
+        //            {
+        //                var accountIds = task.AssignedMembers.Select(m => m.AccountId).ToList();
+        //                foreach (var accountId in accountIds)
+        //                {
+        //                    var account = await _accountRepo.GetAccountById(accountId);
+        //                    if (account == null)
+        //                        throw new KeyNotFoundException($"Member with AccountId {accountId} not found.");
+        //                }
+        //            }
+
+        //            var epicEntity = _mapper.Map<Epic>(request);
+        //            epicEntity.ProjectId = projectId;
+        //            epicEntity.ReporterId = currentAccount.Id;
+        //            epicEntity.Name = request.Title;
+        //            epicEntity.Status = "TO_DO";
+        //            epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+
+        //            await _epicRepo.Add(epicEntity);
+
+        //            foreach (var task in request.Tasks)
+        //            {
+        //                var taskEntity = _mapper.Map<Tasks>(task);
+        //                taskEntity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
+        //                taskEntity.ReporterId = currentAccount.Id;
+        //                taskEntity.ProjectId = projectId;
+        //                taskEntity.EpicId = epicEntity.Id;
+        //                taskEntity.Type = "TASK";
+        //                taskEntity.PlannedStartDate = task.StartDate;
+        //                taskEntity.PlannedEndDate = task.EndDate;
+        //                taskEntity.Status = "TO_DO";
+
+        //                await _taskRepo.Add(taskEntity);
+
+        //                foreach (var member in task.AssignedMembers)
+        //                {
+        //                    var taskAssignmentEntity = new TaskAssignment
+        //                    {
+        //                        TaskId = taskEntity.Id,
+        //                        AccountId = member.AccountId,
+        //                        Status = "ASSIGNED"
+        //                    };
+
+        //                    await _taskAssignmentRepo.Add(taskAssignmentEntity);
+        //                }
+        //            }
+
+        //            createdEpicIds.Add(epicEntity.Id);
+        //        }
+
+        //        await transaction.CommitAsync();
+        //        return createdEpicIds;
+        //    }
+        //    catch (DbUpdateException ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw new Exception($"Failed to create epics or tasks: {ex.InnerException?.Message ?? ex.Message}", ex);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw new Exception($"Failed to create epics or tasks: {ex.Message}", ex);
+        //    }
+        //}
+        //
+
+        public async Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            if (requests == null || !requests.Any())
+                throw new ArgumentNullException(nameof(requests), "Request list cannot be null or empty.");
+
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+            var projectKey = await _projectRepo.GetProjectKeyAsync(projectId);
+            if (string.IsNullOrEmpty(projectKey))
+                throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
+
+            // Kiểm tra tất cả AccountId trước
+            var allAccountIds = requests
+                .SelectMany(r => r.Tasks)
+                .SelectMany(t => t.AssignedMembers)
+                .Select(m => m.AccountId)
+                .Distinct()
+                .ToList();
+
+            var accounts = await _accountRepo.GetByIdsAsync(allAccountIds);
+            foreach (var accountId in allAccountIds)
+            {
+                if (!accounts.Any(a => a.Id == accountId))
+                    throw new KeyNotFoundException($"Member with AccountId {accountId} not found.");
+            }
+
+            var createdEpicIds = new List<string>();
+            var epicEntities = new List<Epic>();
+            var taskEntities = new List<Tasks>();
+            var taskAssignmentEntities = new List<TaskAssignment>();
+
+            // Tạm thời bỏ transaction để debug
+            await using var context = _epicRepo.GetContext();
+            try
+            {
+                // Tạo epic và task tuần tự
+                foreach (var request in requests)
+                {
+                    // Kiểm tra dữ liệu đầu vào
+                    if (string.IsNullOrEmpty(request.Title))
+                        throw new ArgumentException("Epic Title is required.", nameof(request.Title));
+                    if (request.StartDate > request.EndDate)
+                        throw new ArgumentException("Epic EndDate must be after StartDate.", nameof(request.EndDate));
+
+                    // Tạo epic
+                    var epicEntity = _mapper.Map<Epic>(request);
+                    epicEntity.ProjectId = projectId;
+                    epicEntity.ReporterId = currentAccount.Id;
+                    epicEntity.Name = request.Title;
+                    epicEntity.Status = "TO_DO";
+                    epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, context);
+                    Console.WriteLine($"Generated Epic ID: {epicEntity.Id}");
+
+                    // Kiểm tra ID trùng trong epicEntities
+                    if (epicEntities.Any(e => e.Id == epicEntity.Id))
+                        throw new InvalidOperationException($"Duplicate Epic ID generated: {epicEntity.Id}");
+
+                    epicEntities.Add(epicEntity);
+                    createdEpicIds.Add(epicEntity.Id);
+
+                    // Tạo task
+                    foreach (var task in request.Tasks)
+                    {
+                        if (string.IsNullOrEmpty(task.Title))
+                            throw new ArgumentException($"Task Title is required for task in epic {request.Title}.", nameof(task.Title));
+                        if (task.StartDate > task.EndDate)
+                            throw new ArgumentException($"Task EndDate must be after StartDate for task: {task.Title}.", nameof(task.EndDate));
+
+                        var taskEntity = _mapper.Map<Tasks>(task);
+                        taskEntity.Id = await IdGenerator.GenerateNextId(projectKey, context);
+                        Console.WriteLine($"Generated Task ID: {taskEntity.Id}");
+
+                        // Kiểm tra ID trùng trong taskEntities
+                        if (taskEntities.Any(t => t.Id == taskEntity.Id) || epicEntities.Any(e => e.Id == taskEntity.Id))
+                            throw new InvalidOperationException($"Duplicate Task ID generated: {taskEntity.Id}");
+
+                        taskEntity.ReporterId = currentAccount.Id;
+                        taskEntity.ProjectId = projectId;
+                        taskEntity.EpicId = epicEntity.Id;
+                        taskEntity.Type = "TASK";
+                        taskEntity.PlannedStartDate = task.StartDate;
+                        taskEntity.PlannedEndDate = task.EndDate;
+                        taskEntity.Status = "TO_DO";
+
+                        taskEntities.Add(taskEntity);
+
+                        // Tạo task assignments
+                        var assignments = task.AssignedMembers.Select(member => new TaskAssignment
+                        {
+                            TaskId = taskEntity.Id,
+                            AccountId = member.AccountId,
+                            Status = "ASSIGNED"
+                        }).ToList();
+
+                        taskAssignmentEntities.AddRange(assignments);
+                    }
+                }
+
+                // Log danh sách ID trước khi lưu
+                Console.WriteLine($"Epic IDs to save: {string.Join(", ", epicEntities.Select(e => e.Id))}");
+                Console.WriteLine($"Task IDs to save: {string.Join(", ", taskEntities.Select(t => t.Id))}");
+                Console.WriteLine($"Task Assignment Task IDs: {string.Join(", ", taskAssignmentEntities.Select(a => a.TaskId))}");
+
+                // Thêm tất cả bản ghi theo lô
+                await _epicRepo.AddRangeAsync(epicEntities);
+                await _taskRepo.AddRangeAsync(taskEntities);
+                await _taskAssignmentRepo.AddRangeAsync(taskAssignmentEntities);
+
+                // Lưu tất cả thay đổi
+                Console.WriteLine("Saving changes...");
+                await _epicRepo.SaveChangesAsync();
+                Console.WriteLine("Changes saved successfully.");
+
+                return createdEpicIds;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create epics or tasks for projectId: {ProjectId}", projectId);
+                throw new Exception($"Failed to create epics or tasks: {ex.Message}", ex);
+            }
+        }
+
+
         public async Task<string> CreateEpicWithTaskAndAssignment(int projectId, string token, EpicWithTaskRequestDTO request)
         {
 
@@ -450,7 +687,15 @@ namespace IntelliPM.Services.EpicServices
             return result;
         }
 
+        public async Task<List<EpicResponseDTO>> GetEpicByAccountId(int accountId)
+        {
 
+            var account = _accountRepo.GetAccountById(accountId);
+            if (account != null) throw new KeyNotFoundException($"Account with key {accountId} not found.");
+            var entities = await _epicRepo.GetByAccountIdAsync(accountId);
+            //được quyển null
+            return  _mapper.Map<List<EpicResponseDTO>>(entities);
+        }
 
     }
 }

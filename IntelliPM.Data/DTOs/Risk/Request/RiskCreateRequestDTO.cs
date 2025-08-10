@@ -10,6 +10,7 @@ namespace IntelliPM.Data.DTOs.Risk.Request
     {
         public string ProjectKey { get; set; } = null!;
         public int? ResponsibleId { get; set; }
+        public int CreatedBy { get; set; }
         public string? TaskId { get; set; }
         public string RiskScope { get; set; } = null!;
         public string Title { get; set; } = null!;
@@ -19,7 +20,6 @@ namespace IntelliPM.Data.DTOs.Risk.Request
         public string? GeneratedBy { get; set; }
         public string? Probability { get; set; }
         public string? ImpactLevel { get; set; }
-        public string? SeverityLevel { get; set; }
         public bool IsApproved { get; set; }
         public DateTime? DueDate { get; set; }
     }

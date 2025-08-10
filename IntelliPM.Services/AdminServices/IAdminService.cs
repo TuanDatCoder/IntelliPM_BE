@@ -10,6 +10,7 @@ namespace IntelliPM.Services.AdminServices
 {
     public interface IAdminService
     {
-        Task<List<AccountResponseDTO>> GetAllAccountsAsync(int? page, int? size);
+        Task<List<AccountResponseDTO>> GetAllAccountsAsync();
+        Task<List<ProjectStatusReportDto>> GetProjectStatusReportsAsync();
     }
 }

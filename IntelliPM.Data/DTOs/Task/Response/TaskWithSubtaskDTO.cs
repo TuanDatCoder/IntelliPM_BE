@@ -13,6 +13,7 @@ namespace IntelliPM.Data.DTOs.Task.Response
         public string Id { get; set; } = null!;
         public decimal? PlannedHours { get; set; }
         public decimal? ActualHours { get; set; }
+        public decimal? RemainingHours { get; set; }
         public List<AccountBasicDTO> Accounts { get; set; } = new();
         public List<SubtaskBasicDTO> Subtasks { get; set; } = new();
     }

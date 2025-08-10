@@ -3,16 +3,22 @@ using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.GeminiServices;
+using Microsoft.VisualBasic;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,8 +33,10 @@ namespace IntelliPM.Services.RiskServices
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IGeminiService _geminiService;
         private readonly IMapper _mapper;
+        private readonly IActivityLogService _activityLogService;
+        private readonly INotificationRepository _notificationRepo;
 
-        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper)
+        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo)
         {
             _riskRepo = riskRepo;
             _riskSolutionRepo = riskSolutionRepo;
@@ -36,6 +44,8 @@ namespace IntelliPM.Services.RiskServices
             _projectRepo = projectRepo;
             _projectMemberRepo = projectMemberRepo;
             _geminiService = geminiService;
+            _activityLogService = activityLogService;
+            _notificationRepo = notificationRepo;
             _mapper = mapper;
         }
 
@@ -56,25 +66,6 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id)
                 ?? throw new Exception("Risk not found");
             return _mapper.Map<RiskResponseDTO>(risk);
-        }
-
-        //public async Task AddAsync(RiskRequestDTO request)
-        //{
-        //    var risk = _mapper.Map<Risk>(request);
-        //    risk.CreatedAt = DateTime.UtcNow;
-        //    risk.UpdatedAt = DateTime.UtcNow;
-        //    await _riskRepo.AddAsync(risk);
-        //}
-
-        public async Task UpdateAsync(int id, RiskRequestDTO request)
-        {
-            var risk = await _riskRepo.GetByIdAsync(id)
-                ?? throw new Exception("Risk not found");
-
-            _mapper.Map(request, risk);
-            risk.UpdatedAt = DateTime.UtcNow;
-
-            await _riskRepo.UpdateAsync(risk);
         }
 
         public async Task DeleteAsync(int id)
@@ -253,15 +244,313 @@ namespace IntelliPM.Services.RiskServices
             var project = await _projectRepo.GetProjectByKeyAsync(request.ProjectKey)
                 ?? throw new Exception("Project not found with provided projectKey");
 
+            var count = await _riskRepo.CountByProjectIdAsync(project.Id);
+            var nextIndex = count + 1;
+            var riskKey = $"{project.ProjectKey}-R{nextIndex:D3}";
+
+            var impactLevel = request.ImpactLevel;
+            var probability = request.Probability;
+
             var entity = _mapper.Map<Risk>(request);
             entity.ProjectId = project.Id;
+            entity.RiskKey = riskKey;
+            entity.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            await _riskRepo.AddAsync(entity); 
+            await _riskRepo.AddAsync(entity);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = entity.ProjectId,
+                RiskKey = riskKey,
+                RelatedEntityType = "Risk",
+                RelatedEntityId = riskKey,
+                ActionType = "CREATE",
+                Message = $"Created risk '{riskKey}'",
+                CreatedBy = request.CreatedBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var members = await _projectMemberRepo.GetProjectMemberbyProjectId(entity.ProjectId);
+            var recipients = members
+                .Where(m => m.AccountId != request.CreatedBy)
+                .Select(m => m.AccountId)
+                .ToList();
+
+            if (recipients.Count > 0)
+            {
+                var notification = new Notification
+                {
+                    CreatedBy = request.CreatedBy,
+                    Type = "RISK_ALERT",
+                    Priority = entity.SeverityLevel,
+                    Message = $"Risk identified in project {project.ProjectKey}: {riskKey}",
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = entity.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false,
+                    RecipientNotification = new List<RecipientNotification>()
+                };
+
+                foreach (var accId in recipients)
+                {
+                    notification.RecipientNotification.Add(new RecipientNotification
+                    {
+                        AccountId = accId
+                        //IsRead = false
+                    });
+                }
+                await _notificationRepo.Add(notification);
+            }
+
             return _mapper.Map<RiskResponseDTO>(entity);
         }
 
+        public async Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status, int createdBy)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Status = status;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated status in risk '{risk.RiskKey}' to '{status}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk status: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Type = type;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk type: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.ResponsibleId = responsibleId;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to update risk responsible id: {ex.Message}", ex);
+            }
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.DueDate = dueDate;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk due date: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title, int createdBy)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Title = title;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated title in risk '{risk.RiskKey}' to '{title}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk title: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Description = description;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk description: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.ImpactLevel = impactLevel;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            var probability = risk.Probability; 
+            risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk impact level: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        private string CalculateSeverityLevel(string impact, string probability)
+        {
+            int GetLevelValue(string level)
+            {
+                return level.ToLower() switch
+                {
+                    "low" => 1,
+                    "medium" => 2,
+                    "high" => 3,
+                    _ => 0
+                };
+            }
+
+            var impactValue = GetLevelValue(impact);
+            var probValue = GetLevelValue(probability);
+
+            return (impactValue, probValue) switch
+            {
+                (1, 1) => "Low",
+                (1, 2) => "Low",
+                (1, 3) => "Medium",
+                (2, 1) => "Low",
+                (2, 2) => "Medium",
+                (2, 3) => "High",
+                (3, 1) => "Medium",
+                (3, 2) => "High",
+                (3, 3) => "High",
+                _ => "Unknown"
+            };
+        }
+
+        public async Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability)
+        {
+            var risk = await _riskRepo.GetByIdAsync(id);
+            if (risk == null) return null;
+
+            risk.Probability = probability;
+            risk.UpdatedAt = DateTime.UtcNow;
+
+            var impactLevel = risk.ImpactLevel;
+            risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
+
+            try
+            {
+                await _riskRepo.UpdateAsync(risk);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change risk probability: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var risks = await _geminiService.ViewAIProjectRisksAsync(project, tasks);
+
+            return risks ?? new List<AIRiskResponseDTO>();
+        }
+
+        public async Task<RiskResponseDTO> GetByKeyAsync(string key)
+        {
+            var risk = await _riskRepo.GetByKeyAsync(key)
+                ?? throw new Exception("Risk not found");
+            return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var risks = await _geminiService.DetectTaskRisksAsync(project, tasks);
+
+            return risks ?? new List<AIRiskResponseDTO>();
+        }
     }
 
 }

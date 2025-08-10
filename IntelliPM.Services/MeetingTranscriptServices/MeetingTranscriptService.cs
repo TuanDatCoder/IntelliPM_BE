@@ -15,6 +15,7 @@ using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace IntelliPM.Services.MeetingTranscriptServices
 {
@@ -25,10 +26,12 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         private readonly IGeminiService _geminiService;
         private readonly IMapper _mapper;
         private readonly ILogger<MeetingTranscriptService> _logger;
-
+        private readonly CloudConvertService _cloudConvertService;
         private readonly string _uploadPath;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _openAiApiKey;
+        private readonly IConfiguration _config;
+
 
         public MeetingTranscriptService(
             IMeetingTranscriptRepository repo,
@@ -37,24 +40,97 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             IMapper mapper,
             ILogger<MeetingTranscriptService> logger,
             IConfiguration config,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            CloudConvertService cloudConvertService)
         {
             _repo = repo;
             _summaryRepo = summaryRepo;
             _geminiService = geminiService;
             _mapper = mapper;
             _logger = logger;
-
+            _config = config;
             _uploadPath = Path.Combine(AppContext.BaseDirectory, config["UploadPath"]);
             _httpClientFactory = httpClientFactory;
+            _cloudConvertService = cloudConvertService;
 
-            // Lấy API Key từ biến môi trường
+            //// Lấy API Key từ biến môi trường
             _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                             ?? config["OpenAI:ApiKey"]; // Nếu không có biến môi trường, dùng appsettings.json (để phát triển)
 
             if (string.IsNullOrEmpty(_openAiApiKey))
             {
                 throw new Exception("API Key không được thiết lập.");
+            }
+        }
+
+        public async Task<MeetingTranscriptResponseDTO> UploadTranscriptFromUrlAsync(MeetingTranscriptFromUrlRequestDTO dto)
+        {
+            try
+            {
+                Directory.CreateDirectory(_uploadPath);
+                string videoUrl = dto.VideoUrl;
+
+                string mp3Path = Path.Combine(_uploadPath, $"{dto.MeetingId}.mp3");
+                string wavPath = Path.ChangeExtension(mp3Path, ".wav");
+
+                // Step 1: Convert Video to MP3 using CloudConvert
+                var cloudConvertService = new CloudConvertService(_config); // hoặc tên biến config bạn đã khai báo
+                                                                            // Hoặc inject qua constructor nếu đã tạo service
+                await cloudConvertService.ConvertMp4ToMp3Async(videoUrl, mp3Path);
+
+                // Step 2: Convert MP3 to WAV
+                AudioConverter.ConvertMp3ToWav(mp3Path, wavPath);
+
+                // Step 3: Whisper
+                string transcript = await GenerateTranscriptAsync(wavPath);
+
+                // Step 4: Cleanup
+                try
+                {
+                    File.Delete(mp3Path);
+                    File.Delete(wavPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Temp file cleanup failed");
+                }
+
+                // Step 5: Save transcript
+                var entity = new MeetingTranscript
+                {
+                    MeetingId = dto.MeetingId,
+                    TranscriptText = transcript,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var saved = await _repo.AddAsync(entity);
+
+                string summary;
+                try
+                {
+                    summary = await _geminiService.SummarizeTextAsync(transcript);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to summarize.");
+                    summary = "Cannot auto-generate summary.";
+                }
+
+                var summaryEntity = new MeetingSummary
+                {
+                    MeetingTranscriptId = saved.MeetingId,
+                    SummaryText = summary,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _summaryRepo.AddAsync(summaryEntity);
+
+                await LogMeetingActionAsync(dto.MeetingId, "TRANSCRIPT_FROM_URL_CREATED");
+
+                return _mapper.Map<MeetingTranscriptResponseDTO>(saved);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UploadTranscriptFromUrlAsync failed: {Error}", ex.ToString());
+                throw;
             }
         }
 
@@ -140,6 +216,7 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         private async Task<string> GenerateTranscriptAsync(string wavPath)
         {
             var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromMinutes(5);
 
             using var form = new MultipartFormDataContent();
             await using var fileStream = File.OpenRead(wavPath);

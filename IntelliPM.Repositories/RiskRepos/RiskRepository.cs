@@ -35,6 +35,11 @@ namespace IntelliPM.Repositories.RiskRepos
             }
         }
 
+        public async Task<int> CountByProjectIdAsync(int projectId)
+        {
+            return await _context.Risk.CountAsync(r => r.ProjectId == projectId);
+        }
+
         public async Task DeleteAsync(Risk risk)
         {
             _context.Risk.Remove(risk);
@@ -54,10 +59,20 @@ namespace IntelliPM.Repositories.RiskRepos
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
+        public async Task<Risk?> GetByKeyAsync(string key)
+        {
+            return await _context.Risk
+                .Include(r => r.Responsible)
+                .Include(r => r.CreatedByNavigation)
+                .Include(r => r.RiskSolution)
+                .FirstOrDefaultAsync(s => s.RiskKey == key);
+        }
+
         public async Task<List<Risk>> GetByProjectIdAsync(int projectId)
         {
             return await _context.Risk
                 .Include(r => r.Responsible)
+                .Include(r => r.CreatedByNavigation)
                 .Include(r => r.RiskSolution)
                 .Where(m => m.ProjectId == projectId)
                 .ToListAsync();

@@ -10,6 +10,6 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
     {
         public string TaskId { get; set; } = null!;
         public string Title { get; set; } = null!;
+        public int CreatedBy { get; set; }
     }
-
 }

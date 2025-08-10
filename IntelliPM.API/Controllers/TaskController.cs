@@ -1,11 +1,12 @@
-﻿using IntelliPM.Data.DTOs;
+﻿ using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Subtask.Request;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
 
 namespace IntelliPM.API.Controllers
 {
@@ -159,18 +160,14 @@ namespace IntelliPM.API.Controllers
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
             }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
             try
             {
-                var results = new List<TaskResponseDTO>();
-                foreach (var request in requests)
-                {
-                    if (!ModelState.IsValid)
-                    {
-                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
-                    }
-                    var result = await _service.CreateTask(request);
-                    results.Add(result);
-                }
+                var results = await _service.CreateTasksBulkAsync(requests);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -178,6 +175,10 @@ namespace IntelliPM.API.Controllers
                     Message = "Tasks created successfully",
                     Data = results
                 });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -189,6 +190,7 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] TaskRequestDTO request)
@@ -277,11 +279,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, [FromBody] ChangeTaskStatusRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskStatus(id, status);
+                var updated = await _service.ChangeTaskStatus(id, dto.Status, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -310,11 +312,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/sprint")]
-        public async Task<IActionResult> ChangeSprint(string id, [FromBody] int sprintId)
+        public async Task<IActionResult> ChangeSprint(string id, [FromBody] ChangeTaskSprintRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskSprint(id, sprintId);
+                var updated = await _service.ChangeTaskSprint(id, dto.SprintId, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -343,12 +345,45 @@ namespace IntelliPM.API.Controllers
         }
 
 
-        [HttpPatch("{id}/type")]
-        public async Task<IActionResult> ChangeType(string id, [FromBody] string type)
+        [HttpPatch("{id}/epic")]
+        public async Task<IActionResult> ChangeSprint(string id, [FromBody] string epicId)
         {
             try
             {
-                var updated = await _service.ChangeTaskType(id, type);
+                var updated = await _service.ChangeTaskEpic(id, epicId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task status updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task epic: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/type")]
+        public async Task<IActionResult> ChangeType(string id, [FromBody] ChangeTaskTypeRequestDTO dto)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskType(id, dto.Type, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -377,11 +412,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/title")]
-        public async Task<IActionResult> ChangeTitle(string id, [FromBody] string title)
+        public async Task<IActionResult> ChangeTitle(string id, [FromBody] ChangeTaskTitleRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskTitle(id, title);
+                var updated = await _service.ChangeTaskTitle(id, dto.Title, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -409,12 +444,45 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/description")]
-        public async Task<IActionResult> ChangeDescription(string id, [FromBody] string description)
+        [HttpPatch("{id}/reporter")]
+        public async Task<IActionResult> ChangeReporter(string id, [FromBody] ChangeTaskReporterRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskDescription(id, description);
+                var updated = await _service.ChangeTaskReporter(id, dto.ReporterId, dto.CreatedBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task reporter updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task reporter: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/description")]
+        public async Task<IActionResult> ChangeDescription(string id, [FromBody] ChangeTaskDescriptionRequestDTO dto)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskDescription(id, dto.Description, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -442,12 +510,45 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/planned-end-date")]
-        public async Task<IActionResult> ChangePlannedEndDate(string id, [FromBody] DateTime plannedEndDate)
+        [HttpPatch("{id}/priority")]
+        public async Task<IActionResult> ChangePriority(string id, [FromBody] ChangeTaskPriorityRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedEndDate(id, plannedEndDate);
+                var updated = await _service.ChangeTaskPriority(id, dto.Priority, dto.CreatedBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task priority updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task priority: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/planned-end-date")]
+        public async Task<IActionResult> ChangePlannedEndDate(string id, [FromBody] ChangeTaskPlanEndDateRequestDTO dto)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPlannedEndDate(id, dto.PlannedEndDate, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -476,11 +577,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-start-date")]
-        public async Task<IActionResult> ChangePlannedStartDate(string id, [FromBody] DateTime plannedStartDate)
+        public async Task<IActionResult> ChangePlannedStartDate(string id, [FromBody] ChangeTaskPlanStartDateRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedStartDate(id, plannedStartDate);
+                var updated = await _service.ChangeTaskPlannedStartDate(id, dto.PlannedStartDate, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -575,11 +676,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-hours")]
-        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours, int createdBy)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedHours(id, hours);
+                var updated = await _service.ChangeTaskPlannedHours(id, hours, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -702,6 +803,74 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [HttpGet("by-sprint-id/{sprintId}/task-status")]
+        public async Task<IActionResult> GetBySpGetTasksBySprintIdAndStatus(int sprintId, [FromQuery] string taskStatus)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksBySprintIdByStatusAsync(sprintId, taskStatus);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Sprint ID {sprintId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
+
+        [HttpGet("by-account-id/{accountId}")]
+        public async Task<IActionResult> GetByAccountId(int accountId)
+        {
+            try
+            {
+                var tasks = await _service.GetTasksByAccountIdAsync(accountId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = $"Tasks for Account ID {accountId} retrieved successfully",
+                    Data = tasks
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"An error occurred: {ex.Message}"
+                });
+            }
+        }
+
 
 
 

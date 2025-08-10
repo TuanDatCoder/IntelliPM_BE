@@ -12,13 +12,13 @@ namespace IntelliPM.Data.DTOs.ProjectRecommendation.Response
 
         public int ProjectId { get; set; }
 
-        public string TaskId { get; set; } = null!;
-
-        public string? TaskTitle { get; set; }  // Optional: giúp hiển thị rõ task nào
-
         public string Type { get; set; } = null!;
 
         public string Recommendation { get; set; } = null!;
+
+        public string? Details { get; set; }
+
+        public string? SuggestedChanges { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

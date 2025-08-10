@@ -24,11 +24,19 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Aggregatedcounter> Aggregatedcounter { get; set; }
 
+    public virtual DbSet<AiResponseEvaluation> AiResponseEvaluation { get; set; }
+
+    public virtual DbSet<AiResponseHistory> AiResponseHistory { get; set; }
+
     public virtual DbSet<ChangeRequest> ChangeRequest { get; set; }
 
     public virtual DbSet<Counter> Counter { get; set; }
 
     public virtual DbSet<Document> Document { get; set; }
+
+    public virtual DbSet<DocumentComment> DocumentComment { get; set; }
+
+    public virtual DbSet<DocumentExportFile> DocumentExportFile { get; set; }
 
     public virtual DbSet<DocumentPermission> DocumentPermission { get; set; }
 
@@ -70,6 +78,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Milestone> Milestone { get; set; }
 
+    public virtual DbSet<MilestoneComment> MilestoneComment { get; set; }
+
     public virtual DbSet<MilestoneFeedback> MilestoneFeedback { get; set; }
 
     public virtual DbSet<Notification> Notification { get; set; }
@@ -91,6 +101,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<Requirement> Requirement { get; set; }
 
     public virtual DbSet<Risk> Risk { get; set; }
+
+    public virtual DbSet<RiskComment> RiskComment { get; set; }
+
+    public virtual DbSet<RiskFile> RiskFile { get; set; }
 
     public virtual DbSet<RiskSolution> RiskSolution { get; set; }
 
@@ -139,9 +153,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseNpgsql("Host=yamanote.proxy.rlwy.net;Port=56505;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=DNAdHHvcdahmBrhPFrvenJnhfNVETuBi;");
+    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+    //        => optionsBuilder.UseNpgsql("Host=shuttle.proxy.rlwy.net;Port=46730;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=ePBNfZQAuyaFhaDvPboiVTGaPikaSUrP;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -215,6 +229,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
             entity.Property(e => e.FieldChanged)
                 .HasMaxLength(100)
                 .HasColumnName("field_changed");
@@ -228,6 +245,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.RelatedEntityType)
                 .HasMaxLength(100)
                 .HasColumnName("related_entity_type");
+            entity.Property(e => e.RiskKey)
+                .HasMaxLength(255)
+                .HasColumnName("risk_key");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -239,6 +259,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("activity_log_created_by_fkey");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.ActivityLog)
+                .HasForeignKey(d => d.EpicId)
+                .HasConstraintName("activity_log_epic_id_fkey");
+
+            entity.HasOne(d => d.RiskKeyNavigation).WithMany(p => p.ActivityLog)
+                .HasPrincipalKey(p => p.RiskKey)
+                .HasForeignKey(d => d.RiskKey)
+                .HasConstraintName("fk_activity_log_risk");
 
             entity.HasOne(d => d.Subtask).WithMany(p => p.ActivityLog)
                 .HasForeignKey(d => d.SubtaskId)
@@ -261,6 +290,71 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Expireat).HasColumnName("expireat");
             entity.Property(e => e.Key).HasColumnName("key");
             entity.Property(e => e.Value).HasColumnName("value");
+        });
+
+        modelBuilder.Entity<AiResponseEvaluation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_response_evaluation_pkey");
+
+            entity.ToTable("ai_response_evaluation");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.AiResponseId).HasColumnName("ai_response_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Feedback).HasColumnName("feedback");
+            entity.Property(e => e.Rating).HasColumnName("rating");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.AiResponseEvaluation)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ai_response_evaluation_account_id_fkey");
+
+            entity.HasOne(d => d.AiResponse).WithMany(p => p.AiResponseEvaluation)
+                .HasForeignKey(d => d.AiResponseId)
+                .HasConstraintName("ai_response_evaluation_ai_response_id_fkey");
+        });
+
+        modelBuilder.Entity<AiResponseHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_response_history_pkey");
+
+            entity.ToTable("ai_response_history");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AiFeature)
+                .HasMaxLength(100)
+                .HasColumnName("ai_feature");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.ResponseJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("response_json");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.AiResponseHistory)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ai_response_history_created_by_fkey");
+
+            entity.HasOne(d => d.Project).WithMany(p => p.AiResponseHistory)
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("ai_response_history_project_id_fkey");
         });
 
         modelBuilder.Entity<ChangeRequest>(entity =>
@@ -357,36 +451,90 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.Visibility)
+                .HasMaxLength(20)
+                .HasColumnName("visibility");
 
             entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
                 .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("fk_document_approver");
+                .HasConstraintName("fk_document_approver_id");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("document_created_by_fkey");
+                .HasConstraintName("fk_document_created_by");
 
             entity.HasOne(d => d.Epic).WithMany(p => p.Document)
                 .HasForeignKey(d => d.EpicId)
-                .HasConstraintName("document_epic_id_fkey");
+                .HasConstraintName("fk_document_epic");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Document)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("document_project_id_fkey");
+                .HasConstraintName("fk_document_project");
 
             entity.HasOne(d => d.Subtask).WithMany(p => p.Document)
                 .HasForeignKey(d => d.SubtaskId)
-                .HasConstraintName("document_subtask_id_fkey");
+                .HasConstraintName("fk_document_subtask");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Document)
                 .HasForeignKey(d => d.TaskId)
-                .HasConstraintName("document_task_id_fkey");
+                .HasConstraintName("fk_document_task");
 
             entity.HasOne(d => d.UpdatedByNavigation).WithMany(p => p.DocumentUpdatedByNavigation)
                 .HasForeignKey(d => d.UpdatedBy)
-                .HasConstraintName("document_updated_by_fkey");
+                .HasConstraintName("fk_document_updated_by");
+        });
+
+        modelBuilder.Entity<DocumentComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("document_comment_pkey");
+
+            entity.ToTable("document_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AuthorId).HasColumnName("author_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DocumentId).HasColumnName("document_id");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Author).WithMany(p => p.DocumentComment)
+                .HasForeignKey(d => d.AuthorId)
+                .HasConstraintName("fk_author");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.DocumentComment)
+                .HasForeignKey(d => d.DocumentId)
+                .HasConstraintName("fk_document");
+        });
+
+        modelBuilder.Entity<DocumentExportFile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("document_export_file_pkey");
+
+            entity.ToTable("document_export_file");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.DocumentId).HasColumnName("document_id");
+            entity.Property(e => e.ExportedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("exported_at");
+            entity.Property(e => e.ExportedBy).HasColumnName("exported_by");
+            entity.Property(e => e.ExportedFileUrl)
+                .HasMaxLength(1000)
+                .HasColumnName("exported_file_url");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.DocumentExportFile)
+                .HasForeignKey(d => d.DocumentId)
+                .HasConstraintName("fk_document_export");
+
+            entity.HasOne(d => d.ExportedByNavigation).WithMany(p => p.DocumentExportFile)
+                .HasForeignKey(d => d.ExportedBy)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_exported_by");
         });
 
         modelBuilder.Entity<DocumentPermission>(entity =>
@@ -429,7 +577,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
             entity.Property(e => e.Color)
-                .HasMaxLength(10)
+                .HasMaxLength(50)
                 .HasColumnName("color");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -947,6 +1095,31 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("milestone_sprint_id_fkey");
         });
 
+        modelBuilder.Entity<MilestoneComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("milestone_comment_pkey");
+
+            entity.ToTable("milestone_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.MilestoneId).HasColumnName("milestone_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.MilestoneComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("milestone_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Milestone).WithMany(p => p.MilestoneComment)
+                .HasForeignKey(d => d.MilestoneId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("milestone_comment_milestone_id_fkey");
+        });
+
         modelBuilder.Entity<MilestoneFeedback>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("milestone_feedback_pkey");
@@ -1071,7 +1244,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.WorkingHoursPerDay)
-                .HasDefaultValue(8)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("8")
                 .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
@@ -1101,6 +1275,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CalculatedBy)
                 .HasMaxLength(50)
                 .HasColumnName("calculated_by");
+            entity.Property(e => e.ConfidenceScore)
+                .HasPrecision(5, 2)
+                .HasColumnName("confidence_score");
             entity.Property(e => e.CostPerformanceIndex)
                 .HasPrecision(15, 2)
                 .HasColumnName("cost_performance_index");
@@ -1125,9 +1302,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.EstimateToComplete)
                 .HasPrecision(15, 2)
                 .HasColumnName("estimate_to_complete");
+            entity.Property(e => e.ImprovementSummary)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("improvement_summary");
             entity.Property(e => e.IsApproved)
                 .HasDefaultValue(false)
                 .HasColumnName("is_approved");
+            entity.Property(e => e.IsImproved)
+                .HasDefaultValue(false)
+                .HasColumnName("is_improved");
             entity.Property(e => e.PlannedValue)
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_value");
@@ -1182,11 +1365,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.Details).HasColumnName("details");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Recommendation).HasColumnName("recommendation");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
+            entity.Property(e => e.SuggestedChanges).HasColumnName("suggested_changes");
             entity.Property(e => e.Type)
                 .HasMaxLength(100)
                 .HasColumnName("type");
@@ -1195,11 +1377,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("project_recommendation_project_id_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.ProjectRecommendation)
-                .HasForeignKey(d => d.TaskId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("project_recommendation_task_id_fkey");
         });
 
         modelBuilder.Entity<RecipientNotification>(entity =>
@@ -1287,10 +1464,13 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.ToTable("risk");
 
+            entity.HasIndex(e => e.RiskKey, "risk_risk_key_key").IsUnique();
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.DueDate).HasColumnName("due_date");
             entity.Property(e => e.GeneratedBy)
@@ -1307,6 +1487,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasColumnName("probability");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.ResponsibleId).HasColumnName("responsible_id");
+            entity.Property(e => e.RiskKey)
+                .HasMaxLength(20)
+                .HasColumnName("risk_key");
             entity.Property(e => e.RiskScope)
                 .HasMaxLength(255)
                 .HasColumnName("risk_scope");
@@ -1329,18 +1512,78 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
 
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_created_by_fkey");
+
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_project_id_fkey");
 
-            entity.HasOne(d => d.Responsible).WithMany(p => p.Risk)
+            entity.HasOne(d => d.Responsible).WithMany(p => p.RiskResponsible)
                 .HasForeignKey(d => d.ResponsibleId)
                 .HasConstraintName("risk_responsible_id_fkey");
 
             entity.HasOne(d => d.Task).WithMany(p => p.Risk)
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("risk_task_id_fkey");
+        });
+
+        modelBuilder.Entity<RiskComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("risk_comment_pkey");
+
+            entity.ToTable("risk_comment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Comment).HasColumnName("comment");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.RiskId).HasColumnName("risk_id");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.RiskComment)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_comment_account_id_fkey");
+
+            entity.HasOne(d => d.Risk).WithMany(p => p.RiskComment)
+                .HasForeignKey(d => d.RiskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_comment_risk_id_fkey");
+        });
+
+        modelBuilder.Entity<RiskFile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("risk_file_pkey");
+
+            entity.ToTable("risk_file");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(255)
+                .HasColumnName("file_name");
+            entity.Property(e => e.FileUrl)
+                .HasMaxLength(1024)
+                .HasColumnName("file_url");
+            entity.Property(e => e.RiskId).HasColumnName("risk_id");
+            entity.Property(e => e.UploadedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("uploaded_at");
+            entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
+
+            entity.HasOne(d => d.Risk).WithMany(p => p.RiskFile)
+                .HasForeignKey(d => d.RiskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_file_risk_id_fkey");
+
+            entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.RiskFile)
+                .HasForeignKey(d => d.UploadedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("risk_file_uploaded_by_fkey");
         });
 
         modelBuilder.Entity<RiskSolution>(entity =>
@@ -1430,6 +1673,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
+            entity.Property(e => e.PlannedEndDate).HasColumnName("planned_end_date");
+            entity.Property(e => e.PlannedStartDate).HasColumnName("planned_start_date");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
@@ -1720,37 +1965,21 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.ToTable("task_dependency");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FromType)
+                .HasMaxLength(50)
+                .HasColumnName("from_type");
             entity.Property(e => e.LinkedFrom)
                 .HasMaxLength(255)
                 .HasColumnName("linked_from");
             entity.Property(e => e.LinkedTo)
                 .HasMaxLength(255)
                 .HasColumnName("linked_to");
-            entity.Property(e => e.MilestoneId).HasColumnName("milestone_id");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
+            entity.Property(e => e.ToType)
+                .HasMaxLength(50)
+                .HasColumnName("to_type");
             entity.Property(e => e.Type)
                 .HasMaxLength(50)
                 .HasColumnName("type");
-
-            entity.HasOne(d => d.LinkedFromNavigation).WithMany(p => p.TaskDependencyLinkedFromNavigation)
-                .HasForeignKey(d => d.LinkedFrom)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_dependency_linked_from_fkey");
-
-            entity.HasOne(d => d.LinkedToNavigation).WithMany(p => p.TaskDependencyLinkedToNavigation)
-                .HasForeignKey(d => d.LinkedTo)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("task_dependency_linked_to_fkey");
-
-            entity.HasOne(d => d.Milestone).WithMany(p => p.TaskDependency)
-                .HasForeignKey(d => d.MilestoneId)
-                .HasConstraintName("task_dependency_milestone_id_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskDependencyTask)
-                .HasForeignKey(d => d.TaskId)
-                .HasConstraintName("task_dependency_task_id_fkey");
         });
 
         modelBuilder.Entity<TaskFile>(entity =>
@@ -1949,6 +2178,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_log_task_id_fkey");
         });
+        modelBuilder.HasSequence("course_id_seq");
+        modelBuilder.HasSequence("flower_id_seq");
+        modelBuilder.HasSequence("intellipm_id_seq");
+        modelBuilder.HasSequence("projc_id_seq");
 
         OnModelCreatingPartial(modelBuilder);
     }

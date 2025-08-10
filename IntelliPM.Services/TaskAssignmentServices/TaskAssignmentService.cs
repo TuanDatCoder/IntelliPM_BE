@@ -1,8 +1,13 @@
 ﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Request;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -10,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using IntelliPM.Services.ActivityLogServices;
 
 namespace IntelliPM.Services.TaskAssignmentServices
 {
@@ -17,13 +23,24 @@ namespace IntelliPM.Services.TaskAssignmentServices
     {
         private readonly IMapper _mapper;
         private readonly ITaskAssignmentRepository _repo;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IEmailService _emailService;
         private readonly ILogger<TaskAssignmentService> _logger;
+        private readonly IActivityLogService _activityLogService;
 
-        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ILogger<TaskAssignmentService> logger)
+
+        public TaskAssignmentService(IMapper mapper, ITaskAssignmentRepository repo, ILogger<TaskAssignmentService> logger, IAccountRepository accountRepo, ITaskRepository taskRepo, IEmailService emailService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService)
         {
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _projectMemberRepo = projectMemberRepo;
+            _accountRepo = accountRepo;
+            _taskRepo = taskRepo;
+            _emailService = emailService;
+            _activityLogService = activityLogService;
         }
 
         public async Task<List<TaskAssignmentResponseDTO>> GetAllAsync()
@@ -106,6 +123,18 @@ namespace IntelliPM.Services.TaskAssignmentServices
             try
             {
                 await _repo.Add(entity);
+                var assignedUser = await _accountRepo.GetAccountById(entity.AccountId);
+                var task = await _taskRepo.GetByIdAsync(taskId);
+
+                if (assignedUser != null && task != null)
+                {
+                    await _emailService.SendTaskAssignmentEmail(
+                        assigneeFullName: assignedUser.FullName,
+                        assigneeEmail: assignedUser.Email,
+                        taskId: taskId,
+                        taskTitle: task.Title
+                    );
+                }
             }
             catch (DbUpdateException ex)
             {
@@ -216,6 +245,162 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 throw new Exception($"Failed to delete task assignment: {ex.Message}", ex);
             }
         }
+
+        public async Task<List<TaskAssignmentHourDTO>> GetTaskAssignmentHoursByTaskIdAsync(string taskId)
+        {
+            if (string.IsNullOrEmpty(taskId))
+                throw new ArgumentException("Task ID cannot be null or empty.");
+
+            var entities = await _repo.GetByTaskIdAsync(taskId);
+            if (!entities.Any())
+                throw new KeyNotFoundException($"No task assignments found for Task ID {taskId}.");
+
+            return _mapper.Map<List<TaskAssignmentHourDTO>>(entities);
+        }
+
+        public async Task<TaskAssignmentHourDTO> ChangeActualHours(int id, decimal hours)
+        {
+            var entity = await _repo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task assignment with ID {id} not found.");
+
+            entity.ActualHours = hours;
+            await _repo.Update(entity);
+
+            // Lấy tất cả TaskAssignment cùng TaskId
+            var assignments = await _repo.GetByTaskIdAsync(entity.TaskId);
+
+            // Cập nhật Task.ActualHours = tổng ActualHours của các assignment
+            var totalActualHours = assignments.Sum(x => x.ActualHours ?? 0);
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {entity.TaskId} not found.");
+
+            task.ActualHours = totalActualHours;
+
+            // Tính ActualResourceCost
+            decimal totalResourceCost = 0m;
+            foreach (var assign in assignments)
+            {
+                var actualHours = assign.ActualHours ?? 0;
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assign.AccountId, task.ProjectId);
+                var rate = member?.HourlyRate ?? 0;
+
+                totalResourceCost += actualHours * rate;
+            }
+
+            task.ActualResourceCost = totalResourceCost;
+
+            await _taskRepo.Update(task);
+
+            return new TaskAssignmentHourDTO
+            {
+                Id = entity.Id,
+                TaskId = entity.TaskId,
+                AccountId = entity.AccountId,
+                ActualHours = entity.ActualHours
+            };
+        }
+
+        public async Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates, int createdBy)
+        {
+            var taskAssignmentsToUpdate = new List<TaskAssignment>();
+            var taskIdMap = new Dictionary<string, List<TaskAssignment>>();
+
+            foreach (var update in updates)
+            {
+                var assignment = await _repo.GetByIdAsync(update.Id);
+                if (assignment == null)
+                    continue;
+
+                assignment.ActualHours = update.ActualHours;
+                taskAssignmentsToUpdate.Add(assignment);
+
+                if (!taskIdMap.ContainsKey(assignment.TaskId))
+                    taskIdMap[assignment.TaskId] = new List<TaskAssignment>();
+
+                taskIdMap[assignment.TaskId].Add(assignment);
+            }
+
+            // Cập nhật các assignment
+            foreach (var assignment in taskAssignmentsToUpdate)
+            {
+                await _repo.Update(assignment);
+            }
+
+            // Cập nhật các Task liên quan
+            foreach (var kvp in taskIdMap)
+            {
+                var taskId = kvp.Key;
+
+                // Lấy toàn bộ assignment của task này
+                var allAssignments = await _repo.GetByTaskIdAsync(taskId);
+                var task = await _taskRepo.GetByIdAsync(taskId);
+                if (task == null) continue;
+
+                // Tổng actual hours
+                task.ActualHours = allAssignments.Sum(x => x.ActualHours ?? 0m);
+
+                // Tính actual cost
+                decimal totalCost = 0m;
+                foreach (var assign in allAssignments)
+                {
+                    var hours = assign.ActualHours ?? 0;
+                    var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assign.AccountId, task.ProjectId);
+                    var rate = member?.HourlyRate ?? 0;
+
+                    totalCost += hours * rate;
+                }
+
+                task.ActualResourceCost = totalCost;
+                task.ActualCost = totalCost;
+                await UpdateTaskProgressAsync(task);
+                await _taskRepo.Update(task);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = task.ProjectId,
+                    TaskId = task.Id,
+                    SubtaskId = null,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = task.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated actual hours for task '{task.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            return true;
+        }
+
+        private async Task UpdateTaskProgressAsync(Tasks task)
+        {
+            if (task.Status == "DONE")
+            {
+                task.PercentComplete = 100;
+            }
+            else if (task.Status == "TO_DO")
+            {
+                task.PercentComplete = 0;
+            }
+            else if (task.Status == "IN_PROGRESS")
+            {
+                if (task.PlannedHours > 0)
+                {
+                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+                    task.PercentComplete = Math.Min((int)rawProgress, 99);
+                }
+                else
+                {
+                    task.PercentComplete = 0;
+                }
+            }
+
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
+        }
+
 
     }
 }

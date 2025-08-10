@@ -69,8 +69,6 @@ public partial class Tasks
 
     public virtual Project Project { get; set; } = null!;
 
-    public virtual ICollection<ProjectRecommendation> ProjectRecommendation { get; set; } = new List<ProjectRecommendation>();
-
     public virtual Account Reporter { get; set; } = null!;
 
     public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();
@@ -82,12 +80,6 @@ public partial class Tasks
     public virtual ICollection<TaskAssignment> TaskAssignment { get; set; } = new List<TaskAssignment>();
 
     public virtual ICollection<TaskComment> TaskComment { get; set; } = new List<TaskComment>();
-
-    public virtual ICollection<TaskDependency> TaskDependencyLinkedFromNavigation { get; set; } = new List<TaskDependency>();
-
-    public virtual ICollection<TaskDependency> TaskDependencyLinkedToNavigation { get; set; } = new List<TaskDependency>();
-
-    public virtual ICollection<TaskDependency> TaskDependencyTask { get; set; } = new List<TaskDependency>();
 
     public virtual ICollection<TaskFile> TaskFile { get; set; } = new List<TaskFile>();
 

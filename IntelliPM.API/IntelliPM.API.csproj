@@ -8,6 +8,8 @@
 
 	<ItemGroup>
 	
+		<PackageReference Include="Azure.Identity" Version="1.15.0-beta.1" />
+	
 		<PackageReference Include="Google.Cloud.AIPlatform.V1" Version="3.35.0" />
 	
 		<PackageReference Include="Hangfire" Version="1.8.20" />
@@ -16,14 +18,19 @@
 	
 		<PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR" />
+		<PackageReference Include="Microsoft.Azure.SignalR" Version="1.30.2" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-		
+	
+
 	</ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IntelliPM.Common\IntelliPM.Common.csproj" />
     <ProjectReference Include="..\IntelliPM.Services\IntelliPM.Services.csproj" />
+    <ProjectReference Include="..\IntelliPM.Shared\IntelliPM.Shared.csproj" />
   </ItemGroup>
 
 

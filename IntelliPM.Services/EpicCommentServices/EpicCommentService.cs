@@ -3,10 +3,12 @@ using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.EpicComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicCommentRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -25,8 +27,10 @@ namespace IntelliPM.Services.EpicCommentServices
         private readonly IEpicRepository _epicRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<EpicCommentService> _logger;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IEmailService _emailService;
 
-        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, ILogger<EpicCommentService> logger)
+        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepository, IEmailService emailService, ILogger<EpicCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -34,6 +38,8 @@ namespace IntelliPM.Services.EpicCommentServices
             _notificationRepo = notificationRepo;
             _epicRepo = epicRepo;
             _projectMemberRepo = projectMemberRepo;
+            _accountRepository = accountRepository;
+            _emailService = emailService;
         }
 
         public async Task<EpicCommentResponseDTO> CreateEpicComment(EpicCommentRequestDTO request)
@@ -73,14 +79,14 @@ namespace IntelliPM.Services.EpicCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Đã bình luận trên epic {request.EpicId}: {request.Content}",
+                        Message = $"Comment in epic {request.EpicId}: {request.Content}",
                         RelatedEntityType = "Epic",
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
                         RecipientNotification = new List<RecipientNotification>()
                     };
-
+                    var epicTitle = epic.Name ?? $"Epic {epic.Id}";
                     foreach (var accId in recipients)
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
@@ -88,7 +94,12 @@ namespace IntelliPM.Services.EpicCommentServices
                             AccountId = accId
                         });
                     }
-                    await _notificationRepo.Add(notification);
+                    
+                    //if (account != null && !string.IsNullOrEmpty(account.Email))
+                    //{
+                    //    await _emailService.SendEpicCommentNotificationEmail(account.Email, account.FullName, entity.EpicId, epicTitle, request.Content);
+                    //}
+                    //await _notificationRepo.Add(notification);
                 }
             }
             catch (DbUpdateException ex)

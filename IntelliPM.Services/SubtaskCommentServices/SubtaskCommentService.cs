@@ -3,12 +3,18 @@ using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskCommentRepos;
 using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,8 +31,13 @@ namespace IntelliPM.Services.SubtaskCommentServices
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<SubtaskCommentService> _logger;
+        private readonly IActivityLogService _activityLogService;
+        private readonly ITaskRepository _taskRepo;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IEmailService _emailService;
+        private readonly IProjectRepository _projectRepo;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ILogger<SubtaskCommentService> logger)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -34,6 +45,11 @@ namespace IntelliPM.Services.SubtaskCommentServices
             _notificationRepo = notificationRepo;   
             _subtaskRepo = subtaskRepo;
             _projectMemberRepo = projectMemberRepo;
+            _activityLogService = activityLogService;
+            _taskRepo = taskRepo;
+            _accountRepository = accountRepository;
+            _emailService = emailService;
+            _projectRepo = projectRepo;
         }
 
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
@@ -57,6 +73,22 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     throw new Exception($"Task with ID {request.SubtaskId} not found.");
 
                 var projectId = subtask.Task.ProjectId;
+                var project = await _projectRepo.GetByIdAsync(projectId);
+                if (project == null)
+                    throw new Exception($"Project with ID {projectId} not found");
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
+                    SubtaskId = entity.SubtaskId,
+                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityId = entity.SubtaskId,
+                    ActionType = "CREATE",
+                    Message = $"Comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
 
                 // 👥 2. Lấy danh sách thành viên dự án (trừ người đang comment)
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
@@ -72,21 +104,27 @@ namespace IntelliPM.Services.SubtaskCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Đã bình luận trên subtask {request.SubtaskId}: {request.Content}",
+                        Message = $"Comment in project {project.ProjectKey} - subtask {request.SubtaskId}: {request.Content}",
                         RelatedEntityType = "Subtask",
-                        RelatedEntityId = entity.Id, // comment ID
+                        RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
-                        //IsRead = false,
+                        IsRead = false,
                         RecipientNotification = new List<RecipientNotification>()
                     };
 
+                    var subtaskTitle = subtask.Title ?? $"Subtask {subtask.Id}";
                     foreach (var accId in recipients)
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
                         {
-                            AccountId = accId
-                            //IsRead = false
+                            AccountId = accId,
+                            IsRead = false
                         });
+                        //var account = await _accountRepository.GetAccountById(accId);
+                        //if (account != null && !string.IsNullOrEmpty(account.Email))
+                        //{
+                        //    await _emailService.SendSubtaskCommentNotificationEmail(account.Email, account.FullName, entity.SubtaskId, subtaskTitle, request.Content);
+                        //}
                     }
                     await _notificationRepo.Add(notification);
                 }
@@ -102,15 +140,28 @@ namespace IntelliPM.Services.SubtaskCommentServices
             return _mapper.Map<SubtaskCommentResponseDTO>(entity);
         }
 
-        public async Task DeleteSubtaskComment(int id)
+        public async Task DeleteSubtaskComment(int id, int createdBy)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task subtask comment with ID {id} not found.");
-
+            var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
+            var projectId = subtask?.Task.ProjectId;
             try
             {
                 await _repo.Delete(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
+                    SubtaskId = entity.SubtaskId,
+                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityId = entity.SubtaskId,
+                    ActionType = "DELETE",
+                    Message = $"Delete comment in subtask '{entity.SubtaskId}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -140,9 +191,24 @@ namespace IntelliPM.Services.SubtaskCommentServices
 
             _mapper.Map(request, entity);
 
+            var subtask = await _subtaskRepo.GetByIdAsync(request.SubtaskId);
+            var projectId = subtask?.Task.ProjectId;
+
             try
             {
                 await _repo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
+                    SubtaskId = entity.SubtaskId,
+                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityId = entity.SubtaskId,
+                    ActionType = "UPDATE",
+                    Message = $"Update comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

@@ -206,6 +206,63 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{id}/workItem")]
+        public async Task<IActionResult> GetAccountAndWorkItemById(int id)
+        {
+            try
+            {
+                var account = await _accountService.GetAccountAndWorkItemById(id);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Account retrieved successfully",
+                    Data = account
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+
+
+        [HttpGet("profile/{email}")]
+        public async Task<IActionResult> GetProfileByEmail(string email)
+        {
+            try
+            {
+                var profile = await _accountService.GetProfileByEmail(email);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Profile retrieved successfully",
+                    Data = profile
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+
 
     }
 }

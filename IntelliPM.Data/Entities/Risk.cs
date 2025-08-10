@@ -7,7 +7,11 @@ public partial class Risk
 {
     public int Id { get; set; }
 
+    public string RiskKey { get; set; } = null!;
+
     public int? ResponsibleId { get; set; }
+
+    public int CreatedBy { get; set; }
 
     public int ProjectId { get; set; }
 
@@ -39,9 +43,17 @@ public partial class Risk
 
     public DateTime UpdatedAt { get; set; }
 
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
+    public virtual Account CreatedByNavigation { get; set; } = null!;
+
     public virtual Project Project { get; set; } = null!;
 
     public virtual Account? Responsible { get; set; }
+
+    public virtual ICollection<RiskComment> RiskComment { get; set; } = new List<RiskComment>();
+
+    public virtual ICollection<RiskFile> RiskFile { get; set; } = new List<RiskFile>();
 
     public virtual ICollection<RiskSolution> RiskSolution { get; set; } = new List<RiskSolution>();
 

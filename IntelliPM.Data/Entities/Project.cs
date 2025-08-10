@@ -31,6 +31,8 @@ public partial class Project
 
     public string? Status { get; set; }
 
+    public virtual ICollection<AiResponseHistory> AiResponseHistory { get; set; } = new List<AiResponseHistory>();
+
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
     public virtual Account CreatedByNavigation { get; set; } = null!;

@@ -23,10 +23,6 @@ public partial class ProjectMetric
 
     public decimal? CostPerformanceIndex { get; set; }
 
-    public DateTime CreatedAt { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
-
     public decimal? BudgetAtCompletion { get; set; }
 
     public decimal? DurationAtCompletion { get; set; }
@@ -42,6 +38,16 @@ public partial class ProjectMetric
     public decimal? VarianceAtCompletion { get; set; }
 
     public decimal? EstimateDurationAtCompletion { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
+    public bool IsImproved { get; set; }
+
+    public string? ImprovementSummary { get; set; }
+
+    public decimal? ConfidenceScore { get; set; }
 
     public virtual Project Project { get; set; } = null!;
 }
