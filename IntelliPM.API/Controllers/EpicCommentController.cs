@@ -1,5 +1,4 @@
 ﻿using IntelliPM.Data.DTOs;
-using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Services.EpicCommentServices;

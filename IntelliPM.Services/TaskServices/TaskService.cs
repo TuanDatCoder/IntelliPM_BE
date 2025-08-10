@@ -122,7 +122,6 @@ namespace IntelliPM.Services.TaskServices
             if (project == null)
                 throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
 
-            // Gọi AI service và nhận về danh sách task đề xuất có title + description
             var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
 
             if (suggestions == null || !suggestions.Any())
@@ -1038,7 +1037,7 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId)
+        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -1054,6 +1053,18 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed epic of task '{entity.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

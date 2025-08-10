@@ -346,11 +346,11 @@ namespace IntelliPM.API.Controllers
 
 
         [HttpPatch("{id}/epic")]
-        public async Task<IActionResult> ChangeSprint(string id, [FromBody] string epicId)
+        public async Task<IActionResult> ChangeSprint(string id, ChangeTaskEpicRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskEpic(id, epicId);
+                var updated = await _service.ChangeTaskEpic(id, dto.EpicId, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

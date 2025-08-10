@@ -15,5 +15,8 @@ namespace IntelliPM.Data.DTOs.EpicFile.Request
         public string Title { get; set; } = null!;
 
         public IFormFile UrlFile { get; set; } = null!;
+
+        public int CreatedBy { get; set; } 
+
     }
 }

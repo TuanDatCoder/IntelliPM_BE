@@ -12,6 +12,7 @@ using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -35,7 +36,8 @@ namespace IntelliPM.Services.EpicCommentServices
         private readonly IEmailService _emailService;
         private readonly IActivityLogService _activityLogService;
         private readonly IProjectRepository _projectRepo;
-        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepository, IActivityLogService activityLogService, IEmailService emailService, ILogger<EpicCommentService> logger, IProjectRepository projectRepo)
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        public EpicCommentService(IMapper mapper, IEpicCommentRepository repo, INotificationRepository notificationRepo, IEpicRepository epicRepo, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepository, IActivityLogService activityLogService, IEmailService emailService, ILogger<EpicCommentService> logger, IProjectRepository projectRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _repo = repo;
@@ -47,7 +49,9 @@ namespace IntelliPM.Services.EpicCommentServices
             _emailService = emailService;
             _activityLogService = activityLogService;
             _projectRepo = projectRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
+
 
         public async Task<EpicCommentResponseDTO> CreateEpicComment(EpicCommentRequestDTO request)
         {
@@ -57,12 +61,17 @@ namespace IntelliPM.Services.EpicCommentServices
             if (string.IsNullOrEmpty(request.Content))
                 throw new ArgumentException("Epic comment content is required.", nameof(request.Content));
 
-            var account = await _projectMemberRepo.GetAccountByIdAsync(request.AccountId); // Giả định có phương thức này
+            var account = await _projectMemberRepo.GetAccountByIdAsync(request.AccountId); 
             if (account == null)
                 throw new KeyNotFoundException($"Account with ID {request.AccountId} not found.");
 
             var entity = _mapper.Map<EpicComment>(request);
             entity.CreatedAt = DateTime.UtcNow;
+
+            var createActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "EPICCOMMENT_CREATE");
+            var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
 
             try
             {
@@ -78,9 +87,9 @@ namespace IntelliPM.Services.EpicCommentServices
                 {
                     ProjectId = projectId,
                     EpicId = entity.EpicId,
-                    RelatedEntityType = "EpicComment",
+                    RelatedEntityType = dynamicRelatedEntityType,
                     RelatedEntityId = entity.EpicId,
-                    ActionType = "CREATE",
+                    ActionType = createActionType,
                     Message = $"Create comment in epic '{entity.EpicId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -97,10 +106,10 @@ namespace IntelliPM.Services.EpicCommentServices
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
-                        Type = "COMMENT",
+                        Type = dynamicNotificationType,
                         Priority = "NORMAL",
                         Message = $"Comment in epic {request.EpicId}: {request.Content}",
-                        RelatedEntityType = "Epic",
+                        RelatedEntityType = dynamicRelatedEntityType,
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -139,6 +148,9 @@ namespace IntelliPM.Services.EpicCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Epic comment with ID {id} not found.");
 
+            var deleteActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
+
             try
             {
                 var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
@@ -152,10 +164,10 @@ namespace IntelliPM.Services.EpicCommentServices
                 {
                     ProjectId = projectId,
                     EpicId = entity.EpicId,
-                    RelatedEntityType = "EpicComment",
+                    RelatedEntityType = dynamicRelatedEntityType,
                     RelatedEntityId = entity.EpicId,
-                    ActionType = "CREATE",
-                    Message = $"Create comment in epic '{entity.EpicId}' is '{entity.Content}'",
+                    ActionType = deleteActionType,
+                    Message = $"Delete comment in epic '{entity.EpicId}' is '{entity.Content}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
                 });
@@ -208,7 +220,10 @@ namespace IntelliPM.Services.EpicCommentServices
                 throw new KeyNotFoundException($"Account with ID {request.AccountId} not found.");
 
             _mapper.Map(request, entity);
-            entity.CreatedAt = DateTime.UtcNow; 
+            entity.CreatedAt = DateTime.UtcNow;
+
+            var updateActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
 
             try
             {
@@ -223,10 +238,10 @@ namespace IntelliPM.Services.EpicCommentServices
                 {
                     ProjectId = projectId,
                     EpicId = entity.EpicId,
-                    RelatedEntityType = "EpicComment",
+                    RelatedEntityType = dynamicRelatedEntityType,
                     RelatedEntityId = entity.EpicId,
-                    ActionType = "DELETE",
-                    Message = $"Delete comment in epic '{entity.EpicId}'",
+                    ActionType = updateActionType,
+                    Message = $"Update comment in epic '{entity.EpicId}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
                 });
