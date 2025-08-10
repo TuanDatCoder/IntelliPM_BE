@@ -62,7 +62,7 @@ CREATE TABLE project_member (
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
     hourly_rate DECIMAL(10, 2) NULL,
-    working_hours_per_day INT NULL DEFAULT 8, 
+    working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (account_id, project_id)
@@ -607,12 +607,12 @@ CREATE TABLE change_request (
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
-    task_id VARCHAR(255) NULL,
     type VARCHAR(100) NOT NULL,
     recommendation TEXT NOT NULL,
+    details TEXT NULL,
+    suggested_changes TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (task_id) REFERENCES tasks(id)
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
 -- 37. label
@@ -686,6 +686,9 @@ CREATE TABLE project_metric (
     estimate_to_complete DECIMAL(15, 2) NULL,
     variance_at_completion DECIMAL(15, 2) NULL,
     estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    is_improved BOOLEAN NOT NULL DEFAULT FALSE,
+    improvement_summary TEXT NULL DEFAULT '',
+    confidence_score DECIMAL(5, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES project(id)
@@ -717,7 +720,7 @@ CREATE TABLE dynamic_category (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     order_index INT NOT NULL DEFAULT 0,
     icon_link TEXT NULL,
-    color VARCHAR(10) NULL,
+    color VARCHAR(50) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (category_group, name)
 );
@@ -729,6 +732,7 @@ CREATE TABLE activity_log (
 	epic_id VARCHAR(255) NULL,
     task_id VARCHAR(255) NULL,
     subtask_id VARCHAR(255) NULL,
+    risk_key VARCHAR(255) NULL,
     related_entity_type VARCHAR(100) NOT NULL,
     related_entity_id VARCHAR(255) NULL,
     action_type VARCHAR(100) NOT NULL,
@@ -741,7 +745,8 @@ CREATE TABLE activity_log (
     FOREIGN KEY (created_by) REFERENCES account(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (subtask_id) REFERENCES subtask(id),
-	FOREIGN KEY (epic_id) REFERENCES epic(id)
+	FOREIGN KEY (epic_id) REFERENCES epic(id),
+    FOREIGN KEY (risk_key) REFERENCES risk(risk_key)
 );
 
 -- 46. meeting_reschedule_request
@@ -1162,13 +1167,13 @@ VALUES
     (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
-INSERT INTO project_recommendation (project_id, task_id, type, recommendation)
+INSERT INTO project_recommendation (project_id, type, recommendation)
 VALUES 
-    (1, 'PROJA-3', 'PERFORMANCE', 'Optimize database queries'),
-    (2, 'PROJB-2', 'MARKETING', 'Increase ad spend'),
-    (3, 'PROJC-2', 'RESEARCH', 'Use additional sources'),
-    (4, 'PROJD-2', 'DESIGN', 'Improve color contrast'),
-    (5, 'PROJE-2', 'TESTING', 'Add automation tests');
+    (1, 'PERFORMANCE', 'Optimize database queries'),
+    (2, 'MARKETING', 'Increase ad spend'),
+    (3, 'RESEARCH', 'Use additional sources'),
+    (4, 'DESIGN', 'Improve color contrast'),
+    (5, 'TESTING', 'Add automation tests');
 
 -- Insert sample data into label
 INSERT INTO label (project_id, name, color_code, description, status)
@@ -1374,7 +1379,7 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
-     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
+    ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
@@ -1382,11 +1387,13 @@ VALUES
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
     ('activity_log_action_type', 'COMMENT', 'Comment', 'Record comment action', 4, NULL, NULL),
+    ('activity_log_action_type', 'CREATE', 'Create', 'Record create action', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'TASK', 'Task', 'Task related entity', 1, NULL, NULL),
     ('activity_log_related_entity_type', 'PROJECT', 'Project', 'Project related entity', 2, NULL, NULL),
     ('activity_log_related_entity_type', 'COMMENT', 'Comment', 'Comment related entity', 3, NULL, NULL),
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
+    ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
     ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
 	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
@@ -1399,9 +1406,12 @@ VALUES
     ('ai_feature', 'SPRINT_CREATION', 'Sprint Creation', 'AI creates sprints and assigns tasks from backlog', 2, 'https://example.com/icons/sprint-creation.png', '#2196F3'),
     ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
-    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0');
+    ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
 
-
+	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

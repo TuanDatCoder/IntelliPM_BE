@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Services.Utilities;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -132,5 +133,6 @@ namespace IntelliPM.Services.DynamicCategoryServices
 
             return _mapper.Map<DynamicCategoryResponseDTO>(entity);
         }
+
     }
 }

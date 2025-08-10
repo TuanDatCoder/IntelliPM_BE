@@ -5,13 +5,16 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.GeminiServices;
 using Microsoft.VisualBasic;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,8 +33,10 @@ namespace IntelliPM.Services.RiskServices
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly IGeminiService _geminiService;
         private readonly IMapper _mapper;
+        private readonly IActivityLogService _activityLogService;
+        private readonly INotificationRepository _notificationRepo;
 
-        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper)
+        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo)
         {
             _riskRepo = riskRepo;
             _riskSolutionRepo = riskSolutionRepo;
@@ -39,6 +44,8 @@ namespace IntelliPM.Services.RiskServices
             _projectRepo = projectRepo;
             _projectMemberRepo = projectMemberRepo;
             _geminiService = geminiService;
+            _activityLogService = activityLogService;
+            _notificationRepo = notificationRepo;
             _mapper = mapper;
         }
 
@@ -251,11 +258,56 @@ namespace IntelliPM.Services.RiskServices
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            await _riskRepo.AddAsync(entity); 
+            await _riskRepo.AddAsync(entity);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = entity.ProjectId,
+                RiskKey = riskKey,
+                RelatedEntityType = "Risk",
+                RelatedEntityId = riskKey,
+                ActionType = "CREATE",
+                Message = $"Created risk '{riskKey}'",
+                CreatedBy = request.CreatedBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var members = await _projectMemberRepo.GetProjectMemberbyProjectId(entity.ProjectId);
+            var recipients = members
+                .Where(m => m.AccountId != request.CreatedBy)
+                .Select(m => m.AccountId)
+                .ToList();
+
+            if (recipients.Count > 0)
+            {
+                var notification = new Notification
+                {
+                    CreatedBy = request.CreatedBy,
+                    Type = "RISK_ALERT",
+                    Priority = entity.SeverityLevel,
+                    Message = $"Risk identified in project {project.ProjectKey}: {riskKey}",
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = entity.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false,
+                    RecipientNotification = new List<RecipientNotification>()
+                };
+
+                foreach (var accId in recipients)
+                {
+                    notification.RecipientNotification.Add(new RecipientNotification
+                    {
+                        AccountId = accId
+                        //IsRead = false
+                    });
+                }
+                await _notificationRepo.Add(notification);
+            }
+
             return _mapper.Map<RiskResponseDTO>(entity);
         }
 
-        public async Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status)
+        public async Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -266,6 +318,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated status in risk '{risk.RiskKey}' to '{status}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -332,7 +395,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title)
+        public async Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -343,6 +406,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated title in risk '{risk.RiskKey}' to '{title}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -465,6 +539,17 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByKeyAsync(key)
                 ?? throw new Exception("Risk not found");
             return _mapper.Map<RiskResponseDTO>(risk);
+        }
+
+        public async Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found");
+
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var risks = await _geminiService.DetectTaskRisksAsync(project, tasks);
+
+            return risks ?? new List<AIRiskResponseDTO>();
         }
     }
 

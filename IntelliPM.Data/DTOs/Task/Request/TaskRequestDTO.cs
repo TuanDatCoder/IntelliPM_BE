@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.TaskDependency.Request;
+﻿using IntelliPM.Common.Attributes;
+using IntelliPM.Data.DTOs.TaskDependency.Request;
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -17,7 +18,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
         public int? SprintId { get; set; }
 
         [Required]
-        [RegularExpression("BUG|TASK|STORY", ErrorMessage = "Type must be BUG, TASK, or STORY")]
+        [DynamicCategoryValidation("task_type", Required = false)]
         public string? Type { get; set; }
 
         [Required(ErrorMessage = "Task title is required")]
@@ -26,11 +27,16 @@ namespace IntelliPM.Data.DTOs.Task.Request
 
         public string? Description { get; set; }
 
+        [DynamicCategoryValidation("task_priority", Required = false)]
+        public string? Priority { get; set; }
+        public decimal? PlannedHours { get; set; }
+
         public DateTime? PlannedStartDate { get; set; }
 
         public DateTime? PlannedEndDate { get; set; }
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
+        [DynamicCategoryValidation("task_status", Required = false)]
         public string? Status { get; set; }
         public int CreatedBy { get; set; }
         public List<TaskDependencyRequestDTO>? Dependencies { get; set; }

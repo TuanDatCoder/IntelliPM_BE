@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +18,10 @@ namespace IntelliPM.Repositories.ActivityLogRepos
         Task<List<ActivityLog>> GetByTaskIdAsync(string taskId);
 
         Task<List<ActivityLog>> GetBySubtaskIdAsync(string subtaskId);
+
+        Task AddRangeAsync(List<ActivityLog> tasks);
+        Task SaveChangesAsync();
+        Su25Sep490IntelliPmContext GetContext();
+        Task<List<ActivityLog>> GetByRiskKeyAsync(string riskKey);
     }
 }

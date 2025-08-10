@@ -43,5 +43,11 @@ public partial class ProjectMetric
 
     public DateTime UpdatedAt { get; set; }
 
+    public bool IsImproved { get; set; }
+
+    public string? ImprovementSummary { get; set; }
+
+    public decimal? ConfidenceScore { get; set; }
+
     public virtual Project Project { get; set; } = null!;
 }

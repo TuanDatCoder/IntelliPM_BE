@@ -9,5 +9,6 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
     public interface ISprintPlanningService
     {
         Task<List<SprintWithTasksDTO>> GenerateSprintPlan(int projectId, int numberOfSprints, int weeksPerSprint);
+
     }
 }

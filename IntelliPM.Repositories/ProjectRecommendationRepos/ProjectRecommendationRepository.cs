@@ -24,7 +24,6 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
         {
             return await _context.Set<ProjectRecommendation>()
                 .Where(r => r.ProjectId == projectId)
-                .Include(r => r.Task)
                 .ToListAsync();
         }
 
@@ -35,11 +34,11 @@ namespace IntelliPM.Repositories.ProjectRecommendationRepos
             await _context.SaveChangesAsync();
         }
 
-        public async Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type)
-        {
-            return await _context.ProjectRecommendation
-                .FirstOrDefaultAsync(r => r.ProjectId == projectId && r.TaskId == taskId && r.Type == type);
-        }
+        //public async Task<ProjectRecommendation?> GetByProjectIdTaskIdTypeAsync(int projectId, string taskId, string type)
+        //{
+        //    return await _context.ProjectRecommendation
+        //        .FirstOrDefaultAsync(r => r.ProjectId == projectId && r.TaskId == taskId && r.Type == type);
+        //}
 
         public async Task Update(ProjectRecommendation recommendation)
         {
