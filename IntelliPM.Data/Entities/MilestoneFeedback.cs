@@ -19,7 +19,5 @@ public partial class MilestoneFeedback
 
     public virtual Account Account { get; set; } = null!;
 
-    public virtual ICollection<DocumentRequestMeeting> DocumentRequestMeeting { get; set; } = new List<DocumentRequestMeeting>();
-
     public virtual Meeting Meeting { get; set; } = null!;
 }

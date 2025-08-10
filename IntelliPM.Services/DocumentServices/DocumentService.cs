@@ -7,24 +7,22 @@ using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
-using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.External.ProjectMetricApi;
 using IntelliPM.Services.External.TaskApi;
 using IntelliPM.Services.NotificationServices;
-using MailKit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Ocsp;
+using SixLabors.ImageSharp;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace IntelliPM.Services.DocumentServices
-    
+
 {
     public class DocumentService : IDocumentService
     {
@@ -38,7 +36,7 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDocumentPermissionRepository _permissionRepo;
         private readonly ILogger<DocumentService> _logger;
-
+        private readonly IConfiguration _configuration;
 
         public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
             IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger)
@@ -53,6 +51,7 @@ namespace IntelliPM.Services.DocumentServices
             _httpContextAccessor = httpContextAccessor;
             _permissionRepo = permissionRepo;
             _logger = logger;
+            _configuration = configuration;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -67,8 +66,8 @@ namespace IntelliPM.Services.DocumentServices
 
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
-                (doc.Visibility == "PRIVATE" && doc.CreatedBy == currentUserId) ||
-                (doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
+                (doc.Visibility == "PRIVATE" && doc.CreatedBy == currentUserId)
+                //(doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
             );
 
             return visibleDocs.Select(ToResponse).ToList();
@@ -85,10 +84,9 @@ namespace IntelliPM.Services.DocumentServices
                 ProjectId = d.ProjectId,
                 TaskId = d.TaskId,
                 Title = d.Title,
-                Type = d.Type,
-                Template = d.Template,
+                //Type = d.Type,
+
                 Content = d.Content,
-                FileUrl = d.FileUrl,
                 IsActive = d.IsActive,
                 CreatedBy = d.CreatedBy,
                 UpdatedBy = d.UpdatedBy,
@@ -101,11 +99,13 @@ namespace IntelliPM.Services.DocumentServices
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
             var doc = await _repo.GetByIdAsync(id);
+
             if (doc == null)
-                throw new Exception("Document not found");
+                throw new KeyNotFoundException($"Document {id} not found");
 
             return ToResponse(doc);
         }
+
 
         public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
         {
@@ -127,10 +127,10 @@ namespace IntelliPM.Services.DocumentServices
                 TaskId = req.TaskId,
                 SubtaskId = req.SubTaskId,
                 Title = req.Title,
-                Type = req.Type,
-                Template = req.Template,
+                //Type = req.Type,
+
                 Content = req.Content,
-                FileUrl = req.FileUrl,
+
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -158,103 +158,127 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
-            int count =
-          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+            if (req == null) throw new ArgumentNullException(nameof(req));
+            if (req.ProjectId <= 0) throw new ArgumentException("ProjectId is required.");
+            if (string.IsNullOrWhiteSpace(req.Title)) throw new ArgumentException("Title is required.");
 
-            if (count > 1)
-            {
-                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
-            }
+            var visibility = (req.Visibility ?? "").Trim().ToUpperInvariant();
+            var validVisibilities = new[] { "MAIN", "PRIVATE" };
+            if (!validVisibilities.Contains(visibility))
+                throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
 
-            var validVisibilities = new[] { "MAIN", "PRIVATE", "SHAREABLE" };
+            int linkCount =
+                (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+                (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+                (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-            if (!validVisibilities.Contains(req.Visibility))
-            {
-                throw new ArgumentException("Invalid visibility type. Must be MAIN, PRIVATE, or SHAREABLE.");
-            }
+            if (linkCount > 1)
+                throw new ArgumentException("Document chỉ được liên kết tối đa một trong: Epic, Task hoặc Subtask.");
 
-
+            var now = DateTime.UtcNow;
 
             var doc = new Document
             {
                 ProjectId = req.ProjectId,
                 EpicId = req.EpicId,
                 TaskId = req.TaskId,
-                SubtaskId = req.SubTaskId,
-                Title = req.Title,
-                Type = req.Type,
-                Template = req.Template,
+                SubtaskId = req.SubTaskId,  
+                Title = req.Title.Trim(),
                 Content = req.Content,
-                FileUrl = req.FileUrl,
                 CreatedBy = userId,
-                Visibility = req.Visibility,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
+                UpdatedBy = userId,
+                Visibility = visibility,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsActive = true,
             };
 
             try
             {
                 await _repo.AddAsync(doc);
                 await _repo.SaveChangesAsync();
-
-                var mentionedUserIds = Regex.Matches(req.Content, "data-id=[\"'](\\d+)[\"']")
-         .Select(m => int.Parse(m.Groups[1].Value))
-         .Distinct()
-         .ToList();
-                Console.WriteLine("Mentioned IDs found: " + string.Join(",", mentionedUserIds));
-                Console.WriteLine("Document Title: " + doc.Title);
-                Console.WriteLine("Content: " + req.Content);
-
-                await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
-                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+                var rootMsg = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception("Không thể lưu Document: " + rootMsg);
             }
+
+            try
+            {
+                var content = req.Content ?? string.Empty;
+                var mentionedUserIds = Regex.Matches(content, "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                    .Select(m => int.Parse(m.Groups[1].Value))
+                    .Distinct()
+                    .ToList();
+
+                if (mentionedUserIds.Count > 0)
+                {
+                    await _notificationService.SendMentionNotification(
+                        mentionedUserIds, doc.Id, doc.Title, userId);
+                }
+            }
+            catch {  }
 
             return ToResponse(doc);
         }
+
+
 
 
 
 
         public async Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId)
         {
-            var doc = await _repo.GetByIdAsync(id);
-            if (doc == null) throw new Exception("Document not found");
+            if (req == null) throw new ArgumentNullException(nameof(req));
 
-            doc.Title = req.Title ?? doc.Title;
-            doc.Content = req.Content ?? doc.Content;
-            doc.FileUrl = req.FileUrl ?? doc.FileUrl;
-            doc.UpdatedBy = userId; 
+            var doc = await _repo.GetByIdAsync(id)
+                      ?? throw new KeyNotFoundException("Document not found");
+
+            if (!string.IsNullOrWhiteSpace(req.Title))
+                doc.Title = req.Title.Trim();
+
+            if (req.Content != null)
+                doc.Content = req.Content;
+
+
+            if (!string.IsNullOrWhiteSpace(req.Visibility))
+            {
+                var v = req.Visibility.Trim().ToUpperInvariant();
+                var valid = new[] { "MAIN", "PRIVATE" };
+                if (!valid.Contains(v))
+                    throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
+                doc.Visibility = v;
+            }
+
+            doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
-
-            if (!string.IsNullOrEmpty(req.Visibility))
-                doc.Visibility = req.Visibility;
-
 
             await _repo.UpdateAsync(doc);
             await _repo.SaveChangesAsync();
 
-            var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']")
-                .Select(m => int.Parse(m.Groups[1].Value))
-                .Distinct()
-                .ToList();
+            try
+            {
+                var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                    .Select(m => int.Parse(m.Groups[1].Value))
+                    .Distinct()
+                    .ToList();
 
-            await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
+                if (mentionedUserIds.Count > 0)
+                    await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
+            }
+            catch {  }
 
             return ToResponse(doc);
         }
 
+
         public async Task<bool> DeleteDocument(int id, int deletedBy)
         {
             var doc = await _repo.GetByIdAsync(id);
+
             if (doc == null || !doc.IsActive)
-                throw new Exception("Document not found or already deleted");
+                throw new KeyNotFoundException($"Document {id} not found or already deleted");
 
             doc.IsActive = false;
             doc.UpdatedBy = deletedBy;
@@ -265,6 +289,7 @@ namespace IntelliPM.Services.DocumentServices
 
             return true;
         }
+
 
 
 
@@ -358,16 +383,16 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 TaskId = doc.TaskId,
                 SubtaskId = doc.SubtaskId,
                 Title = doc.Title,
-                Type = doc.Type,
-                Template = doc.Template,
+                //Type = doc.Type,
+
                 Content = doc.Content,
-                FileUrl = doc.FileUrl,
+
                 IsActive = doc.IsActive,
                 CreatedBy = doc.CreatedBy,
                 UpdatedBy = doc.UpdatedBy,
                 CreatedAt = doc.CreatedAt,
                 UpdatedAt = doc.UpdatedAt,
-                Visibility = doc.Visibility 
+                Visibility = doc.Visibility
 
             };
         }
@@ -407,62 +432,65 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
 
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
+            // 1) Tìm document
             var document = await _repo.GetByIdAsync(documentId);
             if (document == null || !document.IsActive)
-                throw new Exception("Document not found");
+                throw new KeyNotFoundException($"Document {documentId} not found");
 
-            var failedToSend = new List<string>();
-
-            // Chuẩn hoá danh sách email
-            var lowerInputEmails = req.Emails?
+            // 2) Validate emails
+            var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
-                .Select(e => e.Trim().ToLower())
+                .Select(e => e.Trim().ToLowerInvariant())
                 .Distinct()
-                .ToList() ?? new List<string>();
+                .ToList();
 
             if (lowerInputEmails.Count == 0)
-            {
-                return new ShareDocumentResponseDTO
-                {
-                    Success = false,
-                    FailedEmails = new List<string>()
-                };
-            }
+                throw new ArgumentException("No emails provided.");
 
-            var permissionType = req.PermissionType?.ToUpper() ?? "VIEW";
+            // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
             var mode = permissionType == "EDIT" ? "edit" : "view";
 
-            // 🔗 Tạo link chia sẻ
-            var projectKey = string.IsNullOrWhiteSpace(req.ProjectKey) ? "DEFAULTKEY" : req.ProjectKey;
-            var link = $"http://localhost:5173/project/projects/form/document/{document.Id}?mode={mode}";
+            // 4) Tạo link chia sẻ (từ cấu hình)
+            // appsettings.json:
+            // "Frontend": { "BaseUrl": "http://localhost:5173" }
+            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            var path = $"/project/projects/form/document/{document.Id}";
+            var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
 
+            // 5) Lấy account map từ emails
+            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
 
-            // ✅ Lấy danh sách account có tồn tại trong hệ thống
-            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<email, accountId>
-
-            // 🗑 Xoá các quyền trùng loại nếu đã có
+            // 6) Upsert quyền cho các email có accountId
             if (accountMap.Count > 0)
             {
                 var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
+
+                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+                var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
-                    .Where(p => accountMap.Values.Contains(p.AccountId) && p.PermissionType == req.PermissionType)
+                    .Where(p => targetAccountIds.Contains(p.AccountId) &&
+                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
-                _permissionRepo.RemoveRange(toRemove);
+                if (toRemove.Count > 0)
+                    _permissionRepo.RemoveRange(toRemove);
 
-                // ➕ Thêm quyền mới cho các email có account
+                // Thêm quyền mới
                 var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
                     DocumentId = documentId,
                     AccountId = accountId,
-                    PermissionType = req.PermissionType
+                    PermissionType = permissionType
                 });
 
                 await _permissionRepo.AddRangeAsync(newPermissions);
                 await _permissionRepo.SaveChangesAsync();
             }
 
-            // 📧 Gửi email đến TẤT CẢ email nhập vào, không phân biệt có account hay không
+            // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
+            var failedToSend = new List<string>();
             foreach (var email in lowerInputEmails)
             {
                 try
@@ -495,13 +523,13 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 }
             }
 
-            // ✅ Trả kết quả cuối cùng
             return new ShareDocumentResponseDTO
             {
                 Success = failedToSend.Count == 0,
                 FailedEmails = failedToSend
             };
         }
+
 
 
         //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
@@ -723,7 +751,7 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
                 throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
 
-         
+
             var htmlPrompt = $@"
 Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
 
@@ -758,10 +786,10 @@ Yêu cầu:
                 ProjectId = doc.ProjectId,
                 TaskId = doc.TaskId,
                 Title = doc.Title,
-                Type = doc.Type,
-                Template = doc.Template,
+                //Type = doc.Type,
+
                 Content = doc.Content,
-                FileUrl = doc.FileUrl,
+
                 IsActive = doc.IsActive,
                 CreatedBy = doc.CreatedBy,
                 UpdatedBy = doc.UpdatedBy,
@@ -942,7 +970,8 @@ Yêu cầu:
             sb.AppendLine("### 👥 Team Workload Distribution:");
             var assigneeWorkload = tasks
                 .Where(t => t.TaskAssignments != null && t.TaskAssignments.Any())
-                .SelectMany(t => t.TaskAssignments.Select(ta => new {
+                .SelectMany(t => t.TaskAssignments.Select(ta => new
+                {
                     Name = ta.AccountFullname,
                     TaskId = t.Id,
                     TaskTitle = t.Title,
@@ -955,7 +984,8 @@ Yêu cầu:
                     IsCompleted = ta.CompletedAt.HasValue
                 }))
                 .GroupBy(x => x.Name)
-                .Select(g => new {
+                .Select(g => new
+                {
                     Name = g.Key,
                     TaskCount = g.Count(),
                     TotalPlannedHours = g.Sum(x => x.PlannedHours),

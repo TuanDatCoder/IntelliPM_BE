@@ -41,8 +41,6 @@ public partial class Account
 
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
-    public virtual ICollection<Document> DocumentApprover { get; set; } = new List<Document>();
-
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
 
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();
@@ -50,10 +48,6 @@ public partial class Account
     public virtual ICollection<DocumentExportFile> DocumentExportFile { get; set; } = new List<DocumentExportFile>();
 
     public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
-
-    public virtual ICollection<DocumentRequestMeeting> DocumentRequestMeetingProjectManager { get; set; } = new List<DocumentRequestMeeting>();
-
-    public virtual ICollection<DocumentRequestMeeting> DocumentRequestMeetingTeamLeader { get; set; } = new List<DocumentRequestMeeting>();
 
     public virtual ICollection<Document> DocumentUpdatedByNavigation { get; set; } = new List<Document>();
 

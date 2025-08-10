@@ -331,15 +331,10 @@ CREATE TABLE document (
     epic_id VARCHAR(255),
     subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
-    type VARCHAR(100),
-    template TEXT,
     content TEXT,
-    file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    status VARCHAR(30) DEFAULT 'Draft',
     created_by INTEGER NOT NULL,
     updated_by INTEGER,
-    approver_id INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     visibility VARCHAR(20),
@@ -362,24 +357,21 @@ CREATE TABLE document (
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
-    CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
-        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+
 );
 
-CREATE TABLE document_comment (
+CREATE TABLE  document_comment (
     id SERIAL PRIMARY KEY,
     document_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE,
-
-  
-    CONSTRAINT fk_document FOREIGN KEY (document_id)
-        REFERENCES document (id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_author FOREIGN KEY (author_id)
-        REFERENCES account (id) ON DELETE CASCADE
+    from_pos INTEGER NOT NULL,     
+    to_pos INTEGER NOT NULL,      
+    content TEXT NOT NULL,        
+    comment TEXT NOT NULL,        
+created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,    
+updated_at TIMESTAMPTZ,
+    FOREIGN KEY (author_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE
 );
 
 
@@ -529,25 +521,6 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
-CREATE TABLE document_request_meeting (
-    id SERIAL PRIMARY KEY,
-    file_url TEXT NOT NULL,
-    team_leader_id INT NOT NULL,
-    project_manager_id INT NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    reason TEXT,
-    feedback_id INT NOT NULL,
-    sent_to_client BOOLEAN DEFAULT FALSE,
-    client_viewed BOOLEAN DEFAULT FALSE,
-    client_approved BOOLEAN,
-    client_approval_time TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (team_leader_id) REFERENCES account(id),
-    FOREIGN KEY (project_manager_id) REFERENCES account(id),
-    FOREIGN KEY (feedback_id) REFERENCES milestone_feedback(id)
-);
 
 -- 31. risk
 CREATE TABLE risk (

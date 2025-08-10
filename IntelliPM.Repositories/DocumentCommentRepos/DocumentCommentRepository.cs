@@ -59,6 +59,10 @@ namespace IntelliPM.Repositories.DocumentCommentRepos
             _context.DocumentComment.Remove(comment);
             await _context.SaveChangesAsync();
         }
+        public async Task<bool> DocumentExistsAsync(int documentId)
+        {
+            return await _context.Document.AnyAsync(d => d.Id == documentId);
+        }
 
 
     }
