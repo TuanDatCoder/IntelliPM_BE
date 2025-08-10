@@ -31,6 +31,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly ITaskRepository _taskRepo;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        
 
         public ProjectMemberService(IMapper mapper, IProjectMemberRepository projectMemberRepo, IProjectPositionRepository projectPositionRepo, IProjectRepository projectRepo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, ITaskAssignmentRepository taskAssignmentRepo)
         {
@@ -163,6 +164,8 @@ namespace IntelliPM.Services.ProjectMemberServices
                     ProjectName = pm.Project.Name,
                     ProjectKey = pm.Project.ProjectKey,
                     ProjectStatus = pm.Project.Status,
+                    ProjectType = pm.Project.ProjectType,
+                    ProjectCreateAt = pm.Project.CreatedAt,
                     IconUrl = pm.Project.IconUrl,
                     JoinedAt = pm.JoinedAt,
                     InvitedAt = pm.InvitedAt,
@@ -175,6 +178,49 @@ namespace IntelliPM.Services.ProjectMemberServices
 
             return accountProjects;
         }
+
+
+
+        public async Task<List<ProjectPositionWithProjectInfoDTO>> GetProjectPositionsByAccountId(int accountId)
+        {
+
+            var members = await _projectMemberRepo.GetAllAsync();
+            var accountMembers = members
+                .Where(pm => pm.AccountId == accountId)
+                .ToList();
+
+            if (!accountMembers.Any())
+                throw new KeyNotFoundException($"No project members found for Account ID {accountId}.");
+
+            var positions = new List<ProjectPositionWithProjectInfoDTO>();
+
+            foreach (var member in accountMembers)
+            {
+                var memberPositions = await _projectPositionRepo.GetAllProjectPositions(member.Id);
+                var mappedPositions = memberPositions.Select(pp => new ProjectPositionWithProjectInfoDTO
+                {
+                    Id = pp.Id,
+                    ProjectMemberId = pp.ProjectMemberId,
+                    Position = pp.Position,
+                    AssignedAt = pp.AssignedAt,
+                    ProjectId = pp.ProjectMember.ProjectId,
+                    ProjectCreatedAt = pp.ProjectMember.Project.CreatedAt
+                });
+
+                positions.AddRange(mappedPositions);
+            }
+
+            if (!positions.Any())
+                throw new KeyNotFoundException($"No project positions found for Account ID {accountId}.");
+
+            return positions;
+        }
+
+
+
+
+
+
 
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
         {
@@ -301,6 +347,42 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<ProjectMemberResponseDTO>(entity);
         }
 
+
+
+
+        public async Task<TeamsByAccountResponseDTO> GetTeamsByAccountId(int accountId)
+        {
+            var projectsJoined = await _projectMemberRepo.GetProjectIdsByAccountIdAsync(accountId);
+
+            if (!projectsJoined.Any())
+                throw new KeyNotFoundException($"Account ID {accountId} has not joined any team.");
+
+            var teams = new List<TeamWithMembersResponseDTO>();
+
+            foreach (var projectId in projectsJoined)
+            {
+                var project = await _projectRepo.GetByIdAsync(projectId);
+                if (project == null) continue;
+
+                var members = await _projectMemberRepo.GetAllProjectMembers(projectId);
+                var memberDtos = _mapper.Map<List<ProjectMemberResponseDTO>>(members);
+
+                teams.Add(new TeamWithMembersResponseDTO
+                {
+                    ProjectId = project.Id,
+                    ProjectName = project.Name,
+                    ProjectKey = project.ProjectKey,
+                    TotalMembers = members.Count,
+                    Members = memberDtos
+                });
+            }
+
+            return new TeamsByAccountResponseDTO
+            {
+                TotalTeams = teams.Count,
+                Teams = teams
+            };
+        }
 
 
 

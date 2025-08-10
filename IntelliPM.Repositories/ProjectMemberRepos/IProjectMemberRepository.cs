@@ -26,7 +26,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
         Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds);
 
 
-
+        Task<List<int>> GetProjectIdsByAccountIdAsync(int accountId);
         Task<List<ProjectMemberWithTasksResponseDTO>> GetProjectMembersWithTasksAsync(int projectId);
 
 
