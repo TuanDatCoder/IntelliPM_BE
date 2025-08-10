@@ -13,6 +13,8 @@ namespace IntelliPM.Data.DTOs.RiskSolution.Request
         public string? MitigationPlan { get; set; }
 
         public string? ContingencyPlan { get; set; }
+
+        public int CreatedBy { get; set; }
     }
 
 }

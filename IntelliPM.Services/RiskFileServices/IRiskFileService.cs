@@ -12,7 +12,7 @@ namespace IntelliPM.Services.RiskFileServices
     public interface IRiskFileService
     {
         Task<RiskFileResponseDTO> UploadRiskFileAsync(RiskFileRequestDTO request);
-        Task<bool> DeleteRiskFileAsync(int id);
+        Task<bool> DeleteRiskFileAsync(int id, int createdBy);
         Task<List<RiskFileResponseDTO>> GetByRiskIdAsync(int riskId);
     }
 }
