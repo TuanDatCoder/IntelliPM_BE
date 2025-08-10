@@ -1,13 +1,18 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
+using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.CloudinaryStorageServices; // Thay Firebase bằng Cloudinary
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.TaskServices;
 using MimeKit.Cryptography;
 
@@ -25,7 +30,9 @@ namespace IntelliPM.Services.AccountServices
         private readonly ITaskRepository _taskRepo;
         private readonly ISubtaskRepository _subTaskRepo;
         private readonly ITaskService _taskService;
-
+        private readonly IProjectRepository _projectRepo;
+        private readonly IProjectPositionRepository _projectPositionRepo;
+        private readonly IProjectMemberService _projectMemberService;
 
         public AccountService(
             IMapper mapper,
@@ -37,9 +44,11 @@ namespace IntelliPM.Services.AccountServices
             IEpicRepository epicRepo,
             ITaskRepository taskRepo,
             ISubtaskRepository subTaskRepo,
-            ITaskService taskService
-            )
-
+            ITaskService taskService,
+            IProjectRepository projectRepo,
+            IProjectPositionRepository projectPositionRepo,
+            IProjectMemberService projectMemberService
+        )
         {
             _mapper = mapper;
             _accountRepo = accountRepository;
@@ -51,7 +60,11 @@ namespace IntelliPM.Services.AccountServices
             _taskRepo = taskRepo;
             _subTaskRepo = subTaskRepo;
             _taskService = taskService;
+            _projectRepo = projectRepo;
+            _projectPositionRepo = projectPositionRepo;
+            _projectMemberService = projectMemberService;
         }
+
 
         public async Task<string> UploadProfilePictureAsync(int accountId, Stream fileStream, string fileName)
         {
@@ -176,6 +189,57 @@ namespace IntelliPM.Services.AccountServices
 
             return accountDto;
         }
+
+
+        public async Task<ProfileResponseDTO> GetProfileByEmail(string email)
+        {
+            var entity = await _accountRepo.GetAccountByEmail(email);
+            if (entity == null)
+                throw new KeyNotFoundException($"Account with Email {email} not found.");
+
+            var profile = _mapper.Map<ProfileResponseDTO>(entity);
+
+            // ====== Lấy danh sách project ======
+            var projects = await _projectMemberService.GetProjectsByAccountId(entity.Id);
+            profile.TotalProjects = projects.Count;
+            profile.UpcomingProjects = projects.Count(p => p.Status == "PLANNING");
+            profile.ActiveProjects = projects.Count(p =>
+                p.Status == "IN_PROGRESS" || p.Status == "ON_HOLD" || p.Status == "IN_REVIEW");
+            profile.CompletedProjects = projects.Count(p => p.Status == "COMPLETED");
+            profile.CancelledProjects = projects.Count(p => p.Status == "CANCELLED");
+
+            profile.ProjectList = projects
+                .Select(p => _mapper.Map<ProjectByAccountResponseDTO>(p))
+                .ToList();
+
+            // ====== Lấy danh sách positions ======
+            var positions = await _projectMemberService.GetProjectPositionsByAccountId(entity.Id);
+
+            profile.TotalPositions = positions.Count;
+            profile.PositionsList = positions
+                .Select(p => p.Position)
+                .Distinct()
+                .ToList();
+
+            // Lọc recent positions
+            profile.RecentPositions = positions
+                .GroupBy(p => p.Position)
+                .Select(g =>
+                {
+                    var latestAssignedAt = g.Max(x => x.AssignedAt);
+                    var latestPositions = g.Where(x => x.AssignedAt == latestAssignedAt);
+                    return latestPositions
+                        .OrderByDescending(x => x.ProjectCreatedAt)
+                        .First();
+                })
+                .OrderByDescending(p => p.AssignedAt)
+                .Take(5)
+                .Select(p => _mapper.Map<ProjectPositionResponseDTO>(p))
+                .ToList();
+
+            return profile;
+        }
+
 
     }
 }

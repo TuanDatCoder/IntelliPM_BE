@@ -101,6 +101,14 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                 .ToListAsync();
         }
 
+        public async Task<List<int>> GetProjectIdsByAccountIdAsync(int accountId)
+        {
+            return await _context.ProjectMember
+                .Where(pm => pm.AccountId == accountId)
+                .Select(pm => pm.ProjectId)
+                .Distinct()
+                .ToListAsync();
+        }
 
         public async Task<List<Account>> GetAccountsByIdsAsync(List<int> userIds)
         {

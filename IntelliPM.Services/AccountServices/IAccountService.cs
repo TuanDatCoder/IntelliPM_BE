@@ -15,5 +15,6 @@ namespace  IntelliPM.Services.AccountServices
         Task<AccountResponseDTO> ChangeAccountStatus(int id, string newStatus);
         Task<AccountResponseDTO> GetAccountByEmail(string email);
         Task<AccountWithWorkItemDTO> GetAccountAndWorkItemById(int accountId);
+        Task<ProfileResponseDTO> GetProfileByEmail(string email);
     }
 }

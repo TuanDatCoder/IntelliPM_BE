@@ -1078,11 +1078,11 @@ VALUES
 -- Insert sample data into meeting
 INSERT INTO meeting (project_id, meeting_topic, meeting_date, meeting_url, status, start_time, end_time, attendees)
 VALUES 
-    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'SCHEDULED', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
+    (1, 'Planning Meeting', '2025-06-05 10:00:00+00', 'http://meet.example.com/1', 'COMPLETED', '2025-06-05 10:00:00+00', '2025-06-05 11:00:00+00', 5),
     (2, 'Campaign Review', '2025-07-10 14:00:00+00', 'http://meet.example.com/2', 'COMPLETED', '2025-07-10 14:00:00+00', '2025-07-10 15:00:00+00', 3),
     (3, 'Research Sync', '2025-08-15 09:00:00+00', 'http://meet.example.com/3', 'CANCELLED', '2025-08-15 09:00:00+00', '2025-08-15 10:00:00+00', 2),
     (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'COMPLETED', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
-    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'SCHEDULED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
+    (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'COMPLETED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
 
 -- Insert sample data into meeting_document
 INSERT INTO meeting_document (meeting_id, title, description, file_url, is_active, account_id)
@@ -1105,11 +1105,11 @@ VALUES
 -- Insert sample data into meeting_participant
 INSERT INTO meeting_participant (meeting_id, account_id, role, status)
 VALUES 
-    (1, 1, 'PROJECT_MANAGER', 'ATTENDED'),
-    (1, 2, 'TEAM_MEMBER', 'ATTENDED'),
-    (2, 3, 'TEAM_MEMBER', 'ATTENDED'),
-    (3, 4, 'TEAM_MEMBER', 'ABSENT'),
-    (4, 5, 'PROJECT_MANAGER', 'ATTENDED');
+    (1, 1, 'PROJECT_MANAGER', 'Absent'),
+    (1, 2, 'TEAM_MEMBER', 'Absent'),
+    (2, 3, 'TEAM_MEMBER', 'Absent'),
+    (3, 4, 'TEAM_MEMBER', 'Absent'),
+    (4, 5, 'PROJECT_MANAGER', 'Absent');
 
 -- Insert sample data into meeting_transcript
 INSERT INTO meeting_transcript (meeting_id, transcript_text)
@@ -1132,11 +1132,11 @@ VALUES
 -- Insert sample data into milestone_feedback
 INSERT INTO milestone_feedback (meeting_id, account_id, feedback_text, status)
 VALUES 
-    (1, 1, 'Good progress', 'REVIEWED'),
-    (2, 2, 'Needs more effort', 'PENDING'),
+    (1, 1, 'Good progress', 'APPROVED'),
+    (2, 2, 'Needs more effort', 'APPROVED'),
     (3, 3, 'Delayed', 'REVIEWED'),
     (4, 4, 'Excellent work', 'APPROVED'),
-    (5, 5, 'On schedule', 'PENDING');
+    (5, 5, 'On schedule', 'APPROVED');
 
 -- Insert sample data into risk
 -- Insert sample data into risk with the 'due_date' column
@@ -1251,6 +1251,8 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
+    ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
     ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
 	('requirement_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
@@ -1324,20 +1326,20 @@ VALUES
     ('recipient_notification_status', 'RECEIVED', 'Received', 'Notification received', 1, NULL, NULL),
     ('recipient_notification_status', 'READ', 'Read', 'Notification read', 2, NULL, NULL),
     ('recipient_notification_status', 'DELETED', 'Deleted', 'Deleted notification', 3, NULL, NULL),
-    ('meeting_status', 'SCHEDULED', 'Scheduled', 'Meeting scheduled', 1, NULL, NULL),
+    ('meeting_status', 'ACTIVE', 'Active', 'Meeting scheduled', 1, NULL, NULL),
     ('meeting_status', 'COMPLETED', 'Completed', 'Meeting completed', 2, NULL, NULL),
     ('meeting_status', 'CANCELLED', 'Cancelled', 'Meeting cancelled', 3, NULL, NULL),
     ('meeting_status', 'DELETED', 'Deleted', 'Deleted meeting', 4, NULL, NULL),
-    ('meeting_participant_status', 'ATTENDED', 'Attended', 'Participant attended', 1, NULL, NULL),
+    ('meeting_participant_status', 'ACTIVE', 'Active', 'Participant attended', 1, NULL, NULL),
     ('meeting_participant_status', 'ABSENT', 'Absent', 'Participant absent', 2, NULL, NULL),
     ('meeting_participant_status', 'DELETED', 'Deleted', 'Deleted participant', 3, NULL, NULL),
     ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1, NULL, NULL),
     ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2, NULL, NULL),
     ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3, NULL, NULL),
-    ('milestone_feedback_status', 'DELETED', 'Deleted', 'Deleted feedback', 4, NULL, NULL),
     ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, 'blue-100,blue-700'),
     ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, 'gray-100,gray-700'),
     ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, 'green-100,green-700'),
+    ('milestone_feedback_status', 'REJECT', 'Reject', 'Deleted feedback', 4, NULL, NULL),
     ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
     ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
     ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
@@ -1393,6 +1395,8 @@ VALUES
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
+	('activity_log_action_type', 'TRANSCRIPT_FROM_URL_CREATED', 'Transcript From URL Created', TRUE, NOW(), 1),
+    ('activity_log_action_type', 'TRANSCRIPT_CREATED', 'Transcript Created', TRUE, NOW(), 2),
     ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
 	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
