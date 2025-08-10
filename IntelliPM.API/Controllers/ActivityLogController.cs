@@ -158,5 +158,25 @@ namespace IntelliPM.API.Controllers
             await _activityLogService.LogAsync(log);
             return Ok(new { message = "Log created successfully" });
         }
+
+        [HttpGet("risk/{riskKey}")]
+        public async Task<IActionResult> GetByRiskKey(string riskKey)
+        {
+            try
+            {
+                var activityLogList = await _activityLogService.GetActivityLogsByRiskKey(riskKey);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "ActivityLog retrieved successfully",
+                    Data = activityLogList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
     }
 }

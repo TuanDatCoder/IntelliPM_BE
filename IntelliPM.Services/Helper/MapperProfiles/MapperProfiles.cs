@@ -385,7 +385,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                                 .ForMember(dest => dest.SprintName, opt => opt.MapFrom(src => src.Sprint != null ? src.Sprint.Name : null))
                 .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.SubtaskComment))
                 .ForMember(dest => dest.Labels, opt => opt.MapFrom(src => src.WorkItemLabel.Select(w => w.Label)));
-            CreateMap<Subtask, SubtaskFullResponseDTO>();
+            CreateMap<Subtask, SubtaskFullResponseDTO>()
+                .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
+                .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null))
+                .ForMember(dest => dest.AssignedPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null));
             CreateMap<Subtask, SubtaskDependencyResponseDTO>();
 
             // ProjectMember
