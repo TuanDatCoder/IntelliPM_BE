@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
+using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
@@ -22,6 +23,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<ProjectMemberResponseDTO> CreateProjectMember(int ProjectId,ProjectMemberNoProjectIdRequestDTO request);
         Task DeleteProjectMember(int id);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId);
+        Task<List<ProjectPositionWithProjectInfoDTO>> GetProjectPositionsByAccountId(int accountId);
         Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token);
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
