@@ -13,6 +13,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -57,8 +58,9 @@ namespace IntelliPM.Services.ProjectServices
        // private readonly string _backendUrl;
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -81,6 +83,7 @@ namespace IntelliPM.Services.ProjectServices
            // _backendUrl = config["Environment:BE_URL"];
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _dynamicCategoryRepo = dynamicCategoryRepo ?? throw new ArgumentNullException(nameof(dynamicCategoryRepo));
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -153,6 +156,7 @@ namespace IntelliPM.Services.ProjectServices
             var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
+
 
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
@@ -420,6 +424,7 @@ namespace IntelliPM.Services.ProjectServices
             var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
+
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;

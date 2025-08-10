@@ -43,6 +43,8 @@ public partial class Risk
 
     public DateTime UpdatedAt { get; set; }
 
+    public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
+
     public virtual Account CreatedByNavigation { get; set; } = null!;
 
     public virtual Project Project { get; set; } = null!;

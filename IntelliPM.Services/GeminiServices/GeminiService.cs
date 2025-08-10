@@ -12,6 +12,7 @@ using IntelliPM.Data.DTOs.Risk.Request;
 using AutoMapper;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Risk.Response;
+using Org.BouncyCastle.Asn1.Ocsp;
 using IntelliPM.Data.DTOs.Task.Request;
 
 public class GeminiService : IGeminiService
@@ -646,6 +647,7 @@ Summary:";
     {
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
         {
+            t.Id,
             t.Title,
             t.Description,
             t.PlannedStartDate,
@@ -657,43 +659,46 @@ Summary:";
             t.ActualHours,
             t.PlannedCost,
             t.ActualCost,
-            t.Status
+            t.Status,
+            t.Priority
         }), Formatting.Indented);
 
         var prompt = $@"
-Bạn là một chuyên gia quản lý rủi ro. Dưới đây là thông tin dự án phần mềm và danh sách các task.
+You are a risk management expert specializing in software projects. Below is the information about a software project and its tasks.
 
-Hãy phân tích và dự đoán 3 rủi ro tổng thể có thể xảy ra trong dự án này (không đi sâu vào chi tiết từng task).
+Analyze the project and predict **5 project-level risks** that could impact its overall success. These risks should focus on high-level concerns (e.g., budget, schedule, scope, resources, or external factors) and not be tied to specific tasks. For each risk, provide a mitigation plan and a contingency plan.
 
-Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một rủi ro tiềm ẩn của dự án và các giải pháp đi kèm như sau:
+Return the result as a JSON array with the following structure for each risk:
 
 [
   {{
-    title: string,
-    description: string,
-    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+    title: string, // Short, descriptive title of the risk
+    description: string, // Detailed explanation of the risk and its potential impact
+    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY, EXTERNAL
     probability: string, // High | Medium | Low
     impactLevel: string, // High | Medium | Low
     severityLevel: string, // High | Medium | Low
-    mitigationPlan: string, // kế hoạch giảm thiểu rủi ro
-    contingencyPlan: string // kế hoạch dự phòng nếu rủi ro xảy ra
+    mitigationPlan: string, // Plan to reduce the likelihood or impact of the risk
+    contingencyPlan: string // Plan to handle the risk if it occurs
   }}
 ]
 
-**Yêu cầu:**
-- Không đánh giá chi tiết vào từng task cụ thể.
-- Tập trung vào rủi ro ở cấp độ tổng thể dự án.
-- Không thêm markdown, tiêu đề hoặc giải thích bên ngoài JSON.
-- Phân tích đúng và logic, tránh liệt kê rủi ro chung chung hoặc quá mơ hồ.
-- Trả về dữ liệu bằng tiếng anh.
+**Requirements:**
+- Focus on project-level risks, not task-specific issues.
+- Ensure risks are specific to the project's context (e.g., budget, timeline, or domain).
+- Avoid generic or vague risks; use the provided project and task data to infer realistic risks.
+- Return only the JSON array, without markdown, headers, or additional explanations.
+- Provide all text in Engl
 
-Thông tin dự án:
-- Tên: {project.Name}
-- Ngân sách: {project.Budget}
-- Thời gian bắt đầu: {project.StartDate}
-- Thời gian kết thúc: {project.EndDate}
+**Project Information:**
+- Name: {project.Name}
+- Budget: {project.Budget} USD
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
+- Project Type: Software Development
+- Additional Context: {{Add any known context, e.g., ""Complex project with multiple third-party integrations"", ""Inexperienced team"", or ""Tight regulatory requirements"". If none, leave as ""N/A"".}}
 
-Danh sách task:
+**Task List (for context, do not analyze individual tasks):**
 {taskList}
 ";
 
@@ -749,7 +754,7 @@ Danh sách task:
                 risk.ResponsibleId = 1;
                 risk.TaskId = null;
                 risk.GeneratedBy = "AI";
-                risk.RiskScope = "Project"; 
+                risk.RiskScope = "Project";
                 risk.IsApproved = false;
             }
             return risks;
@@ -779,39 +784,40 @@ Danh sách task:
         }), Formatting.Indented);
 
         var prompt = $@"
-Bạn là một chuyên gia quản lý rủi ro. Dưới đây là thông tin dự án phần mềm và danh sách các task của dự án đó.
+You are a risk management expert specializing in software projects. Below is the information about a software project and its tasks.
 
-Hãy phân tích và dự đoán 3 rủi ro tổng thể có thể xảy ra trong dự án này (không đi sâu vào chi tiết từng task).
+Analyze the project and predict **5 project-level risks** that could impact its overall success. These risks should focus on high-level concerns (e.g., budget, schedule, scope, resources, or external factors) and not be tied to specific tasks. For each risk, provide a mitigation plan and a contingency plan.
 
-Trả về kết quả dưới dạng JSON array. Mỗi phần tử là một rủi ro tiềm ẩn của dự án và các giải pháp đi kèm như sau:
+Return the result as a JSON array with the following structure for each risk:
 
 [
   {{
-    title: string,
-    description: string,
-    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+    title: string, // Short, descriptive title of the risk
+    description: string, // Detailed explanation of the risk and its potential impact
+    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY, EXTERNAL
     probability: string, // High | Medium | Low
     impactLevel: string, // High | Medium | Low
     severityLevel: string, // High | Medium | Low
-    mitigationPlan: string, // kế hoạch giảm thiểu rủi ro
-    contingencyPlan: string // kế hoạch dự phòng nếu rủi ro xảy ra
+    mitigationPlan: string, // Plan to reduce the likelihood or impact of the risk
+    contingencyPlan: string // Plan to handle the risk if it occurs
   }}
 ]
 
-**Yêu cầu:**
-- Không đánh giá chi tiết vào từng task cụ thể.
-- Tập trung vào rủi ro ở cấp độ tổng thể dự án.
-- Không thêm markdown, tiêu đề hoặc giải thích bên ngoài JSON.
-- Phân tích đúng và logic, tránh liệt kê rủi ro chung chung hoặc quá mơ hồ.
-- Trả về dữ liệu bằng tiếng anh.
+**Requirements:**
+- Focus on project-level risks, not task-specific issues.
+- Ensure risks are specific to the project's context (e.g., budget, timeline, or domain).
+- Avoid generic or vague risks; use the provided project and task data to infer realistic risks.
+- Return only the JSON array, without markdown, headers, or additional explanations.
+- Provide all text in Engl
 
-Thông tin dự án:
-- Tên: {project.Name}
-- Ngân sách: {project.Budget}
-- Thời gian bắt đầu: {project.StartDate}
-- Thời gian kết thúc: {project.EndDate}
+**Project Information:**
+- Name: {project.Name}
+- Budget: {project.Budget} USD
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
+- Project Type: Software Development
 
-Danh sách task:
+**Task List (for context, do not analyze individual tasks):**
 {taskList}
 ";
 
@@ -884,7 +890,7 @@ Danh sách task:
     List<Subtask> subtasks)
     {
         if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
-            return new List<AIRecommendationDTO>(); 
+            return new List<AIRecommendationDTO>();
 
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
         {
@@ -934,6 +940,7 @@ Danh sách task:
         {
             m.Id,
             m.Name,
+            m.Key,
             m.Description,
             m.StartDate,
             m.EndDate,
@@ -941,76 +948,79 @@ Danh sách task:
         }), Formatting.Indented);
 
         var prompt = $@"
-You are an experienced project management expert. Below is the detailed information of a software project including tasks, sprints, milestones, and key performance metrics.
+    You are an expert in software project management with a focus on data-driven decision-making. Below is detailed information about a software project, including tasks, subtasks, sprints, milestones, and key performance metrics.
 
-The project is currently underperforming:
+    The project is currently underperforming:
 - SPI (Schedule Performance Index) = {metric.SchedulePerformanceIndex}
 - CPI (Cost Performance Index) = {metric.CostPerformanceIndex}
 
-Please analyze all data and propose **5 specific and feasible recommendations** to help improve the current situation. Each recommendation must include:
+    **Special Note**: If SPI and CPI are 0, this indicates no tasks have started or no costs have been incurred. In this case, focus on initiating critical tasks, setting realistic schedules, and establishing cost baselines.
 
-1. **Goal of the recommendation** (e.g., reduce cost, speed up progress, increase efficiency, etc.)
-2. **Specific root cause** of the issue (cite concrete evidence from a task/sprint/milestone)
-3. **Detailed action steps** to take, such as:
-    - Change which fields in which task (e.g., increase `plannedHours` for task ID `PROJA-3`)
-    - Add specific personnel to which task (e.g., assign 1 developer to task `PROJA-5`)
-    - Shorten duration or move a task to another sprint
-    - Merge tasks or adjust task scope
-    - Modify specific milestones
+    **Task**: Analyze the provided data and propose some specific, actionable, and data-driven recommendations** to improve the project's performance. Each recommendation must be based on specific evidence from the tasks, subtasks, sprints, or milestones provided.
+    
+**Requirements for Each Recommendation**:
+1. **Goal**: Clearly state the objective (e.g., reduce cost overrun, accelerate schedule, improve resource allocation).
+2. **Root Cause**: Identify a specific issue with evidence from the data (e.g., ""Task PROJA-3 has ActualHours 20% above PlannedHours"").
+3. **Action Steps**: Provide precise actions, such as:
+   - Adjust specific fields (e.g., 'Set PlannedHours of task INTELLIPM-3 to 80').
+   - Reassign personnel (e.g., 'Assign 1 senior developer to task INTELLIPM-5').
+   - Reschedule tasks or milestones (e.g., 'Move task INTELLIPM-4 to Sprint 2 starting 2025-08-22').
+   - Merge or split tasks/subtasks to optimize scope.
+   - Set realistic cost estimates based on task complexity and average resource cost (assume $100/hour unless specified).
+4. **Expected Impact**: Quantify the expected outcome (e.g., ""Reduce schedule delay by 3 days"", ""Cut costs by 10%"").
+5. **Priority**: Assign a priority level (1 = High, 2 = Medium, 3 = Low) based on urgency and impact.
 
-4. **Expected impact** of the proposed changes (e.g., ""Estimated to shorten timeline by 5 days"", ""Reduce cost by 15%"", etc.)
-
-Return the result as a **JSON array**, where each item has the following structure:
-
+    **Output Format**:
+Return a JSON array with exactly 5 items, each with the following structure:
 [
-  {{
+  {{{{
     recommendation: string,         // Short description of the recommendation
-    details: string,                // Explanation of the root cause and actions to take
-    type: string,                   // One of: Schedule | Cost | Scope | Resource | Performance | Design | Testing
-    affectedTasks: string[],        // List of affected task IDs (if any)
-    suggestedTask: string,          // The task ID where action is proposed
-    expectedImpact: string,         // e.g., ""Estimated to improve schedule by 5 days""
-    suggestedChanges: string        // A clear description in plain English of what changes should be made, such as ""Increase planned hours of task PROJA-3 to 40 and assign one additional developer to help.""
-
-  }}
+    details: string,               // Detailed explanation of root cause and actions
+    type: string,                  // Schedule | Cost | Scope | Resource | Performance | Design | Testing
+    affectedTasks: string[],       // List of affected task, subtask IDs, milestone Keys
+    expectedImpact: string,        // Quantified impact (e.g., ""Reduce cost by 10%"")
+    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of PROJA-3 to 40"")
+    priority: number,              // 1 (High), 2 (Medium), 3 (Low)
+  }}}}
 ]
 
-**Strict Requirements:**
-- The analysis **must be based on specific data** from tasks, sprints, and milestones.
-- **Avoid vague or generic recommendations** without clear actions.
-- **Do not** return in markdown format, and **do not** include any explanation outside the JSON.
+    **Strict Constraints**:
+- Recommendations **must** reference specific data (e.g., task IDs, sprint names, milestone dates).
+- Avoid generic suggestions (e.g., ""Improve communication"")—focus on measurable actions.
+- Ensure actions are feasible within the project's context (budget: {{project.Budget}}, timeline: {{project.StartDate}} to {{project.EndDate}}).
+- Do not return markdown or additional text outside the JSON array.
 
-Project Information:
-- Name: {project.Name}
-- Budget: {project.Budget}
-- Start Date: {project.StartDate}
-- End Date: {project.EndDate}
+    Project Information:
+    - Name: {project.Name}
+    - Budget: {project.Budget}
+    - Start Date: {project.StartDate}
+    - End Date: {project.EndDate}
 
-Metric Data:
-- PV: {metric.PlannedValue}
-- EV: {metric.EarnedValue}
-- AC: {metric.ActualCost}
-- SPI: {metric.SchedulePerformanceIndex}
-- CPI: {metric.CostPerformanceIndex}
+    Metric Data:
+    - PV: {metric.PlannedValue}
+    - EV: {metric.EarnedValue}
+    - AC: {metric.ActualCost}
+    - SPI: {metric.SchedulePerformanceIndex}
+    - CPI: {metric.CostPerformanceIndex}
 
-Task List:
-{taskList}
+    Task List:
+    {taskList}
 
-Subtasks:
-{subtaskList}
+    Subtasks:
+    {subtaskList}
 
-Sprint List:
-{sprintList}
+    Sprint List:
+    {sprintList}
 
-Milestone List:
-{milestoneList}
+    Milestone List:
+    {milestoneList}
 
-All output must be written in English.
-";
+    All output must be written in English.
+    ";
         var requestData = new
         {
             contents = new[]
-            {
+        {
             new
             {
                 parts = new[] { new { text = prompt } }
@@ -1048,7 +1058,7 @@ All output must be written in English.
         {
             var aiRecommendations = JsonConvert.DeserializeObject<List<AIRecommendationDTO>>(replyText);
             if (aiRecommendations == null || aiRecommendations.Count == 0)
-                throw new Exception("Không nhận được gợi ý nào từ AI.");
+                throw new Exception("No recommendations received from AI.");
 
             return aiRecommendations;
         }
@@ -1129,35 +1139,56 @@ All output must be written in English.
         }), Formatting.Indented);
 
         var prompt = $@"
-You are a project control analyst. Your task is to estimate the updated key performance indicators (KPIs) of a software project after applying a set of approved changes. 
+You are an expert project control analyst specializing in Earned Value Management (EVM) for software projects. Your task is to simulate the impact of approved recommendations on the project's key performance indicators (KPIs) and assess whether these changes improve the project's performance compared to the current state.
 
-Current project metrics:
-- BAC (Budget at Completion) = {currentMetric.BudgetAtCompletion}
-- DAC (Duration at Completion) = {currentMetric.DurationAtCompletion}
+**Current Project Metrics**:
+- Budget at Completion (BAC): {currentMetric.BudgetAtCompletion}
+- Duration at Completion (DAC): {currentMetric.DurationAtCompletion}
 - Planned Value (PV): {currentMetric.PlannedValue}
 - Earned Value (EV): {currentMetric.EarnedValue}
 - Actual Cost (AC): {currentMetric.ActualCost}
 - Schedule Performance Index (SPI): {currentMetric.SchedulePerformanceIndex}
 - Cost Performance Index (CPI): {currentMetric.CostPerformanceIndex}
 
-Changes Approved by Management:
+**Approved Recommendations**:
 - {changesDescription}
 
-Please simulate the new metrics **after** applying the above changes. Return the result in the following JSON format:
+**Project Context**:
+- Name: {project.Name}
+- Budget: {project.Budget}
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
 
+**Task**: Simulate the new KPIs after applying the approved recommendations. Use the provided task, subtask, sprint, and milestone data to estimate realistic changes. For each recommendation, consider its specific impact (e.g., rescheduling a task affects SPI, reducing hours affects CPI). Compare the simulated metrics to the current metrics to determine if the project's performance improves.
+
+**Requirements**:
+1. **Simulate Metrics**: Calculate new values for SPI, CPI, EAC, ETC, VAC, and EDAC using EVM formulas:
+   - EAC = BAC / CPI
+   - ETC = EAC - AC
+   - VAC = BAC - EAC
+   - EDAC = DAC / SPI
+2. **Improvement Assessment**: Determine if the project improves (e.g., SPI or CPI closer to or above 1, reduced EAC or EDAC).
+3. **Confidence Score**: Provide a confidence score (0–100) based on data completeness and recommendation feasibility.
+4. **Improvement Summary**: Summarize key improvements (e.g., ""SPI increased by 0.1 due to rescheduling task X"") or risks if no improvement.
+5. **Constraints**:
+   - Ensure simulations respect project budget ({project.Budget}) and timeline ({project.StartDate} to {project.EndDate}).
+   - Base estimates on specific recommendation actions (e.g., hours reduced, tasks rescheduled).
+   - Assume resource cost of $100/hour unless specified in data.
+
+**Output Format** (JSON only, no markdown or extra text):
 {{
-  ""SchedulePerformanceIndex"": number,    // new SPI (estimate)
-  ""CostPerformanceIndex"": number,        // new CPI (estimate)
-  ""EstimateAtCompletion"": number,        // new EAC = BAC / CPI
-  ""EstimateToComplete"": number,          // new ETC = EAC - AC
-  ""VarianceAtCompletion"": number,        // new VAC = BAC - EAC
-  ""EstimatedDurationAtCompletion"": number // new EDAC = DAC / SPI
+  ""SchedulePerformanceIndex"": number,    // Simulated SPI
+  ""CostPerformanceIndex"": number,        // Simulated CPI
+  ""EstimateAtCompletion"": number,        // Simulated EAC
+  ""EstimateToComplete"": number,          // Simulated ETC
+  ""VarianceAtCompletion"": number,        // Simulated VAC
+  ""EstimatedDurationAtCompletion"": number, // Simulated EDAC
+  ""IsImproved"": boolean,                 // True if SPI or CPI improves significantly
+  ""ImprovementSummary"": string,          // Summary of improvements or risks (e.g., ""SPI improved by 0.1 due to task rescheduling"")
+  ""ConfidenceScore"": number              // Confidence in simulation (0–100)
 }}
 
-Rules:
-- Use the standard EVM formulas to simulate realistic values
-- Output should be in JSON only. Do not include explanations or markdown.
-
+**Data**:
 Task List:
 {taskList}
 
@@ -1170,6 +1201,7 @@ Sprint List:
 Milestone List:
 {milestoneList}
 
+All output must be in English.
 ";
 
         var requestData = new
@@ -1216,5 +1248,266 @@ Milestone List:
         }
     }
 
+//    public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
+//    {
+//        var risks = new List<AIRiskResponseDTO>();
 
+//        foreach (var task in tasks)
+//        {
+//            var prompt = $@"
+//You are a risk management expert specializing in software projects. Below is the information about a specific task in a software project.
+
+//Analyze the task and predict **1-2 task-specific risks** that could impact its completion or the project's success. Focus on risks directly related to the task's attributes (e.g., delays, cost overruns, resource issues, or quality concerns). For each risk, provide a mitigation plan and a contingency plan.
+
+//Return the result as a JSON array with the following structure for each risk:
+
+//[
+//  {{
+//    title: string,
+//    description: string,
+//    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+//    probability: string, // High | Medium | Low
+//    impactLevel: string, // High | Medium | Low
+//    severityLevel: string, // High | Medium | Low
+//    mitigationPlan: string,
+//    contingencyPlan: string
+//  }}
+//]
+
+//**Requirements:**
+//- Focus on risks specific to the provided task.
+//- Use the task's attributes (e.g., dates, hours, costs, status) to infer realistic risks.
+//- Avoid generic or vague risks.
+//- Return only the JSON array, without markdown, headers, or additional explanations.
+//- Provide all text in English.
+
+//**Task Information:**
+//- Title: {task.Title}
+//- Description: {task.Description}
+//- Planned Start Date: {task.PlannedStartDate}
+//- Planned End Date: {task.PlannedEndDate}
+//- Actual Start Date: {task.ActualStartDate}
+//- Actual End Date: {task.ActualEndDate}
+//- Percent Complete: {task.PercentComplete}%
+//- Planned Hours: {task.PlannedHours}
+//- Actual Hours: {task.ActualHours}
+//- Planned Cost: {task.PlannedCost}
+//- Actual Cost: {task.ActualCost}
+//- Status: {task.Status}
+
+//**Project Context (for reference):**
+//- Name: {project.Name}
+//- Budget: {project.Budget} USD
+//- Start Date: {project.StartDate}
+//- End Date: {project.EndDate}
+//";
+
+//            var requestData = new
+//            {
+//                contents = new[]
+//                {
+//                new
+//                {
+//                    parts = new[]
+//                    {
+//                        new { text = prompt }
+//                    }
+//                }
+//            }
+//            };
+
+//            var requestJson = JsonConvert.SerializeObject(requestData);
+//            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+//            var response = await _httpClient.PostAsync(_url, content);
+//            var responseString = await response.Content.ReadAsStringAsync();
+
+//            if (!response.IsSuccessStatusCode)
+//                continue; // Skip to next task on error
+
+//            if (string.IsNullOrWhiteSpace(responseString))
+//                continue;
+
+//            var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+//            var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+//            if (string.IsNullOrEmpty(replyText))
+//                continue;
+
+//            if (replyText.StartsWith("```") && replyText.Contains("json"))
+//            {
+//                replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+//            }
+
+//            if (!replyText.StartsWith("["))
+//                continue;
+
+//            try
+//            {
+//                var taskRisks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
+//                if (taskRisks != null && taskRisks.Count > 0)
+//                {
+//                    foreach (var risk in taskRisks)
+//                    {
+//                        risk.ProjectId = project.Id;
+//                        risk.TaskId = task.Id;
+//                        risk.RiskScope = "Task";
+//                    }
+//                }
+//            }
+//            catch
+//            {
+//                continue;
+//            }
+//        }
+
+//        return risks;
+//    }
+
+    public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
+    {
+        var risks = new List<AIRiskResponseDTO>();
+        var errors = new List<string>();
+
+        if (tasks == null || !tasks.Any())
+        {
+            errors.Add("No tasks provided for risk analysis.");
+            return risks; // Return empty list with logged error
+        }
+
+        foreach (var task in tasks)
+        {
+            // Validate task data
+            if (string.IsNullOrEmpty(task.Title) || task.PlannedStartDate == null || task.PlannedEndDate == null)
+            {
+                errors.Add($"Task {task.Id} has missing or invalid data (Title, PlannedStartDate, or PlannedEndDate).");
+                continue;
+            }
+
+            var prompt = $@"
+You are a risk management expert specializing in software projects. Below is the information about a specific task in a software project.
+
+Analyze the task and predict **1-2 task-specific risks** that could impact its completion or the project's success. Focus on risks directly related to the task's attributes (e.g., delays, cost overruns, resource issues, or quality concerns). For each risk, provide a mitigation plan and a contingency plan.
+
+Return the result as a JSON array with the following structure for each risk:
+
+[
+  {{
+    title: string,
+    description: string,
+    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+    probability: string, // High | Medium | Low
+    impactLevel: string, // High | Medium | Low
+    severityLevel: string, // High | Medium | Low
+    mitigationPlan: string,
+    contingencyPlan: string
+  }}
+]
+
+**Requirements:**
+- Focus on risks specific to the provided task.
+- Use the task's attributes to infer realistic risks.
+- If any attribute is missing (e.g., 'N/A'), make reasonable assumptions but note them in the risk description.
+- Avoid generic or vague risks.
+- Return only the JSON array, without markdown, headers, or additional explanations.
+- Provide all text in English.
+
+**Task Information:**
+- Title: {task.Title}
+- Description: {task.Description ?? "N/A"}
+- Planned Start Date: {task.PlannedStartDate}
+- Planned End Date: {task.PlannedEndDate}
+- Actual Start Date: {task.ActualStartDate?.ToString() ?? "N/A"}
+- Actual End Date: {task.ActualEndDate?.ToString() ?? "N/A"}
+- Percent Complete: {task.PercentComplete}%
+- Planned Hours: {task.PlannedHours?.ToString() ?? "N/A"}
+- Actual Hours: {task.ActualHours?.ToString() ?? "N/A"}
+- Planned Cost: {task.PlannedCost?.ToString() ?? "N/A"}
+- Actual Cost: {task.ActualCost?.ToString() ?? "N/A"}
+- Status: {task.Status ?? "N/A"}
+
+**Project Context (for reference):**
+- Name: {project.Name}
+- Budget: {project.Budget} USD
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
+";
+
+            try
+            {
+                var requestData = new
+                {
+                    contents = new[]
+                    {
+                    new
+                    {
+                        parts = new[]
+                        {
+                            new { text = prompt }
+                        }
+                    }
+                }
+                };
+
+                var requestJson = JsonConvert.SerializeObject(requestData);
+                var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync(_url, content);
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    errors.Add($"Gemini API error for task {task.Id}: {response.StatusCode} - {responseString}");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(responseString))
+                {
+                    errors.Add($"Empty response from Gemini API for task {task.Id}.");
+                    continue;
+                }
+
+                var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+                var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+                if (string.IsNullOrEmpty(replyText))
+                {
+                    errors.Add($"No text response from Gemini API for task {task.Id}.");
+                    continue;
+                }
+
+                if (replyText.StartsWith("```") && replyText.Contains("json"))
+                {
+                    replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+                }
+
+                if (!replyText.StartsWith("["))
+                {
+                    errors.Add($"Invalid JSON array response from Gemini for task {task.Id}: {replyText}");
+                    continue;
+                }
+
+                var taskRisks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
+                if (taskRisks == null || !taskRisks.Any())
+                {
+                    errors.Add($"No risks identified by Gemini for task {task.Id}. Response: {replyText}");
+                    continue;
+                }
+
+                foreach (var risk in taskRisks)
+                {
+                    risk.ProjectId = project.Id;
+                    risk.TaskId = task.Id;
+                    risk.RiskScope = "Task";
+                    risks.Add(risk);
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Error processing task {task.Id}: {ex.Message}");
+                continue;
+            }
+        }
+        return risks;
+    }
 }

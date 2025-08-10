@@ -11,6 +11,9 @@ namespace IntelliPM.Data.DTOs.Subtask.Response
         public string Id { get; set; } = null!;
         public string TaskId { get; set; } = null!;
         public int AssignedBy { get; set; }
+        public string AssignedFullName { get; set; }
+        public string AssignedUsername { get; set; }
+        public string AssignedPicture {  get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public int? ReporterId { get; set; }

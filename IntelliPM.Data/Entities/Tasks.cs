@@ -69,8 +69,6 @@ public partial class Tasks
 
     public virtual Project Project { get; set; } = null!;
 
-    public virtual ICollection<ProjectRecommendation> ProjectRecommendation { get; set; } = new List<ProjectRecommendation>();
-
     public virtual Account Reporter { get; set; } = null!;
 
     public virtual ICollection<Risk> Risk { get; set; } = new List<Risk>();

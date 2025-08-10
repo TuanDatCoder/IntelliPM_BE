@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 
-namespace ConstructionEquipmentRental.API.Middlewares
+namespace IntelliPM.API.Middlewares
 {
     public class ExceptionMiddleware
     {
