@@ -90,6 +90,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<ProjectMetric> ProjectMetric { get; set; }
 
+    public virtual DbSet<ProjectMetricHistory> ProjectMetricHistory { get; set; }
+
     public virtual DbSet<ProjectPosition> ProjectPosition { get; set; }
 
     public virtual DbSet<ProjectRecommendation> ProjectRecommendation { get; set; }
@@ -1332,6 +1334,30 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("project_metric_project_id_fkey");
+        });
+
+        modelBuilder.Entity<ProjectMetricHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("project_metric_history_pkey");
+
+            entity.ToTable("project_metric_history");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.MetricKey)
+                .HasMaxLength(100)
+                .HasColumnName("metric_key");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.RecordedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("recorded_at");
+            entity.Property(e => e.Value)
+                .HasColumnType("jsonb")
+                .HasColumnName("value");
+
+            entity.HasOne(d => d.Project).WithMany(p => p.ProjectMetricHistory)
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("project_metric_history_project_id_fkey");
         });
 
         modelBuilder.Entity<ProjectPosition>(entity =>

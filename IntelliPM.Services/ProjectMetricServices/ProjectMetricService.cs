@@ -29,6 +29,8 @@ using Google.Cloud.Storage.V1;
 using IntelliPM.Services.ChatGPTServices;
 using CloudinaryDotNet;
 using IntelliPM.Repositories.SubtaskRepos;
+using IntelliPM.Repositories.MetricHistoryRepos;
+using System.Text.Json;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -48,8 +50,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IGeminiService _geminiService;
         private readonly IChatGPTService _chatGPTService;
         private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IMetricHistoryRepository _metricHistoryRepo;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -65,6 +68,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _logger = logger;
             _geminiService = geminiService;
             _chatGPTService = chatGPTService;
+            _metricHistoryRepo = metricHistoryRepo;
         }
 
         //public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey)
@@ -176,8 +180,151 @@ namespace IntelliPM.Services.ProjectMetricServices
         //    }
         //}
 
+        //public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+        //    if (tasks == null || !tasks.Any())
+        //        throw new InvalidOperationException("No tasks found for the project.");
+
+        //    decimal PV = 0; // Planned Value
+        //    decimal EV = 0; // Earned Value
+        //    decimal AC = 0; // Actual Cost
+        //    decimal BAC = (decimal)project.Budget; // Budget At Completion
+        //    decimal DAC = 0; // Duration At Completion (months)
+        //    string projectStatus = "Not Started"; // New field to track status
+
+        //    // Check if project has started based on StartDate
+        //    var now = DateTime.UtcNow;
+        //    bool hasProjectStarted = project.StartDate.HasValue && project.StartDate.Value.Date <= now.Date;
+
+        //    if (project.StartDate.HasValue && project.EndDate.HasValue)
+        //    {
+        //        var totalDays = (project.EndDate.Value - project.StartDate.Value).TotalDays;
+        //        DAC = Math.Round((decimal)(totalDays / 30.0), 0);
+        //    }
+
+        //    // Track if any progress exists
+        //    bool hasProgress = false;
+
+        //    foreach (var task in tasks)
+        //    {
+        //        // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
+        //        if (hasProjectStarted && task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
+        //        {
+        //            var taskStart = task.PlannedStartDate.Value.Date;
+        //            var taskEnd = task.PlannedEndDate.Value.Date;
+        //            if (now >= taskStart && now <= taskEnd)
+        //            {
+        //                var totalPlannedDuration = (taskEnd - taskStart).TotalDays;
+        //                totalPlannedDuration = totalPlannedDuration == 0 ? 1 : totalPlannedDuration; // Avoid division by zero
+        //                var elapsed = (now - taskStart).TotalDays;
+        //                var progress = (decimal)(elapsed / totalPlannedDuration);
+        //                PV += (task.PlannedCost ?? 0) * progress;
+        //            }
+        //            else if (now > taskEnd)
+        //            {
+        //                PV += task.PlannedCost ?? 0;
+        //            }
+        //        }
+
+        //        // EV: dựa vào phần trăm hoàn thành * planned cost
+        //        if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
+        //        {
+        //            EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
+        //            if (task.PercentComplete.Value > 0)
+        //                hasProgress = true;
+        //        }
+
+        //        // AC: Actual Cost
+        //        AC += task.ActualCost ?? 0;
+        //    }
+
+        //    // Determine project status
+        //    if (!hasProjectStarted)
+        //    {
+        //        projectStatus = "Not Started";
+        //    }
+        //    else if (hasProjectStarted && !hasProgress)
+        //    {
+        //        projectStatus = "Started but No Progress";
+        //    }
+        //    else
+        //    {
+        //        projectStatus = "In Progress";
+        //    }
+
+        //    // Công thức hiệu suất chi phí và tiến độ
+        //    decimal CV = EV - AC;
+        //    decimal SV = EV - PV;
+        //    decimal CPI = hasProjectStarted && AC > 0 ? EV / AC : 0;
+        //    decimal SPI = hasProjectStarted && PV > 0 ? EV / PV : 0;
+        //    decimal EAC = hasProjectStarted && CPI > 0 ? BAC / CPI : BAC; // Fallback to BAC if CPI is 0
+        //    decimal ETC = EAC - AC;
+        //    decimal VAC = BAC - EAC;
+        //    decimal EDAC = hasProjectStarted && SPI > 0 ? DAC / SPI : DAC; // Fallback to DAC if SPI is 0
+
+        //    var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+
+        //    if (existingMetric != null)
+        //    {
+        //        existingMetric.PlannedValue = PV;
+        //        existingMetric.EarnedValue = EV;
+        //        existingMetric.ActualCost = AC;
+        //        existingMetric.BudgetAtCompletion = BAC;
+        //        existingMetric.DurationAtCompletion = DAC;
+        //        existingMetric.CostVariance = CV;
+        //        existingMetric.ScheduleVariance = SV;
+        //        existingMetric.CostPerformanceIndex = Math.Round(CPI, 3);
+        //        existingMetric.SchedulePerformanceIndex = Math.Round(SPI, 3);
+        //        existingMetric.EstimateAtCompletion = Math.Round(EAC, 0);
+        //        existingMetric.EstimateToComplete = Math.Round(ETC, 0);
+        //        existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
+        //        existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
+        //       // existingMetric.ProjectStatus = projectStatus; // Add new field
+        //        existingMetric.UpdatedAt = DateTime.UtcNow;
+
+        //        await _repo.Update(existingMetric);
+        //        var result = _mapper.Map<NewProjectMetricResponseDTO>(existingMetric);
+        //        //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+        //        return result;
+        //    }
+        //    else
+        //    {
+        //        var newMetric = new ProjectMetric
+        //        {
+        //            ProjectId = project.Id,
+        //            PlannedValue = PV,
+        //            EarnedValue = EV,
+        //            ActualCost = AC,
+        //            BudgetAtCompletion = BAC,
+        //            DurationAtCompletion = DAC,
+        //            CostVariance = CV,
+        //            ScheduleVariance = SV,
+        //            CostPerformanceIndex = Math.Round(CPI, 3),
+        //            SchedulePerformanceIndex = Math.Round(SPI, 3),
+        //            EstimateAtCompletion = Math.Round(EAC, 0),
+        //            EstimateToComplete = Math.Round(ETC, 0),
+        //            VarianceAtCompletion = Math.Round(VAC, 0),
+        //            EstimateDurationAtCompletion = Math.Round(EDAC, 0),
+        //            //ProjectStatus = projectStatus, // Add new field
+        //            CalculatedBy = "System",
+        //            CreatedAt = DateTime.UtcNow,
+        //            UpdatedAt = DateTime.UtcNow,
+        //        };
+
+        //        await _repo.Add(newMetric);
+        //        var result = _mapper.Map<NewProjectMetricResponseDTO>(newMetric);
+        //        //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+        //        return result;
+        //    }
+        //}
+
         public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey)
         {
+            // Fetch project and tasks
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
@@ -185,34 +332,52 @@ namespace IntelliPM.Services.ProjectMetricServices
             if (tasks == null || !tasks.Any())
                 throw new InvalidOperationException("No tasks found for the project.");
 
+            // Fetch configurations
+            var statusCategories = await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("", "project_status");
+            //var includeResourceCostConfig = await _systemConfigRepo.GetByKeyAsync("include_resource_cost_in_ac");
+            //var taskWeightConfig = await _systemConfigRepo.GetByKeyAsync("use_task_weight_in_metrics");
+            //bool includeResourceCost = includeResourceCostConfig?.ValueConfig == "true";
+            //bool useTaskWeight = taskWeightConfig?.ValueConfig == "true";
+
             decimal PV = 0; // Planned Value
             decimal EV = 0; // Earned Value
             decimal AC = 0; // Actual Cost
-            decimal BAC = (decimal)project.Budget; // Budget At Completion
+            decimal BAC = project.Budget ?? 0; // Budget At Completion
             decimal DAC = 0; // Duration At Completion (months)
-            string projectStatus = "Not Started"; // New field to track status
+            string projectStatus = statusCategories.FirstOrDefault(c => c.Name == "NOT_STARTED")?.Label ?? "Not Started";
 
-            // Check if project has started based on StartDate
+            // Check if project has started
             var now = DateTime.UtcNow;
             bool hasProjectStarted = project.StartDate.HasValue && project.StartDate.Value.Date <= now.Date;
 
+            // Calculate Duration At Completion
             if (project.StartDate.HasValue && project.EndDate.HasValue)
             {
                 var totalDays = (project.EndDate.Value - project.StartDate.Value).TotalDays;
-                DAC = Math.Round((decimal)(totalDays / 30.0), 0);
+                DAC = Math.Round((decimal)(totalDays / 30.0), 0); // Configurable divisor in system_configuration if needed
             }
 
-            // Track if any progress exists
+            // Track progress
             bool hasProgress = false;
+
+            // Fetch subtasks and project members if resource costs are included
+            //List<Subtask> allSubtasks = new();
+            //Dictionary<int, decimal> memberHourlyRates = new();
+            
+            //allSubtasks = (await Task.WhenAll(tasks.Select(t => _subtaskRepo.GetSubtaskByTaskIdAsync(t.Id))))
+            //    .SelectMany(s => s).ToList();
+            //var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+            //memberHourlyRates = projectMembers.ToDictionary(m => m.AccountId, m => m.HourlyRate ?? 0);
+            
 
             foreach (var task in tasks)
             {
-                // Tính PV: dựa vào planned cost và ngày hiện tại trong planned range
+                // Calculate PV: Based on planned cost and current date within planned range
                 if (hasProjectStarted && task.PlannedStartDate.HasValue && task.PlannedEndDate.HasValue)
                 {
                     var taskStart = task.PlannedStartDate.Value.Date;
                     var taskEnd = task.PlannedEndDate.Value.Date;
-                    if (now >= taskStart && now <= taskEnd)
+                    if (now.Date >= taskStart && now.Date <= taskEnd)
                     {
                         var totalPlannedDuration = (taskEnd - taskStart).TotalDays;
                         totalPlannedDuration = totalPlannedDuration == 0 ? 1 : totalPlannedDuration; // Avoid division by zero
@@ -220,13 +385,13 @@ namespace IntelliPM.Services.ProjectMetricServices
                         var progress = (decimal)(elapsed / totalPlannedDuration);
                         PV += (task.PlannedCost ?? 0) * progress;
                     }
-                    else if (now > taskEnd)
+                    else if (now.Date > taskEnd)
                     {
-                        PV += task.PlannedCost ?? 0;
+                        PV += (task.PlannedCost ?? 0);
                     }
                 }
 
-                // EV: dựa vào phần trăm hoàn thành * planned cost
+                // Calculate EV: Based on percentage complete * planned cost
                 if (task.PercentComplete.HasValue && task.PlannedCost.HasValue)
                 {
                     EV += task.PlannedCost.Value * (task.PercentComplete.Value / 100);
@@ -234,25 +399,49 @@ namespace IntelliPM.Services.ProjectMetricServices
                         hasProgress = true;
                 }
 
-                // AC: Actual Cost
-                AC += task.ActualCost ?? 0;
+                // Calculate AC: Task actual cost + resource cost (if enabled)
+                AC += (task.ActualCost ?? 0);
+                //var taskSubtasks = allSubtasks.Where(s => s.TaskId == task.Id).ToList();
+                //foreach (var subtask in taskSubtasks)
+                //    {
+                //    if (subtask.ActualHours.HasValue && subtask.AssignedBy.HasValue)
+                //    {
+                //        AC += (decimal)subtask.ActualHours.Value * (memberHourlyRates.GetValueOrDefault(subtask.AssignedBy.Value, 0));
+                //    }
+                //}
             }
+
+            // Normalize PV, EV, and AC if weights were applied
+            //if (useTaskWeight && tasks.Any(t => t.Weight.HasValue))
+            //{
+            //    decimal totalWeight = tasks.Sum(t => t.Weight ?? 1.0m);
+            //    if (totalWeight > 0)
+            //    {
+            //        PV /= totalWeight;
+            //        EV /= totalWeight;
+            //        AC /= totalWeight;
+            //    }
+            //}
 
             // Determine project status
             if (!hasProjectStarted)
             {
-                projectStatus = "Not Started";
+                projectStatus = statusCategories.FirstOrDefault(c => c.Name == "NOT_STARTED")?.Label ?? "Not Started";
             }
             else if (hasProjectStarted && !hasProgress)
             {
-                projectStatus = "Started but No Progress";
+                projectStatus = statusCategories.FirstOrDefault(c => c.Name == "NO_PROGRESS")?.Label ?? "Started but No Progress";
+            }
+            else if (tasks.All(t => t.PercentComplete == 100) || (project.EndDate.HasValue && project.EndDate.Value < now))
+            {
+                projectStatus = statusCategories.FirstOrDefault(c => c.Name == "COMPLETED")?.Label ?? "Completed";
             }
             else
             {
-                projectStatus = "In Progress";
+                projectStatus = statusCategories.FirstOrDefault(c => c.Name == "IN_PROGRESS")?.Label ?? "In Progress";
             }
 
-            // Công thức hiệu suất chi phí và tiến độ
+            // Calculate performance metrics
             decimal CV = EV - AC;
             decimal SV = EV - PV;
             decimal CPI = hasProjectStarted && AC > 0 ? EV / AC : 0;
@@ -261,6 +450,15 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal ETC = EAC - AC;
             decimal VAC = BAC - EAC;
             decimal EDAC = hasProjectStarted && SPI > 0 ? DAC / SPI : DAC; // Fallback to DAC if SPI is 0
+            // Save to project_metric_history for trend analysis
+            var metricHistory = new ProjectMetricHistory
+            {
+                ProjectId = project.Id,
+                MetricKey = "SYSTEM_CALCULATION",
+                Value = JsonConvert.SerializeObject(new { PV, EV, AC, CPI, SPI, EAC, ETC, VAC, EDAC, projectStatus }),
+                RecordedAt = DateTime.UtcNow
+            };
+            await _metricHistoryRepo.Add(metricHistory);
 
             var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
 
@@ -279,12 +477,11 @@ namespace IntelliPM.Services.ProjectMetricServices
                 existingMetric.EstimateToComplete = Math.Round(ETC, 0);
                 existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
                 existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
-               // existingMetric.ProjectStatus = projectStatus; // Add new field
                 existingMetric.UpdatedAt = DateTime.UtcNow;
 
                 await _repo.Update(existingMetric);
                 var result = _mapper.Map<NewProjectMetricResponseDTO>(existingMetric);
-                //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+                result.ProjectStatus = projectStatus; // Ensure DTO includes status
                 return result;
             }
             else
@@ -305,7 +502,6 @@ namespace IntelliPM.Services.ProjectMetricServices
                     EstimateToComplete = Math.Round(ETC, 0),
                     VarianceAtCompletion = Math.Round(VAC, 0),
                     EstimateDurationAtCompletion = Math.Round(EDAC, 0),
-                    //ProjectStatus = projectStatus, // Add new field
                     CalculatedBy = "System",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -313,7 +509,7 @@ namespace IntelliPM.Services.ProjectMetricServices
 
                 await _repo.Add(newMetric);
                 var result = _mapper.Map<NewProjectMetricResponseDTO>(newMetric);
-                //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+                result.ProjectStatus = projectStatus; // Ensure DTO includes status
                 return result;
             }
         }
