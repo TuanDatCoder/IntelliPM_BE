@@ -350,6 +350,42 @@ namespace IntelliPM.Services.ProjectMemberServices
 
 
 
+        public async Task<TeamsByAccountResponseDTO> GetTeamsByAccountId(int accountId)
+        {
+            var projectsJoined = await _projectMemberRepo.GetProjectIdsByAccountIdAsync(accountId);
+
+            if (!projectsJoined.Any())
+                throw new KeyNotFoundException($"Account ID {accountId} has not joined any team.");
+
+            var teams = new List<TeamWithMembersResponseDTO>();
+
+            foreach (var projectId in projectsJoined)
+            {
+                var project = await _projectRepo.GetByIdAsync(projectId);
+                if (project == null) continue;
+
+                var members = await _projectMemberRepo.GetAllProjectMembers(projectId);
+                var memberDtos = _mapper.Map<List<ProjectMemberResponseDTO>>(members);
+
+                teams.Add(new TeamWithMembersResponseDTO
+                {
+                    ProjectId = project.Id,
+                    ProjectName = project.Name,
+                    ProjectKey = project.ProjectKey,
+                    TotalMembers = members.Count,
+                    Members = memberDtos
+                });
+            }
+
+            return new TeamsByAccountResponseDTO
+            {
+                TotalTeams = teams.Count,
+                Teams = teams
+            };
+        }
+
+
+
         public async Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests)
         {
             if (string.IsNullOrEmpty(token))
