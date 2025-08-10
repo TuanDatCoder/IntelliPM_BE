@@ -13,7 +13,7 @@ namespace IntelliPM.Services.EpicFileServices
     public interface IEpicFileService
     {
         Task<EpicFileResponseDTO> UploadEpicFileAsync(EpicFileRequestDTO request);
-        Task<bool> DeleteEpicFileAsync(int epicId);
+        Task<bool> DeleteEpicFileAsync(int epicId, int createdBy);
         Task<List<EpicFileResponseDTO>> GetFilesByEpicIdAsync(string epicId);
     }
 }

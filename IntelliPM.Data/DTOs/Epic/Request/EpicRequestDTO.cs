@@ -30,5 +30,8 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
         //[DynamicCategoryValidation("epic_status", Required = false)]
         public string? Status { get; set; }
+
+        public int CreatedBy { get; set; }
+
     }
 }

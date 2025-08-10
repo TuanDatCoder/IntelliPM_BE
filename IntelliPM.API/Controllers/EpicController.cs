@@ -207,11 +207,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeStatus(string id, [FromBody] string status)
+        public async Task<IActionResult> ChangeStatus(string id, ChangeEpicStatusRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeEpicStatus(id, status);
+                var updated = await _service.ChangeEpicStatus(id, dto.Status, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

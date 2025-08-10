@@ -16,6 +16,7 @@ namespace IntelliPM.Data.DTOs.ActivityLog.Response
         public string? TaskId { get; set; }
 
         public string? SubtaskId { get; set; }
+        public string? EpicId { get; set; }
 
         public string? RiskKey { get; set; }
 
