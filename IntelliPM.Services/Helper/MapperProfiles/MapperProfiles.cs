@@ -407,7 +407,11 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<ProjectMember, ProjectMemberResponseDTO>()
+                .ForMember(dest => dest.AccountEmail, opt => opt.MapFrom(src => src.Account != null ? src.Account.Email : null))
+                .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null))
                 .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null));
+
+
             CreateMap<ProjectMember, ProjectMemberWithPositionsResponseDTO>()
                 .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.JoinedAt))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))

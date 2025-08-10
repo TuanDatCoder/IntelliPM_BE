@@ -28,9 +28,9 @@ namespace IntelliPM.Services.ProjectMemberServices
         Task<List<AccountByProjectResponseDTO>> GetAccountsByProjectId(int projectId);
         Task<List<ProjectMember>> GetAllByProjectId(int projectId);
         Task<List<ProjectMemberResponseDTO>> GetProjectMemberByProjectId(int projectId);
-        Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token, List<ProjectMemberWithPositionRequestDTO> requests);
+        Task<List<ProjectMemberWithPositionsResponseDTO>> CreateBulkWithPositions(int projectId, string token,List<ProjectMemberWithPositionRequestDTO> requests);
         Task<List<ProjectMemberWithPositionsResponseDTO>> GetProjectMemberWithPositionsByProjectId(int projectId);
-
+        Task<TeamsByAccountResponseDTO> GetTeamsByAccountId(int accountId);
         Task<ProjectMemberResponseDTO> ChangeProjectMemberStatus(int id, string status);
 
         Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId, int accountId);
