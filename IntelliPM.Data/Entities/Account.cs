@@ -39,10 +39,6 @@ public partial class Account
 
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
-    public virtual ICollection<AiResponseEvaluation> AiResponseEvaluation { get; set; } = new List<AiResponseEvaluation>();
-
-    public virtual ICollection<AiResponseHistory> AiResponseHistory { get; set; } = new List<AiResponseHistory>();
-
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();

@@ -21,6 +21,8 @@ public partial class Document
 
     public bool IsActive { get; set; }
 
+    public string? Status { get; set; }
+
     public int CreatedBy { get; set; }
 
     public int? UpdatedBy { get; set; }
@@ -31,11 +33,13 @@ public partial class Document
 
     public string? Visibility { get; set; }
 
-    public string? Status { get; set; }
-
     public virtual Account CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
+
+    public virtual ICollection<DocumentExportFile> DocumentExportFile { get; set; } = new List<DocumentExportFile>();
+
+    public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
 
     public virtual Epic? Epic { get; set; }
 
