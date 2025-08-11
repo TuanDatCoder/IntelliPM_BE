@@ -76,7 +76,7 @@ namespace IntelliPM.Services.ActivityLogServices
         public async Task<List<ActivityLogResponseDTO>> GetActivityLogsByEpicId(string epicId)
         {
             {
-                var entities = await _activityLogRepository.GetByTaskIdAsync(epicId);
+                var entities = await _activityLogRepository.GetByEpicIdAsync(epicId);
 
                 if (entities == null || !entities.Any())
                     throw new KeyNotFoundException($"No activityLogs found for Epic ID {epicId}.");
