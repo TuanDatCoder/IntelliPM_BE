@@ -841,7 +841,7 @@ Yêu cầu:
 
             // Gọi API lấy tasks có gắn token
             var taskRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://localhost:7128/api/task/by-project-id/{projectId}/detailed");
+                $"https://intellipm-fpt-g6drgmbga8fcbubw.southeastasia-01.azurewebsites.net/api/task/by-project-id/{projectId}/detailed");
             taskRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             var taskResponse = await _httpClient.SendAsync(taskRequest);
@@ -855,7 +855,7 @@ Yêu cầu:
 
             // Gọi API lấy metrics có gắn token
             var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://localhost:7128/api/projectmetric/by-project-id?projectId={projectId}");
+                $"https://intellipm-fpt-g6drgmbga8fcbubw.southeastasia-01.azurewebsites.net/api/projectmetric/by-project-id?projectId={projectId}");
             metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             var metricResponse = await _httpClient.SendAsync(metricRequest);
