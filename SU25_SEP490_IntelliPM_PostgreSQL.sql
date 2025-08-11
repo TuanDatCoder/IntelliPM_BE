@@ -796,7 +796,16 @@ CREATE TABLE ai_response_evaluation (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ai_response_id) REFERENCES ai_response_history(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL
+);
 
+-- 49. project_metric_history
+CREATE TABLE project_metric_history (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL,
+    metric_key VARCHAR(100) NOT NULL,
+    value JSONB NOT NULL, 
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
 
@@ -1251,6 +1260,8 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
+    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
     ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
