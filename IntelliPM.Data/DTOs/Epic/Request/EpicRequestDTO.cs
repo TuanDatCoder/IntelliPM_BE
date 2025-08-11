@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -27,6 +28,10 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         public DateTime? EndDate { get; set; }   
 
         [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
+        //[DynamicCategoryValidation("epic_status", Required = false)]
         public string? Status { get; set; }
+
+        public int CreatedBy { get; set; }
+
     }
 }

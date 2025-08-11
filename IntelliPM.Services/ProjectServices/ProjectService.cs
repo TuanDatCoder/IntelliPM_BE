@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
@@ -13,6 +13,7 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -57,8 +58,9 @@ namespace IntelliPM.Services.ProjectServices
        // private readonly string _backendUrl;
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider)
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -81,6 +83,7 @@ namespace IntelliPM.Services.ProjectServices
            // _backendUrl = config["Environment:BE_URL"];
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _dynamicCategoryRepo = dynamicCategoryRepo ?? throw new ArgumentNullException(nameof(dynamicCategoryRepo));
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -153,6 +156,7 @@ namespace IntelliPM.Services.ProjectServices
             var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
+
 
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
@@ -261,8 +265,9 @@ namespace IntelliPM.Services.ProjectServices
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-            if (!pm.Status.Equals("CREATED"))
+            if (pm.Status.Equals("ACTIVE"))
                 throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
+   
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -346,22 +351,19 @@ namespace IntelliPM.Services.ProjectServices
             if (currentAccount == null)
                 throw new KeyNotFoundException("User not found.");
 
-
             var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
             if (membersWithPositions == null || !membersWithPositions.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
-
             var projectInfo = await _projectRepo.GetByIdAsync(projectId);
             if (projectInfo == null)
-                throw new KeyNotFoundException($"Project with ID {projectId} not found.ddd");
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
             await ChangeProjectStatus(projectId, "IN_PROGRESS");
 
             var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
-               if(pm != null)
-                    await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
-
+            if (pm != null)
+                await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
 
             var eligibleMembers = membersWithPositions
                 .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
@@ -371,25 +373,42 @@ namespace IntelliPM.Services.ProjectServices
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
 
-
-
             foreach (var member in eligibleMembers)
             {
-                _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
-
-                var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={member.Id}";
-
-                await _emailService.SendTeamInvitation(
-                    member.FullName,
-                    member.Email,
-                    currentAccount.FullName,
-                    currentAccount.Username,
-                    projectInfo.Name,
-                    projectInfo.ProjectKey,
-                    projectId,
-                    projectInvitationUrl
-                );
+                await _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
             }
+
+            // Giới hạn gửi 5 email một lúc
+            var semaphore = new SemaphoreSlim(5);
+            var emailTasks = eligibleMembers.Select(async member =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={member.Id}";
+
+                    await _emailService.SendTeamInvitation(
+                        member.FullName,
+                        member.Email,
+                        currentAccount.FullName,
+                        currentAccount.Username,
+                        projectInfo.Name,
+                        projectInfo.ProjectKey,
+                        projectId,
+                        projectInvitationUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to send email to {member.Email}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(emailTasks);
 
             return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
         }
@@ -405,6 +424,7 @@ namespace IntelliPM.Services.ProjectServices
             var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
+
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -723,10 +743,13 @@ namespace IntelliPM.Services.ProjectServices
 
 
             var subtasksGrouped = _mapper.Map<List<SubtaskDependencyResponseDTO>>(subtasks)
+                .OrderBy(s => s.StartDate ?? DateTime.MaxValue)
                 .GroupBy(s => s.TaskId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks);
+            var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks)
+                .OrderBy(t => t.PlannedStartDate ?? DateTime.MaxValue)
+                .ToList();
             foreach (var t in taskDTOs)
             {
                 t.Subtasks = subtasksGrouped.ContainsKey(t.Id) ? subtasksGrouped[t.Id] : new();
@@ -741,7 +764,9 @@ namespace IntelliPM.Services.ProjectServices
                 }
             }
 
-            var milestoneDTOs = _mapper.Map<List<MilestoneDependencyResponseDTO>>(milestones);
+            var milestoneDTOs = _mapper.Map<List<MilestoneDependencyResponseDTO>>(milestones)
+                .OrderBy(m => m.StartDate ?? DateTime.MaxValue)
+                .ToList();
             foreach (var m in milestoneDTOs)
             {
                 m.Dependencies = groupedDependencies.TryGetValue((m.Key, "milestone"), out var mdeps) ? mdeps : new();

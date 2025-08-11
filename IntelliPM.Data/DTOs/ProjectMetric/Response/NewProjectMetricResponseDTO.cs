@@ -23,6 +23,10 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public decimal VarianceAtCompletion { get; set; }
         public decimal EstimateDurationAtCompletion { get; set; }
         public string CalculatedBy { get; set; }
+        public bool IsImproved { get; set; }
+        public string? ImprovementSummary { get; set; }
+        public decimal? ConfidenceScore { get; set; }
+        public string ProjectStatus { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }

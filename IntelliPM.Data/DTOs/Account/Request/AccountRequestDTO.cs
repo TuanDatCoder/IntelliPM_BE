@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -28,6 +29,7 @@ namespace IntelliPM.Data.DTOs.Account.Request
         public string Gender { get; set; } = null!;
 
         [MaxLength(50, ErrorMessage = "Position cannot exceed 50 characters")]
+        [DynamicCategoryValidation("account_position", Required = true)]
         public string? Position { get; set; }
 
         [Required(ErrorMessage = "Date of birth is required")]

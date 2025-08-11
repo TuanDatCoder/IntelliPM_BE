@@ -343,12 +343,12 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("update-actual-hours")]
-        public async Task<IActionResult> UpdateActualHours([FromBody] List<TaskAssignmentHourRequestDTO> updates)
+        public async Task<IActionResult> UpdateActualHours([FromBody] List<TaskAssignmentHourRequestDTO> updates, int createdBy)
         {
             if (updates == null || !updates.Any())
                 return BadRequest("No updates provided.");
 
-            var success = await _service.ChangeActualHoursAsync(updates);
+            var success = await _service.ChangeActualHoursAsync(updates, createdBy);
 
             if (!success)
                 return StatusCode(500, "Failed to update actual hours.");

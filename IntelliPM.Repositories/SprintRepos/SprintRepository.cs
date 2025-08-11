@@ -61,7 +61,7 @@ namespace IntelliPM.Repositories.SprintRepos
         {
             return await _context.Sprint
                 .Where(m => m.ProjectId == projectId)
-                .OrderBy(m => m.CreatedAt)
+                .OrderBy(m => m.PlannedStartDate)
                 .ToListAsync();
         }
 

@@ -227,5 +227,76 @@ namespace IntelliPM.API.Controllers
         }
 
 
+
+        [HttpGet("profile/{email}")]
+        public async Task<IActionResult> GetProfileByEmail(string email)
+        {
+            try
+            {
+                var profile = await _accountService.GetProfileByEmail(email);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Profile retrieved successfully",
+                    Data = profile
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+        [HttpGet("{accountId}/teams")]
+        public async Task<IActionResult> GetProjectIdsByAccountId(int accountId)
+        {
+            try
+            {
+                var teams = await _projectMemberService.GetTeamsByAccountId(accountId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Project IDs retrieved successfully for the account",
+                    Data = teams
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+
+
     }
 }

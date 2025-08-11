@@ -24,6 +24,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     public virtual DbSet<Aggregatedcounter> Aggregatedcounter { get; set; }
 
+    public virtual DbSet<AiResponseEvaluation> AiResponseEvaluation { get; set; }
+
+    public virtual DbSet<AiResponseHistory> AiResponseHistory { get; set; }
+
     public virtual DbSet<ChangeRequest> ChangeRequest { get; set; }
 
     public virtual DbSet<Counter> Counter { get; set; }
@@ -85,6 +89,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<ProjectMember> ProjectMember { get; set; }
 
     public virtual DbSet<ProjectMetric> ProjectMetric { get; set; }
+
+    public virtual DbSet<ProjectMetricHistory> ProjectMetricHistory { get; set; }
 
     public virtual DbSet<ProjectPosition> ProjectPosition { get; set; }
 
@@ -151,7 +157,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=12345;");
+
+    //        => optionsBuilder.UseNpgsql("Host=shuttle.proxy.rlwy.net;Port=46730;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=ePBNfZQAuyaFhaDvPboiVTGaPikaSUrP;");
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -225,6 +233,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EpicId)
+                .HasMaxLength(255)
+                .HasColumnName("epic_id");
             entity.Property(e => e.FieldChanged)
                 .HasMaxLength(100)
                 .HasColumnName("field_changed");
@@ -238,6 +249,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.RelatedEntityType)
                 .HasMaxLength(100)
                 .HasColumnName("related_entity_type");
+            entity.Property(e => e.RiskKey)
+                .HasMaxLength(255)
+                .HasColumnName("risk_key");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -249,6 +263,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("activity_log_created_by_fkey");
+
+            entity.HasOne(d => d.Epic).WithMany(p => p.ActivityLog)
+                .HasForeignKey(d => d.EpicId)
+                .HasConstraintName("activity_log_epic_id_fkey");
+
+            entity.HasOne(d => d.RiskKeyNavigation).WithMany(p => p.ActivityLog)
+                .HasPrincipalKey(p => p.RiskKey)
+                .HasForeignKey(d => d.RiskKey)
+                .HasConstraintName("fk_activity_log_risk");
 
             entity.HasOne(d => d.Subtask).WithMany(p => p.ActivityLog)
                 .HasForeignKey(d => d.SubtaskId)
@@ -271,6 +294,71 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Expireat).HasColumnName("expireat");
             entity.Property(e => e.Key).HasColumnName("key");
             entity.Property(e => e.Value).HasColumnName("value");
+        });
+
+        modelBuilder.Entity<AiResponseEvaluation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_response_evaluation_pkey");
+
+            entity.ToTable("ai_response_evaluation");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.AiResponseId).HasColumnName("ai_response_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Feedback).HasColumnName("feedback");
+            entity.Property(e => e.Rating).HasColumnName("rating");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.AiResponseEvaluation)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ai_response_evaluation_account_id_fkey");
+
+            entity.HasOne(d => d.AiResponse).WithMany(p => p.AiResponseEvaluation)
+                .HasForeignKey(d => d.AiResponseId)
+                .HasConstraintName("ai_response_evaluation_ai_response_id_fkey");
+        });
+
+        modelBuilder.Entity<AiResponseHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_response_history_pkey");
+
+            entity.ToTable("ai_response_history");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AiFeature)
+                .HasMaxLength(100)
+                .HasColumnName("ai_feature");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.ResponseJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("response_json");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.AiResponseHistory)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ai_response_history_created_by_fkey");
+
+            entity.HasOne(d => d.Project).WithMany(p => p.AiResponseHistory)
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("ai_response_history_project_id_fkey");
         });
 
         modelBuilder.Entity<ChangeRequest>(entity =>
@@ -483,7 +571,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("category_group");
             entity.Property(e => e.Color)
-                .HasMaxLength(10)
+                .HasMaxLength(50)
                 .HasColumnName("color");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -1150,7 +1238,8 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("status");
             entity.Property(e => e.WorkingHoursPerDay)
-                .HasDefaultValue(8)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("8")
                 .HasColumnName("working_hours_per_day");
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProjectMember)
@@ -1180,6 +1269,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CalculatedBy)
                 .HasMaxLength(50)
                 .HasColumnName("calculated_by");
+            entity.Property(e => e.ConfidenceScore)
+                .HasPrecision(5, 2)
+                .HasColumnName("confidence_score");
             entity.Property(e => e.CostPerformanceIndex)
                 .HasPrecision(15, 2)
                 .HasColumnName("cost_performance_index");
@@ -1204,9 +1296,15 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.EstimateToComplete)
                 .HasPrecision(15, 2)
                 .HasColumnName("estimate_to_complete");
+            entity.Property(e => e.ImprovementSummary)
+                .HasDefaultValueSql("''::text")
+                .HasColumnName("improvement_summary");
             entity.Property(e => e.IsApproved)
                 .HasDefaultValue(false)
                 .HasColumnName("is_approved");
+            entity.Property(e => e.IsImproved)
+                .HasDefaultValue(false)
+                .HasColumnName("is_improved");
             entity.Property(e => e.PlannedValue)
                 .HasPrecision(15, 2)
                 .HasColumnName("planned_value");
@@ -1228,6 +1326,30 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("project_metric_project_id_fkey");
+        });
+
+        modelBuilder.Entity<ProjectMetricHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("project_metric_history_pkey");
+
+            entity.ToTable("project_metric_history");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.MetricKey)
+                .HasMaxLength(100)
+                .HasColumnName("metric_key");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.RecordedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("recorded_at");
+            entity.Property(e => e.Value)
+                .HasColumnType("jsonb")
+                .HasColumnName("value");
+
+            entity.HasOne(d => d.Project).WithMany(p => p.ProjectMetricHistory)
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("project_metric_history_project_id_fkey");
         });
 
         modelBuilder.Entity<ProjectPosition>(entity =>
@@ -1261,11 +1383,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.Details).HasColumnName("details");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.Recommendation).HasColumnName("recommendation");
-            entity.Property(e => e.TaskId)
-                .HasMaxLength(255)
-                .HasColumnName("task_id");
+            entity.Property(e => e.SuggestedChanges).HasColumnName("suggested_changes");
             entity.Property(e => e.Type)
                 .HasMaxLength(100)
                 .HasColumnName("type");
@@ -1274,10 +1395,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.ProjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("project_recommendation_project_id_fkey");
-
-            entity.HasOne(d => d.Task).WithMany(p => p.ProjectRecommendation)
-                .HasForeignKey(d => d.TaskId)
-                .HasConstraintName("project_recommendation_task_id_fkey");
         });
 
         modelBuilder.Entity<RecipientNotification>(entity =>
@@ -2079,6 +2196,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_log_task_id_fkey");
         });
+        modelBuilder.HasSequence("course_id_seq");
+        modelBuilder.HasSequence("flower_id_seq");
+        modelBuilder.HasSequence("intellipm_id_seq");
+        modelBuilder.HasSequence("projc_id_seq");
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -6,7 +6,7 @@ using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
 
 namespace IntelliPM.API.Controllers
 {
@@ -160,18 +160,14 @@ namespace IntelliPM.API.Controllers
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Request list cannot be null or empty." });
             }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
             try
             {
-                var results = new List<TaskResponseDTO>();
-                foreach (var request in requests)
-                {
-                    if (!ModelState.IsValid)
-                    {
-                        return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
-                    }
-                    var result = await _service.CreateTask(request);
-                    results.Add(result);
-                }
+                var results = await _service.CreateTasksBulkAsync(requests);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -179,6 +175,10 @@ namespace IntelliPM.API.Controllers
                     Message = "Tasks created successfully",
                     Data = results
                 });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -190,6 +190,7 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] TaskRequestDTO request)
@@ -311,11 +312,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/sprint")]
-        public async Task<IActionResult> ChangeSprint(string id, [FromBody] int sprintId)
+        public async Task<IActionResult> ChangeSprint(string id, [FromBody] ChangeTaskSprintRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskSprint(id, sprintId);
+                var updated = await _service.ChangeTaskSprint(id, dto.SprintId, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -345,11 +346,11 @@ namespace IntelliPM.API.Controllers
 
 
         [HttpPatch("{id}/epic")]
-        public async Task<IActionResult> ChangeSprint(string id, [FromBody] string epicId)
+        public async Task<IActionResult> ChangeSprint(string id, ChangeTaskEpicRequestDTO dto)
         {
             try
             {
-                var updated = await _service.ChangeTaskEpic(id, epicId);
+                var updated = await _service.ChangeTaskEpic(id, dto.EpicId, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -675,11 +676,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/planned-hours")]
-        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours)
+        public async Task<IActionResult> ChangePlannedHours(string id, [FromBody] decimal hours, int createdBy)
         {
             try
             {
-                var updated = await _service.ChangeTaskPlannedHours(id, hours);
+                var updated = await _service.ChangeTaskPlannedHours(id, hours, createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

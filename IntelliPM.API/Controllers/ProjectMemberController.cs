@@ -378,6 +378,70 @@ namespace IntelliPM.API.Controllers
 
         }
 
+        [HttpPatch("{id}/hourly-rate")]
+        public async Task<IActionResult> ChangeHourlyRate(int id, [FromBody] decimal hourlyRate)
+        {
+            try
+            {
+                var updated = await _service.ChangeHourlyRate(id, hourlyRate);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Hourly rate updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating hourly rate: {ex.Message}"
+                });
+            }
+        }
 
+        [HttpPatch("{id}/working-hours-per-day")]
+        public async Task<IActionResult> ChangeWorkingHoursPerDay(int id, [FromBody] decimal workingHoursPerDay)
+        {
+            try
+            {
+                var updated = await _service.ChangeWorkingHoursPerDay(id, workingHoursPerDay);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Working hours per day updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating working hours per day: {ex.Message}"
+                });
+            }
+        }
     }
 }

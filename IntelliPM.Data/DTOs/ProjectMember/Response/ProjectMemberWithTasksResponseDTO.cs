@@ -15,7 +15,7 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public string Username { get; set; } = null!;
         public string AccountPicture {  get; set; } = null!;
         public decimal? HourlyRate { get; set; }
-        public int? WorkingHoursPerDay { get; set; }
+        public decimal? WorkingHoursPerDay { get; set; }
         public List<TaskBasicDTO> Tasks { get; set; } = new();
     }
 }
