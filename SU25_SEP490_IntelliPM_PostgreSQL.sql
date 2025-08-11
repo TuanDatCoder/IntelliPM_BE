@@ -334,55 +334,47 @@ CREATE TABLE document (
     epic_id VARCHAR(255),
     subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
-    type VARCHAR(100),
-    template TEXT,
     content TEXT,
-    file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    status VARCHAR(30) DEFAULT 'Draft',
     created_by INTEGER NOT NULL,
     updated_by INTEGER,
-    approver_id INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     visibility VARCHAR(20),
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
-        REFERENCES public.project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_task FOREIGN KEY (task_id)
-        REFERENCES public.tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_epic FOREIGN KEY (epic_id)
-        REFERENCES public.epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_subtask FOREIGN KEY (subtask_id)
-        REFERENCES public.subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_created_by FOREIGN KEY (created_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
-    CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+
 );
 
-CREATE TABLE document_comment (
+CREATE TABLE  document_comment (
     id SERIAL PRIMARY KEY,
     document_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE,
-
-  
-    CONSTRAINT fk_document FOREIGN KEY (document_id)
-        REFERENCES document (id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_author FOREIGN KEY (author_id)
-        REFERENCES account (id) ON DELETE CASCADE
+    from_pos INTEGER NOT NULL,     
+    to_pos INTEGER NOT NULL,      
+    content TEXT NOT NULL,        
+    comment TEXT NOT NULL,        
+created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,    
+updated_at TIMESTAMPTZ,
+    FOREIGN KEY (author_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE
 );
 
 
@@ -400,6 +392,10 @@ CREATE TABLE document_export_file (
     CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
         REFERENCES account(id) ON DELETE SET NULL
 );
+
+
+
+
 
 -- 20. document_permission
 CREATE TABLE document_permission (
@@ -527,6 +523,7 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
+
 
 -- 31. risk
 CREATE TABLE risk (
@@ -1396,10 +1393,12 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
+
     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+
     ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),

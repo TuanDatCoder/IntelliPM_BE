@@ -18,6 +18,8 @@ namespace IntelliPM.Repositories.DocumentCommentRepos
 
         Task DeleteAsync(DocumentComment comment);
 
+        Task<bool> DocumentExistsAsync(int documentId);
+
 
         Task<Account?> GetAuthorByIdAsync(int authorId);
     }

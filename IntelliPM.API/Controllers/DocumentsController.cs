@@ -1,3 +1,4 @@
+using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
@@ -30,35 +31,50 @@ namespace IntelliPM.API.Controllers
 
 
 
-        [HttpPost("request")]
-        public async Task<ActionResult<DocumentResponseDTO>> CreateDocumentRequest([FromBody] DocumentRequestDTO request)
-        {
-            var accountIdClaim = User.FindFirst("accountId")?.Value;
+        //[HttpPost("request")]
+        //public async Task<ActionResult<DocumentResponseDTO>> CreateDocumentRequest([FromBody] DocumentRequestDTO request)
+        //{
+        //    var accountIdClaim = User.FindFirst("accountId")?.Value;
 
-            if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized();
+        //    if (string.IsNullOrEmpty(accountIdClaim))
+        //        return Unauthorized();
 
-            if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format");
+        //    if (!int.TryParse(accountIdClaim, out var userId))
+        //        return BadRequest("Invalid user ID format");
 
-            var result = await _documentService.CreateDocumentRequest(request, userId); 
-            return Ok(result);
-        }
+        //    var result = await _documentService.CreateDocumentRequest(request, userId); 
+        //    return Ok(result);
+        //}
 
 
         [HttpPost("create")]
-        public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
+        //public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
+        //{
+     public async Task<IActionResult> CreateDocument([FromBody] DocumentRequestDTO request)
         {
             var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized("Missing accountId in token.");
+            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID format.");
 
-            if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized();
-
-            if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format");
-
-            var result = await _documentService.CreateDocument(request, userId);
-            return Ok(result);
+            try
+            {
+                var dto = await _documentService.CreateDocument(request, userId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Created",
+                    Data = dto
+                });
+            }
+            catch (ArgumentException ax)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ax.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = ex.Message });
+            }
         }
 
 
@@ -67,64 +83,201 @@ namespace IntelliPM.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
         {
-            var userId = int.Parse(User.FindFirst("accountId")?.Value ?? "0");
-            var result = await _documentService.UpdateDocument(id, request, userId);
-            return Ok(result);
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized("Missing accountId in token.");
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format.");
+
+            try
+            {
+                var dto = await _documentService.UpdateDocument(id, request, userId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Updated",
+                    Data = dto
+                });
+            }
+            catch (ArgumentException ax)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ax.Message });
+            }
+            catch (KeyNotFoundException kx)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = kx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = ex.Message });
+            }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized"
+                });
+
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid user ID"
+                });
+
+            try
+            {
+                await _documentService.DeleteDocument(id, userId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = "Document deleted successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status404NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+
 
 
 
         [HttpGet("project/{projectId}")]
-        public async Task<ActionResult<List<DocumentResponseDTO>>> GetByProject(int projectId)
+        public async Task<IActionResult> GetByProject(int projectId)
         {
             var accountIdClaim = User.FindFirst("accountId")?.Value;
 
             if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized();
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
 
             if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format");
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid user ID format" });
 
             var result = await _documentService.GetDocumentsByProject(projectId, userId);
-            return Ok(result);
+
+            var data = result ?? new List<DocumentResponseDTO>();
+
+            return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Success", Data = result });
         }
+
+
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<DocumentResponseDTO>> GetById(int id)
-        {
-            var result = await _documentService.GetDocumentById(id);
-            return Ok(result);
-        }
-
-        [HttpGet("created-by-me")]
-        public async Task<ActionResult<List<DocumentResponseDTO>>> GetDocumentsCreatedByMe()
-        {
-            var accountIdClaim = User.FindFirst("accountId")?.Value;
-
-            if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized();
-
-            if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format");
-
-            var result = await _documentService.GetDocumentsCreatedByUser(userId);
-            return Ok(result);
-
-        }
-
-        [HttpGet("{id}/summary")]
-        public async Task<IActionResult> SummarizeDocument(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             try
             {
-                var summary = await _documentService.SummarizeContent(id);
-                return Ok(new { summary });
+                // var accountIdClaim = User.FindFirst("accountId")?.Value;
+                // if (string.IsNullOrEmpty(accountIdClaim))
+                //     return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+                // var userId = int.Parse(accountIdClaim);
+
+                var doc = await _documentService.GetDocumentById(id);
+
+                if (doc == null)
+                {
+                    return NotFound(new ApiResponseDTO
+                    {
+                        IsSuccess = false,
+                        Code = StatusCodes.Status404NotFound,
+                        Message = $"Document {id} not found."
+                    });
+                }
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = "Success",
+                    Data = doc
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status403Forbidden,
+                    Message = "Forbidden."
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status404NotFound,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = ex.Message
+                });
             }
         }
+
+
+        //[HttpGet("created-by-me")]
+        //public async Task<ActionResult<List<DocumentResponseDTO>>> GetDocumentsCreatedByMe()
+        //{
+        //    var accountIdClaim = User.FindFirst("accountId")?.Value;
+
+        //    if (string.IsNullOrEmpty(accountIdClaim))
+        //        return Unauthorized();
+
+        //    if (!int.TryParse(accountIdClaim, out var userId))
+        //        return BadRequest("Invalid user ID format");
+
+        //    var result = await _documentService.GetDocumentsCreatedByUser(userId);
+        //    return Ok(result);
+
+        //}
+
+        //[HttpGet("{id}/summary")]
+        //public async Task<IActionResult> SummarizeDocument(int id)
+        //{
+        //    try
+        //    {
+        //        var summary = await _documentService.SummarizeContent(id);
+        //        return Ok(new { summary });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(new { message = ex.Message });
+        //    }
+        //}
 
         [HttpPost("{documentId}/share")]
         public async Task<IActionResult> ShareDocument(int documentId, [FromBody] ShareDocumentRequestDTO req)
@@ -132,63 +285,96 @@ namespace IntelliPM.API.Controllers
             try
             {
                 var result = await _documentService.ShareDocumentByEmail(documentId, req);
-                return Ok(result);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = result.Success,
+                    Code = StatusCodes.Status200OK,
+                    Message = result.Success
+                        ? "Share document emails sent successfully."
+                        : "Share document emails sent with some failures.",
+                    Data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status404NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = ex.Message
+                });
             }
         }
 
-        [Authorize]
-        [HttpPost("{documentId}/submit-approval")]
-        public async Task<IActionResult> SubmitForApproval(int documentId)
-        {
-            var userIdClaim = User.FindFirst("accountId")?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Unauthorized();
+        //[Authorize]
+        //[HttpPost("{documentId}/submit-approval")]
+        //public async Task<IActionResult> SubmitForApproval(int documentId)
+        //{
+        //    var userIdClaim = User.FindFirst("accountId")?.Value;
 
-            if (!int.TryParse(userIdClaim, out var approverId))
-                return BadRequest("Invalid approver ID");
+        //    if (string.IsNullOrEmpty(userIdClaim))
+        //        return Unauthorized();
 
-            var result = await _documentService.SubmitForApproval(documentId);
-            return Ok(result);
-        }
+        //    if (!int.TryParse(userIdClaim, out var approverId))
+        //        return BadRequest("Invalid approver ID");
 
-
-        [HttpPost("{documentId}/approve")]
-        public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
-        {
-            var result = await _documentService.UpdateApprovalStatus(documentId, req);
-            return Ok(result);
-        }
+        //    var result = await _documentService.SubmitForApproval(documentId);
+        //    return Ok(result);
+        //}
 
 
-        [HttpGet("status/{status}")]
-        public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
-        {
-            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-                return BadRequest("Invalid status");
-                
-            var result = await _documentService.GetDocumentsByStatus(status);
-            return Ok(result);
-        }
+        //[HttpPost("{documentId}/approve")]
+        //public async Task<IActionResult> ApproveOrReject(int documentId, [FromBody] UpdateDocumentStatusRequest req)
+        //{
+        //    var result = await _documentService.UpdateApprovalStatus(documentId, req);
+        //    return Ok(result);
+        //}
 
 
-        [HttpGet("project/{projectId}/status/{status}")]
-        public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+        //[HttpGet("status/{status}")]
+        //public async Task<ActionResult<List<DocumentResponseDTO>>> GetByStatus(string status)
+        //{
+        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+        //        return BadRequest("Invalid status");
 
-        {
-            var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
-            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-                return BadRequest("Invalid status");
+        //    var result = await _documentService.GetDocumentsByStatus(status);
+        //    return Ok(result);
+        //}
 
 
-            var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
-            return Ok(result);
-        }
+        //[HttpGet("project/{projectId}/status/{status}")]
+        //public async Task<IActionResult> GetByStatusAndProject(int projectId, string status)
+
+        //{
+        //    var validStatuses = new[] { "Draft", "PendingApproval", "Approved", "Rejected" };
+        //    if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+        //        return BadRequest("Invalid status");
+
+
+        //    var result = await _documentService.GetDocumentsByStatusAndProject(status, projectId);
+        //    return Ok(result);
+        //}
 
         [HttpPost("{id}/generate-ai-content")]
         public async Task<IActionResult> GenerateAIContent(int id, [FromBody] string prompt)
@@ -218,19 +404,19 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("find-by-key")]
-        public async Task<ActionResult<DocumentResponseDTO>> GetByKey(
-            [FromQuery] int projectId,
-            [FromQuery] string? epicId,
-            [FromQuery] string? taskId,
-            [FromQuery] string? subTaskId)      
-        {
-            var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
-            if (result == null)
-                return NotFound("Document not found");
+        //[HttpGet("find-by-key")]
+        //public async Task<ActionResult<DocumentResponseDTO>> GetByKey(
+        //    [FromQuery] int projectId,
+        //    [FromQuery] string? epicId,
+        //    [FromQuery] string? taskId,
+        //    [FromQuery] string? subTaskId)      
+        //{
+        //    var result = await _documentService.GetByKey(projectId, epicId, taskId, subTaskId);
+        //    if (result == null)
+        //        return NotFound("Document not found");
 
-            return Ok(result);
-        }
+        //    return Ok(result);
+        //}
 
         [HttpGet("mapping")]
         public async Task<IActionResult> GetDocumentMapping([FromQuery] int projectId, [FromQuery] int userId)
@@ -240,19 +426,19 @@ namespace IntelliPM.API.Controllers
         }
 
 
-        [HttpGet("status-total")]
-        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummary()
-        {
-            var summary = await _documentService.GetStatusCount();
-            return Ok(summary);
-        }
+        //[HttpGet("status-total")]
+        //public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummary()
+        //{
+        //    var summary = await _documentService.GetStatusCount();
+        //    return Ok(summary);
+        //}
 
-        [HttpGet("project/{projectId}/status-total")]
-        public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummaryByProject(int projectId)
-        {
-            var result = await _documentService.GetStatusCountByProject(projectId);
-            return Ok(result);
-        }
+        //[HttpGet("project/{projectId}/status-total")]
+        //public async Task<ActionResult<Dictionary<string, int>>> GetStatusSummaryByProject(int projectId)
+        //{
+        //    var result = await _documentService.GetStatusCountByProject(projectId);
+        //    return Ok(result);
+        //}
 
         [HttpPost("{id}/generate-from-tasks")]
         public async Task<ActionResult<GenerateDocumentResponse>> GenerateFromTasks(int id)

@@ -17,13 +17,7 @@ public partial class Document
 
     public string Title { get; set; } = null!;
 
-    public string? Type { get; set; }
-
-    public string? Template { get; set; }
-
     public string? Content { get; set; }
-
-    public string? FileUrl { get; set; }
 
     public bool IsActive { get; set; }
 
@@ -33,15 +27,11 @@ public partial class Document
 
     public int? UpdatedBy { get; set; }
 
-    public int? ApproverId { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
     public string? Visibility { get; set; }
-
-    public virtual Account? Approver { get; set; }
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
 

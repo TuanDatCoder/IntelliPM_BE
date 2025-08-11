@@ -12,7 +12,10 @@ namespace IntelliPM.Services.DocumentCommentServices
         Task<List<DocumentCommentResponseDTO>> GetByDocumentIdAsync(int documentId);
 
         Task<DocumentCommentResponseDTO?> GetByIdAsync(int id);
-        Task<DocumentCommentResponseDTO> UpdateAsync(int id, DocumentCommentRequestDTO request, int userId);
+        Task<DocumentCommentResponseDTO> UpdateAsync(
+          int id,
+          UpdateDocumentCommentRequestDTO request,
+          int userId);
 
         Task<bool> DeleteAsync(int id, int userId);
 

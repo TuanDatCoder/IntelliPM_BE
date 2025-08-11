@@ -45,8 +45,6 @@ public partial class Account
 
     public virtual ICollection<ChangeRequest> ChangeRequest { get; set; } = new List<ChangeRequest>();
 
-    public virtual ICollection<Document> DocumentApprover { get; set; } = new List<Document>();
-
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();
 
     public virtual ICollection<Document> DocumentCreatedByNavigation { get; set; } = new List<Document>();

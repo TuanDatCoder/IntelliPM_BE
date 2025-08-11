@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
+using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -157,7 +157,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+
     //        => optionsBuilder.UseNpgsql("Host=shuttle.proxy.rlwy.net;Port=46730;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=ePBNfZQAuyaFhaDvPboiVTGaPikaSUrP;");
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -416,7 +418,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.ToTable("document");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.ApproverId).HasColumnName("approver_id");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -425,9 +426,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.EpicId)
                 .HasMaxLength(255)
                 .HasColumnName("epic_id");
-            entity.Property(e => e.FileUrl)
-                .HasMaxLength(1024)
-                .HasColumnName("file_url");
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -442,13 +440,9 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.TaskId)
                 .HasMaxLength(255)
                 .HasColumnName("task_id");
-            entity.Property(e => e.Template).HasColumnName("template");
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
                 .HasColumnName("title");
-            entity.Property(e => e.Type)
-                .HasMaxLength(100)
-                .HasColumnName("type");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
@@ -456,10 +450,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Visibility)
                 .HasMaxLength(20)
                 .HasColumnName("visibility");
-
-            entity.HasOne(d => d.Approver).WithMany(p => p.DocumentApprover)
-                .HasForeignKey(d => d.ApproverId)
-                .HasConstraintName("fk_document_approver_id");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DocumentCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
@@ -496,21 +486,23 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AuthorId).HasColumnName("author_id");
+            entity.Property(e => e.Comment).HasColumnName("comment");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.DocumentId).HasColumnName("document_id");
+            entity.Property(e => e.FromPos).HasColumnName("from_pos");
+            entity.Property(e => e.ToPos).HasColumnName("to_pos");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
             entity.HasOne(d => d.Author).WithMany(p => p.DocumentComment)
                 .HasForeignKey(d => d.AuthorId)
-                .HasConstraintName("fk_author");
+                .HasConstraintName("document_comment_author_id_fkey");
 
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentComment)
                 .HasForeignKey(d => d.DocumentId)
-                .HasConstraintName("fk_document");
+                .HasConstraintName("document_comment_document_id_fkey");
         });
 
         modelBuilder.Entity<DocumentExportFile>(entity =>

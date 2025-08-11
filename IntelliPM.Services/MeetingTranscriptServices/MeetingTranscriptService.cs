@@ -59,9 +59,11 @@ namespace IntelliPM.Services.MeetingTranscriptServices
 
             //// Lấy API Key từ biến môi trường
             _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+
                             ?? config["OpenAI:ApiKey"];
 
             if (string.IsNullOrWhiteSpace(_openAiApiKey))
+
             {
                 throw new Exception("API Key không được thiết lập.");
             }
