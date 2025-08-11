@@ -141,7 +141,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     public virtual DbSet<WorkItemLabel> WorkItemLabel { get; set; }
 
     public virtual DbSet<WorkLog> WorkLog { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -430,10 +429,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .HasDefaultValueSql("'Draft'::character varying")
-                .HasColumnName("status");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -521,10 +516,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasMaxLength(1000)
                 .HasColumnName("exported_file_url");
 
-            entity.HasOne(d => d.Document).WithMany(p => p.DocumentExportFile)
-                .HasForeignKey(d => d.DocumentId)
-                .HasConstraintName("fk_document_export");
-
             entity.HasOne(d => d.ExportedByNavigation).WithMany(p => p.DocumentExportFile)
                 .HasForeignKey(d => d.ExportedBy)
                 .OnDelete(DeleteBehavior.SetNull)
@@ -551,11 +542,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_permission_account_id_fkey");
-
-            entity.HasOne(d => d.Document).WithMany(p => p.DocumentPermission)
-                .HasForeignKey(d => d.DocumentId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("document_permission_document_id_fkey");
         });
 
         modelBuilder.Entity<DynamicCategory>(entity =>
@@ -2199,6 +2185,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
         modelBuilder.HasSequence("course_id_seq");
         modelBuilder.HasSequence("flower_id_seq");
         modelBuilder.HasSequence("intellipm_id_seq");
+        modelBuilder.HasSequence("olmsd_id_seq");
         modelBuilder.HasSequence("projc_id_seq");
 
         OnModelCreatingPartial(modelBuilder);
