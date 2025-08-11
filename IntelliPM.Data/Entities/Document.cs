@@ -31,6 +31,8 @@ public partial class Document
 
     public string? Visibility { get; set; }
 
+    public string? Status { get; set; }
+
     public virtual Account CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<DocumentComment> DocumentComment { get; set; } = new List<DocumentComment>();

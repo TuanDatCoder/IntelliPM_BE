@@ -155,6 +155,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(GetConnectionString("DefaultConnection"));
 
+
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseNpgsql("Host=shuttle.proxy.rlwy.net;Port=46730;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=ePBNfZQAuyaFhaDvPboiVTGaPikaSUrP;");
@@ -428,6 +429,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'Draft'::character varying")
+                .HasColumnName("status");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
