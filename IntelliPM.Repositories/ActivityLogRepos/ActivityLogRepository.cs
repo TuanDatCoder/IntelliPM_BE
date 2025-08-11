@@ -64,6 +64,16 @@ namespace IntelliPM.Repositories.ActivityLogRepos
                 .ToListAsync();
         }
 
+        public async Task<List<ActivityLog>> GetByEpicIdAsync(string epicId)
+        {
+            return await _context.ActivityLog
+                .Include(s => s.CreatedByNavigation)
+                .Where(t => t.EpicId == epicId)
+                .OrderByDescending(tf => tf.CreatedAt)
+                .ToListAsync();
+        }
+
+
         public async Task<List<ActivityLog>> GetBySubtaskIdAsync(string subtaskId)
         {
             return await _context.ActivityLog

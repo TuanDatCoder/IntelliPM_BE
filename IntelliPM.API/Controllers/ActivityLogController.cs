@@ -115,6 +115,26 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("epic/{epicId}")]
+        public async Task<IActionResult> GetByEpicId(string epicId)
+        {
+            try
+            {
+                var activityLogList = await _activityLogService.GetActivityLogsByEpicId(epicId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "ActivityLog retrieved successfully",
+                    Data = activityLogList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
         // GET: api/ActivityLog?projectId=1&taskId=FLOWER-1&subtaskId=FLOWER-3
         [HttpGet]
         public IActionResult GetLogs([FromQuery] int projectId, [FromQuery] string? taskId, [FromQuery] string? subtaskId)
