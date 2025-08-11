@@ -485,6 +485,20 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("check-overdue-tasks/{projectKey}")]
+        public async Task<IActionResult> CheckAndCreateOverdueTaskRisks(string projectKey)
+        {
+            try
+            {
+                await _riskService.CheckAndCreateOverdueTaskRisksAsync(projectKey);
+                return Ok(new { message = "Overdue task risks processed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
 
     }
 }

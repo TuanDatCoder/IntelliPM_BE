@@ -11,6 +11,7 @@ using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
@@ -42,8 +43,9 @@ namespace IntelliPM.Services.RiskServices
         private readonly IAccountRepository _accountRepo;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _config;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
 
-        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo, IAccountRepository accountRepo, IEmailService emailService, IConfiguration config)
+        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo, IAccountRepository accountRepo, IEmailService emailService, IConfiguration config, ITaskAssignmentRepository taskAssignmentRepo)
         {
             _riskRepo = riskRepo;
             _riskSolutionRepo = riskSolutionRepo;
@@ -57,6 +59,7 @@ namespace IntelliPM.Services.RiskServices
             _emailService = emailService;
             _mapper = mapper;
             _config = config;
+            _taskAssignmentRepo = taskAssignmentRepo;
         }
 
         public async Task<List<RiskResponseDTO>> GetAllRisksAsync()
@@ -135,7 +138,7 @@ namespace IntelliPM.Services.RiskServices
 
                 await _riskRepo.AddAsync(riskEntity);
 
-            var solutionEntity = new RiskSolution
+                var solutionEntity = new RiskSolution
                 {
                     RiskId = riskEntity.Id,
                     MitigationPlan = riskDto.MitigationPlan,
@@ -621,7 +624,7 @@ namespace IntelliPM.Services.RiskServices
             risk.ImpactLevel = impactLevel;
             risk.UpdatedAt = DateTime.UtcNow;
 
-            var probability = risk.Probability; 
+            var probability = risk.Probability;
             risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
 
             try
@@ -739,6 +742,118 @@ namespace IntelliPM.Services.RiskServices
             var risks = await _geminiService.DetectTaskRisksAsync(project, tasks);
 
             return risks ?? new List<AIRiskResponseDTO>();
+        }
+
+        public async Task CheckAndCreateOverdueTaskRisksAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found with provided projectKey");
+
+            //var overdueTasks = await _taskRepo.GetOverdueTasksByProjectIdAsync(project.Id);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var now = DateTime.UtcNow.Date;
+            var overdueTasks = tasks
+        .Where(t => t.PlannedEndDate.HasValue &&
+                    t.PlannedEndDate.Value < now &&
+                    !string.Equals(t.Status, "DONE", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+            foreach (var task in overdueTasks)
+            {
+                Console.WriteLine($"Processing task {task.Id}: Title={task.Title}, PlannedEndDate={task.PlannedEndDate}, Status={task.Status}");
+                // Check if risk already exists for this task
+                var existingRisk = await _riskRepo.GetRiskByTaskIdAsync(task.Id);
+                if (existingRisk.Any())
+                {
+                    Console.WriteLine($"Risk already exists for task {task.Id}, skipping...");
+                    continue;
+                }
+
+
+                var count = await _riskRepo.CountByProjectIdAsync(project.Id);
+                var nextIndex = count + 1;
+                var riskKey = $"{project.ProjectKey}-R{nextIndex:D3}";
+
+                var entity = new Risk
+                {
+                    ProjectId = project.Id,
+                    TaskId = task.Id,
+                    RiskKey = riskKey,
+                    RiskScope = "TASK",
+                    Title = $"Overdue Task: {task.Title}",
+                    Description = $"Task {task.Id} is overdue. Planned end date was {task.PlannedEndDate:yyyy-MM-dd}.",
+                    Status = "OPEN",
+                    Type = "SCHEDULE",
+                    GeneratedBy = "SYSTEM",
+                    Probability = "HIGH",
+                    ImpactLevel = "MEDIUM",
+                    SeverityLevel = CalculateSeverityLevel("MEDIUM", "HIGH"),
+                    CreatedBy = 4,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    DueDate = null,
+                    IsApproved = true
+                };
+
+                await _riskRepo.AddAsync(entity);
+
+                // Construct riskDetailUrl
+                var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+                var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
+
+                // Send email to responsible person if exists
+                var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(task.Id);
+                foreach (var taskAssignment in taskAssignments)
+                {
+                        var assignedUser = await _accountRepo.GetAccountById(taskAssignment.AccountId);
+                        if (assignedUser != null)
+                        {
+                            await _emailService.SendRiskAssignmentEmail(
+                                assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
+                                assigneeEmail: assignedUser.Email,
+                                riskKey: riskKey,
+                                riskTitle: entity.Title,
+                                projectKey: project.ProjectKey,
+                                severityLevel: entity.SeverityLevel,
+                                dueDate: entity.DueDate,
+                                riskDetailUrl: riskDetailUrl
+                            );
+                        }
+                }
+
+                // Notify project members
+                var members = await _projectMemberRepo.GetProjectMemberbyProjectId(entity.ProjectId);
+                var recipients = members
+                    .Where(m => m.AccountId != entity.CreatedBy)
+                    .Select(m => m.AccountId)
+                    .ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var notification = new Notification
+                    {
+                        CreatedBy = entity.CreatedBy,
+                        Type = "RISK_ALERT",
+                        Priority = entity.SeverityLevel,
+                        Message = $"Overdue task risk identified in project {project.ProjectKey} - risk {riskKey}",
+                        RelatedEntityType = "Risk",
+                        RelatedEntityId = entity.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false,
+                        RecipientNotification = new List<RecipientNotification>()
+                    };
+
+                    foreach (var accId in recipients)
+                    {
+                        notification.RecipientNotification.Add(new RecipientNotification
+                        {
+                            AccountId = accId,
+                            IsRead = false
+                        });
+                    }
+                    await _notificationRepo.Add(notification);
+                }
+            }
         }
     }
 

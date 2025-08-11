@@ -19,6 +19,7 @@ namespace IntelliPM.Repositories.RiskRepos
         Task<List<Risk>> GetUnapprovedAIRisksByProjectIdAsync(int projectId);
         Task ApproveRiskAsync(int riskId);
         Task<int> CountByProjectIdAsync(int projectId);
+        Task<List<Risk>> GetRiskByTaskIdAsync(string taskId);
 
     }
 }

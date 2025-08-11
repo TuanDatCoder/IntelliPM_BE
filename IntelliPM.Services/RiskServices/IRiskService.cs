@@ -34,5 +34,6 @@ namespace IntelliPM.Services.RiskServices
         Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability, int createdBy);
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey);
         Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey);
+        Task CheckAndCreateOverdueTaskRisksAsync(string projectKey);
     }
 }
