@@ -195,5 +195,15 @@ namespace IntelliPM.Repositories.TaskRepos
             _context.Tasks.UpdateRange(tasks);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Tasks>> GetOverdueTasksByProjectIdAsync(int projectId)
+        {
+            var today = DateTime.UtcNow.Date;
+            return await _context.Tasks
+                .Where(t => t.ProjectId == projectId &&
+                           t.PlannedEndDate.Value < today &&
+                           t.Status != "DONE")
+                .ToListAsync();
+        }
     }
 }

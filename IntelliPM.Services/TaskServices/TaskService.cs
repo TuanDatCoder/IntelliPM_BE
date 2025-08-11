@@ -888,13 +888,17 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
 
+            // Validate planned_start_date < planned_end_date if end date exists
+            //if (entity.PlannedEndDate.HasValue && plannedStartDate > entity.PlannedEndDate.Value)
+            //    throw new ArgumentException("Planned start date cannot be after planned end date.");
+
             entity.PlannedStartDate = plannedStartDate;
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _taskRepo.Update(entity);
-                //await CalculatePlannedHoursAsync(entity.Id);
+                await CalculatePlannedHoursAsync(entity.Id);
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
@@ -928,7 +932,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
-                //await CalculatePlannedHoursAsync(entity.Id);
+                await CalculatePlannedHoursAsync(entity.Id);
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
@@ -1008,7 +1012,7 @@ namespace IntelliPM.Services.TaskServices
             }
 
             decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
-            decimal totalCost = 0;
+            decimal totalCost = 0m;
 
             if (totalWorkingHoursPerDay > 0)
             {
@@ -1017,8 +1021,12 @@ namespace IntelliPM.Services.TaskServices
                     //var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
                     //var memberAssignedHours = plannedHours * ratio;
                     //var memberCost = memberAssignedHours * member.HourlyRate.Value;
-                    var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
-                    var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
+
+                    //var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
+                    //var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
+                    //totalCost += memberCost;
+                    var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
                     totalCost += memberCost;
 
                     var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
@@ -1031,6 +1039,12 @@ namespace IntelliPM.Services.TaskServices
 
                 entity.PlannedResourceCost = totalCost;
                 entity.PlannedCost = totalCost;
+            }
+            else
+            {
+                // Warning: No assignments or working hours, costs remain 0
+                entity.PlannedResourceCost = 0m;
+                entity.PlannedCost = 0m;
             }
 
             try
@@ -1187,6 +1201,81 @@ namespace IntelliPM.Services.TaskServices
             }
 
         }
+
+        public async Task CalculatePlannedHoursAsync(string taskId)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null || !task.PlannedStartDate.HasValue || !task.PlannedEndDate.HasValue)
+                return; // No dates, skip
+
+            var start = task.PlannedStartDate.Value.Date;
+            var end = task.PlannedEndDate.Value.Date;
+
+            // Calculate business days (exclude weekends)
+            var businessDays = 0;
+            for (var date = start; date <= end; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                    businessDays++;
+            }
+
+            // Get assignments and sum working hours per day
+            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+            decimal totalWorkingHoursPerDay = 0m;
+            foreach (var assignment in assignments)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+                totalWorkingHoursPerDay += member?.WorkingHoursPerDay ?? 0m;
+            }
+
+            // Estimate planned hours
+            task.PlannedHours = businessDays * totalWorkingHoursPerDay;
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
+        }
+
+        //public async Task<TaskResponseDTO> ChangeTaskActualHours(string id, decimal actualHours, int createdBy)
+        //{
+        //    var entity = await _taskRepo.GetByIdAsync(id);
+        //    if (entity == null)
+        //        throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+        //    entity.ActualHours = actualHours;
+
+        //    var plannedHours = entity.PlannedHours ?? 0m;
+        //    entity.RemainingHours = plannedHours - actualHours;
+
+        //    // Recalculate costs from assignments (aggregate actual costs)
+        //    var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+        //    decimal totalActualCost = 0m;
+
+        //    foreach (var assignment in taskAssignments)
+        //    {
+        //        var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, entity.ProjectId);
+        //        decimal memberHourlyRate = member?.HourlyRate ?? 0m;
+        //        totalActualCost += (assignment.ActualHours ?? 0m) * memberHourlyRate; // Use assignment actual hours for cost
+        //    }
+
+        //    entity.ActualResourceCost = totalActualCost;
+        //    entity.ActualCost = totalActualCost;
+
+        //    await _taskRepo.Update(entity);
+        //    await UpdateTaskProgressAsync(entity);
+
+        //    await _activityLogService.LogAsync(new ActivityLog
+        //    {
+        //        ProjectId = entity.ProjectId,
+        //        TaskId = id,
+        //        RelatedEntityType = "Task",
+        //        RelatedEntityId = id,
+        //        ActionType = "UPDATE",
+        //        Message = $"Updated actual hours for task '{id}' to {actualHours}",
+        //        CreatedBy = createdBy,
+        //        CreatedAt = DateTime.UtcNow
+        //    });
+
+        //    return _mapper.Map<TaskResponseDTO>(entity);
+        //}
 
     }
 }

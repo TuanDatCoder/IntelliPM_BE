@@ -14,6 +14,7 @@ using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.DTOs.Risk.Response;
 using Org.BouncyCastle.Asn1.Ocsp;
 using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 
 public class GeminiService : IGeminiService
 {
@@ -21,11 +22,13 @@ public class GeminiService : IGeminiService
     private const string _apiKey = "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
     private readonly string _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
     private readonly IMapper _mapper;
+    private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-    public GeminiService(HttpClient httpClient, IMapper mapper)
+    public GeminiService(HttpClient httpClient, IMapper mapper, IDynamicCategoryRepository dynamicCategoryRepo)
     {
         _httpClient = httpClient;
         _mapper = mapper;
+        _dynamicCategoryRepo = dynamicCategoryRepo;
     }
 
     public async Task<List<string>> GenerateSubtaskAsync(string taskTitle)
@@ -881,6 +884,193 @@ Return the result as a JSON array with the following structure for each risk:
         }
     }
 
+    //    public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(
+    //    Project project,
+    //    ProjectMetric metric,
+    //    List<Tasks> tasks,
+    //    List<Sprint> sprints,
+    //    List<Milestone> milestones,
+    //    List<Subtask> subtasks)
+    //    {
+    //        if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
+    //            return new List<AIRecommendationDTO>();
+
+    //        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
+    //        {
+    //            t.Id,
+    //            t.Title,
+    //            t.Description,
+    //            t.PlannedStartDate,
+    //            t.PlannedEndDate,
+    //            t.ActualStartDate,
+    //            t.ActualEndDate,
+    //            t.PercentComplete,
+    //            t.PlannedHours,
+    //            t.ActualHours,
+    //            t.PlannedCost,
+    //            t.ActualCost,
+    //            t.Status,
+    //            t.Priority
+    //        }), Formatting.Indented);
+
+    //        var subtaskList = JsonConvert.SerializeObject(subtasks.Select(st => new
+    //        {
+    //            st.Id,
+    //            st.Title,
+    //            st.Description,
+    //            st.TaskId,
+    //            st.Status,
+    //            st.PlannedStartDate,
+    //            st.PlannedEndDate,
+    //            st.ActualStartDate,
+    //            st.ActualEndDate,
+    //            st.PercentComplete,
+    //            st.PlannedHours,
+    //            st.ActualHours,
+    //        }), Formatting.Indented);
+
+    //        var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
+    //        {
+    //            s.Id,
+    //            s.Name,
+    //            s.Goal,
+    //            s.StartDate,
+    //            s.EndDate,
+    //            s.Status
+    //        }), Formatting.Indented);
+
+    //        var milestoneList = JsonConvert.SerializeObject(milestones.Select(m => new
+    //        {
+    //            m.Id,
+    //            m.Name,
+    //            m.Key,
+    //            m.Description,
+    //            m.StartDate,
+    //            m.EndDate,
+    //            m.Status
+    //        }), Formatting.Indented);
+
+    //        var prompt = $@"
+    //    You are an expert in software project management with a focus on data-driven decision-making. Below is detailed information about a software project, including tasks, subtasks, sprints, milestones, and key performance metrics.
+
+    //    The project is currently underperforming:
+    //- SPI (Schedule Performance Index) = {metric.SchedulePerformanceIndex}
+    //- CPI (Cost Performance Index) = {metric.CostPerformanceIndex}
+
+    //    **Special Note**: If SPI and CPI are 0, this indicates no tasks have started or no costs have been incurred. In this case, focus on initiating critical tasks, setting realistic schedules, and establishing cost baselines.
+
+    //    **Task**: Analyze the provided data and propose some specific, actionable, and data-driven recommendations** to improve the project's performance. Each recommendation must be based on specific evidence from the tasks, subtasks, sprints, or milestones provided.
+
+    //**Requirements for Each Recommendation**:
+    //1. **Goal**: Clearly state the objective (e.g., reduce cost overrun, accelerate schedule, improve resource allocation).
+    //2. **Root Cause**: Identify a specific issue with evidence from the data (e.g., ""Task PROJA-3 has ActualHours 20% above PlannedHours"").
+    //3. **Action Steps**: Provide precise actions, such as:
+    //   - Adjust specific fields (e.g., 'Set PlannedHours of task INTELLIPM-3 to 80').
+    //   - Reassign personnel (e.g., 'Assign 1 senior developer to task INTELLIPM-5').
+    //   - Reschedule tasks or milestones (e.g., 'Move task INTELLIPM-4 to Sprint 2 starting 2025-08-22').
+    //   - Merge or split tasks/subtasks to optimize scope.
+    //   - Set realistic cost estimates based on task complexity and average resource cost (assume $100/hour unless specified).
+    //4. **Expected Impact**: Quantify the expected outcome (e.g., ""Reduce schedule delay by 3 days"", ""Cut costs by 10%"").
+    //5. **Priority**: Assign a priority level (1 = High, 2 = Medium, 3 = Low) based on urgency and impact.
+
+    //    **Output Format**:
+    //Return a JSON array with exactly 5 items, each with the following structure:
+    //[
+    //  {{{{
+    //    recommendation: string,         // Short description of the recommendation
+    //    details: string,               // Detailed explanation of root cause and actions
+    //    type: string,                  // Schedule | Cost | Scope | Resource | Performance | Design | Testing
+    //    affectedTasks: string[],       // List of affected task, subtask IDs, milestone Keys
+    //    expectedImpact: string,        // Quantified impact (e.g., ""Reduce cost by 10%"")
+    //    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of PROJA-3 to 40"")
+    //    priority: number,              // 1 (High), 2 (Medium), 3 (Low)
+    //  }}}}
+    //]
+
+    //    **Strict Constraints**:
+    //- Recommendations **must** reference specific data (e.g., task IDs, sprint names, milestone dates).
+    //- Avoid generic suggestions (e.g., ""Improve communication"")—focus on measurable actions.
+    //- Ensure actions are feasible within the project's context (budget: {{project.Budget}}, timeline: {{project.StartDate}} to {{project.EndDate}}).
+    //- Do not return markdown or additional text outside the JSON array.
+
+    //    Project Information:
+    //    - Name: {project.Name}
+    //    - Budget: {project.Budget}
+    //    - Start Date: {project.StartDate}
+    //    - End Date: {project.EndDate}
+
+    //    Metric Data:
+    //    - PV: {metric.PlannedValue}
+    //    - EV: {metric.EarnedValue}
+    //    - AC: {metric.ActualCost}
+    //    - SPI: {metric.SchedulePerformanceIndex}
+    //    - CPI: {metric.CostPerformanceIndex}
+
+    //    Task List:
+    //    {taskList}
+
+    //    Subtasks:
+    //    {subtaskList}
+
+    //    Sprint List:
+    //    {sprintList}
+
+    //    Milestone List:
+    //    {milestoneList}
+
+    //    All output must be written in English.
+    //    ";
+    //        var requestData = new
+    //        {
+    //            contents = new[]
+    //        {
+    //            new
+    //            {
+    //                parts = new[] { new { text = prompt } }
+    //            }
+    //        }
+    //        };
+
+    //        var requestJson = JsonConvert.SerializeObject(requestData);
+    //        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+    //        var response = await _httpClient.PostAsync(_url, content);
+    //        var responseString = await response.Content.ReadAsStringAsync();
+
+    //        if (!response.IsSuccessStatusCode)
+    //            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+
+    //        if (string.IsNullOrWhiteSpace(responseString))
+    //            throw new Exception("Gemini response is empty.");
+
+    //        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+    //        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+    //        if (string.IsNullOrEmpty(replyText))
+    //            throw new Exception("Gemini did not return any text response.");
+
+    //        if (replyText.StartsWith("```") && replyText.Contains("json"))
+    //        {
+    //            replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+    //        }
+
+    //        if (!replyText.StartsWith("["))
+    //            throw new Exception("Gemini reply is not a valid JSON array:\n" + replyText);
+
+    //        try
+    //        {
+    //            var aiRecommendations = JsonConvert.DeserializeObject<List<AIRecommendationDTO>>(replyText);
+    //            if (aiRecommendations == null || aiRecommendations.Count == 0)
+    //                throw new Exception("No recommendations received from AI.");
+
+    //            return aiRecommendations;
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            throw new Exception("Error parsing ProjectRecommendation from Gemini reply:\n" + replyText + "\n" + ex.Message);
+    //        }
+    //    }
+
     public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(
     Project project,
     ProjectMetric metric,
@@ -889,9 +1079,32 @@ Return the result as a JSON array with the following structure for each risk:
     List<Milestone> milestones,
     List<Subtask> subtasks)
     {
-        if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
-            return new List<AIRecommendationDTO>();
+        var validRecommendationTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("recommendation_type");
+        var recommendationTypes = validRecommendationTypes
+            .Where(c => c.Name == "COST" || c.Name == "SCHEDULE")
+            .Select(c => c.Name)
+            .ToList();
 
+        if (!recommendationTypes.Any())
+            throw new Exception("No valid recommendation types (Cost or Schedule) found in dynamic_category.");
+
+        // Determine recommendation type based on CPI and SPI
+        string recommendationType;
+        if (metric.CostPerformanceIndex >= 1 && metric.SchedulePerformanceIndex < 1)
+        {
+            recommendationType = "SCHEDULE";
+        }
+        else if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex < 1)
+        {
+            recommendationType = "COST";
+        }
+        else
+        {
+            // Randomly select Cost or Schedule if both CPI and SPI are < 1
+            recommendationType = new Random().Next(0, 2) == 0 ? "COST" : "SCHEDULE";
+        }
+
+        // Serialize input data
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
         {
             t.Id,
@@ -948,79 +1161,82 @@ Return the result as a JSON array with the following structure for each risk:
         }), Formatting.Indented);
 
         var prompt = $@"
-    You are an expert in software project management with a focus on data-driven decision-making. Below is detailed information about a software project, including tasks, subtasks, sprints, milestones, and key performance metrics.
+You are an expert in software project management with a focus on data-driven decision-making. Below is detailed information about a software project, including tasks, subtasks, sprints, milestones, and key performance metrics.
 
-    The project is currently underperforming:
+The project is currently underperforming:
 - SPI (Schedule Performance Index) = {metric.SchedulePerformanceIndex}
 - CPI (Cost Performance Index) = {metric.CostPerformanceIndex}
 
-    **Special Note**: If SPI and CPI are 0, this indicates no tasks have started or no costs have been incurred. In this case, focus on initiating critical tasks, setting realistic schedules, and establishing cost baselines.
+**Special Note**: Focus recommendations on improving **{recommendationType}**. If SPI or CPI is 0, it indicates no tasks have started or no costs have been incurred. In such cases, prioritize initiating critical tasks for Schedule or establishing cost baselines for Cost.
 
-    **Task**: Analyze the provided data and propose some specific, actionable, and data-driven recommendations** to improve the project's performance. Each recommendation must be based on specific evidence from the tasks, subtasks, sprints, or milestones provided.
-    
+**Task**: Analyze the provided data and propose exactly 5 specific, actionable, and data-driven recommendations to improve the project's {recommendationType} performance. Each recommendation must be based on specific evidence from the tasks, subtasks, sprints, or milestones provided.
+
 **Requirements for Each Recommendation**:
-1. **Goal**: Clearly state the objective (e.g., reduce cost overrun, accelerate schedule, improve resource allocation).
-2. **Root Cause**: Identify a specific issue with evidence from the data (e.g., ""Task PROJA-3 has ActualHours 20% above PlannedHours"").
+1. **Goal**: Clearly state the objective (e.g., reduce cost overrun, accelerate schedule).
+2. **Root Cause**: Identify a specific issue with evidence (e.g., ""Task TASK-003 has ActualHours 20% above PlannedHours"" for Cost, or ""Task TASK-004 is 30% behind schedule"" for Schedule).
 3. **Action Steps**: Provide precise actions, such as:
-   - Adjust specific fields (e.g., 'Set PlannedHours of task INTELLIPM-3 to 80').
-   - Reassign personnel (e.g., 'Assign 1 senior developer to task INTELLIPM-5').
-   - Reschedule tasks or milestones (e.g., 'Move task INTELLIPM-4 to Sprint 2 starting 2025-08-22').
+   - Adjust specific fields (e.g., 'Set PlannedHours of TASK-003 to 80').
+   - Reassign personnel (e.g., 'Assign 1 senior developer to SUBTASK-005').
+   - Reschedule tasks or milestones (e.g., 'Move TASK-004 to Sprint 2 starting 2025-08-22').
    - Merge or split tasks/subtasks to optimize scope.
-   - Set realistic cost estimates based on task complexity and average resource cost (assume $100/hour unless specified).
+   - Set realistic cost estimates based on task complexity and average resource cost ($50/hour for senior developers, $30/hour for junior developers).
 4. **Expected Impact**: Quantify the expected outcome (e.g., ""Reduce schedule delay by 3 days"", ""Cut costs by 10%"").
 5. **Priority**: Assign a priority level (1 = High, 2 = Medium, 3 = Low) based on urgency and impact.
 
-    **Output Format**:
+**Output Format**:
 Return a JSON array with exactly 5 items, each with the following structure:
 [
-  {{{{
+  {{
     recommendation: string,         // Short description of the recommendation
     details: string,               // Detailed explanation of root cause and actions
-    type: string,                  // Schedule | Cost | Scope | Resource | Performance | Design | Testing
-    affectedTasks: string[],       // List of affected task, subtask IDs, milestone Keys
+    type: string,                  // Must be '{recommendationType}'
+    affectedTasks: string[],       // List of affected task IDs, subtask IDs, milestone Keys
     expectedImpact: string,        // Quantified impact (e.g., ""Reduce cost by 10%"")
-    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of PROJA-3 to 40"")
-    priority: number,              // 1 (High), 2 (Medium), 3 (Low)
-  }}}}
+    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of TASK-003 to 40"")
+    priority: number              // 1 (High), 2 (Medium), 3 (Low)
+  }}
 ]
 
-    **Strict Constraints**:
-- Recommendations **must** reference specific data (e.g., task IDs, sprint names, milestone dates).
+**Strict Constraints**:
+- Recommendations **must** reference specific data (e.g., task IDs like 'TASK-001', subtask IDs like 'SUBTASK-005', sprint names, milestone keys).
+- All recommendations must be of type '{recommendationType}'.
 - Avoid generic suggestions (e.g., ""Improve communication"")—focus on measurable actions.
-- Ensure actions are feasible within the project's context (budget: {{project.Budget}}, timeline: {{project.StartDate}} to {{project.EndDate}}).
+- Ensure actions are feasible within the project's context (budget: {project.Budget}, timeline: {project.StartDate} to {project.EndDate}).
 - Do not return markdown or additional text outside the JSON array.
+- Assume personnel costs: $50/hour for senior developers (e.g., John Doe), $30/hour for junior developers (e.g., Bob Jones).
 
-    Project Information:
-    - Name: {project.Name}
-    - Budget: {project.Budget}
-    - Start Date: {project.StartDate}
-    - End Date: {project.EndDate}
+Project Information:
+- Name: {project.Name}
+- Budget: {project.Budget}
+- Start Date: {project.StartDate}
+- End Date: {project.EndDate}
 
-    Metric Data:
-    - PV: {metric.PlannedValue}
-    - EV: {metric.EarnedValue}
-    - AC: {metric.ActualCost}
-    - SPI: {metric.SchedulePerformanceIndex}
-    - CPI: {metric.CostPerformanceIndex}
+Metric Data:
+- PV: {metric.PlannedValue}
+- EV: {metric.EarnedValue}
+- AC: {metric.ActualCost}
+- SPI: {metric.SchedulePerformanceIndex}
+- CPI: {metric.CostPerformanceIndex}
 
-    Task List:
-    {taskList}
+Task List:
+{taskList}
 
-    Subtasks:
-    {subtaskList}
+Subtasks:
+{subtaskList}
 
-    Sprint List:
-    {sprintList}
+Sprint List:
+{sprintList}
 
-    Milestone List:
-    {milestoneList}
+Milestone List:
+{milestoneList}
 
-    All output must be written in English.
-    ";
+All output must be written in English.
+";
+
         var requestData = new
         {
             contents = new[]
-        {
+            {
             new
             {
                 parts = new[] { new { text = prompt } }
@@ -1057,8 +1273,12 @@ Return a JSON array with exactly 5 items, each with the following structure:
         try
         {
             var aiRecommendations = JsonConvert.DeserializeObject<List<AIRecommendationDTO>>(replyText);
-            if (aiRecommendations == null || aiRecommendations.Count == 0)
-                throw new Exception("No recommendations received from AI.");
+            if (aiRecommendations == null || aiRecommendations.Count != 5)
+                throw new Exception($"Expected exactly 5 recommendations, received {aiRecommendations?.Count ?? 0} from AI.");
+
+            // Validate that all recommendations are of the correct type
+            if (aiRecommendations.Any(r => r.Type != recommendationType))
+                throw new Exception($"All recommendations must be of type '{recommendationType}'.");
 
             return aiRecommendations;
         }

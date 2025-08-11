@@ -423,7 +423,6 @@ namespace IntelliPM.Services.SubtaskServices
         {
             if (entity.AssignedBy == null)
             {
-                // Nếu không có AssignedBy, đặt chi phí về 0
                 entity.PlannedResourceCost = 0;
                 entity.PlannedCost = 0;
                 entity.ActualResourceCost = 0;
@@ -440,7 +439,7 @@ namespace IntelliPM.Services.SubtaskServices
 
                 // Lấy hourlyRate từ ProjectMember
                 var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
-                decimal hourlyRate = projectMember?.HourlyRate ?? 0; // Nếu không tìm thấy, dùng 0
+                decimal hourlyRate = projectMember?.HourlyRate ?? 0; 
 
                 // Tính toán chi phí cho Subtask
                 entity.PlannedResourceCost = entity.PlannedHours * hourlyRate;
