@@ -10,11 +10,13 @@ namespace IntelliPM.Data.DTOs.ProjectRecommendation.Request
     {
         public int ProjectId { get; set; }
 
-        public string TaskId { get; set; } = null!;
-
         public string Type { get; set; } = null!;
 
         public string Recommendation { get; set; } = null!;
+
+        public string SuggestedChanges { get; set; }
+
+        public string Details { get; set; }
     }
 
 }

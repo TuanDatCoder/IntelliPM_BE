@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +16,17 @@ namespace IntelliPM.Repositories.TaskRepos
     public class TaskRepository : ITaskRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public TaskRepository(Su25Sep490IntelliPmContext context)
+        public TaskRepository(Su25Sep490IntelliPmContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
+        }
+
+        public Su25Sep490IntelliPmContext GetContext()
+        {
+            return _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<Su25Sep490IntelliPmContext>();
         }
 
         public async Task<List<Tasks>> GetAllTasks()
@@ -159,15 +167,33 @@ namespace IntelliPM.Repositories.TaskRepos
                 {
                     Id = st.Id,
                     TaskId = st.TaskId,
-                    AssignedBy = (int)st.AssignedBy,
+                    AssignedBy = st.AssignedBy,
                     PlannedHours = st.PlannedHours,
                     ActualHours = st.ActualHours
                 }).ToList()
             };
         }
 
+        public async Task AddRangeAsync(List<Tasks> tasks)
+        {
+            await _context.Tasks.AddRangeAsync(tasks);
+        }
+        public async Task AddRangeAsync(List<Tasks> tasks, Su25Sep490IntelliPmContext context)
+        {
+            await context.Tasks.AddRangeAsync(tasks);
+        }
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
 
+        public async Task UpdateRange(List<Tasks> tasks)
+        {
+            if (tasks == null || !tasks.Any())
+                return;
 
-
+            _context.Tasks.UpdateRange(tasks);
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -11,6 +11,7 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -22,15 +23,18 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Intrinsics.Arm;
@@ -57,8 +61,11 @@ namespace IntelliPM.Services.TaskServices
         private readonly IWorkLogService _workLogService;
         private readonly IActivityLogService _activityLogService;
         private readonly IMilestoneRepository _milestoneRepo;
+        private readonly IGeminiService _geminiService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly object _idGenerationLock = new object();
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -76,8 +83,67 @@ namespace IntelliPM.Services.TaskServices
             _sprintRepo = sprintRepo;
             _activityLogService = activityLogService;
             _milestoneRepo = milestoneRepo;
+            _geminiService = geminiService;
+            _serviceProvider = serviceProvider;
         }
-      
+        public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+            // Gọi AI service và nhận về danh sách task đề xuất có title + description
+            var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
+
+            if (suggestions == null || !suggestions.Any())
+                return new List<TaskResponseDTO>();
+
+            var now = DateTime.UtcNow;
+
+            var tasks = suggestions.Select(s => new Tasks
+            {
+                ProjectId = projectId,
+                Title = s.Title?.Trim() ?? "Untitled Task",
+                Description = s.Description?.Trim() ?? string.Empty,
+                Type = s.Type?.Trim() ?? string.Empty,
+                Status = "TO-DO",
+                ManualInput = false,
+                GenerationAiInput = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            return _mapper.Map<List<TaskResponseDTO>>(tasks);
+        }
+
+        public async Task<List<TaskResponseDTO>> GenerateTaskPreviewByEpicAsync(string epicId)
+        {
+            var project = await _epicRepo.GetByIdAsync(epicId);
+            if (project == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
+
+            var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
+
+            if (suggestions == null || !suggestions.Any())
+                return new List<TaskResponseDTO>();
+
+            var now = DateTime.UtcNow;
+
+            var tasks = suggestions.Select(s => new Tasks
+            {
+                EpicId = epicId,
+                Title = s.Title?.Trim() ?? "Untitled Task",
+                Description = s.Description?.Trim() ?? string.Empty,
+                Type = s.Type?.Trim() ?? string.Empty,
+                Status = "TO-DO",
+                ManualInput = false,
+                GenerationAiInput = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            return _mapper.Map<List<TaskResponseDTO>>(tasks);
+        }
 
         public async Task<List<TaskResponseDTO>> GetAllTasks()
         {
@@ -137,30 +203,35 @@ namespace IntelliPM.Services.TaskServices
                 switch (dep.Type.ToUpper())
                 {
                     case "FINISH_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
                             warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                         }
                         break;
 
                     case "START_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                         }
                         break;
 
+
                     case "FINISH_FINISH":
+                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
                         if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                         }
                         break;
 
                     case "START_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
                         }
                         break;
                 }
@@ -248,6 +319,28 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
+
+
+        public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
+        {
+            if (requests == null || !requests.Any())
+            {
+                throw new ArgumentException("Request list cannot be null or empty.");
+            }
+
+            var results = new List<TaskResponseDTO>();
+
+            foreach (var request in requests)
+            {
+
+                var result = await CreateTask(request);
+                results.Add(result);
+            }
+
+            return results;
+        }
+
 
         public async Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request)
         {
@@ -385,30 +478,35 @@ namespace IntelliPM.Services.TaskServices
                 switch (dep.Type.ToUpper())
                 {
                     case "FINISH_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
                             warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                         }
                         break;
 
                     case "START_START":
-                        if (isInProgress && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                         }
                         break;
 
+
                     case "FINISH_FINISH":
+                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
                         if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                         }
                         break;
 
                     case "START_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
                         {
-                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
                         }
                         break;
                 }
@@ -487,9 +585,9 @@ namespace IntelliPM.Services.TaskServices
             }
             else if (task.Status == "IN_PROGRESS")
             {
-                if (task.PlannedHours > 0)
+                if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
                 {
-                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
                     task.PercentComplete = Math.Min((int)rawProgress, 99);
                 }
                 else
@@ -739,6 +837,51 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
+        {
+            var entity = await _taskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (sprintId == 0)
+            {
+                entity.SprintId = null;
+            }
+            else
+            {
+                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
+                if (sprint == null)
+                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+                entity.SprintId = sprintId;
+            }
+
+
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed sprint of task '{entity.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+            }
+
+            return _mapper.Map<TaskResponseDTO>(entity);
+        }
+
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
@@ -839,13 +982,13 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours)
+        public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var actualHours = entity.ActualHours;
+            var actualHours = entity.ActualHours ?? 0;
             entity.RemainingHours = plannedHours - actualHours;
             entity.PlannedHours = plannedHours;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -871,10 +1014,19 @@ namespace IntelliPM.Services.TaskServices
             {
                 foreach (var member in projectMembers)
                 {
-                    var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
-                    var memberAssignedHours = plannedHours * ratio;
-                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    //var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+                    //var memberAssignedHours = plannedHours * ratio;
+                    //var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
+                    var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
                     totalCost += memberCost;
+
+                    var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
+                    if (taskAssignment != null)
+                    {
+                        taskAssignment.PlannedHours = memberAssignedHours;
+                        await _taskAssignmentRepo.Update(taskAssignment);
+                    }
                 }
 
                 entity.PlannedResourceCost = totalCost;
@@ -885,6 +1037,19 @@ namespace IntelliPM.Services.TaskServices
             {
                 await _taskRepo.Update(entity);
                 await UpdateTaskProgressAsync(entity);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = entity.ProjectId,
+                    TaskId = id,
+                    SubtaskId = null,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = id,
+                    ActionType = "UPDATE",
+                    Message = $"Updated plan hours for task '{id}' to {plannedHours}",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -894,40 +1059,7 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-        public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId)
-        {
-            var entity = await _taskRepo.GetByIdAsync(id);
-            if (entity == null)
-                throw new KeyNotFoundException($"Task with ID {id} not found.");
-
-            if(sprintId == 0)
-            {
-                entity.SprintId = null;
-            }
-            else
-            {
-                var sprint = await _sprintRepo.GetByIdAsync(sprintId);
-                if (sprint == null)
-                    throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
-                entity.SprintId = sprintId;
-            }
-
-            
-            entity.UpdatedAt = DateTime.UtcNow;
-
-            try
-            {
-                await _taskRepo.Update(entity);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
-            }
-
-            return _mapper.Map<TaskResponseDTO>(entity);
-        }
-
-        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId)
+        public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -943,6 +1075,18 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    TaskId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Task",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed epic of task '{entity.Id}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -987,8 +1131,6 @@ namespace IntelliPM.Services.TaskServices
             await EnrichTaskBacklogResponses(dtos);
             return dtos;
         }
-
-     
 
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdByStatusAsync(int sprintId, string status)
         {

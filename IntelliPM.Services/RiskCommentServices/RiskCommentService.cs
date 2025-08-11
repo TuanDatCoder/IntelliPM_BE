@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.RiskComment.Request;
 using IntelliPM.Data.DTOs.RiskComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
@@ -6,10 +7,13 @@ using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskCommentRepos;
 using IntelliPM.Repositories.RiskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,8 +31,10 @@ namespace IntelliPM.Services.RiskCommentServices
         private readonly IRiskRepository _riskRepo;
         private readonly IProjectMemberRepository _projectMemberRepo;
         private readonly ILogger<RiskCommentService> _logger;
+        private readonly IActivityLogService _activityLogService;
+        private readonly IProjectRepository _projectRepo;
 
-        public RiskCommentService(IMapper mapper, IRiskCommentRepository repo, INotificationRepository notificationRepo, IRiskRepository riskRepo, IProjectMemberRepository projectMemberRepo, ILogger<RiskCommentService> logger)
+        public RiskCommentService(IMapper mapper, IRiskCommentRepository repo, INotificationRepository notificationRepo, IRiskRepository riskRepo, IProjectMemberRepository projectMemberRepo, ILogger<RiskCommentService> logger, IActivityLogService activityLogService, IProjectRepository projectRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -36,6 +42,8 @@ namespace IntelliPM.Services.RiskCommentServices
             _riskRepo = riskRepo;
             _projectMemberRepo = projectMemberRepo;
             _logger = logger;
+            _activityLogService = activityLogService;
+            _projectRepo = projectRepo;
         }
 
         public async Task<RiskCommentResponseDTO> CreateRiskComment(RiskCommentRequestDTO request)
@@ -60,6 +68,7 @@ namespace IntelliPM.Services.RiskCommentServices
                     throw new Exception($"Risk with ID {request.RiskId} not found.");
 
                 var projectId = risk.ProjectId;
+                var project = await _projectRepo.GetByIdAsync(risk.ProjectId);
 
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
@@ -74,7 +83,7 @@ namespace IntelliPM.Services.RiskCommentServices
                         CreatedBy = request.AccountId,
                         Type = "COMMENT",
                         Priority = "NORMAL",
-                        Message = $"Comment in risk {risk.RiskKey}: {request.Comment}",
+                        Message = $"Comment in project {project.ProjectKey} - risk {risk.RiskKey}: {request.Comment}",
                         RelatedEntityType = "Risk",
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
@@ -86,12 +95,24 @@ namespace IntelliPM.Services.RiskCommentServices
                     {
                         notification.RecipientNotification.Add(new RecipientNotification
                         {
-                            AccountId = accId
-                            //IsRead = false
+                            AccountId = accId,
+                            IsRead = false
                         });
                     }
                     await _notificationRepo.Add(notification);
                 }
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "RiskComment",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "CREATE",
+                    Message = $"Comment in risk '{risk.RiskKey}' is '{request.Comment}'",
+                    CreatedBy = request.AccountId,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (DbUpdateException ex)
             {
@@ -104,7 +125,7 @@ namespace IntelliPM.Services.RiskCommentServices
             return _mapper.Map<RiskCommentResponseDTO>(entity);
         }
 
-        public async Task DeleteRiskComment(int id)
+        public async Task DeleteRiskComment(int id, int createdBy)
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null)
@@ -113,6 +134,25 @@ namespace IntelliPM.Services.RiskCommentServices
             try
             {
                 await _repo.Delete(entity);
+
+                var risk = await _riskRepo.GetByIdAsync(entity.RiskId);
+                if (risk == null)
+                    throw new Exception($"Risk with ID {entity.RiskId} not found.");
+
+                var projectId = risk.ProjectId;
+                var project = await _projectRepo.GetByIdAsync(risk.ProjectId);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "RiskComment",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "DELETE",
+                    Message = $"Delete comment in risk '{risk.RiskKey}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -146,6 +186,25 @@ namespace IntelliPM.Services.RiskCommentServices
             try
             {
                 await _repo.Update(entity);
+
+                var risk = await _riskRepo.GetByIdAsync(request.RiskId);
+                if (risk == null)
+                    throw new Exception($"Risk with ID {request.RiskId} not found.");
+
+                var projectId = risk.ProjectId;
+                var project = await _projectRepo.GetByIdAsync(risk.ProjectId);
+
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = projectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "RiskComment",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated in risk '{risk.RiskKey}': '{request.Comment}'",
+                    CreatedBy = request.AccountId,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

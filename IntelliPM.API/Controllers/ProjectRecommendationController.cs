@@ -44,7 +44,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("ai-forecast")]
+        [HttpPost("ai-forecast")]
         public async Task<IActionResult> SimulateProjectMetricsAfterRecommendationsAsync([FromQuery] string projectKey)
         {
             try
@@ -123,6 +123,22 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
+        [HttpGet("forecast")]
+        public async Task<IActionResult> GetProjectMetricForecast([FromQuery] string projectKey)
+        {
+            try
+            {
+                var forecast = await _service.GetProjectMetricForecastAsync(projectKey);
+                return Ok(forecast);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { Error = ex.Message });
+            }
+        }
     }
 }

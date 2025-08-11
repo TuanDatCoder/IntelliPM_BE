@@ -1,10 +1,12 @@
-using ConstructionEquipmentRental.API.Middlewares;
+using IntelliPM.API.Middlewares;
+using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
-using IntelliPM.Repositories.ActivityLogRepos;
+using IntelliPM.Repositories.AiResponseEvaluationRepos;
+using IntelliPM.Repositories.AiResponseHistoryRepos;
 using IntelliPM.Repositories.DocumentCommentRepos;
 using IntelliPM.Repositories.DocumentExportFileRepos;
 using IntelliPM.Repositories.DocumentPermissionRepos;
@@ -32,7 +34,6 @@ using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RecipientNotificationRepos;
-using IntelliPM.Repositories.RecipientNotificationRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Repositories.RiskCommentRepos;
@@ -53,9 +54,11 @@ using IntelliPM.Repositories.WorkItemLabelRepos;
 using IntelliPM.Repositories.WorkLogRepos;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ActivityLogServices;
-using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
+using IntelliPM.Services.AiResponseEvaluationServices;
+using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
+using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
@@ -70,6 +73,7 @@ using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.Helper.MapperProfiles;
 using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
@@ -85,13 +89,11 @@ using IntelliPM.Services.MilestoneCommentServices;
 using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.NotificationServices;
-using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectRecommendationServices;
 using IntelliPM.Services.ProjectServices;
-using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Services.RequirementServices;
 using IntelliPM.Services.RiskCommentServices;
@@ -117,6 +119,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using IntelliPM.Repositories.MetricHistoryRepos;
+using IntelliPM.Services.ProjectMetricHistoryServices;
 
 
 
@@ -160,9 +164,6 @@ builder.Services.AddScoped<IMeetingSummaryRepository, MeetingSummaryRepository>(
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 builder.Services.AddScoped<IDocumentExportFileRepository, DocumentExportFileRepository>();
 builder.Services.AddScoped<IDocumentPermissionRepository, DocumentPermissionRepository>();
-
-
-//
 builder.Services.AddScoped<IMeetingLogRepository, MeetingLogRepository>();
 builder.Services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
 builder.Services.AddScoped<IMilestoneFeedbackRepository, MilestoneFeedbackRepository>();
@@ -188,9 +189,10 @@ builder.Services.AddScoped<IRiskFileRepository, RiskFileRepository>();
 builder.Services.AddScoped<IRiskCommentRepository, RiskCommentRepository>();
 builder.Services.AddScoped<IMeetingDocumentRepository, MeetingDocumentRepository>();
 builder.Services.AddScoped<IMilestoneCommentRepository, MilestoneCommentRepository>();
-
 builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
-
+builder.Services.AddScoped<IAiResponseHistoryRepository, AiResponseHistoryRepository>();
+builder.Services.AddScoped<IAiResponseEvaluationRepository, AiResponseEvaluationRepository>();
+builder.Services.AddScoped<IMetricHistoryRepository, MetricHistoryRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -242,20 +244,19 @@ builder.Services.AddScoped<IRiskFileService, RiskFileService>();
 builder.Services.AddScoped<IRiskCommentService, RiskCommentService>();
 builder.Services.AddScoped<INotificationPushService, SignalRNotificationPushService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-
 builder.Services.AddScoped<IMeetingDocumentService, MeetingDocumentService>();
 builder.Services.AddScoped<ITaskDependencyService, TaskDependencyService>();
 builder.Services.AddScoped<IMilestoneCommentService, MilestoneCommentService>();
-
 builder.Services.AddScoped<DocumentExportService>();
 builder.Services.AddScoped<IDocumentCommentService, DocumentCommentService>();
-
-
+builder.Services.AddScoped<IAiResponseHistoryService, AiResponseHistoryService>();
+builder.Services.AddScoped<IAiResponseEvaluationService, AiResponseEvaluationService>();
 builder.Services.AddSignalR();
-
-
 builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
-
+builder.Services.AddTransient<CloudConvertService>();
+builder.Services.AddScoped<ISprintTaskPlanningService, SprintTaskPlanningService>();
+builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
+builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
 
 
 // ------------------------- HttpClient -----------------------------
@@ -374,9 +375,13 @@ app.UseSwaggerUI(c =>
 });
 
 
-app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowAll");
+
+app.UseMiddleware<DynamicCategoryValidationMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
+
+
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

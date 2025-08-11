@@ -42,6 +42,27 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("from-url")]
+        public async Task<IActionResult> UploadTranscriptFromUrl([FromBody] MeetingTranscriptFromUrlRequestDTO request)
+        {
+            try
+            {
+                var result = await _service.UploadTranscriptFromUrlAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UploadTranscriptFromUrl: {Message}", ex.Message);
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while uploading transcript from video URL.",
+                    error = ex.Message,
+                    stack = ex.StackTrace
+                });
+            }
+        }
+
+
 
         [HttpGet("{meetingId}")]
         public async Task<IActionResult> GetTranscriptByMeetingId(int meetingId)

@@ -114,11 +114,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateStatusAsync(id, status);
+                var updated = await _riskService.UpdateStatusAsync(id, status, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -137,11 +137,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/type")]
-        public async Task<IActionResult> UpdateType(int id, [FromBody] string type)
+        public async Task<IActionResult> UpdateType(int id, [FromBody] string type, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateTypeAsync(id, type);
+                var updated = await _riskService.UpdateTypeAsync(id, type, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -160,11 +160,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/responsible-id")]
-        public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int? responsibleId)
+        public async Task<IActionResult> UpdateResponsibleId(int id, [FromBody] int? responsibleId, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateResponsibleIdAsync(id, responsibleId);
+                var updated = await _riskService.UpdateResponsibleIdAsync(id, responsibleId, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -183,11 +183,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/dueDate")]
-        public async Task<IActionResult> UpdateDueDate(int id, [FromBody] DateTime dueDate)
+        public async Task<IActionResult> UpdateDueDate(int id, [FromBody] DateTime dueDate, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateDueDateAsync(id, dueDate);
+                var updated = await _riskService.UpdateDueDateAsync(id, dueDate, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -206,11 +206,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/title")]
-        public async Task<IActionResult> UpdateTitle(int id, [FromBody] string title)
+        public async Task<IActionResult> UpdateTitle(int id, [FromBody] string title, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateTitleAsync(id, title);
+                var updated = await _riskService.UpdateTitleAsync(id, title, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -229,11 +229,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/description")]
-        public async Task<IActionResult> UpdateDescription(int id, [FromBody] string description)
+        public async Task<IActionResult> UpdateDescription(int id, [FromBody] string description, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateDescriptionAsync(id, description);
+                var updated = await _riskService.UpdateDescriptionAsync(id, description, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -252,11 +252,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/impact-level")]
-        public async Task<IActionResult> UpdateImpactLevel(int id, [FromBody] string impactLevel)
+        public async Task<IActionResult> UpdateImpactLevel(int id, [FromBody] string impactLevel, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateImpactLevelAsync(id, impactLevel);
+                var updated = await _riskService.UpdateImpactLevelAsync(id, impactLevel, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -275,11 +275,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("{id}/probability")]
-        public async Task<IActionResult> UpdateProbability(int id, [FromBody] string probability)
+        public async Task<IActionResult> UpdateProbability(int id, [FromBody] string probability, int createdBy)
         {
             try
             {
-                var updated = await _riskService.UpdateProbabilityAsync(id, probability);
+                var updated = await _riskService.UpdateProbabilityAsync(id, probability, createdBy);
                 if (updated == null)
                     return NotFound($"Risk with ID {id} not found");
 
@@ -335,11 +335,41 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("ai-suggestion-risk-task")]
+        public async Task<IActionResult> ViewAIDetectTaskRisksAsyncAsync([FromQuery] string projectKey)
+        {
+            try
+            {
+                var risks = await _riskService.ViewAIDetectTaskRisksAsyncAsync(projectKey);
+                if (!risks.Any())
+                {
+                    return Ok(new
+                    {
+                        isSuccess = true,
+                        code = 200,
+                        message = "No risks detected for the tasks. Check task data or Gemini API response.",
+                        data = risks
+                    });
+                }
 
-
-
-
-
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    message = "Task risks detected successfully",
+                    data = risks
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = $"Error detecting task risks: {ex.Message}"
+                });
+            }
+        }
 
         [HttpGet("unapproved-ai-risks")]
         public async Task<IActionResult> GetUnapprovedAIRisks([FromQuery] int projectId)
