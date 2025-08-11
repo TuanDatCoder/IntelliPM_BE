@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -23,14 +24,16 @@ namespace IntelliPM.Services.MilestoneServices
         private readonly ISprintRepository _sprintRepo;
         private readonly IProjectRepository _projectRepo;
         private readonly ILogger<MilestoneService> _logger;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public MilestoneService(IMapper mapper, IMilestoneRepository repo, IProjectRepository projectRepo, ISprintRepository sprintRepo,ILogger<MilestoneService> logger)
+        public MilestoneService(IMapper mapper, IMilestoneRepository repo, IProjectRepository projectRepo, ISprintRepository sprintRepo,ILogger<MilestoneService> logger, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _sprintRepo = sprintRepo;
             _projectRepo = projectRepo;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
         }
 
         public async Task<List<MilestoneResponseDTO>> GetAllMilestones()
@@ -235,6 +238,136 @@ namespace IntelliPM.Services.MilestoneServices
             return _mapper.Map<MilestoneResponseDTO>(entity);
         }
 
+        //public async Task<MilestoneResponseDTO> ChangeMilestoneStatus(int id, string status)
+        //{
+        //    if (string.IsNullOrEmpty(status))
+        //        throw new ArgumentException("Status cannot be null or empty.");
+
+        //    // Fetch valid milestone statuses from dynamic_category
+        //    var milestoneStatuses = await _dynamicCategoryRepo.FindAllAsync(c => c.Group == "milestone_status");
+        //    var validStatuses = milestoneStatuses.Select(c => c.Name.ToUpper()).ToList();
+
+        //    // Validate the provided status
+        //    if (!validStatuses.Contains(status.ToUpper()))
+        //        throw new ArgumentException($"Invalid status '{status}'. Valid statuses are: {string.Join(", ", validStatuses)}.");
+
+        //    var entity = await _repo.GetByIdAsync(id);
+        //    if (entity == null)
+        //        throw new KeyNotFoundException($"Milestone with ID {id} not found.");
+
+        //    // Determine if the milestone is starting or completing
+        //    var isStarting = validStatuses
+        //        .Where(s => s != "PLANNING" && s != "CANCELLED" && s != "ON_HOLD")
+        //        .Contains(status.ToUpper());
+        //    var isCompleting = validStatuses
+        //        .Where(s => s == "AWAITING_REVIEW" || s == "APPROVED" || s == "REJECTED")
+        //        .Contains(status.ToUpper());
+
+        //    // Fetch dependencies
+        //    var dependencies = await _taskDependencyRepo
+        //        .FindAllAsync(d => d.LinkedTo == entity.Key && d.ToType == "Milestone");
+
+        //    var warnings = new List<string>();
+
+        //    foreach (var dep in dependencies)
+        //    {
+        //        object? source = null;
+        //        string? sourceStatus = null;
+
+        //        switch (dep.FromType.ToLower())
+        //        {
+        //            case "task":
+        //                var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+        //                if (task == null) continue;
+        //                source = task;
+        //                sourceStatus = task.Status;
+        //                break;
+
+        //            case "subtask":
+        //                var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+        //                if (subtask == null) continue;
+        //                source = subtask;
+        //                sourceStatus = subtask.Status;
+        //                break;
+
+        //            case "milestone":
+        //                var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+        //                if (milestone == null) continue;
+        //                source = milestone;
+        //                sourceStatus = milestone.Status;
+        //                break;
+
+        //            default:
+        //                continue;
+        //        }
+
+        //        // Fetch valid statuses for the source type
+        //        var sourceValidStatuses = await _categoryRepo.FindAllAsync(c => c.Group == $"{dep.FromType.ToLower()}_status");
+        //        var sourceValidStatusNames = sourceValidStatuses.Select(c => c.Name.ToUpper()).ToList();
+
+        //        bool sourceStarted = false;
+        //        bool sourceDone = false;
+
+        //        if (dep.FromType.ToLower() == "task" || dep.FromType.ToLower() == "subtask")
+        //        {
+        //            sourceStarted = sourceStatus != null && sourceValidStatusNames.Contains(sourceStatus.ToUpper()) && sourceStatus.ToUpper() != "TO_DO";
+        //            sourceDone = sourceStatus != null && sourceStatus.ToUpper() == "DONE";
+        //        }
+        //        else if (dep.FromType.ToLower() == "milestone")
+        //        {
+        //            sourceStarted = sourceStatus != null && sourceValidStatusNames.Contains(sourceStatus.ToUpper()) &&
+        //                            sourceStatus.ToUpper() != "PLANNING" && sourceStatus.ToUpper() != "CANCELLED";
+        //            sourceDone = sourceStatus != null && (sourceStatus.ToUpper() == "AWAITING_REVIEW" || sourceStatus.ToUpper() == "APPROVED");
+        //        }
+
+        //        switch (dep.Type.ToUpper())
+        //        {
+        //            case "FINISH_START":
+        //                if (isStarting && !sourceDone)
+        //                {
+        //                    warnings.Add($"Milestone '{entity.Key}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+        //                }
+        //                break;
+
+        //            case "START_START":
+        //                if (isStarting && !sourceStarted)
+        //                {
+        //                    warnings.Add($"Milestone '{entity.Key}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started before starting.");
+        //                }
+        //                break;
+
+        //            case "FINISH_FINISH":
+        //                if (isCompleting && !sourceDone)
+        //                {
+        //                    warnings.Add($"Milestone '{entity.Key}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before it can be completed.");
+        //                }
+        //                break;
+
+        //            case "START_FINISH":
+        //                if (isCompleting && !sourceStarted)
+        //                {
+        //                    warnings.Add($"Milestone '{entity.Key}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started.");
+        //                }
+        //                break;
+        //        }
+        //    }
+
+        //    entity.Status = status;
+        //    entity.UpdatedAt = DateTime.UtcNow;
+
+        //    try
+        //    {
+        //        await _repo.Update(entity);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception($"Failed to change milestone status: {ex.Message}", ex);
+        //    }
+
+        //    var result = _mapper.Map<MilestoneResponseDTO>(entity);
+        //    result.Warnings = warnings;
+        //    return result;
+        //}
 
 
         public async Task<MilestoneResponseDTO> ChangeMilestoneSprint(string key, int sprintId)
