@@ -182,8 +182,7 @@ namespace IntelliPM.API.Controllers
 
             var result = await _documentService.GetDocumentsByProject(projectId, userId);
 
-            if (result == null || result.Count == 0)
-                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = $"Project {projectId} not found or no documents." });
+            var data = result ?? new List<DocumentResponseDTO>();
 
             return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Success", Data = result });
         }
