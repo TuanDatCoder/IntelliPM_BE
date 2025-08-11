@@ -1236,6 +1236,11 @@ VALUES
     ('max_tasks_per_user', '10', '1', '50', '15', 'Maximum tasks assigned per user', 'Monitor workload', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('priority_threshold', 'HIGH', 'LOW', 'HIGHEST', 'MEDIUM', 'Threshold for priority alerts', 'Trigger notifications', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('overtime_hours', '2', '0', '4', '2', 'Maximum overtime hours per day', 'Ensure compliance', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+INSERT INTO system_configuration (config_key, value_config, description, effected_from)
+VALUES
+    ('time_status_threshold', '5', 'Percentage threshold for determining ahead/behind status', CURRENT_TIMESTAMP),
+    ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
+    ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 
 
 -- Insert sample data into meeting_reschedule_request
