@@ -1393,10 +1393,12 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
+
     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+
     ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
