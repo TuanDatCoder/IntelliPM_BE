@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 
 namespace IntelliPM.Data.DTOs.MeetingParticipant.Request
 {
@@ -7,6 +8,9 @@ namespace IntelliPM.Data.DTOs.MeetingParticipant.Request
         public int MeetingId { get; set; }
         public int AccountId { get; set; }
         public string? Role { get; set; }
+        //public string? Status { get; set; }
+
+        [DynamicCategoryValidation("meeting_participant_status", Required = false)]
         public string? Status { get; set; }
     }
 }
