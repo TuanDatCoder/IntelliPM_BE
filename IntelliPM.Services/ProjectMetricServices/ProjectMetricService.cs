@@ -413,8 +413,10 @@ namespace IntelliPM.Services.ProjectMetricServices
             // Calculate performance metrics
             decimal CV = EV - AC;
             decimal SV = EV - PV;
-            decimal CPI = hasProjectStarted && AC > 0 ? EV / AC : 0;
-            decimal SPI = hasProjectStarted && PV > 0 ? EV / PV : 0;
+            //decimal CPI = hasProjectStarted && AC > 0 ? EV / AC : 0;
+            //decimal SPI = hasProjectStarted && PV > 0 ? EV / PV : 0;
+            decimal CPI = AC == 0 ? 0 : EV / AC;
+            decimal SPI = PV == 0 ? 0 : EV / PV;
             decimal EAC = hasProjectStarted && CPI > 0 ? BAC / CPI : BAC; // Fallback to BAC if CPI is 0
             decimal ETC = EAC - AC;
             decimal VAC = BAC - EAC;
@@ -674,64 +676,14 @@ namespace IntelliPM.Services.ProjectMetricServices
             return entity != null ? _mapper.Map<NewProjectMetricResponseDTO>(entity) : null;
         }
 
-        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
-        //{
-        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
-        //        ?? throw new Exception("Project not found");
-
-        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-
-        //    // Lấy tất cả subtasks theo danh sách task Id
-        //    var taskIds = tasks.Select(t => t.Id).ToList();
-        //    var allSubtasks = new List<Subtask>();
-
-        //    foreach (var task in tasks)
-        //    {
-        //        var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
-        //        allSubtasks.AddRange(subtasks);
-        //    }
-
-        //    // Lấy danh sách ProjectMember trước để dùng lại nhiều lần
-        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
-
-        //    // Tính Task Cost
-        //    decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
-        //    decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
-
-        //    // Tính Resource Cost
-        //    decimal actualResourceCost = 0;
-        //    decimal plannedResourceCost = 0;
-
-        //    foreach (var subtask in allSubtasks)
-        //    {
-        //        var member = projectMembers.FirstOrDefault(m =>
-        //            m.AccountId == subtask.AssignedBy && m.ProjectId == project.Id);
-
-        //        var hourlyRate = member?.HourlyRate ?? 0;
-
-        //        actualResourceCost += (decimal)(subtask.ActualHours ?? 0) * hourlyRate;
-        //        plannedResourceCost += (decimal)(subtask.PlannedHours ?? 0) * hourlyRate;
-        //    }
-
-        //    return new CostDashboardResponseDTO
-        //    {
-        //        ActualTaskCost = actualTaskCost,
-        //        PlannedTaskCost = plannedTaskCost,
-        //        ActualResourceCost = actualResourceCost,
-        //        PlannedResourceCost = plannedResourceCost,
-        //        ActualCost = actualTaskCost + actualResourceCost,
-        //        PlannedCost = plannedTaskCost + plannedResourceCost,
-        //        Budget = project.Budget ?? 0
-        //    };
-        //}
-
         public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
 
-            // Lấy tất cả subtasks
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+            // Lấy tất cả subtasks theo danh sách task Id
             var taskIds = tasks.Select(t => t.Id).ToList();
             var allSubtasks = new List<Subtask>();
 
@@ -741,10 +693,14 @@ namespace IntelliPM.Services.ProjectMetricServices
                 allSubtasks.AddRange(subtasks);
             }
 
-            // Lấy danh sách ProjectMember
+            // Lấy danh sách ProjectMember trước để dùng lại nhiều lần
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
 
-            // Tính Resource Cost (nhân sự)
+            // Tính Task Cost
+            decimal actualTaskCost = tasks.Sum(t => t.ActualCost ?? 0);
+            decimal plannedTaskCost = tasks.Sum(t => t.PlannedCost ?? 0);
+
+            // Tính Resource Cost
             decimal actualResourceCost = 0;
             decimal plannedResourceCost = 0;
 
@@ -761,15 +717,61 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             return new CostDashboardResponseDTO
             {
-                ActualTaskCost = actualResourceCost, // Equal to actualResourceCost for consistency
-                PlannedTaskCost = plannedResourceCost, // Equal to plannedResourceCost
+                ActualTaskCost = actualTaskCost,
+                PlannedTaskCost = plannedTaskCost,
                 ActualResourceCost = actualResourceCost,
                 PlannedResourceCost = plannedResourceCost,
-                ActualCost = actualResourceCost, // Only personnel costs
-                PlannedCost = plannedResourceCost, // Only personnel costs
+                ActualCost = actualTaskCost,
+                PlannedCost = plannedTaskCost,
                 Budget = project.Budget ?? 0
             };
         }
+
+        //public async Task<CostDashboardResponseDTO> GetCostDashboardAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+
+        //    // Lấy tất cả subtasks
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+        //    var taskIds = tasks.Select(t => t.Id).ToList();
+        //    var allSubtasks = new List<Subtask>();
+
+        //    foreach (var task in tasks)
+        //    {
+        //        var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+        //        allSubtasks.AddRange(subtasks);
+        //    }
+
+        //    // Lấy danh sách ProjectMember
+        //    var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+
+        //    // Tính Resource Cost (nhân sự)
+        //    decimal actualResourceCost = 0;
+        //    decimal plannedResourceCost = 0;
+
+        //    foreach (var subtask in allSubtasks)
+        //    {
+        //        var member = projectMembers.FirstOrDefault(m =>
+        //            m.AccountId == subtask.AssignedBy && m.ProjectId == project.Id);
+
+        //        var hourlyRate = member?.HourlyRate ?? 0;
+
+        //        actualResourceCost += (decimal)(subtask.ActualHours ?? 0) * hourlyRate;
+        //        plannedResourceCost += (decimal)(subtask.PlannedHours ?? 0) * hourlyRate;
+        //    }
+
+        //    return new CostDashboardResponseDTO
+        //    {
+        //        ActualTaskCost = actualResourceCost, // Equal to actualResourceCost for consistency
+        //        PlannedTaskCost = plannedResourceCost, // Equal to plannedResourceCost
+        //        ActualResourceCost = actualResourceCost,
+        //        PlannedResourceCost = plannedResourceCost,
+        //        ActualCost = actualResourceCost, // Only personnel costs
+        //        PlannedCost = plannedResourceCost, // Only personnel costs
+        //        Budget = project.Budget ?? 0
+        //    };
+        //}
 
         public async Task<List<object>> GetProgressDashboardAsync(string projectKey)
         {
