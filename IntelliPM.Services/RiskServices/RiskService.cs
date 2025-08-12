@@ -274,7 +274,7 @@ namespace IntelliPM.Services.RiskServices
             await _riskRepo.AddAsync(entity);
 
             // Construct riskDetailUrl using configuration
-            var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+            var baseUrl = _config["Environment:FE_URL"];
             var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
 
             if (request.ResponsibleId.HasValue)
@@ -452,7 +452,7 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
-                var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+                var baseUrl = _config["Environment:FE_URL"];
                 var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{risk.RiskKey}";
 
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(risk.ProjectId);
@@ -780,7 +780,7 @@ namespace IntelliPM.Services.RiskServices
                     TaskId = task.Id,
                     RiskKey = riskKey,
                     RiskScope = "TASK",
-                    Title = $"Overdue Task: {task.Title}",
+                    Title = $"Overdue Task: {task.Id} - {task.Title}",
                     Description = $"Task {task.Id} is overdue. Planned end date was {task.PlannedEndDate:yyyy-MM-dd}.",
                     Status = "OPEN",
                     Type = "SCHEDULE",
@@ -798,7 +798,7 @@ namespace IntelliPM.Services.RiskServices
                 await _riskRepo.AddAsync(entity);
 
                 // Construct riskDetailUrl
-                var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+                var baseUrl = _config["Environment:FE_URL"];
                 var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
 
                 // Send email to responsible person if exists
@@ -808,15 +808,15 @@ namespace IntelliPM.Services.RiskServices
                         var assignedUser = await _accountRepo.GetAccountById(taskAssignment.AccountId);
                         if (assignedUser != null)
                         {
-                            await _emailService.SendRiskAssignmentEmail(
+                            await _emailService.SendOverdueTaskNotificationEmailAsync(
                                 assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
                                 assigneeEmail: assignedUser.Email,
-                                riskKey: riskKey,
-                                riskTitle: entity.Title,
+                                taskId: task.Id,
+                                taskTitle: entity.Title,
                                 projectKey: project.ProjectKey,
-                                severityLevel: entity.SeverityLevel,
-                                dueDate: entity.DueDate,
-                                riskDetailUrl: riskDetailUrl
+                                plannedEndDate: task.PlannedEndDate.Value,
+                                //dueDate: entity.DueDate,
+                                taskDetailUrl: riskDetailUrl
                             );
                         }
                 }
