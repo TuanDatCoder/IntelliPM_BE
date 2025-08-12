@@ -1248,6 +1248,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                 ?? throw new Exception("Project not found");
 
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
             var metric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
 
             // Fetch configurations
@@ -1289,11 +1290,24 @@ namespace IntelliPM.Services.ProjectMetricServices
                 projectStatus = statusCategories.FirstOrDefault(c => c.Name == "NO_PROGRESS")?.Label ?? "Started but No Progress";
                 timeStatus = healthStatusCategories.FirstOrDefault(c => c.Name == "NO_PROGRESS")?.Label ?? "Started but No Progress";
             }
-            else if (tasks.All(t => t.PercentComplete == 100) || (project.EndDate.HasValue && project.EndDate.Value < now))
+            //else if (tasks.All(t => t.PercentComplete == 100) || (project.EndDate.HasValue && project.EndDate.Value < now))
+            //{
+            //    projectStatus = statusCategories.FirstOrDefault(c => c.Name == "COMPLETED")?.Label ?? "Completed";
+            //    timeStatus = healthStatusCategories.FirstOrDefault(c => c.Name == "COMPLETED")?.Label ?? "Completed";
+            //}
+            else if (
+                // Trường hợp 1: hoàn thành task hoặc hết ngày + milestones approved
+                ((tasks.All(t => t.PercentComplete == 100) ||
+                (project.EndDate.HasValue && project.EndDate.Value < now))
+                && (!milestones.Any() || milestones.All(m => m.Status == "APPROVED")))
+
+                // Trường hợp 2: milestones approved hết => Completed luôn
+                || (milestones.Any() && milestones.All(m => m.Status == "APPROVED")))
             {
                 projectStatus = statusCategories.FirstOrDefault(c => c.Name == "COMPLETED")?.Label ?? "Completed";
                 timeStatus = healthStatusCategories.FirstOrDefault(c => c.Name == "COMPLETED")?.Label ?? "Completed";
             }
+
             else
             {
                 projectStatus = statusCategories.FirstOrDefault(c => c.Name == "IN_PROGRESS")?.Label ?? "In Progress";
