@@ -119,11 +119,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using IntelliPM.Repositories.MetricHistoryRepos;
+using IntelliPM.Services.ProjectMetricHistoryServices;
 
 
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -188,6 +192,7 @@ builder.Services.AddScoped<IMilestoneCommentRepository, MilestoneCommentReposito
 builder.Services.AddScoped<IDocumentCommentRepository, DocumentCommentRepository>();
 builder.Services.AddScoped<IAiResponseHistoryRepository, AiResponseHistoryRepository>();
 builder.Services.AddScoped<IAiResponseEvaluationRepository, AiResponseEvaluationRepository>();
+builder.Services.AddScoped<IMetricHistoryRepository, MetricHistoryRepository>();
 
 //--------------------------SERVICES---------------------------------
 builder.Services.AddScoped<IJWTService, JWTService>();
@@ -251,6 +256,7 @@ builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
 builder.Services.AddTransient<CloudConvertService>();
 builder.Services.AddScoped<ISprintTaskPlanningService, SprintTaskPlanningService>();
 builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
+builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
 
 
 // ------------------------- HttpClient -----------------------------

@@ -334,55 +334,47 @@ CREATE TABLE document (
     epic_id VARCHAR(255),
     subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
-    type VARCHAR(100),
-    template TEXT,
     content TEXT,
-    file_url VARCHAR(1024),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    status VARCHAR(30) DEFAULT 'Draft',
     created_by INTEGER NOT NULL,
     updated_by INTEGER,
-    approver_id INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     visibility VARCHAR(20),
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
-        REFERENCES public.project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_task FOREIGN KEY (task_id)
-        REFERENCES public.tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES tasks(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_epic FOREIGN KEY (epic_id)
-        REFERENCES public.epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES epic(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_subtask FOREIGN KEY (subtask_id)
-        REFERENCES public.subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES subtask(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_created_by FOREIGN KEY (created_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
-    CONSTRAINT fk_document_approver_id FOREIGN KEY (approver_id)
-        REFERENCES public.account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+
 );
 
-CREATE TABLE document_comment (
+CREATE TABLE  document_comment (
     id SERIAL PRIMARY KEY,
     document_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE,
-
-  
-    CONSTRAINT fk_document FOREIGN KEY (document_id)
-        REFERENCES document (id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_author FOREIGN KEY (author_id)
-        REFERENCES account (id) ON DELETE CASCADE
+    from_pos INTEGER NOT NULL,     
+    to_pos INTEGER NOT NULL,      
+    content TEXT NOT NULL,        
+    comment TEXT NOT NULL,        
+created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,    
+updated_at TIMESTAMPTZ,
+    FOREIGN KEY (author_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE
 );
 
 
@@ -400,6 +392,10 @@ CREATE TABLE document_export_file (
     CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
         REFERENCES account(id) ON DELETE SET NULL
 );
+
+
+
+
 
 -- 20. document_permission
 CREATE TABLE document_permission (
@@ -527,6 +523,7 @@ CREATE TABLE milestone_feedback (
     FOREIGN KEY (meeting_id) REFERENCES meeting(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
+
 
 -- 31. risk
 CREATE TABLE risk (
@@ -796,7 +793,16 @@ CREATE TABLE ai_response_evaluation (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ai_response_id) REFERENCES ai_response_history(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE SET NULL
+);
 
+-- 49. project_metric_history
+CREATE TABLE project_metric_history (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL,
+    metric_key VARCHAR(100) NOT NULL,
+    value JSONB NOT NULL, 
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
 
@@ -1227,6 +1233,11 @@ VALUES
     ('max_tasks_per_user', '10', '1', '50', '15', 'Maximum tasks assigned per user', 'Monitor workload', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('priority_threshold', 'HIGH', 'LOW', 'HIGHEST', 'MEDIUM', 'Threshold for priority alerts', 'Trigger notifications', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('overtime_hours', '2', '0', '4', '2', 'Maximum overtime hours per day', 'Ensure compliance', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+INSERT INTO system_configuration (config_key, value_config, description, effected_from)
+VALUES
+    ('time_status_threshold', '5', 'Percentage threshold for determining ahead/behind status', CURRENT_TIMESTAMP),
+    ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
+    ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 
 
 -- Insert sample data into meeting_reschedule_request
@@ -1251,6 +1262,8 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
+    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
     ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
@@ -1336,11 +1349,10 @@ VALUES
     ('milestone_feedback_status', 'REVIEWED', 'Reviewed', 'Feedback reviewed', 1, NULL, NULL),
     ('milestone_feedback_status', 'PENDING', 'Pending', 'Feedback pending', 2, NULL, NULL),
     ('milestone_feedback_status', 'APPROVED', 'Approved', 'Feedback approved', 3, NULL, NULL),
+    ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, 'blue-100,blue-700'),
+    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, 'gray-100,gray-700'),
+    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, 'green-100,green-700'),
     ('milestone_feedback_status', 'REJECT', 'Reject', 'Deleted feedback', 4, NULL, NULL),
-    ('risk_status', 'OPEN', 'Open', 'Risk open', 1, NULL, NULL),
-    ('risk_status', 'CLOSED', 'Closed', 'Risk closed', 2, NULL, NULL),
-    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, NULL),
-    ('risk_status', 'MITIGATED', 'Mitigated', 'Risk has been mitigated', 4, NULL, NULL),
     ('risk_type', 'SCHEDULE', 'Schedule', 'Schedule risk', 1, NULL, NULL),
     ('risk_type', 'FINANCIAL', 'Financial', 'Financial risk', 2, NULL, NULL),
     ('risk_type', 'RESOURCE', 'Resource', 'Resource risk', 3, NULL, NULL),
@@ -1352,11 +1364,8 @@ VALUES
     ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
     ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
     ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4, NULL, NULL),
-    ('recommendation_type', 'PERFORMANCE', 'Performance', 'Performance recommendation', 1, NULL, NULL),
-    ('recommendation_type', 'MARKETING', 'Marketing', 'Marketing recommendation', 2, NULL, NULL),
-    ('recommendation_type', 'RESEARCH', 'Research', 'Research recommendation', 3, NULL, NULL),
-    ('recommendation_type', 'DESIGN', 'Design', 'Design recommendation', 4, NULL, NULL),
-    ('recommendation_type', 'TESTING', 'Testing', 'Testing recommendation', 5, NULL, NULL),
+    ('recommendation_type', 'COST', 'Cost', 'Cost recommendation', 1, NULL, NULL),
+    ('recommendation_type', 'SCHEDULE', 'Schedule', 'Schedule recommendation', 2, NULL, NULL),
     ('label_status', 'ACTIVE', 'Active', 'Active label', 1, NULL, NULL),
     ('label_status', 'DELETED', 'Deleted', 'Deleted label', 2, NULL, NULL),
     ('project_member_status', 'CREATED', 'Created', 'Project member newly created', 1, NULL, NULL),
@@ -1381,10 +1390,12 @@ VALUES
     ('milestone_status', 'REJECTED', 'Rejected by Client', 'Milestone was reviewed and rejected by the client', 5, NULL, NULL),
     ('milestone_status', 'ON_HOLD', 'On Hold', 'Milestone is temporarily paused', 6, NULL, NULL),
     ('milestone_status', 'CANCELLED', 'Cancelled', 'Milestone has been cancelled', 7, NULL, NULL),
+
     ('task_dependency_type', 'FINISH_START', 'Finish-to-Start', 'Task must finish before next task starts', 1, NULL, NULL),
     ('task_dependency_type', 'START_START', 'Start-to-Start', 'Task must start before next task starts', 2, NULL, NULL),
     ('task_dependency_type', 'FINISH_FINISH', 'Finish-to-Finish', 'Task must finish before next task finishes', 3, NULL, NULL),
     ('task_dependency_type', 'START_FINISH', 'Start-to-Finish', 'Task must start before next task finishes', 4, NULL, NULL),
+
     ('activity_log_action_type', 'UPDATE', 'Update', 'Record update action', 1, NULL, NULL),
     ('activity_log_action_type', 'DELETE', 'Delete', 'Record deletion action', 2, NULL, NULL),
     ('activity_log_action_type', 'STATUS_CHANGE', 'Status Change', 'Record status change action', 3, NULL, NULL),
@@ -1411,11 +1422,24 @@ VALUES
     ('ai_feature', 'SUBTASK_CREATION', 'Subtask Creation', 'AI generates subtasks based on existing tasks', 3, 'https://example.com/icons/subtask-creation.png', '#FFC107'),
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
     ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
-    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff');
+    ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+    ('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
+    ('risk_impact_level', 'MEDIUM', 'Medium', 'Medium impact level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_impact_level', 'HIGH', 'High', 'High impact level', 3, NULL, 'red-100,red-700'),
+    ('risk_probability_level', 'LOW', 'Low', 'Low probability level', 1, NULL, 'green-100,green-700'),
+    ('risk_probability_level', 'MEDIUM', 'Medium', 'Medium probability level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_probability_level', 'HIGH', 'High', 'High probability level', 3, NULL, 'red-100,red-700'),
+    ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
+    ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
 ('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
+
+INSERT INTO dynamic_category (category_group, name, label, description, is_active, order_index, icon_link, color)
+VALUES 
+    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', false, 3, NULL, 'red-100,red-700');
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

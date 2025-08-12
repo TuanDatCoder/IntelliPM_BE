@@ -12,6 +12,7 @@ using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EpicCommentServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Utilities;
@@ -37,9 +38,9 @@ namespace IntelliPM.Services.EpicServices
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly IDecodeTokenHandler _decodeToken;
+        private readonly IActivityLogService _activityLogService;
 
-
-        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken)
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService)
         {
             _mapper = mapper;
             _epicRepo = epicRepo;
@@ -52,6 +53,7 @@ namespace IntelliPM.Services.EpicServices
             _workItemLabelService = workItemLabelService;
             _taskAssignmentRepo = taskAssignmentRepo;
             _decodeToken = decodeToken;
+            _activityLogService = activityLogService;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -133,6 +135,18 @@ namespace IntelliPM.Services.EpicServices
             try
             {
                 await _epicRepo.Add(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = request.ProjectId,
+                    EpicId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Epic",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "CREATE",
+                    Message = $"Created epic '{entity.Id}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (DbUpdateException ex)
             {
@@ -158,6 +172,19 @@ namespace IntelliPM.Services.EpicServices
             try
             {
                 await _epicRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = request.ProjectId,
+                    EpicId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Epic",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Update epic '{entity.Id}'",
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow
+                });
+
             }
             catch (Exception ex)
             {
@@ -183,7 +210,7 @@ namespace IntelliPM.Services.EpicServices
             }
         }
 
-        public async Task<EpicResponseDTO> ChangeEpicStatus(string id, string status)
+        public async Task<EpicResponseDTO> ChangeEpicStatus(string id, string status, int createdBy)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
@@ -198,6 +225,18 @@ namespace IntelliPM.Services.EpicServices
             try
             {
                 await _epicRepo.Update(entity);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = (await _epicRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    EpicId = entity.Id,
+                    //SubtaskId = entity.Subtask,
+                    RelatedEntityType = "Epic",
+                    RelatedEntityId = entity.Id,
+                    ActionType = "UPDATE",
+                    Message = $"Changed status of epic '{entity.Id}' to '{status}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {

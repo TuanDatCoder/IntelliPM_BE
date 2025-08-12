@@ -51,11 +51,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, DeleteEpicFileRequestDTO dto)
         {
             try
             {
-                await _service.DeleteEpicFileAsync(id);
+                await _service.DeleteEpicFileAsync(id, dto.CreatedBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

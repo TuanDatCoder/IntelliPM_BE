@@ -25,14 +25,15 @@ namespace IntelliPM.Services.RiskServices
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(int projectId);
         Task<List<RiskRequestDTO>> SaveProjectRisksAsync(List<RiskRequestDTO> risks);
         Task<RiskResponseDTO?> UpdateStatusAsync(int id, string status, int createdBy);
-        Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type);
-        Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId);
-        Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate);
+        Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type, int createdBy);
+        Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId, int createdBy);
+        Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate, int createdBy);
         Task<RiskResponseDTO?> UpdateTitleAsync(int id, string title, int createdBy);
-        Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description);
-        Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel);
-        Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability);
+        Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description, int createdBy);
+        Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel, int createdBy);
+        Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability, int createdBy);
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey);
         Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey);
+        Task CheckAndCreateOverdueTaskRisksAsync(string projectKey);
     }
 }

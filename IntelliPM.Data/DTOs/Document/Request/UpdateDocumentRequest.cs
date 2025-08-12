@@ -10,8 +10,7 @@ namespace IntelliPM.Data.DTOs.Document.Request
     {
         public string? Title { get; set; }
         public string? Content { get; set; }
-        public string? FileUrl { get; set; }
-        public string Visibility { get; set; }
+        public string? Visibility { get; set; }
 
 
     }

@@ -5,14 +5,18 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Repositories.RiskSolutionRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.GeminiServices;
+using Microsoft.Extensions.Configuration;
 using Microsoft.VisualBasic;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
@@ -21,6 +25,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace IntelliPM.Services.RiskServices
 {
@@ -35,8 +40,12 @@ namespace IntelliPM.Services.RiskServices
         private readonly IMapper _mapper;
         private readonly IActivityLogService _activityLogService;
         private readonly INotificationRepository _notificationRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
 
-        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo)
+        public RiskService(IRiskRepository riskRepo, IRiskSolutionRepository riskSolutionRepo, IGeminiService geminiService, ITaskRepository taskRepo, IProjectRepository projectRepo, IProjectMemberRepository projectMemberRepo, IMapper mapper, IActivityLogService activityLogService, INotificationRepository notificationRepo, IAccountRepository accountRepo, IEmailService emailService, IConfiguration config, ITaskAssignmentRepository taskAssignmentRepo)
         {
             _riskRepo = riskRepo;
             _riskSolutionRepo = riskSolutionRepo;
@@ -46,7 +55,11 @@ namespace IntelliPM.Services.RiskServices
             _geminiService = geminiService;
             _activityLogService = activityLogService;
             _notificationRepo = notificationRepo;
+            _accountRepo = accountRepo;
+            _emailService = emailService;
             _mapper = mapper;
+            _config = config;
+            _taskAssignmentRepo = taskAssignmentRepo;
         }
 
         public async Task<List<RiskResponseDTO>> GetAllRisksAsync()
@@ -125,7 +138,7 @@ namespace IntelliPM.Services.RiskServices
 
                 await _riskRepo.AddAsync(riskEntity);
 
-            var solutionEntity = new RiskSolution
+                var solutionEntity = new RiskSolution
                 {
                     RiskId = riskEntity.Id,
                     MitigationPlan = riskDto.MitigationPlan,
@@ -260,6 +273,28 @@ namespace IntelliPM.Services.RiskServices
 
             await _riskRepo.AddAsync(entity);
 
+            // Construct riskDetailUrl using configuration
+            var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+            var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
+
+            if (request.ResponsibleId.HasValue)
+            {
+                var assignedUser = await _accountRepo.GetAccountById(request.ResponsibleId.Value);
+                if (assignedUser != null)
+                {
+                    await _emailService.SendRiskAssignmentEmail(
+                        assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
+                        assigneeEmail: assignedUser.Email,
+                        riskKey: riskKey,
+                        riskTitle: request.Title,
+                        projectKey: project.ProjectKey,
+                        severityLevel: entity.SeverityLevel,
+                        dueDate: request.DueDate,
+                        riskDetailUrl: riskDetailUrl
+                    );
+                }
+            }
+
             await _activityLogService.LogAsync(new ActivityLog
             {
                 ProjectId = entity.ProjectId,
@@ -285,7 +320,7 @@ namespace IntelliPM.Services.RiskServices
                     CreatedBy = request.CreatedBy,
                     Type = "RISK_ALERT",
                     Priority = entity.SeverityLevel,
-                    Message = $"Risk identified in project {project.ProjectKey}: {riskKey}",
+                    Message = $"Risk identified in project {project.ProjectKey} - risk {riskKey}",
                     RelatedEntityType = "Risk",
                     RelatedEntityId = entity.Id,
                     CreatedAt = DateTime.UtcNow,
@@ -297,8 +332,8 @@ namespace IntelliPM.Services.RiskServices
                 {
                     notification.RecipientNotification.Add(new RecipientNotification
                     {
-                        AccountId = accId
-                        //IsRead = false
+                        AccountId = accId,
+                        IsRead = false
                     });
                 }
                 await _notificationRepo.Add(notification);
@@ -312,12 +347,48 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
 
+            var project = await _projectRepo.GetByIdAsync(risk.ProjectId)
+                ?? throw new Exception("Project not found with provided projectId");
+
             risk.Status = status;
             risk.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+
+                var members = await _projectMemberRepo.GetProjectMemberbyProjectId(risk.ProjectId);
+                var recipients = members
+                    .Where(m => m.AccountId != risk.CreatedBy)
+                    .Select(m => m.AccountId)
+                    .ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var notification = new Notification
+                    {
+                        CreatedBy = risk.CreatedBy,
+                        Type = "RISK_ALERT",
+                        Priority = risk.SeverityLevel,
+                        Message = $"Updated status in risk in project {project.ProjectKey} - risk {risk.RiskKey}: {status}",
+                        RelatedEntityType = "Risk",
+                        RelatedEntityId = risk.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false,
+                        RecipientNotification = new List<RecipientNotification>()
+                    };
+
+                    foreach (var accId in recipients)
+                    {
+                        notification.RecipientNotification.Add(new RecipientNotification
+                        {
+                            AccountId = accId,
+                            IsRead = false
+                        });
+                    }
+                    await _notificationRepo.Add(notification);
+                }
+
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = risk.ProjectId,
@@ -337,7 +408,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type)
+        public async Task<RiskResponseDTO?> UpdateTypeAsync(int id, string type, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -348,6 +419,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated type in risk '{risk.RiskKey}' to '{type}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -356,10 +438,13 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId)
+        public async Task<RiskResponseDTO?> UpdateResponsibleIdAsync(int id, int? responsibleId, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
+
+            var project = await _projectRepo.GetByIdAsync(risk.ProjectId)
+                ?? throw new Exception("Project not found with provided projectId");
 
             risk.ResponsibleId = responsibleId;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -367,6 +452,69 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+                var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{risk.RiskKey}";
+
+                var members = await _projectMemberRepo.GetProjectMemberbyProjectId(risk.ProjectId);
+                var recipients = members
+                    .Where(m => m.AccountId != risk.CreatedBy)
+                    .Select(m => m.AccountId)
+                    .ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var notification = new Notification
+                    {
+                        CreatedBy = risk.CreatedBy,
+                        Type = "RISK_ALERT",
+                        Priority = risk.SeverityLevel,
+                        Message = $"Updated responsible person in project {project.ProjectKey} - risk {risk.RiskKey}",
+                        RelatedEntityType = "Risk",
+                        RelatedEntityId = risk.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false,
+                        RecipientNotification = new List<RecipientNotification>()
+                    };
+
+                    foreach (var accId in recipients)
+                    {
+                        notification.RecipientNotification.Add(new RecipientNotification
+                        {
+                            AccountId = accId,
+                            IsRead = false
+                        });
+                    }
+                    await _notificationRepo.Add(notification);
+                }
+
+                if (responsibleId.HasValue)
+                {
+                    var assignedUser = await _accountRepo.GetAccountById(responsibleId.Value);
+                    if (assignedUser != null)
+                    {
+                        await _emailService.SendRiskAssignmentEmail(
+                            assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
+                            assigneeEmail: assignedUser.Email,
+                            riskKey: risk.RiskKey,
+                            riskTitle: risk.Title,
+                            projectKey: project.ProjectKey,
+                            severityLevel: risk.SeverityLevel,
+                            dueDate: risk.DueDate,
+                            riskDetailUrl: riskDetailUrl
+                        );
+                    }
+                }
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated responsible person in risk '{risk.RiskKey}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -375,7 +523,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate)
+        public async Task<RiskResponseDTO?> UpdateDueDateAsync(int id, DateTime dueDate, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -386,6 +534,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated due date in risk '{risk.RiskKey}' to {dueDate}",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -426,7 +585,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description)
+        public async Task<RiskResponseDTO?> UpdateDescriptionAsync(int id, string description, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -437,6 +596,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated description in risk '{risk.RiskKey}' to '{description}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -446,7 +616,7 @@ namespace IntelliPM.Services.RiskServices
             return _mapper.Map<RiskResponseDTO>(risk);
         }
 
-        public async Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel)
+        public async Task<RiskResponseDTO?> UpdateImpactLevelAsync(int id, string impactLevel, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -454,12 +624,23 @@ namespace IntelliPM.Services.RiskServices
             risk.ImpactLevel = impactLevel;
             risk.UpdatedAt = DateTime.UtcNow;
 
-            var probability = risk.Probability; 
+            var probability = risk.Probability;
             risk.SeverityLevel = CalculateSeverityLevel(impactLevel, probability);
 
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated impact level in risk '{risk.RiskKey}' to '{impactLevel}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -500,7 +681,7 @@ namespace IntelliPM.Services.RiskServices
             };
         }
 
-        public async Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability)
+        public async Task<RiskResponseDTO?> UpdateProbabilityAsync(int id, string probability, int createdBy)
         {
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
@@ -514,6 +695,17 @@ namespace IntelliPM.Services.RiskServices
             try
             {
                 await _riskRepo.UpdateAsync(risk);
+                await _activityLogService.LogAsync(new ActivityLog
+                {
+                    ProjectId = risk.ProjectId,
+                    RiskKey = risk.RiskKey,
+                    RelatedEntityType = "Risk",
+                    RelatedEntityId = risk.RiskKey,
+                    ActionType = "UPDATE",
+                    Message = $"Updated probability level in risk '{risk.RiskKey}' to '{probability}'",
+                    CreatedBy = createdBy,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -550,6 +742,118 @@ namespace IntelliPM.Services.RiskServices
             var risks = await _geminiService.DetectTaskRisksAsync(project, tasks);
 
             return risks ?? new List<AIRiskResponseDTO>();
+        }
+
+        public async Task CheckAndCreateOverdueTaskRisksAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found with provided projectKey");
+
+            //var overdueTasks = await _taskRepo.GetOverdueTasksByProjectIdAsync(project.Id);
+            var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+            var now = DateTime.UtcNow.Date;
+            var overdueTasks = tasks
+        .Where(t => t.PlannedEndDate.HasValue &&
+                    t.PlannedEndDate.Value < now &&
+                    !string.Equals(t.Status, "DONE", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+            foreach (var task in overdueTasks)
+            {
+                Console.WriteLine($"Processing task {task.Id}: Title={task.Title}, PlannedEndDate={task.PlannedEndDate}, Status={task.Status}");
+                // Check if risk already exists for this task
+                var existingRisk = await _riskRepo.GetRiskByTaskIdAsync(task.Id);
+                if (existingRisk.Any())
+                {
+                    Console.WriteLine($"Risk already exists for task {task.Id}, skipping...");
+                    continue;
+                }
+
+
+                var count = await _riskRepo.CountByProjectIdAsync(project.Id);
+                var nextIndex = count + 1;
+                var riskKey = $"{project.ProjectKey}-R{nextIndex:D3}";
+
+                var entity = new Risk
+                {
+                    ProjectId = project.Id,
+                    TaskId = task.Id,
+                    RiskKey = riskKey,
+                    RiskScope = "TASK",
+                    Title = $"Overdue Task: {task.Title}",
+                    Description = $"Task {task.Id} is overdue. Planned end date was {task.PlannedEndDate:yyyy-MM-dd}.",
+                    Status = "OPEN",
+                    Type = "SCHEDULE",
+                    GeneratedBy = "SYSTEM",
+                    Probability = "HIGH",
+                    ImpactLevel = "MEDIUM",
+                    SeverityLevel = CalculateSeverityLevel("MEDIUM", "HIGH"),
+                    CreatedBy = 4,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    DueDate = null,
+                    IsApproved = true
+                };
+
+                await _riskRepo.AddAsync(entity);
+
+                // Construct riskDetailUrl
+                var baseUrl = _config["Frontend:BaseUrl"] ?? "https://intellipm.example.com";
+                var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
+
+                // Send email to responsible person if exists
+                var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(task.Id);
+                foreach (var taskAssignment in taskAssignments)
+                {
+                        var assignedUser = await _accountRepo.GetAccountById(taskAssignment.AccountId);
+                        if (assignedUser != null)
+                        {
+                            await _emailService.SendRiskAssignmentEmail(
+                                assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
+                                assigneeEmail: assignedUser.Email,
+                                riskKey: riskKey,
+                                riskTitle: entity.Title,
+                                projectKey: project.ProjectKey,
+                                severityLevel: entity.SeverityLevel,
+                                dueDate: entity.DueDate,
+                                riskDetailUrl: riskDetailUrl
+                            );
+                        }
+                }
+
+                // Notify project members
+                var members = await _projectMemberRepo.GetProjectMemberbyProjectId(entity.ProjectId);
+                var recipients = members
+                    .Where(m => m.AccountId != entity.CreatedBy)
+                    .Select(m => m.AccountId)
+                    .ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var notification = new Notification
+                    {
+                        CreatedBy = entity.CreatedBy,
+                        Type = "RISK_ALERT",
+                        Priority = entity.SeverityLevel,
+                        Message = $"Overdue task risk identified in project {project.ProjectKey} - risk {riskKey}",
+                        RelatedEntityType = "Risk",
+                        RelatedEntityId = entity.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false,
+                        RecipientNotification = new List<RecipientNotification>()
+                    };
+
+                    foreach (var accId in recipients)
+                    {
+                        notification.RecipientNotification.Add(new RecipientNotification
+                        {
+                            AccountId = accId,
+                            IsRead = false
+                        });
+                    }
+                    await _notificationRepo.Add(notification);
+                }
+            }
         }
     }
 

@@ -19,6 +19,8 @@ namespace IntelliPM.Repositories.ActivityLogRepos
 
         Task<List<ActivityLog>> GetBySubtaskIdAsync(string subtaskId);
 
+        Task<List<ActivityLog>> GetByEpicIdAsync(string epicId);
+
         Task AddRangeAsync(List<ActivityLog> tasks);
         Task SaveChangesAsync();
         Su25Sep490IntelliPmContext GetContext();

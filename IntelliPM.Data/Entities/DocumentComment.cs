@@ -11,7 +11,13 @@ public partial class DocumentComment
 
     public int AuthorId { get; set; }
 
+    public int FromPos { get; set; }
+
+    public int ToPos { get; set; }
+
     public string Content { get; set; } = null!;
+
+    public string Comment { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 

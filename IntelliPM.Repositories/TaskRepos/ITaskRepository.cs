@@ -30,6 +30,6 @@ namespace IntelliPM.Repositories.TaskRepos
         Task UpdateRange(List<Tasks> tasks);
         Su25Sep490IntelliPmContext GetContext();
         Task AddRangeAsync(List<Tasks> tasks, Su25Sep490IntelliPmContext context);
-
+        Task<List<Tasks>> GetOverdueTasksByProjectIdAsync(int projectId);
     }
 }

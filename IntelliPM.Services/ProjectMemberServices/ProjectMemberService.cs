@@ -500,6 +500,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                     response.Username = account.Username;
                     response.Picture = account.Picture;
                     response.Email = account.Email;
+                    response.Role = account.Role;
                 }
 
                 responses.Add(response);
