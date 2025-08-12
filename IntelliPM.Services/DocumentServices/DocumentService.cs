@@ -689,38 +689,18 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         private string BuildProjectPlanPrompt(string userPrompt)
         {
             return $@"
-Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qua nội dung không liên quan** và luôn sinh ra một **tài liệu kế hoạch dự án (Project Plan)** có cấu trúc HTML rõ ràng như sau:
+Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
 
-1. Tiêu đề chính: `<h1>📊 Project Plan with Timeline</h1>`
+Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
+-  <h3> cho tiêu đề
+- <p> cho đoạn văn
+- <ul><li> cho danh sách gạch đầu dòng
+- <table><thead><tbody><tr><th><td> cho bảng
 
-2. Phần giới thiệu:  
-   `<h2>📅 Project Overview</h2>`  
-   Một đoạn mô tả ngắn về mục tiêu và phạm vi dự án trong thẻ `<p>`.
+Chỉ trả về HTML, không thêm mô tả bên ngoài.
 
-3. Các giai đoạn (Phases):  
-   Sinh **4 phase** tương ứng với 4 `<section>`, mỗi phase gồm:
-   - Tiêu đề `<h2>Phase X: [Tên Phase]</h2>`
-   - Một bảng `<table>` có đầy đủ các cột:
-     | Task | Description | Owner | Duration (Days) | Deadline | Milestone |
-
-   ⚠️ Yêu cầu bảng phải có:
-   - Thẻ `<colgroup>` với các `<col style=""width: ..."">` để hiển thị rõ cấu trúc
-   - Các ô tiêu đề `<th>` cần có thuộc tính `colwidth=""...""` để hỗ trợ kéo giãn cột trong trình soạn thảo như Tiptap
-
-4. Phần kết:  
-   `<h2>🚀 Next Steps</h2>`  
-   Một danh sách `<ul>` các bước tiếp theo để triển khai dự án.
-
-📌 Ghi nhớ:
-- Trả về **HTML đơn giản** (dùng `<h1>`, `<h2>`, `<table>`, `<ul>`, `<section>`, `<p>`)
-- **Không bao quanh bằng \`\`\`html** hoặc bất kỳ markdown nào
-- Nếu yêu cầu bên dưới không hợp lệ, vẫn phải sinh đúng cấu trúc tài liệu như mô tả
-- Đảm bảo HTML dễ hiển thị trong trình soạn thảo văn bản, và không chứa script hoặc style thừa
-
-🔽 Dưới đây là yêu cầu người dùng:  
-""Viết kế hoạch dự án phát triển hệ thống quản lý nhân sự cho doanh nghiệp vừa và nhỏ""
-""{userPrompt}""
-";
+Yêu cầu:
+{userPrompt}";
 
         }
         public async Task<string> GenerateAIContent(int documentId, string prompt)
@@ -734,8 +714,8 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             var fullPrompt = BuildProjectPlanPrompt(prompt);
             var content = await GenerateContentWithGemini(fullPrompt);
 
-            if (string.IsNullOrWhiteSpace(content) || !IsValidProjectPlanHtml(content))
-                throw new Exception("AI không thể tạo nội dung hợp lệ từ prompt. Hãy nhập mô tả chi tiết hơn về kế hoạch dự án.");
+            //if (string.IsNullOrWhiteSpace(content) || !IsValidProjectPlanHtml(content))
+            //    throw new Exception("AI không thể tạo nội dung hợp lệ từ prompt. Hãy nhập mô tả chi tiết hơn về kế hoạch dự án.");
 
             doc.Content = content;
             doc.UpdatedAt = DateTime.UtcNow;
