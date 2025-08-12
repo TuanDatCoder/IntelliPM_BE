@@ -202,11 +202,11 @@ namespace IntelliPM.Services.AccountServices
             // ====== Lấy danh sách project ======
             var projects = await _projectMemberService.GetProjectsByAccountId(entity.Id);
             profile.TotalProjects = projects.Count;
-            profile.UpcomingProjects = projects.Count(p => p.Status == "PLANNING");
+            profile.UpcomingProjects = projects.Count(p => p.ProjectStatus == "PLANNING");
             profile.ActiveProjects = projects.Count(p =>
-                p.Status == "IN_PROGRESS" || p.Status == "ON_HOLD" || p.Status == "IN_REVIEW");
-            profile.CompletedProjects = projects.Count(p => p.Status == "COMPLETED");
-            profile.CancelledProjects = projects.Count(p => p.Status == "CANCELLED");
+                p.ProjectStatus == "IN_PROGRESS" || p.ProjectStatus == "ON_HOLD" || p.ProjectStatus == "IN_REVIEW");
+            profile.CompletedProjects = projects.Count(p => p.ProjectStatus == "COMPLETED");
+            profile.CancelledProjects = projects.Count(p => p.ProjectStatus == "CANCELLED");
 
             profile.ProjectList = projects
                 .Select(p => _mapper.Map<ProjectByAccountResponseDTO>(p))
