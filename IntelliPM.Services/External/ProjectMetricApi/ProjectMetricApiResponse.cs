@@ -11,7 +11,7 @@ namespace IntelliPM.Services.External.ProjectMetricApi
     {
         public bool IsSuccess { get; set; }
         public int Code { get; set; }
-        public ProjectMetricResponseDTO? Data { get; set; }
+        public NewProjectMetricResponseDTO? Data { get; set; }
         public string? Message { get; set; }
     }
 }

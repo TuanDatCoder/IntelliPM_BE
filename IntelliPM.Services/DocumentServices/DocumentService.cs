@@ -807,7 +807,7 @@ Yêu cầu:
             return mentionedIds.Distinct().ToList();
         }
 
-        public async Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId)
+        public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
             var doc = await _repo.GetByIdAsync(documentId);
             if (doc == null)
@@ -819,23 +819,9 @@ Yêu cầu:
             if (string.IsNullOrWhiteSpace(token))
                 throw new Exception("Access token is missing");
 
-            // Gọi API lấy tasks có gắn token
-            var taskRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://intellipm-fpt-g6drgmbga8fcbubw.southeastasia-01.azurewebsites.net/api/task/by-project-id/{projectId}/detailed");
-            taskRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            var taskResponse = await _httpClient.SendAsync(taskRequest);
-            if (!taskResponse.IsSuccessStatusCode)
-                throw new Exception($"Failed to fetch tasks: {taskResponse.StatusCode}");
-
-            var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
-            var tasks = taskData?.Data ?? new List<TaskDto>();
-            if (!tasks.Any())
-                throw new Exception("No tasks found");
-
             // Gọi API lấy metrics có gắn token
             var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://intellipm-fpt-g6drgmbga8fcbubw.southeastasia-01.azurewebsites.net/api/projectmetric/by-project-id?projectId={projectId}");
+                $"https://localhost:7128/api/projectmetric/by-project-id?projectId={projectId}");
             metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             var metricResponse = await _httpClient.SendAsync(metricRequest);
@@ -848,7 +834,46 @@ Yêu cầu:
                 throw new Exception("No project metrics found");
 
             // Tạo prompt từ tasks + metrics
-            var prompt = BuildFullTaskPrompt(tasks, metrics, projectId);
+            var prompt = BuildFullTaskPrompt( metrics, projectId);
+            var content = await GenerateContentWithGemini(prompt);
+
+            if (string.IsNullOrWhiteSpace(content))
+                throw new Exception("AI did not generate content");
+
+            return new GenerateDocumentResponse
+            {
+                Content = content
+            };
+        }
+
+        public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null)
+                throw new Exception("Document not found");
+
+            var projectId = doc.ProjectId;
+            Console.WriteLine(projectId);
+            var token = GetAccessToken();
+            if (string.IsNullOrWhiteSpace(token))
+                throw new Exception("Access token is missing");
+
+            // Gọi API lấy metrics có gắn token
+            var metricRequest = new HttpRequestMessage(HttpMethod.Get,
+                $"https://localhost:7128/api/task/by-project-id/{projectId}/detailed");
+            metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var taskResponse = await _httpClient.SendAsync(metricRequest);
+            if (!taskResponse.IsSuccessStatusCode)
+                throw new Exception($"Failed to fetch metrics: {taskResponse.StatusCode}");
+
+            var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
+            var tasks = taskData?.Data;
+            if (tasks == null)
+                throw new Exception("No project metrics found");
+
+            // Tạo prompt từ tasks + metrics
+            var prompt = BuildTasksTablesPrompt(tasks);
             var content = await GenerateContentWithGemini(prompt);
 
             if (string.IsNullOrWhiteSpace(content))
@@ -861,252 +886,402 @@ Yêu cầu:
         }
 
 
-
-
-        private string BuildFullTaskPrompt(List<TaskDto> tasks, ProjectMetricResponseDTO metrics, int projectId)
+        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
         {
-            var sb = new StringBuilder();
-
-            // 🧠 System prompt với role definition rõ ràng
-            sb.AppendLine("You are an expert project analyst and technical documentation specialist with extensive experience in project management and data visualization.");
-            sb.AppendLine();
-
-            sb.AppendLine("# Task: Generate Project Summary Document");
-            sb.AppendLine("Create a comprehensive, professional **Project Summary Document** in **pure HTML format** that will be displayed in a WYSIWYG editor (Tiptap). The document must be well-structured, visually appealing, and provide actionable insights.");
-            sb.AppendLine();
-
-            // 📋 Cấu trúc document yêu cầu
-            sb.AppendLine("## Required Document Structure:");
-            sb.AppendLine("1. **Executive Summary** - Key highlights and overall project health");
-            sb.AppendLine("2. **Project Metrics Dashboard** - Financial and performance indicators with visual formatting");
-            sb.AppendLine("3. **Task Analysis Overview** - Summary statistics and distribution");
-            sb.AppendLine("4. **Detailed Task Inventory** - Comprehensive task breakdown in table format");
-            sb.AppendLine("5. **Team Performance Analysis** - Assignee workload and performance metrics");
-            sb.AppendLine("6. **Risk Assessment & Insights** - Analysis of delays, budget issues, and bottlenecks");
-            sb.AppendLine("7. **Recommendations & Action Items** - Specific, actionable next steps");
-            sb.AppendLine();
-
-            // 🎨 HTML formatting requirements
-            sb.AppendLine("## HTML Output Requirements:");
-            sb.AppendLine("- **Pure HTML only** - No markdown, code blocks, or wrapper tags");
-            sb.AppendLine("- **Semantic HTML structure** - Use appropriate tags: `<h1>`, `<h2>`, `<table>`, `<ul>`, `<ol>`, `<p>`, `<strong>`, `<em>`");
-            sb.AppendLine("- **Professional styling** - Use inline styles or CSS classes for visual hierarchy");
-            sb.AppendLine("- **Data visualization** - Present metrics in tables with appropriate formatting");
-            sb.AppendLine("- **Status indicators** - Use color coding or icons for task status (🟢 ✅ ⚠️ 🔴)");
-            sb.AppendLine("- **Exclude tags** - Do NOT include `<html>`, `<head>`, `<body>`, `<script>`, or `<style>` tags");
-            sb.AppendLine();
-
-            // 📊 Project Metrics Section
-            sb.AppendLine("## 📊 Project Performance Metrics");
-            sb.AppendLine($"**Project ID**: {projectId} | **Analysis Date**: {DateTime.Now:yyyy-MM-dd HH:mm}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Financial Performance:");
-            sb.AppendLine($"- **Planned Value (PV)**: {FormatCurrency(metrics.PlannedValue)}");
-            sb.AppendLine($"- **Earned Value (EV)**: {FormatCurrency(metrics.EarnedValue)}");
-            sb.AppendLine($"- **Actual Cost (AC)**: {FormatCurrency(metrics.ActualCost)}");
-            sb.AppendLine($"- **Budget Variance**: {FormatCurrency(metrics.BudgetOverrun)} {GetVarianceIndicator(metrics.BudgetOverrun)}");
-            sb.AppendLine($"- **Projected Total Cost**: {FormatCurrency(metrics.ProjectedTotalCost)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Performance Indices:");
-            sb.AppendLine($"- **Schedule Performance Index (SPI)**: {FormatDouble(metrics.SPI, "0.00")} {GetSPIStatus(metrics.SPI)}");
-            sb.AppendLine($"- **Cost Performance Index (CPI)**: {FormatDouble(metrics.CPI, "0.00")} {GetCPIStatus(metrics.CPI)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Timeline Analysis:");
-            sb.AppendLine($"- **Schedule Variance**: {FormatDelayDays(metrics.DelayDays)}");
-            sb.AppendLine($"- **Projected Completion**: {FormatDate(metrics.ProjectedFinishDate)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Audit Trail:");
-            sb.AppendLine($"- **Analysis Performed By**: {metrics.CalculatedBy ?? "System"}");
-            sb.AppendLine($"- **Approval Status**: {(metrics.IsApproved == true ? "✅ Approved" : "⏳ Pending Approval")}");
-            sb.AppendLine($"- **Created**: {FormatDateTime(metrics.CreatedAt)}");
-            sb.AppendLine($"- **Last Updated**: {FormatDateTime(metrics.UpdatedAt)}");
-            sb.AppendLine();
-
-            // 📋 Task Portfolio Analysis
-            sb.AppendLine("## 📋 Task Portfolio Analysis");
-            sb.AppendLine($"**Total Tasks**: {tasks.Count}");
-
-            // Task statistics
-            var completedTasks = tasks.Count(t => t.PercentComplete >= 100);
-            var inProgressTasks = tasks.Count(t => t.Status?.Contains("PROGRESS") == true || t.Status?.Contains("IN_PROGRESS") == true);
-            var overdueTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate < DateTime.Now && t.ActualEndDate == null);
-            var totalPlannedHours = tasks.Sum(t => t.PlannedHours ?? 0);
-            var totalActualHours = tasks.Sum(t => t.ActualHours ?? 0);
-            var totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
-            var totalActualCost = tasks.Sum(t => t.ActualCost ?? 0);
-
-            sb.AppendLine($"- **Completed Tasks**: {completedTasks} ({(tasks.Count > 0 ? (completedTasks * 100.0 / tasks.Count) : 0):F1}%)");
-            sb.AppendLine($"- **In Progress**: {inProgressTasks} ({(tasks.Count > 0 ? (inProgressTasks * 100.0 / tasks.Count) : 0):F1}%)");
-            sb.AppendLine($"- **Overdue Tasks**: {overdueTasks} {(overdueTasks > 0 ? "⚠️" : "✅")}");
-            sb.AppendLine($"- **Total Effort**: {totalPlannedHours:F1}h planned | {totalActualHours:F1}h actual");
-            sb.AppendLine($"- **Total Cost**: {totalPlannedCost:C0} planned | {totalActualCost:C0} actual");
-            sb.AppendLine();
-
-            // 👥 Team Analysis
-            sb.AppendLine("### 👥 Team Workload Distribution:");
-            var assigneeWorkload = tasks
-                .Where(t => t.TaskAssignments != null && t.TaskAssignments.Any())
-                .SelectMany(t => t.TaskAssignments.Select(ta => new
-                {
-                    Name = ta.AccountFullname,
-                    TaskId = t.Id,
-                    TaskTitle = t.Title,
-                    Status = ta.Status,
-                    PlannedHours = t.PlannedHours ?? 0,
-                    ActualHours = t.ActualHours ?? 0,
-                    HourlyRate = ta.HourlyRate,
-                    AssignedAt = ta.AssignedAt,
-                    CompletedAt = ta.CompletedAt,
-                    IsCompleted = ta.CompletedAt.HasValue
-                }))
-                .GroupBy(x => x.Name)
-                .Select(g => new
-                {
-                    Name = g.Key,
-                    TaskCount = g.Count(),
-                    TotalPlannedHours = g.Sum(x => x.PlannedHours),
-                    TotalActualHours = g.Sum(x => x.ActualHours),
-                    CompletedTasks = g.Count(x => x.IsCompleted),
-                    Tasks = g.ToList()
-                })
-                .OrderByDescending(x => x.TotalActualHours)
-                .ToList();
-
-            foreach (var assignee in assigneeWorkload)
+            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
             {
-                var efficiency = assignee.TotalPlannedHours > 0 ? (assignee.TotalActualHours / assignee.TotalPlannedHours) : 0;
-                var completionRate = assignee.TaskCount > 0 ? (assignee.CompletedTasks * 100.0 / assignee.TaskCount) : 0;
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
 
-                sb.AppendLine($"- **{assignee.Name}**: {assignee.TaskCount} tasks | {assignee.TotalActualHours:F1}h actual | {completionRate:F1}% completion rate");
-            }
-            sb.AppendLine();
+            return $@"
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích) là một bảng (<table>) dạng NGANG, trong đó:
+- Hàng đầu tiên (<thead>) chứa tên các trường (label) rõ ràng như định nghĩa.
+- Hàng thứ hai (<tbody>) chứa giá trị tương ứng lấy từ JSON.
+- Không thêm style hay class.
+- Nếu giá trị null, để rỗng.
+- Giá trị lấy từ JSON (camelCase), riêng Project ID lấy từ tham số bên ngoài: {projectId}.
 
-            // 📋 Detailed Task Information
-            sb.AppendLine("## 📋 Detailed Task Information");
-            foreach (var task in tasks.OrderBy(t => t.Id))
-            {
-                sb.AppendLine($"### 📋 Task #{task.Id}: {task.Title}");
-                sb.AppendLine();
+JSON:
+{json}
 
-                // Basic Information
-                sb.AppendLine("**📝 Basic Information:**");
-                sb.AppendLine($"- **Project**: {task.ProjectName ?? "N/A"} (ID: {task.ProjectId})");
-                sb.AppendLine($"- **Task ID**: {task.Id}");
-                sb.AppendLine($"- **Title**: {task.Title ?? "No title"}");
-                sb.AppendLine($"- **Description**: {task.Description ?? "No description provided"}");
-                sb.AppendLine($"- **Type**: {GetTaskTypeWithIcon(task.Type)} | **Priority**: {GetPriorityWithIcon(task.Priority)}");
-                sb.AppendLine($"- **Epic Reference**: {task.EpicId ?? "None"}");
-                sb.AppendLine();
-
-                // Reporter Information
-                sb.AppendLine("**👤 Reporter Information:**");
-                sb.AppendLine($"- **Reporter**: {task.ReporterFullname ?? "Unknown"} (ID: {task.ReporterId})");
-                if (!string.IsNullOrEmpty(task.ReporterPicture))
-                {
-                    sb.AppendLine($"- **Profile Picture**: Available");
-                }
-                sb.AppendLine();
-
-                // Sprint Assignment
-                sb.AppendLine("**🏃 Sprint Assignment:**");
-                sb.AppendLine($"- **Sprint**: {task.SprintName ?? "Unassigned"} {(task.SprintId.HasValue ? $"(#{task.SprintId})" : "")}");
-                sb.AppendLine();
-
-                // Progress Tracking
-                sb.AppendLine("**📊 Progress Tracking:**");
-                sb.AppendLine($"- **Current Status**: {GetStatusWithIcon(task.Status)}");
-                sb.AppendLine($"- **Completion Percentage**: {task.PercentComplete?.ToString("0.##") ?? "0"}%");
-                sb.AppendLine($"- **Quality Assessment**: {task.Evaluate ?? "Pending evaluation"}");
-                sb.AppendLine();
-
-                // Timeline Information
-                sb.AppendLine("**⏱️ Timeline Information:**");
-                sb.AppendLine($"- **Planned Period**: {FormatDateRange(task.PlannedStartDate, task.PlannedEndDate)}");
-                sb.AppendLine($"- **Actual Period**: {FormatDateRange(task.ActualStartDate, task.ActualEndDate)}");
-                sb.AppendLine($"- **Schedule Status**: {GetScheduleStatus(task.PlannedEndDate, task.ActualEndDate)}");
-                sb.AppendLine($"- **Created**: {FormatDateTime(task.CreatedAt)}");
-                sb.AppendLine($"- **Last Updated**: {FormatDateTime(task.UpdatedAt)}");
-                sb.AppendLine();
-
-                // Resource Planning
-                sb.AppendLine("**💰 Resource Planning:**");
-                sb.AppendLine($"- **Time Budget**: {FormatHours(task.PlannedHours)} planned | {FormatHours(task.ActualHours)} actual | {FormatHours(task.RemainingHours)} remaining");
-                sb.AppendLine($"- **Task Cost**: {FormatCurrency(task.PlannedCost)} planned | {FormatCurrency(task.ActualCost)} actual");
-                sb.AppendLine($"- **Resource Cost**: {FormatCurrency(task.PlannedResourceCost)} planned | {FormatCurrency(task.ActualResourceCost)} actual");
-
-                if (task.PlannedHours.HasValue && task.ActualHours.HasValue && task.PlannedHours > 0)
-                {
-                    var efficiency = (task.ActualHours.Value / task.PlannedHours.Value) * 100;
-                    var efficiencyStatus = efficiency <= 100 ? "✅ Efficient" : efficiency <= 120 ? "⚠️ Slightly Over" : "🔴 Over Budget";
-                    sb.AppendLine($"- **Time Efficiency**: {efficiency:F1}% {efficiencyStatus}");
-                }
-                sb.AppendLine();
-
-                // Team Assignment Details
-                sb.AppendLine("**👥 Team Assignment:**");
-                if (task.TaskAssignments != null && task.TaskAssignments.Any())
-                {
-                    foreach (var assignment in task.TaskAssignments)
-                    {
-                        sb.AppendLine($"- **Assignee**: {assignment.AccountFullname}");
-                        sb.AppendLine($"  - **Status**: {GetStatusWithIcon(assignment.Status)}");
-                        sb.AppendLine($"  - **Assigned Date**: {FormatDateTime(assignment.AssignedAt)}");
-                        if (assignment.CompletedAt.HasValue && assignment.AssignedAt.HasValue)
-                        {
-                            sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
-                            var workDuration = (assignment.CompletedAt.Value - assignment.AssignedAt.Value).Days;
-                            sb.AppendLine($"  - **Work Duration**: {workDuration} days");
-                        }
-                        else if (assignment.CompletedAt.HasValue)
-                        {
-                            sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
-                        }
-                        if (assignment.HourlyRate.HasValue)
-                        {
-                            sb.AppendLine($"  - **Hourly Rate**: {assignment.HourlyRate:C}/hour");
-                            if (task.ActualHours.HasValue)
-                            {
-                                var estimatedCost = assignment.HourlyRate.Value * task.ActualHours.Value;
-                                sb.AppendLine($"  - **Estimated Labor Cost**: {estimatedCost:C}");
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(assignment.AccountPicture))
-                        {
-                            sb.AppendLine($"  - **Profile Picture**: Available");
-                        }
-                        sb.AppendLine();
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("- **Assignment Status**: ⚠️ Unassigned");
-                    sb.AppendLine();
-                }
-
-                sb.AppendLine("---");
-                sb.AppendLine();
-            }
-
-            // Final instructions for AI
-            sb.AppendLine("## 📝 Analysis Instructions");
-            sb.AppendLine("Please analyze the above data and create a professional project summary document that:");
-            sb.AppendLine("- Identifies critical project risks, bottlenecks, and resource constraints");
-            sb.AppendLine("- Highlights successful areas, efficient team members, and on-track deliverables");
-            sb.AppendLine("- Analyzes team workload distribution and identifies potential burnout risks");
-            sb.AppendLine("- Provides specific, actionable recommendations for project improvement");
-            sb.AppendLine("- Uses appropriate visual formatting, status indicators, and professional presentation");
-            sb.AppendLine("- Maintains professional tone suitable for stakeholder and executive review");
-            sb.AppendLine("- Include data-driven insights and quantitative analysis where possible");
-
-            return sb.ToString();
+CẤU TRÚC MONG MUỐN:
+<table>
+  <thead>
+    <tr>
+      <th>Project ID</th>
+      <th>Planned Value (PV)</th>
+      <th>Earned Value (EV)</th>
+      <th>Actual Cost (AC)</th>
+      <th>Budget At Completion (BAC)</th>
+      <th>Cost Variance (CV)</th>
+      <th>Schedule Variance (SV)</th>
+      <th>Cost Performance Index (CPI)</th>
+      <th>Schedule Performance Index (SPI)</th>
+      <th>Estimate At Completion (EAC)</th>
+      <th>Estimate To Complete (ETC)</th>
+      <th>Variance At Completion (VAC)</th>
+      <th>Duration at Completion (days)</th>
+      <th>Estimate Duration at Completion (days)</th>
+      <th>Calculated By</th>
+      <th>Is Improved?</th>
+      <th>Improvement Summary</th>
+      <th>Confidence Score</th>
+      <th>Project Status</th>
+      <th>Created At (UTC)</th>
+      <th>Updated At (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>{projectId}</td>
+      <td>{{metrics.plannedValue}}</td>
+      <td>{{metrics.earnedValue}}</td>
+      <td>{{metrics.actualCost}}</td>
+      <td>{{metrics.budgetAtCompletion}}</td>
+      <td>{{metrics.costVariance}}</td>
+      <td>{{metrics.scheduleVariance}}</td>
+      <td>{{metrics.costPerformanceIndex}}</td>
+      <td>{{metrics.schedulePerformanceIndex}}</td>
+      <td>{{metrics.estimateAtCompletion}}</td>
+      <td>{{metrics.estimateToComplete}}</td>
+      <td>{{metrics.varianceAtCompletion}}</td>
+      <td>{{metrics.durationAtCompletion}}</td>
+      <td>{{metrics.estimateDurationAtCompletion}}</td>
+      <td>{{metrics.calculatedBy}}</td>
+      <td>{{metrics.isImproved}}</td>
+      <td>{{metrics.improvementSummary}}</td>
+      <td>{{metrics.confidenceScore}}</td>
+      <td>{{metrics.projectStatus}}</td>
+      <td>{{metrics.createdAt}}</td>
+      <td>{{metrics.updatedAt}}</td>
+    </tr>
+  </tbody>
+</table>";
         }
 
-        // Helper Methods
-        private string FormatCurrency(decimal? value)
+     
+
+private string BuildTasksTablesPrompt(List<TaskDto> tasks)
+    {
+        // JSON camelCase cho AI đọc đúng key
+        var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
+
+        return $@"
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích).
+
+Yêu cầu:
+- Đầu ra là NHIỀU bảng <table>, mỗi task trong JSON phải được in ra thành đúng 1 bảng.
+- Mỗi bảng có cấu trúc dọc (Name/Information) như bên dưới.
+- Không thêm style hay class.
+- Không format lại giá trị, in đúng giá trị từ JSON (nếu null để rỗng).
+- TUYỆT ĐỐI KHÔNG hiển thị các field: taskAssignments, commentCount, comments, labels.
+- Chỉ dùng các thẻ: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- Không thêm text ngoài các <table>.
+
+Dữ liệu JSON (mảng các task):
+{json}
+
+Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố định** này, map label → key JSON tương ứng:
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Information</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>ID</td><td>{{task.id}}</td></tr>
+    <tr><td>Project ID</td><td>{{task.projectId}}</td></tr>
+    <tr><td>Project Name</td><td>{{task.projectName}}</td></tr>
+    <tr><td>Type</td><td>{{task.type}}</td></tr>
+    <tr><td>Title</td><td>{{task.title}}</td></tr>
+    <tr><td>Description</td><td>{{task.description}}</td></tr>
+
+    <tr><td>Planned Start Date</td><td>{{task.plannedStartDate}}</td></tr>
+    <tr><td>Planned End Date</td><td>{{task.plannedEndDate}}</td></tr>
+    <tr><td>Actual Start Date</td><td>{{task.actualStartDate}}</td></tr>
+    <tr><td>Actual End Date</td><td>{{task.actualEndDate}}</td></tr>
+
+    <tr><td>Created At</td><td>{{task.createdAt}}</td></tr>
+    <tr><td>Updated At</td><td>{{task.updatedAt}}</td></tr>
+    <tr><td>Status</td><td>{{task.status}}</td></tr>
+    <tr><td>Priority</td><td>{{task.priority}}</td></tr>
+    <tr><td>Reporter ID</td><td>{{task.reporterId}}</td></tr>
+    <tr><td>Reporter Fullname</td><td>{{task.reporterFullname}}</td></tr>
+    <tr><td>Reporter Picture</td><td>{{task.reporterPicture}}</td></tr>
+
+    <tr><td>Percent Complete</td><td>{{task.percentComplete}}</td></tr>
+    <tr><td>Planned Hours</td><td>{{task.plannedHours}}</td></tr>
+    <tr><td>Actual Hours</td><td>{{task.actualHours}}</td></tr>
+    <tr><td>Planned Cost</td><td>{{task.plannedCost}}</td></tr>
+    <tr><td>Planned Resource Cost</td><td>{{task.plannedResourceCost}}</td></tr>
+    <tr><td>Actual Cost</td><td>{{task.actualCost}}</td></tr>
+    <tr><td>Actual Resource Cost</td><td>{{task.actualResourceCost}}</td></tr>
+    <tr><td>Remaining Hours</td><td>{{task.remainingHours}}</td></tr>
+
+    <tr><td>Sprint ID</td><td>{{task.sprintId}}</td></tr>
+    <tr><td>Sprint Name</td><td>{{task.sprintName}}</td></tr>
+    <tr><td>Epic ID</td><td>{{task.epicId}}</td></tr>
+
+    <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
+  </tbody>
+</table>";
+    }
+
+
+
+
+
+    //private string BuildFullTaskPrompt(List<TaskDto> tasks, ProjectMetricResponseDTO metrics, int projectId)
+    //{
+    //    var sb = new StringBuilder();
+
+    //    // 🧠 System prompt với role definition rõ ràng
+    //    sb.AppendLine("You are an expert project analyst and technical documentation specialist with extensive experience in project management and data visualization.");
+    //    sb.AppendLine();
+
+    //    sb.AppendLine("# Task: Generate Project Summary Document");
+    //    sb.AppendLine("Create a comprehensive, professional **Project Summary Document** in **pure HTML format** that will be displayed in a WYSIWYG editor (Tiptap). The document must be well-structured, visually appealing, and provide actionable insights.");
+    //    sb.AppendLine();
+
+    //    // 📋 Cấu trúc document yêu cầu
+    //    sb.AppendLine("## Required Document Structure:");
+    //    sb.AppendLine("1. **Executive Summary** - Key highlights and overall project health");
+    //    sb.AppendLine("2. **Project Metrics Dashboard** - Financial and performance indicators with visual formatting");
+    //    sb.AppendLine("3. **Task Analysis Overview** - Summary statistics and distribution");
+    //    sb.AppendLine("4. **Detailed Task Inventory** - Comprehensive task breakdown in table format");
+    //    sb.AppendLine("5. **Team Performance Analysis** - Assignee workload and performance metrics");
+    //    sb.AppendLine("6. **Risk Assessment & Insights** - Analysis of delays, budget issues, and bottlenecks");
+    //    sb.AppendLine("7. **Recommendations & Action Items** - Specific, actionable next steps");
+    //    sb.AppendLine();
+
+    //    // 🎨 HTML formatting requirements
+    //    sb.AppendLine("## HTML Output Requirements:");
+    //    sb.AppendLine("- **Pure HTML only** - No markdown, code blocks, or wrapper tags");
+    //    sb.AppendLine("- **Semantic HTML structure** - Use appropriate tags: `<h1>`, `<h2>`, `<table>`, `<ul>`, `<ol>`, `<p>`, `<strong>`, `<em>`");
+    //    sb.AppendLine("- **Professional styling** - Use inline styles or CSS classes for visual hierarchy");
+    //    sb.AppendLine("- **Data visualization** - Present metrics in tables with appropriate formatting");
+    //    sb.AppendLine("- **Status indicators** - Use color coding or icons for task status (🟢 ✅ ⚠️ 🔴)");
+    //    sb.AppendLine("- **Exclude tags** - Do NOT include `<html>`, `<head>`, `<body>`, `<script>`, or `<style>` tags");
+    //    sb.AppendLine();
+
+    //    // 📊 Project Metrics Section
+    //    sb.AppendLine("## 📊 Project Performance Metrics");
+    //    sb.AppendLine($"**Project ID**: {projectId} | **Analysis Date**: {DateTime.Now:yyyy-MM-dd HH:mm}");
+    //    sb.AppendLine();
+
+    //    sb.AppendLine("### Financial Performance:");
+    //    sb.AppendLine($"- **Planned Value (PV)**: {FormatCurrency(metrics.PlannedValue)}");
+    //    sb.AppendLine($"- **Earned Value (EV)**: {FormatCurrency(metrics.EarnedValue)}");
+    //    sb.AppendLine($"- **Actual Cost (AC)**: {FormatCurrency(metrics.ActualCost)}");
+    //    sb.AppendLine($"- **Budget Variance**: {FormatCurrency(metrics.BudgetOverrun)} {GetVarianceIndicator(metrics.BudgetOverrun)}");
+    //    sb.AppendLine($"- **Projected Total Cost**: {FormatCurrency(metrics.ProjectedTotalCost)}");
+    //    sb.AppendLine();
+
+    //    sb.AppendLine("### Performance Indices:");
+    //    sb.AppendLine($"- **Schedule Performance Index (SPI)**: {FormatDouble(metrics.SPI, "0.00")} {GetSPIStatus(metrics.SPI)}");
+    //    sb.AppendLine($"- **Cost Performance Index (CPI)**: {FormatDouble(metrics.CPI, "0.00")} {GetCPIStatus(metrics.CPI)}");
+    //    sb.AppendLine();
+
+    //    sb.AppendLine("### Timeline Analysis:");
+    //    sb.AppendLine($"- **Schedule Variance**: {FormatDelayDays(metrics.DelayDays)}");
+    //    sb.AppendLine($"- **Projected Completion**: {FormatDate(metrics.ProjectedFinishDate)}");
+    //    sb.AppendLine();
+
+    //    sb.AppendLine("### Audit Trail:");
+    //    sb.AppendLine($"- **Analysis Performed By**: {metrics.CalculatedBy ?? "System"}");
+    //    sb.AppendLine($"- **Approval Status**: {(metrics.IsApproved == true ? "✅ Approved" : "⏳ Pending Approval")}");
+    //    sb.AppendLine($"- **Created**: {FormatDateTime(metrics.CreatedAt)}");
+    //    sb.AppendLine($"- **Last Updated**: {FormatDateTime(metrics.UpdatedAt)}");
+    //    sb.AppendLine();
+
+    //    // 📋 Task Portfolio Analysis
+    //    sb.AppendLine("## 📋 Task Portfolio Analysis");
+    //    sb.AppendLine($"**Total Tasks**: {tasks.Count}");
+
+    //    // Task statistics
+    //    var completedTasks = tasks.Count(t => t.PercentComplete >= 100);
+    //    var inProgressTasks = tasks.Count(t => t.Status?.Contains("PROGRESS") == true || t.Status?.Contains("IN_PROGRESS") == true);
+    //    var overdueTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate < DateTime.Now && t.ActualEndDate == null);
+    //    var totalPlannedHours = tasks.Sum(t => t.PlannedHours ?? 0);
+    //    var totalActualHours = tasks.Sum(t => t.ActualHours ?? 0);
+    //    var totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
+    //    var totalActualCost = tasks.Sum(t => t.ActualCost ?? 0);
+
+    //    sb.AppendLine($"- **Completed Tasks**: {completedTasks} ({(tasks.Count > 0 ? (completedTasks * 100.0 / tasks.Count) : 0):F1}%)");
+    //    sb.AppendLine($"- **In Progress**: {inProgressTasks} ({(tasks.Count > 0 ? (inProgressTasks * 100.0 / tasks.Count) : 0):F1}%)");
+    //    sb.AppendLine($"- **Overdue Tasks**: {overdueTasks} {(overdueTasks > 0 ? "⚠️" : "✅")}");
+    //    sb.AppendLine($"- **Total Effort**: {totalPlannedHours:F1}h planned | {totalActualHours:F1}h actual");
+    //    sb.AppendLine($"- **Total Cost**: {totalPlannedCost:C0} planned | {totalActualCost:C0} actual");
+    //    sb.AppendLine();
+
+    //    // 👥 Team Analysis
+    //    sb.AppendLine("### 👥 Team Workload Distribution:");
+    //    var assigneeWorkload = tasks
+    //        .Where(t => t.TaskAssignments != null && t.TaskAssignments.Any())
+    //        .SelectMany(t => t.TaskAssignments.Select(ta => new
+    //        {
+    //            Name = ta.AccountFullname,
+    //            TaskId = t.Id,
+    //            TaskTitle = t.Title,
+    //            Status = ta.Status,
+    //            PlannedHours = t.PlannedHours ?? 0,
+    //            ActualHours = t.ActualHours ?? 0,
+    //            HourlyRate = ta.HourlyRate,
+    //            AssignedAt = ta.AssignedAt,
+    //            CompletedAt = ta.CompletedAt,
+    //            IsCompleted = ta.CompletedAt.HasValue
+    //        }))
+    //        .GroupBy(x => x.Name)
+    //        .Select(g => new
+    //        {
+    //            Name = g.Key,
+    //            TaskCount = g.Count(),
+    //            TotalPlannedHours = g.Sum(x => x.PlannedHours),
+    //            TotalActualHours = g.Sum(x => x.ActualHours),
+    //            CompletedTasks = g.Count(x => x.IsCompleted),
+    //            Tasks = g.ToList()
+    //        })
+    //        .OrderByDescending(x => x.TotalActualHours)
+    //        .ToList();
+
+    //    foreach (var assignee in assigneeWorkload)
+    //    {
+    //        var efficiency = assignee.TotalPlannedHours > 0 ? (assignee.TotalActualHours / assignee.TotalPlannedHours) : 0;
+    //        var completionRate = assignee.TaskCount > 0 ? (assignee.CompletedTasks * 100.0 / assignee.TaskCount) : 0;
+
+    //        sb.AppendLine($"- **{assignee.Name}**: {assignee.TaskCount} tasks | {assignee.TotalActualHours:F1}h actual | {completionRate:F1}% completion rate");
+    //    }
+    //    sb.AppendLine();
+
+    //    // 📋 Detailed Task Information
+    //    sb.AppendLine("## 📋 Detailed Task Information");
+    //    foreach (var task in tasks.OrderBy(t => t.Id))
+    //    {
+    //        sb.AppendLine($"### 📋 Task #{task.Id}: {task.Title}");
+    //        sb.AppendLine();
+
+    //        // Basic Information
+    //        sb.AppendLine("**📝 Basic Information:**");
+    //        sb.AppendLine($"- **Project**: {task.ProjectName ?? "N/A"} (ID: {task.ProjectId})");
+    //        sb.AppendLine($"- **Task ID**: {task.Id}");
+    //        sb.AppendLine($"- **Title**: {task.Title ?? "No title"}");
+    //        sb.AppendLine($"- **Description**: {task.Description ?? "No description provided"}");
+    //        sb.AppendLine($"- **Type**: {GetTaskTypeWithIcon(task.Type)} | **Priority**: {GetPriorityWithIcon(task.Priority)}");
+    //        sb.AppendLine($"- **Epic Reference**: {task.EpicId ?? "None"}");
+    //        sb.AppendLine();
+
+    //        // Reporter Information
+    //        sb.AppendLine("**👤 Reporter Information:**");
+    //        sb.AppendLine($"- **Reporter**: {task.ReporterFullname ?? "Unknown"} (ID: {task.ReporterId})");
+    //        if (!string.IsNullOrEmpty(task.ReporterPicture))
+    //        {
+    //            sb.AppendLine($"- **Profile Picture**: Available");
+    //        }
+    //        sb.AppendLine();
+
+    //        // Sprint Assignment
+    //        sb.AppendLine("**🏃 Sprint Assignment:**");
+    //        sb.AppendLine($"- **Sprint**: {task.SprintName ?? "Unassigned"} {(task.SprintId.HasValue ? $"(#{task.SprintId})" : "")}");
+    //        sb.AppendLine();
+
+    //        // Progress Tracking
+    //        sb.AppendLine("**📊 Progress Tracking:**");
+    //        sb.AppendLine($"- **Current Status**: {GetStatusWithIcon(task.Status)}");
+    //        sb.AppendLine($"- **Completion Percentage**: {task.PercentComplete?.ToString("0.##") ?? "0"}%");
+    //        sb.AppendLine($"- **Quality Assessment**: {task.Evaluate ?? "Pending evaluation"}");
+    //        sb.AppendLine();
+
+    //        // Timeline Information
+    //        sb.AppendLine("**⏱️ Timeline Information:**");
+    //        sb.AppendLine($"- **Planned Period**: {FormatDateRange(task.PlannedStartDate, task.PlannedEndDate)}");
+    //        sb.AppendLine($"- **Actual Period**: {FormatDateRange(task.ActualStartDate, task.ActualEndDate)}");
+    //        sb.AppendLine($"- **Schedule Status**: {GetScheduleStatus(task.PlannedEndDate, task.ActualEndDate)}");
+    //        sb.AppendLine($"- **Created**: {FormatDateTime(task.CreatedAt)}");
+    //        sb.AppendLine($"- **Last Updated**: {FormatDateTime(task.UpdatedAt)}");
+    //        sb.AppendLine();
+
+    //        // Resource Planning
+    //        sb.AppendLine("**💰 Resource Planning:**");
+    //        sb.AppendLine($"- **Time Budget**: {FormatHours(task.PlannedHours)} planned | {FormatHours(task.ActualHours)} actual | {FormatHours(task.RemainingHours)} remaining");
+    //        sb.AppendLine($"- **Task Cost**: {FormatCurrency(task.PlannedCost)} planned | {FormatCurrency(task.ActualCost)} actual");
+    //        sb.AppendLine($"- **Resource Cost**: {FormatCurrency(task.PlannedResourceCost)} planned | {FormatCurrency(task.ActualResourceCost)} actual");
+
+    //        if (task.PlannedHours.HasValue && task.ActualHours.HasValue && task.PlannedHours > 0)
+    //        {
+    //            var efficiency = (task.ActualHours.Value / task.PlannedHours.Value) * 100;
+    //            var efficiencyStatus = efficiency <= 100 ? "✅ Efficient" : efficiency <= 120 ? "⚠️ Slightly Over" : "🔴 Over Budget";
+    //            sb.AppendLine($"- **Time Efficiency**: {efficiency:F1}% {efficiencyStatus}");
+    //        }
+    //        sb.AppendLine();
+
+    //        // Team Assignment Details
+    //        sb.AppendLine("**👥 Team Assignment:**");
+    //        if (task.TaskAssignments != null && task.TaskAssignments.Any())
+    //        {
+    //            foreach (var assignment in task.TaskAssignments)
+    //            {
+    //                sb.AppendLine($"- **Assignee**: {assignment.AccountFullname}");
+    //                sb.AppendLine($"  - **Status**: {GetStatusWithIcon(assignment.Status)}");
+    //                sb.AppendLine($"  - **Assigned Date**: {FormatDateTime(assignment.AssignedAt)}");
+    //                if (assignment.CompletedAt.HasValue && assignment.AssignedAt.HasValue)
+    //                {
+    //                    sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
+    //                    var workDuration = (assignment.CompletedAt.Value - assignment.AssignedAt.Value).Days;
+    //                    sb.AppendLine($"  - **Work Duration**: {workDuration} days");
+    //                }
+    //                else if (assignment.CompletedAt.HasValue)
+    //                {
+    //                    sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
+    //                }
+    //                if (assignment.HourlyRate.HasValue)
+    //                {
+    //                    sb.AppendLine($"  - **Hourly Rate**: {assignment.HourlyRate:C}/hour");
+    //                    if (task.ActualHours.HasValue)
+    //                    {
+    //                        var estimatedCost = assignment.HourlyRate.Value * task.ActualHours.Value;
+    //                        sb.AppendLine($"  - **Estimated Labor Cost**: {estimatedCost:C}");
+    //                    }
+    //                }
+    //                if (!string.IsNullOrEmpty(assignment.AccountPicture))
+    //                {
+    //                    sb.AppendLine($"  - **Profile Picture**: Available");
+    //                }
+    //                sb.AppendLine();
+    //            }
+    //        }
+    //        else
+    //        {
+    //            sb.AppendLine("- **Assignment Status**: ⚠️ Unassigned");
+    //            sb.AppendLine();
+    //        }
+
+    //        sb.AppendLine("---");
+    //        sb.AppendLine();
+    //    }
+
+    //    // Final instructions for AI
+    //    sb.AppendLine("## 📝 Analysis Instructions");
+    //    sb.AppendLine("Please analyze the above data and create a professional project summary document that:");
+    //    sb.AppendLine("- Identifies critical project risks, bottlenecks, and resource constraints");
+    //    sb.AppendLine("- Highlights successful areas, efficient team members, and on-track deliverables");
+    //    sb.AppendLine("- Analyzes team workload distribution and identifies potential burnout risks");
+    //    sb.AppendLine("- Provides specific, actionable recommendations for project improvement");
+    //    sb.AppendLine("- Uses appropriate visual formatting, status indicators, and professional presentation");
+    //    sb.AppendLine("- Maintains professional tone suitable for stakeholder and executive review");
+    //    sb.AppendLine("- Include data-driven insights and quantitative analysis where possible");
+
+    //    return sb.ToString();
+    //}
+
+    // Helper Methods
+    private string FormatCurrency(decimal? value)
         {
             return value?.ToString("C0") ?? "Not specified";
         }
