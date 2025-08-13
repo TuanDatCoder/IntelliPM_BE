@@ -46,7 +46,9 @@ namespace IntelliPM.Services.DocumentServices
         Task<Dictionary<string, int>> GetStatusCountByProject(int projectId);
 
 
-        Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId);
+        Task<GenerateDocumentResponse> GenerateFromProject(int documentId);
+        Task<GenerateDocumentResponse> GenerateFromTask(int documentId);
+
 
         Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest request);
 
