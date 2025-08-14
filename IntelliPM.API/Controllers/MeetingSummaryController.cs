@@ -47,6 +47,14 @@ namespace IntelliPM.API.Controllers
                 return NotFound();
             return NoContent();
         }
+        [HttpGet("detail/{meetingId}")]
+        public async Task<IActionResult> GetDetail(int meetingId)
+        {
+            var result = await _service.GetMeetingSummaryByMeetingIdAsync(meetingId);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
+        }
 
     }
 }
