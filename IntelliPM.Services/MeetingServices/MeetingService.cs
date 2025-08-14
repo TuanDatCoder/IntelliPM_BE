@@ -61,6 +61,25 @@ namespace IntelliPM.Services.MeetingServices
                 if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
                     throw new Exception("At least one participant is required.");
 
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    var start = dto.StartTime.Value;
+                    var end = dto.EndTime.Value;
+
+                    // Completed meeting cùng project, overlap thời gian
+                    bool completedInProject = await _context.Meeting.AnyAsync(m =>
+                        m.ProjectId == dto.ProjectId &&
+                        m.Status == "COMPLETED" &&
+                        m.StartTime.HasValue && m.EndTime.HasValue &&
+                        m.StartTime.Value < end && m.EndTime.Value > start
+                    );
+
+                    if (completedInProject)
+                        throw new Exception("A completed meeting already exists in this time range for the project.");
+
+                  
+                }
+
                 // 3) Check trùng lịch từng participant (nếu có start/end)
                 if (dto.StartTime.HasValue && dto.EndTime.HasValue)
                 {
@@ -205,6 +224,25 @@ namespace IntelliPM.Services.MeetingServices
                         if (participantConflict)
                             throw new Exception($"Participant {participantId} has a conflicting meeting.");
                     }
+                }
+
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    var start = dto.StartTime.Value;
+                    var end = dto.EndTime.Value;
+
+                    // Completed meeting cùng project, overlap thời gian
+                    bool completedInProject = await _context.Meeting.AnyAsync(m =>
+                        m.ProjectId == dto.ProjectId &&
+                        m.Status == "COMPLETED" &&
+                        m.StartTime.HasValue && m.EndTime.HasValue &&
+                        m.StartTime.Value < end && m.EndTime.Value > start
+                    );
+
+                    if (completedInProject)
+                        throw new Exception("A completed meeting already exists in this time range for the project.");
+
+
                 }
 
                 // 3) Map + chuẩn hóa UTC
