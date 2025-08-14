@@ -11,6 +11,9 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace IntelliPM.Services.MeetingServices
 {
@@ -45,23 +48,39 @@ namespace IntelliPM.Services.MeetingServices
         {
             try
             {
-                // Kiểm tra nếu Project đã có họp vào cùng ngày
+                // 1) Validate conflict theo Project + ngày
                 bool hasConflict = await _context.Meeting.AnyAsync(m =>
                     m.ProjectId == dto.ProjectId &&
                     m.MeetingDate.Date == dto.MeetingDate.Date &&
                     m.Status != "CANCELLED"
                 );
-
                 if (hasConflict)
-                {
                     throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
-                }
 
-                // Validate danh sách người tham gia
+                // 2) Validate participant list
                 if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
                     throw new Exception("At least one participant is required.");
 
-                // Kiểm tra trùng lịch cho từng participant
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    var start = dto.StartTime.Value;
+                    var end = dto.EndTime.Value;
+
+                    // Completed meeting cùng project, overlap thời gian
+                    bool completedInProject = await _context.Meeting.AnyAsync(m =>
+                        m.ProjectId == dto.ProjectId &&
+                        m.Status == "COMPLETED" &&
+                        m.StartTime.HasValue && m.EndTime.HasValue &&
+                        m.StartTime.Value < end && m.EndTime.Value > start
+                    );
+
+                    if (completedInProject)
+                        throw new Exception("A completed meeting already exists in this time range for the project.");
+
+                  
+                }
+
+                // 3) Check trùng lịch từng participant (nếu có start/end)
                 if (dto.StartTime.HasValue && dto.EndTime.HasValue)
                 {
                     foreach (var participantId in dto.ParticipantIds)
@@ -73,63 +92,83 @@ namespace IntelliPM.Services.MeetingServices
                     }
                 }
 
+                // 4) Map + chuẩn hóa UTC
                 var meeting = _mapper.Map<Meeting>(dto);
                 meeting.Status = "ACTIVE";
                 meeting.CreatedAt = DateTime.UtcNow;
 
-                // Bắt buộc xử lý UTC
                 meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
                 if (meeting.StartTime.HasValue)
                     meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
                 if (meeting.EndTime.HasValue)
                     meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
 
+                // 5) Save meeting
                 await _repo.AddAsync(meeting);
                 await _context.SaveChangesAsync();
 
-                
-                foreach (var participantId in dto.ParticipantIds)
+                // 6) Lấy accounts hợp lệ trước (để dùng cho cả add participant & gửi email)
+                var accounts = new List<(int Id, string? Email, string? FullName, string? Role)>();
+                foreach (var pid in dto.ParticipantIds)
                 {
-                    var account = await _context.Account.FindAsync(participantId);
-                    if (account == null)
+                    var acc = await _context.Account.FindAsync(pid);
+                    if (acc == null)
                     {
-                        Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+                        Console.WriteLine($"[EmailError] Account with id {pid} not found.");
                         continue;
                     }
+                    accounts.Add((pid, acc.Email, acc.FullName, acc.Role));
+                }
 
-                    if (string.IsNullOrWhiteSpace(account.Email))
-                    {
-                        Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
-                    }
-                    else
-                    {
-                        try
-                        {
-                            await _emailService.SendMeetingInvitation(
-                                account.Email,
-                                account.FullName ?? "User",
-                                meeting.MeetingTopic,
-                                meeting.StartTime ?? DateTime.UtcNow,
-                                meeting.MeetingUrl ?? ""
-                            );
-                        }
-                        catch (Exception emailEx)
-                        {
-                            Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
-                        }
-                    }
-
+                // 7) Add participants (giữ nguyên logic repo)
+                foreach (var acc in accounts)
+                {
                     var participant = new MeetingParticipant
                     {
                         MeetingId = meeting.Id,
-                        AccountId = participantId,
-                        Role = account.Role ?? "Attendee",
+                        AccountId = acc.Id,
+                        Role = acc.Role ?? "Attendee",
                         Status = "Active",
                         CreatedAt = DateTime.UtcNow
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
                 }
-                // Tạo MeetingLog cho người tạo (participant đầu tiên)
+
+                // 8) Gửi email song song (bounded concurrency)
+                var emailTasks = new List<Task>();
+                var semaphore = new SemaphoreSlim(5); // <= chỉnh concurrency tại đây
+
+                foreach (var acc in accounts)
+                {
+                    if (string.IsNullOrWhiteSpace(acc.Email))
+                    {
+                        Console.WriteLine($"[EmailError] Account id {acc.Id} does not have a valid email.");
+                        continue;
+                    }
+
+                    emailTasks.Add(Task.Run(async () =>
+                    {
+                        await semaphore.WaitAsync();
+                        try
+                        {
+                            await _emailService.SendMeetingInvitation(
+                                acc.Email!,
+                                acc.FullName ?? "User",
+                                meeting.MeetingTopic,
+                                meeting.StartTime ?? DateTime.UtcNow,
+                                meeting.MeetingUrl ?? ""
+                            );
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(emailTasks);
+
+                // 9) MeetingLog cho người tạo (participant đầu tiên nếu có)
                 if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
                 {
                     var log = new MeetingLog
@@ -142,13 +181,13 @@ namespace IntelliPM.Services.MeetingServices
                     await _context.SaveChangesAsync();
                 }
 
+                // 10) Notification sau cùng
                 await _notificationService.SendMeetingNotification(
                     dto.ParticipantIds,
                     meeting.Id,
                     meeting.MeetingTopic,
                     dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
                 );
-
 
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
@@ -161,24 +200,21 @@ namespace IntelliPM.Services.MeetingServices
                 Console.WriteLine("Error in CreateMeeting: " + ex.Message);
                 Console.WriteLine("Stack Trace: " + ex.StackTrace);
                 if (ex.InnerException != null)
-                {
                     Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
-                }
                 throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
             }
         }
-
         public async Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto)
         {
             try
             {
-                // Không kiểm tra trùng lịch họp theo project trong ngày
+                // Không check trùng lịch theo project trong ngày
 
-                // Validate danh sách người tham gia
+                // 1) Validate participant list
                 if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
                     throw new Exception("At least one participant is required.");
 
-                // Kiểm tra trùng lịch cho từng participant
+                // 2) Check trùng lịch từng participant (nếu có start/end)
                 if (dto.StartTime.HasValue && dto.EndTime.HasValue)
                 {
                     foreach (var participantId in dto.ParticipantIds)
@@ -190,64 +226,102 @@ namespace IntelliPM.Services.MeetingServices
                     }
                 }
 
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+                {
+                    var start = dto.StartTime.Value;
+                    var end = dto.EndTime.Value;
+
+                    // Completed meeting cùng project, overlap thời gian
+                    bool completedInProject = await _context.Meeting.AnyAsync(m =>
+                        m.ProjectId == dto.ProjectId &&
+                        m.Status == "COMPLETED" &&
+                        m.StartTime.HasValue && m.EndTime.HasValue &&
+                        m.StartTime.Value < end && m.EndTime.Value > start
+                    );
+
+                    if (completedInProject)
+                        throw new Exception("A completed meeting already exists in this time range for the project.");
+
+
+                }
+
+                // 3) Map + chuẩn hóa UTC
                 var meeting = _mapper.Map<Meeting>(dto);
                 meeting.Status = "ACTIVE";
                 meeting.CreatedAt = DateTime.UtcNow;
 
-                // Bắt buộc xử lý UTC
                 meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
                 if (meeting.StartTime.HasValue)
                     meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
                 if (meeting.EndTime.HasValue)
                     meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
 
+                // 4) Save meeting
                 await _repo.AddAsync(meeting);
                 await _context.SaveChangesAsync();
 
-                // Thêm participant vào bảng MeetingParticipant
-             
-                foreach (var participantId in dto.ParticipantIds)
+                // 5) Lấy accounts hợp lệ
+                var accounts = new List<(int Id, string? Email, string? FullName, string? Role)>();
+                foreach (var pid in dto.ParticipantIds)
                 {
-                    var account = await _context.Account.FindAsync(participantId);
-                    if (account == null)
+                    var acc = await _context.Account.FindAsync(pid);
+                    if (acc == null)
                     {
-                        Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+                        Console.WriteLine($"[EmailError] Account with id {pid} not found.");
                         continue;
                     }
+                    accounts.Add((pid, acc.Email, acc.FullName, acc.Role));
+                }
 
-                    if (string.IsNullOrWhiteSpace(account.Email))
-                    {
-                        Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
-                    }
-                    else
-                    {
-                        try
-                        {
-                            await _emailService.SendMeetingInvitation(
-                                account.Email,
-                                account.FullName ?? "User",
-                                meeting.MeetingTopic,
-                                meeting.StartTime ?? DateTime.UtcNow,
-                                meeting.MeetingUrl ?? ""
-                            );
-                        }
-                        catch (Exception emailEx)
-                        {
-                            Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
-                        }
-                    }
-
+                // 6) Add participants
+                foreach (var acc in accounts)
+                {
                     var participant = new MeetingParticipant
                     {
                         MeetingId = meeting.Id,
-                        AccountId = participantId,
-                        Role = account.Role ?? "Attendee",
+                        AccountId = acc.Id,
+                        Role = acc.Role ?? "Attendee",
                         Status = "Active",
                         CreatedAt = DateTime.UtcNow
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
                 }
-                // Tạo MeetingLog cho người tạo (participant đầu tiên)
+
+                // 7) Gửi email song song (bounded concurrency)
+                var emailTasks = new List<Task>();
+                var semaphore = new SemaphoreSlim(5); // <= giới hạn concurrency
+
+                foreach (var acc in accounts)
+                {
+                    if (string.IsNullOrWhiteSpace(acc.Email))
+                    {
+                        Console.WriteLine($"[EmailError] Account id {acc.Id} does not have a valid email.");
+                        continue;
+                    }
+
+                    emailTasks.Add(Task.Run(async () =>
+                    {
+                        await semaphore.WaitAsync();
+                        try
+                        {
+                            await _emailService.SendMeetingInvitation(
+                                acc.Email!,
+                                acc.FullName ?? "User",
+                                meeting.MeetingTopic,
+                                meeting.StartTime ?? DateTime.UtcNow,
+                                meeting.MeetingUrl ?? ""
+                            );
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(emailTasks);
+
+                // 8) MeetingLog cho người tạo (participant đầu tiên nếu có)
                 if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
                 {
                     var log = new MeetingLog
@@ -259,15 +333,14 @@ namespace IntelliPM.Services.MeetingServices
                     _context.MeetingLog.Add(log);
                     await _context.SaveChangesAsync();
                 }
-                // Gửi notification tới tất cả participant được mời vào họp
+
+                // 9) Gửi notification
                 await _notificationService.SendMeetingNotification(
                     dto.ParticipantIds,
                     meeting.Id,
                     meeting.MeetingTopic,
-                    dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
+                    dto.ParticipantIds[0]
                 );
-
-
 
                 return _mapper.Map<MeetingResponseDTO>(meeting);
             }
@@ -275,12 +348,251 @@ namespace IntelliPM.Services.MeetingServices
             {
                 Console.WriteLine("Error in CreateInternalMeeting: " + ex.Message);
                 if (ex.InnerException != null)
-                {
                     Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
-                }
                 throw new Exception("An error occurred while creating the internal meeting. Please try again.", ex);
             }
         }
+
+        //public async Task<MeetingResponseDTO> CreateMeeting(MeetingRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // Kiểm tra nếu Project đã có họp vào cùng ngày
+        //        bool hasConflict = await _context.Meeting.AnyAsync(m =>
+        //            m.ProjectId == dto.ProjectId &&
+        //            m.MeetingDate.Date == dto.MeetingDate.Date &&
+        //            m.Status != "CANCELLED"
+        //        );
+
+        //        if (hasConflict)
+        //        {
+        //            throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
+        //        }
+
+        //        // Validate danh sách người tham gia
+        //        if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+        //            throw new Exception("At least one participant is required.");
+
+        //        // Kiểm tra trùng lịch cho từng participant
+        //        if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+        //        {
+        //            foreach (var participantId in dto.ParticipantIds)
+        //            {
+        //                bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+        //                    participantId, dto.StartTime.Value, dto.EndTime.Value);
+        //                if (participantConflict)
+        //                    throw new Exception($"Participant {participantId} has a conflicting meeting.");
+        //            }
+        //        }
+
+        //        var meeting = _mapper.Map<Meeting>(dto);
+        //        meeting.Status = "ACTIVE";
+        //        meeting.CreatedAt = DateTime.UtcNow;
+
+        //        // Bắt buộc xử lý UTC
+        //        meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+        //        if (meeting.StartTime.HasValue)
+        //            meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+        //        if (meeting.EndTime.HasValue)
+        //            meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
+
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();
+
+
+        //        foreach (var participantId in dto.ParticipantIds)
+        //        {
+        //            var account = await _context.Account.FindAsync(participantId);
+        //            if (account == null)
+        //            {
+        //                Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+        //                continue;
+        //            }
+
+        //            if (string.IsNullOrWhiteSpace(account.Email))
+        //            {
+        //                Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
+        //            }
+        //            else
+        //            {
+        //                try
+        //                {
+        //                    await _emailService.SendMeetingInvitation(
+        //                        account.Email,
+        //                        account.FullName ?? "User",
+        //                        meeting.MeetingTopic,
+        //                        meeting.StartTime ?? DateTime.UtcNow,
+        //                        meeting.MeetingUrl ?? ""
+        //                    );
+        //                }
+        //                catch (Exception emailEx)
+        //                {
+        //                    Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
+        //                }
+        //            }
+
+        //            var participant = new MeetingParticipant
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = participantId,
+        //                Role = account.Role ?? "Attendee",
+        //                Status = "Active",
+        //                CreatedAt = DateTime.UtcNow
+        //            };
+        //            await _meetingParticipantRepo.AddAsync(participant);
+        //        }
+        //        // Tạo MeetingLog cho người tạo (participant đầu tiên)
+        //        if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
+        //        {
+        //            var log = new MeetingLog
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = dto.ParticipantIds[0],
+        //                Action = "CREATE_MEETING"
+        //            };
+        //            _context.MeetingLog.Add(log);
+        //            await _context.SaveChangesAsync();
+        //        }
+
+        //        await _notificationService.SendMeetingNotification(
+        //            dto.ParticipantIds,
+        //            meeting.Id,
+        //            meeting.MeetingTopic,
+        //            dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
+        //        );
+
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);
+        //    }
+        //    catch (InvalidOperationException ex)
+        //    {
+        //        throw new Exception(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CreateMeeting: " + ex.Message);
+        //        Console.WriteLine("Stack Trace: " + ex.StackTrace);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+        //        throw new Exception("An error occurred while creating the meeting. Please try again.", ex);
+        //    }
+        //}
+
+        //public async Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto)
+        //{
+        //    try
+        //    {
+        //        // Không kiểm tra trùng lịch họp theo project trong ngày
+
+        //        // Validate danh sách người tham gia
+        //        if (dto.ParticipantIds == null || !dto.ParticipantIds.Any())
+        //            throw new Exception("At least one participant is required.");
+
+        //        // Kiểm tra trùng lịch cho từng participant
+        //        if (dto.StartTime.HasValue && dto.EndTime.HasValue)
+        //        {
+        //            foreach (var participantId in dto.ParticipantIds)
+        //            {
+        //                bool participantConflict = await _meetingParticipantRepo.HasTimeConflictAsync(
+        //                    participantId, dto.StartTime.Value, dto.EndTime.Value);
+        //                if (participantConflict)
+        //                    throw new Exception($"Participant {participantId} has a conflicting meeting.");
+        //            }
+        //        }
+
+        //        var meeting = _mapper.Map<Meeting>(dto);
+        //        meeting.Status = "ACTIVE";
+        //        meeting.CreatedAt = DateTime.UtcNow;
+
+        //        // Bắt buộc xử lý UTC
+        //        meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
+        //        if (meeting.StartTime.HasValue)
+        //            meeting.StartTime = DateTime.SpecifyKind(meeting.StartTime.Value, DateTimeKind.Utc);
+        //        if (meeting.EndTime.HasValue)
+        //            meeting.EndTime = DateTime.SpecifyKind(meeting.EndTime.Value, DateTimeKind.Utc);
+
+        //        await _repo.AddAsync(meeting);
+        //        await _context.SaveChangesAsync();
+
+        //        // Thêm participant vào bảng MeetingParticipant
+
+        //        foreach (var participantId in dto.ParticipantIds)
+        //        {
+        //            var account = await _context.Account.FindAsync(participantId);
+        //            if (account == null)
+        //            {
+        //                Console.WriteLine($"[EmailError] Account with id {participantId} not found.");
+        //                continue;
+        //            }
+
+        //            if (string.IsNullOrWhiteSpace(account.Email))
+        //            {
+        //                Console.WriteLine($"[EmailError] Account id {participantId} does not have a valid email.");
+        //            }
+        //            else
+        //            {
+        //                try
+        //                {
+        //                    await _emailService.SendMeetingInvitation(
+        //                        account.Email,
+        //                        account.FullName ?? "User",
+        //                        meeting.MeetingTopic,
+        //                        meeting.StartTime ?? DateTime.UtcNow,
+        //                        meeting.MeetingUrl ?? ""
+        //                    );
+        //                }
+        //                catch (Exception emailEx)
+        //                {
+        //                    Console.WriteLine($"[EmailError] Failed to send invitation to {account.Email}: {emailEx.Message}");
+        //                }
+        //            }
+
+        //            var participant = new MeetingParticipant
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = participantId,
+        //                Role = account.Role ?? "Attendee",
+        //                Status = "Active",
+        //                CreatedAt = DateTime.UtcNow
+        //            };
+        //            await _meetingParticipantRepo.AddAsync(participant);
+        //        }
+        //        // Tạo MeetingLog cho người tạo (participant đầu tiên)
+        //        if (dto.ParticipantIds != null && dto.ParticipantIds.Count > 0)
+        //        {
+        //            var log = new MeetingLog
+        //            {
+        //                MeetingId = meeting.Id,
+        //                AccountId = dto.ParticipantIds[0],
+        //                Action = "CREATE_MEETING"
+        //            };
+        //            _context.MeetingLog.Add(log);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        // Gửi notification tới tất cả participant được mời vào họp
+        //        await _notificationService.SendMeetingNotification(
+        //            dto.ParticipantIds,
+        //            meeting.Id,
+        //            meeting.MeetingTopic,
+        //            dto.ParticipantIds[0] // hoặc accountId đang tạo cuộc họp
+        //        );
+
+
+
+        //        return _mapper.Map<MeetingResponseDTO>(meeting);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CreateInternalMeeting: " + ex.Message);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+        //        throw new Exception("An error occurred while creating the internal meeting. Please try again.", ex);
+        //    }
+        //}
 
 
 
@@ -353,70 +665,147 @@ namespace IntelliPM.Services.MeetingServices
             }
         }
 
+        //public async Task CancelMeeting(int id)
+        //{
+        //    try
+        //    {
+        //        var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
+        //        meeting.Status = "CANCELLED";
+
+        //        // Lấy danh sách participants liên quan
+        //        var participants = await _context.MeetingParticipant
+        //            .Where(mp => mp.MeetingId == id)
+        //            .ToListAsync();
+
+
+        //        // Gửi thông báo email hủy cuộc họp đến từng participant
+        //        foreach (var participant in participants)
+        //        {
+        //            var account = await _context.Account.FindAsync(participant.AccountId);
+        //            if (account == null)
+        //            {
+        //                Console.WriteLine($"[EmailError] Account with id {participant.AccountId} not found.");
+        //                continue;
+        //            }
+
+        //            if (string.IsNullOrWhiteSpace(account.Email))
+        //            {
+        //                Console.WriteLine($"[EmailError] Account id {participant.AccountId} does not have a valid email.");
+        //                continue;
+        //            }
+
+        //            try
+        //            {
+        //                await _emailService.SendMeetingCancellationEmail(
+        //                    account.Email,
+        //                    account.FullName ?? "User",
+        //                    meeting.MeetingTopic,
+        //                    meeting.StartTime ?? DateTime.UtcNow,
+        //                    meeting.MeetingUrl ?? ""
+        //                );
+        //            }
+        //            catch (Exception emailEx)
+        //            {
+        //                Console.WriteLine($"[EmailError] Failed to send cancellation to {account.Email}: {emailEx.Message}");
+        //            }
+        //        }
+
+        //        // Xóa tất cả participants
+        //        _context.MeetingParticipant.RemoveRange(participants);
+
+        //        // Cập nhật trạng thái cuộc họp
+        //        await _repo.UpdateAsync(meeting);
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error in CancelMeeting: " + ex.Message);
+        //        if (ex.InnerException != null)
+        //        {
+        //            Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+        //        }
+        //        throw new Exception("An error occurred while cancelling the meeting.");
+        //    }
+        //}
+
         public async Task CancelMeeting(int id)
         {
             try
             {
-                var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
-                meeting.Status = "CANCELLED";
+                // Early exit nếu đã CANCELLED (tránh làm việc thừa)
+                var status = await _context.Meeting
+                    .Where(m => m.Id == id)
+                    .Select(m => m.Status)
+                    .FirstOrDefaultAsync();
 
-                // Lấy danh sách participants liên quan
-                var participants = await _context.MeetingParticipant
+                if (status == null)
+                    throw new KeyNotFoundException("Meeting not found");
+                if (status == "CANCELLED")
+                    return;
+
+                // Lấy info cần cho email (nhẹ, không track)
+                var meetingInfo = await _context.Meeting
+                    .Where(m => m.Id == id)
+                    .Select(m => new { m.MeetingTopic, m.StartTime, m.MeetingUrl })
+                    .AsNoTracking()
+                    .FirstAsync();
+
+                // Lấy targets 1 phát bằng JOIN (tránh FindAsync từng account)
+                var targets = await _context.MeetingParticipant
                     .Where(mp => mp.MeetingId == id)
+                    .Join(_context.Account,
+                          mp => mp.AccountId,
+                          a => a.Id,
+                          (mp, a) => new { a.Email, a.FullName })
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Email))
+                    .AsNoTracking()
                     .ToListAsync();
 
+                // Bulk UPDATE trạng thái meeting
+                await _context.Meeting
+                    .Where(m => m.Id == id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.Status, "CANCELLED"));
 
-                // Gửi thông báo email hủy cuộc họp đến từng participant
-                foreach (var participant in participants)
+                // Bulk DELETE participants
+                await _context.MeetingParticipant
+                    .Where(mp => mp.MeetingId == id)
+                    .ExecuteDeleteAsync();
+
+                // Gửi email hủy SONG SONG (bounded concurrency để không choke SMTP)
+                var sem = new SemaphoreSlim(5); // <= chỉnh tuỳ SMTP (2–10)
+                var tasks = targets.Select(t => Task.Run(async () =>
                 {
-                    var account = await _context.Account.FindAsync(participant.AccountId);
-                    if (account == null)
-                    {
-                        Console.WriteLine($"[EmailError] Account with id {participant.AccountId} not found.");
-                        continue;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(account.Email))
-                    {
-                        Console.WriteLine($"[EmailError] Account id {participant.AccountId} does not have a valid email.");
-                        continue;
-                    }
-
+                    await sem.WaitAsync();
                     try
                     {
                         await _emailService.SendMeetingCancellationEmail(
-                            account.Email,
-                            account.FullName ?? "User",
-                            meeting.MeetingTopic,
-                            meeting.StartTime ?? DateTime.UtcNow,
-                            meeting.MeetingUrl ?? ""
+                            t.Email!,
+                            t.FullName ?? "User",
+                            meetingInfo.MeetingTopic,
+                            meetingInfo.StartTime ?? DateTime.UtcNow,
+                            meetingInfo.MeetingUrl ?? ""
                         );
                     }
                     catch (Exception emailEx)
                     {
-                        Console.WriteLine($"[EmailError] Failed to send cancellation to {account.Email}: {emailEx.Message}");
+                        Console.WriteLine($"[EmailError] Failed to send cancellation to {t.Email}: {emailEx.Message}");
                     }
-                }
+                    finally
+                    {
+                        sem.Release();
+                    }
+                })).ToList();
 
-                // Xóa tất cả participants
-                _context.MeetingParticipant.RemoveRange(participants);
-
-                // Cập nhật trạng thái cuộc họp
-                await _repo.UpdateAsync(meeting);
-                await _context.SaveChangesAsync();
+                await Task.WhenAll(tasks);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error in CancelMeeting: " + ex.Message);
                 if (ex.InnerException != null)
-                {
                     Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
-                }
                 throw new Exception("An error occurred while cancelling the meeting.");
             }
         }
-
-
 
         public async Task<List<MeetingResponseDTO>> GetManagedMeetingsByAccount(int accountId)
         {
