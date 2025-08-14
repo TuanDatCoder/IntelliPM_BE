@@ -850,7 +850,7 @@ Yêu cầu:
         {
             var doc = await _repo.GetByIdAsync(documentId);
             if (doc == null)
-                throw new Exception("Document not found");
+
 
             var projectId = doc.ProjectId;
             Console.WriteLine(projectId);
@@ -961,6 +961,7 @@ CẤU TRÚC MONG MUỐN:
         }
 
      
+
 
 private string BuildTasksTablesPrompt(List<TaskDto> tasks)
     {
@@ -1286,20 +1287,84 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
             return value?.ToString("C0") ?? "Not specified";
         }
 
-        private string FormatCurrency(double? value)
-        {
-            return value?.ToString("C0") ?? "Not specified";
-        }
 
-        private string FormatDecimal(decimal? value, string format)
+private string BuildTasksTablesPrompt(List<TaskDto> tasks)
+    {
+        // JSON camelCase cho AI đọc đúng key
+        var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
         {
-            return value?.ToString(format) ?? "N/A";
-        }
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        });
 
-        private string FormatDouble(double? value, string format)
-        {
-            return value?.ToString(format) ?? "N/A";
-        }
+        return $@"
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích).
+
+Yêu cầu:
+- Đầu ra là NHIỀU bảng <table>, mỗi task trong JSON phải được in ra thành đúng 1 bảng.
+- Mỗi bảng có cấu trúc dọc (Name/Information) như bên dưới.
+- Không thêm style hay class.
+- Không format lại giá trị, in đúng giá trị từ JSON (nếu null để rỗng).
+- TUYỆT ĐỐI KHÔNG hiển thị các field: taskAssignments, commentCount, comments, labels.
+- Chỉ dùng các thẻ: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- Không thêm text ngoài các <table>.
+
+Dữ liệu JSON (mảng các task):
+{json}
+
+Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố định** này, map label → key JSON tương ứng:
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Information</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>ID</td><td>{{task.id}}</td></tr>
+    <tr><td>Project ID</td><td>{{task.projectId}}</td></tr>
+    <tr><td>Project Name</td><td>{{task.projectName}}</td></tr>
+    <tr><td>Type</td><td>{{task.type}}</td></tr>
+    <tr><td>Title</td><td>{{task.title}}</td></tr>
+    <tr><td>Description</td><td>{{task.description}}</td></tr>
+
+    <tr><td>Planned Start Date</td><td>{{task.plannedStartDate}}</td></tr>
+    <tr><td>Planned End Date</td><td>{{task.plannedEndDate}}</td></tr>
+    <tr><td>Actual Start Date</td><td>{{task.actualStartDate}}</td></tr>
+    <tr><td>Actual End Date</td><td>{{task.actualEndDate}}</td></tr>
+
+    <tr><td>Created At</td><td>{{task.createdAt}}</td></tr>
+    <tr><td>Updated At</td><td>{{task.updatedAt}}</td></tr>
+    <tr><td>Status</td><td>{{task.status}}</td></tr>
+    <tr><td>Priority</td><td>{{task.priority}}</td></tr>
+    <tr><td>Reporter ID</td><td>{{task.reporterId}}</td></tr>
+    <tr><td>Reporter Fullname</td><td>{{task.reporterFullname}}</td></tr>
+    <tr><td>Reporter Picture</td><td>{{task.reporterPicture}}</td></tr>
+
+    <tr><td>Percent Complete</td><td>{{task.percentComplete}}</td></tr>
+    <tr><td>Planned Hours</td><td>{{task.plannedHours}}</td></tr>
+    <tr><td>Actual Hours</td><td>{{task.actualHours}}</td></tr>
+    <tr><td>Planned Cost</td><td>{{task.plannedCost}}</td></tr>
+    <tr><td>Planned Resource Cost</td><td>{{task.plannedResourceCost}}</td></tr>
+    <tr><td>Actual Cost</td><td>{{task.actualCost}}</td></tr>
+    <tr><td>Actual Resource Cost</td><td>{{task.actualResourceCost}}</td></tr>
+    <tr><td>Remaining Hours</td><td>{{task.remainingHours}}</td></tr>
+
+    <tr><td>Sprint ID</td><td>{{task.sprintId}}</td></tr>
+    <tr><td>Sprint Name</td><td>{{task.sprintName}}</td></tr>
+    <tr><td>Epic ID</td><td>{{task.epicId}}</td></tr>
+
+    <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
+  </tbody>
+</table>";
+    }
+
+
+
+
+
+    
 
         private string FormatDate(DateTime? date)
         {
