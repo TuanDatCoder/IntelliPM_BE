@@ -13,6 +13,9 @@ namespace IntelliPM.Services.DocumentPermissionServices
 
         Task<List<SharedUserDTO>> GetSharedUsersAsync(int documentId);
 
+        Task<string?> GetPermissionTypeAsync(int documentId);
+
+
 
     }
 }

@@ -15,6 +15,8 @@ namespace IntelliPM.Repositories.DocumentPermissionRepos
 
         Task<List<DocumentPermission>> GetByDocumentAsync(int documentId);
 
+        Task<string?> GetPermissionTypeByDocumentIdAsync(int documentId);
+
 
 
         Task UpdateAsync(DocumentPermission permission);

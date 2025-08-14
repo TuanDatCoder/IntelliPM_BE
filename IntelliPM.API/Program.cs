@@ -394,13 +394,13 @@ app.MapHub<NotificationHub>("/hubs/notification");
 app.UseHangfireDashboard();  
 app.UseHangfireServer();
 
-RecurringJob.AddOrUpdate<IWorkLogService>(
-    "generate-daily-worklog",
-    x => x.GenerateDailyWorkLogsAsync(),
-     "0 17 * * *"
-     //"0 1 * * *"
-     // "*/1 * * * *"
-);
+//RecurringJob.AddOrUpdate<IWorkLogService>(
+//    "generate-daily-worklog",
+//    x => x.GenerateDailyWorkLogsAsync(),
+//     "0 17 * * *"
+//     //"0 1 * * *"
+//     // "*/1 * * * *"
+//);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();
