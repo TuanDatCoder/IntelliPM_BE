@@ -44,6 +44,14 @@ namespace IntelliPM.Services.DocumentPermissionServices
             return await _repo.GetSharedUsersByDocumentIdAsync(documentId);
         }
 
+        public async Task<string?> GetPermissionTypeAsync(int documentId)
+        {
+            var permissionType = await _repo.GetPermissionTypeByDocumentIdAsync(documentId);
+            if (permissionType == null)
+                throw new KeyNotFoundException("Permission not found for this document.");
+            return permissionType;
+        }
+
 
     }
 }
