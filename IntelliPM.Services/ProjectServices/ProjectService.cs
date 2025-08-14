@@ -504,6 +504,7 @@ namespace IntelliPM.Services.ProjectServices
                     CommentCount = task.CommentCount,
                     SprintId = task.SprintId,
                     SprintName = task.SprintName,
+                    Priority = task.Priority,
                     Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
                     {
                         AccountId = a.AccountId,
@@ -533,6 +534,7 @@ namespace IntelliPM.Services.ProjectServices
                     CommentCount = subtask.CommentCount,
                     SprintId = subtask.SprintId,
                     SprintName = subtask.SprintName,
+                    Priority = subtask.Priority,
                     Assignees = new List<AssigneeDTO>
             {
                 new AssigneeDTO
