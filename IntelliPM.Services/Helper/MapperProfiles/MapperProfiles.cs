@@ -405,7 +405,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
                 .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null))
                 .ForMember(dest => dest.AssignedPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null));
-            CreateMap<Subtask, SubtaskDependencyResponseDTO>();
+            CreateMap<Subtask, SubtaskDependencyResponseDTO>()
+                .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
+                .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null));
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()

@@ -632,30 +632,46 @@ namespace IntelliPM.Services.SubtaskServices
             return result;
         }
 
+        //private async Task UpdateSubtaskProgressAsync(Subtask subtask)
+        //{
+        //    if (subtask.Status == "DONE")
+        //    {
+        //        subtask.PercentComplete = 100;
+        //    }
+        //    else if (subtask.Status == "TO_DO")
+        //    {
+        //        subtask.PercentComplete = 0;
+        //    }
+        //    else if (subtask.Status == "IN_PROGRESS")
+        //    {
+        //        var actual = subtask.ActualHours ?? 0;
+        //        var planned = subtask.PlannedHours ?? 0;
+
+        //        if (planned > 0)
+        //        {
+        //            var rawProgress = (actual / planned) * 100;
+        //            subtask.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            subtask.PercentComplete = 0;
+        //        }
+        //    }
+
+        //    subtask.UpdatedAt = DateTime.UtcNow;
+        //    await _subtaskRepo.Update(subtask);
+        //}
+
         private async Task UpdateSubtaskProgressAsync(Subtask subtask)
         {
-            if (subtask.Status == "DONE")
-            {
-                subtask.PercentComplete = 100;
-            }
-            else if (subtask.Status == "TO_DO")
-            {
-                subtask.PercentComplete = 0;
-            }
+            if (subtask.Status == "DONE") subtask.PercentComplete = 100;
+            else if (subtask.Status == "TO_DO") subtask.PercentComplete = 0;
             else if (subtask.Status == "IN_PROGRESS")
             {
                 var actual = subtask.ActualHours ?? 0;
-                var planned = subtask.PlannedHours ?? 0;
-
-                if (planned > 0)
-                {
-                    var rawProgress = (actual / planned) * 100;
-                    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else
-                {
-                    subtask.PercentComplete = 0;
-                }
+                var planned = subtask.PlannedHours ?? 1; 
+                var rawProgress = (actual / planned) * 100;
+                subtask.PercentComplete = Math.Min((int)rawProgress, 99);
             }
 
             subtask.UpdatedAt = DateTime.UtcNow;
@@ -804,17 +820,6 @@ namespace IntelliPM.Services.SubtaskServices
                     task.PlannedCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
-
-                //var relatedEntityTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_related_entity_type");
-                //var actionTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_action_type");
-
-                //var relatedEntityType = relatedEntityTypes.FirstOrDefault(s => s.Name == "SUBTASK")?.Name;
-                //var actionType = actionTypes.FirstOrDefault(s => s.Name == "UPDATE")?.Name;
-
-                //if (relatedEntityType == null || actionType == null)
-                //{
-                //    throw new InvalidOperationException("Required activity log values (SUBTASK, UPDATE) not found in dynamic_category table.");
-                //}
 
                 // Ghi log hoạt động
                 await _activityLogService.LogAsync(new ActivityLog
