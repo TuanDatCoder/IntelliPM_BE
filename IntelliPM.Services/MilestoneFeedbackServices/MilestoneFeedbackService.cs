@@ -106,12 +106,26 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
 
         public async Task<List<MilestoneFeedbackResponseDTO>> GetRejectedFeedbacksByMeetingIdAsync(int meetingId)
         {
-            var feedbacks = await _feedbackRepo.GetByMeetingIdAndStatusAsync(meetingId, "Reject");
-            if (feedbacks == null || feedbacks.Count == 0)
+            // gọi 2 lần theo 2 status khác nhau rồi gộp
+            var list = new List<MilestoneFeedback>();
+
+            var a = await _feedbackRepo.GetByMeetingIdAndStatusAsync(meetingId, "Reject");
+            if (a != null) list.AddRange(a);
+
+            var b = await _feedbackRepo.GetByMeetingIdAndStatusAsync(meetingId, "REJECTED");
+            if (b != null) list.AddRange(b);
+
+            if (list.Count == 0)
                 return new List<MilestoneFeedbackResponseDTO>();
 
-            // Map và gán tên account
-            return feedbacks.Select(fb =>
+            // dedupe theo Id (phòng trùng)
+            var merged = list
+                .GroupBy(x => x.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            // Map + gán tên account
+            return merged.Select(fb =>
             {
                 var dto = _mapper.Map<MilestoneFeedbackResponseDTO>(fb);
                 dto.AccountName = fb.Account?.FullName ?? "Unknown";
