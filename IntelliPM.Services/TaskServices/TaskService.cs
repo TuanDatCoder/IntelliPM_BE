@@ -573,33 +573,55 @@ namespace IntelliPM.Services.TaskServices
             return result;
         }
 
+        //private async Task UpdateTaskProgressAsync(Tasks task)
+        //{
+        //    if (task.Status == "DONE")
+        //    {
+        //        task.PercentComplete = 100;
+        //    }
+        //    else if (task.Status == "TO_DO")
+        //    {
+        //        task.PercentComplete = 0;
+        //    }
+        //    else if (task.Status == "IN_PROGRESS")
+        //    {
+        //        if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+        //        {
+        //            var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
+        //            task.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            task.PercentComplete = 0;
+        //        }
+        //    }
+
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
+
         private async Task UpdateTaskProgressAsync(Tasks task)
         {
-            if (task.Status == "DONE")
+            if (task.Subtask?.Any() ?? false)
             {
-                task.PercentComplete = 100;
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+                task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
             }
-            else if (task.Status == "TO_DO")
+            else
             {
-                task.PercentComplete = 0;
-            }
-            else if (task.Status == "IN_PROGRESS")
-            {
-                if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+                if (task.Status == "DONE") task.PercentComplete = 100;
+                else if (task.Status == "TO_DO") task.PercentComplete = 0;
+                else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
                 {
                     var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
                     task.PercentComplete = Math.Min((int)rawProgress, 99);
                 }
-                else
-                {
-                    task.PercentComplete = 0;
-                }
+                else task.PercentComplete = 0;
             }
 
             task.UpdatedAt = DateTime.UtcNow;
             await _taskRepo.Update(task);
         }
-
 
         public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
         {
