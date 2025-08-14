@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace IntelliPM.Data.DTOs.Project.Response
         public int CommentCount { get; set; }
         public int? SprintId { get; set; }
         public string? SprintName { get; set; }
+        public string? Priority { get; set; }
         public List<AssigneeDTO> Assignees { get; set; } = new List<AssigneeDTO>();
         public DateTime? DueDate { get; set; } 
         public List<string> Labels { get; set; } = new List<string>(); 

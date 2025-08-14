@@ -67,7 +67,7 @@ namespace IntelliPM.Services.DocumentServices
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
                 (doc.Visibility == "PRIVATE" && doc.CreatedBy == currentUserId)
-                //(doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
+            //(doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
             );
 
             return visibleDocs.Select(ToResponse).ToList();
@@ -182,7 +182,7 @@ namespace IntelliPM.Services.DocumentServices
                 ProjectId = req.ProjectId,
                 EpicId = req.EpicId,
                 TaskId = req.TaskId,
-                SubtaskId = req.SubTaskId,  
+                SubtaskId = req.SubTaskId,
                 Title = req.Title.Trim(),
                 Content = req.Content,
                 CreatedBy = userId,
@@ -218,7 +218,7 @@ namespace IntelliPM.Services.DocumentServices
                         mentionedUserIds, doc.Id, doc.Title, userId);
                 }
             }
-            catch {  }
+            catch { }
 
             return ToResponse(doc);
         }
@@ -267,7 +267,7 @@ namespace IntelliPM.Services.DocumentServices
                 if (mentionedUserIds.Count > 0)
                     await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
-            catch {  }
+            catch { }
 
             return ToResponse(doc);
         }
@@ -834,7 +834,7 @@ Yêu cầu:
                 throw new Exception("No project metrics found");
 
             // Tạo prompt từ tasks + metrics
-            var prompt = BuildFullTaskPrompt( metrics, projectId);
+            var prompt = BuildFullTaskPrompt(metrics, projectId);
             var content = await GenerateContentWithGemini(prompt);
 
             if (string.IsNullOrWhiteSpace(content))
@@ -960,18 +960,18 @@ CẤU TRÚC MONG MUỐN:
 </table>";
         }
 
-     
 
-private string BuildTasksTablesPrompt(List<TaskDto> tasks)
-    {
-        // JSON camelCase cho AI đọc đúng key
-        var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
+
+        private string BuildTasksTablesPrompt(List<TaskDto> tasks)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        });
+            // JSON camelCase cho AI đọc đúng key
+            var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
 
-        return $@"
+            return $@"
 Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích).
 
 Yêu cầu:
@@ -1032,13 +1032,13 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
     <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
   </tbody>
 </table>";
-    }
+        }
 
 
 
 
 
-    
+
 
         private string FormatDate(DateTime? date)
         {
