@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using IntelliPM.Common.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace IntelliPM.Data.DTOs.MilestoneFeedback.Request
 {
@@ -13,8 +14,9 @@ namespace IntelliPM.Data.DTOs.MilestoneFeedback.Request
         [Required(ErrorMessage = "Feedback text is required")]
         public string FeedbackText { get; set; } = null!;
 
-        [Required(ErrorMessage = "Status is required")]
-        [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
+        [Required]
+        [DynamicCategoryValidation("milestone_feedback_status", Required = true)]
         public string Status { get; set; } = null!;
+
     }
 }

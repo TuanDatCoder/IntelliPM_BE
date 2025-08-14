@@ -122,7 +122,8 @@ namespace IntelliPM.Services.MeetingSummaryServices
         ? meeting.MeetingDate
         : DateTime.MinValue,
                     MeetingTopic = meeting?.MeetingTopic ?? "Chờ cập nhật",
-                    IsApproved = isApproved
+                    IsApproved = isApproved,
+                      MeetingStatus = meeting?.Status ?? "Unknown"
                 };
 
                 result.Add(dto);
@@ -148,6 +149,44 @@ namespace IntelliPM.Services.MeetingSummaryServices
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+
+        public async Task<MeetingSummaryResponseDTO?> GetMeetingSummaryByMeetingIdAsync(int meetingId)
+        {
+            // Lấy thông tin meeting
+            var meeting = await _context.Meeting
+                .FirstOrDefaultAsync(m => m.Id == meetingId);
+            if (meeting == null)
+                return null;
+
+            // Lấy transcript của meeting này
+            var transcript = await _context.MeetingTranscript
+                .FirstOrDefaultAsync(mt => mt.MeetingId == meetingId);
+
+            // Lấy summary của transcript (nếu có)
+            MeetingSummary? summary = null;
+            if (transcript != null)
+            {
+                summary = await _context.MeetingSummary
+                    .FirstOrDefaultAsync(ms => ms.MeetingTranscriptId == transcript.MeetingId);
+            }
+
+            // Lấy trạng thái milestone feedback
+            var isApproved = await _context.MilestoneFeedback
+                .AnyAsync(fb => fb.MeetingId == meetingId && fb.Status == "approved");
+
+            // Tạo DTO trả về
+            return new MeetingSummaryResponseDTO
+            {
+                MeetingTranscriptId = transcript?.MeetingId ?? 0,
+                SummaryText = summary?.SummaryText ?? "Wait for update",
+                TranscriptText = transcript?.TranscriptText ?? "Wait for update",
+                CreatedAt = meeting.MeetingDate,
+                MeetingTopic = meeting.MeetingTopic ?? "Chờ cập nhật",
+                MeetingStatus = meeting.Status ?? "Unknown",
+                IsApproved = isApproved
+            };
         }
 
 
