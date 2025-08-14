@@ -440,11 +440,18 @@ namespace IntelliPM.API.Controllers
         //    return Ok(result);
         //}
 
-        [HttpPost("{id}/generate-from-tasks")]
-        public async Task<ActionResult<GenerateDocumentResponse>> GenerateFromTasks(int id)
+        [HttpPost("{id}/generate-from-project")]
+        public async Task<ActionResult<GenerateDocumentResponse>> GenerateFromProject(int id)
         {
-            var result = await _documentService.GenerateFromExistingDocument(id);
+            var result = await _documentService.GenerateFromProject(id);
             return Ok(result); 
+        }
+
+        [HttpPost("{id}/generate-from-task")]
+        public async Task<ActionResult<GenerateDocumentResponse>> GenerateFromTask(int id)
+        {
+            var result = await _documentService.GenerateFromTask(id);
+            return Ok(result);
         }
 
 

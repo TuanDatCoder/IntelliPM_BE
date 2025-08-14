@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Data.Contexts;
+using IntelliPM.Data.DTOs.DocumentPermission;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentRepos;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,37 @@ namespace IntelliPM.Repositories.DocumentPermissionRepos
         public async Task AddRangeAsync(IEnumerable<DocumentPermission> permissions)
         {
             await _context.DocumentPermission.AddRangeAsync(permissions);
+        }
+
+        public async Task<List<DocumentPermission>> GetByDocumentAsync(int documentId)
+        {
+            return await _context.DocumentPermission
+                .Where(dp => dp.DocumentId == documentId)
+                .ToListAsync();
+        }
+
+        public async Task<List<SharedUserDTO>> GetSharedUsersByDocumentIdAsync(int documentId)
+        {
+            return await _context.DocumentPermission
+                .Where(dp => dp.DocumentId == documentId)
+                .Include(dp => dp.Account) 
+                .Select(dp => new SharedUserDTO
+                {
+                    AccountId = dp.AccountId,
+                    Email = dp.Account.Email,
+                    FullName = dp.Account.FullName,
+                    PermissionType = dp.PermissionType
+                })
+                .ToListAsync();
+        }
+
+
+
+
+
+        public async Task UpdateAsync(DocumentPermission permission)
+        {
+            _context.DocumentPermission.Update(permission);
         }
 
         public void RemoveRange(IEnumerable<DocumentPermission> permissions)
