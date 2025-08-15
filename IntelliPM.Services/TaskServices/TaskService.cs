@@ -1049,11 +1049,105 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        //public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy)
+        //{
+        //    var entity = await _taskRepo.GetByIdAsync(id);
+        //    if (entity == null)
+        //        throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+        //    var actualHours = entity.ActualHours ?? 0;
+        //    entity.RemainingHours = plannedHours - actualHours;
+        //    entity.PlannedHours = plannedHours;
+        //    entity.UpdatedAt = DateTime.UtcNow;
+
+        //    var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+        //    var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+        //    var projectMembers = new List<ProjectMember>();
+
+        //    foreach (var accountId in assignedAccountIds)
+        //    {
+        //        var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
+        //        if (member != null && member.WorkingHoursPerDay.HasValue && member.HourlyRate.HasValue)
+        //        {
+        //            projectMembers.Add(member);
+        //        }
+        //    }
+
+        //    decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+        //    decimal totalCost = 0m;
+
+        //    if (totalWorkingHoursPerDay > 0)
+        //    {
+        //        foreach (var member in projectMembers)
+        //        {
+        //            //var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
+        //            //var memberAssignedHours = plannedHours * ratio;
+        //            //var memberCost = memberAssignedHours * member.HourlyRate.Value;
+
+        //            //var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
+        //            //var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
+        //            //totalCost += memberCost;
+        //            var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
+        //            var memberCost = memberAssignedHours * member.HourlyRate.Value;
+        //            totalCost += memberCost;
+
+        //            var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
+        //            if (taskAssignment != null)
+        //            {
+        //                taskAssignment.PlannedHours = memberAssignedHours;
+        //                await _taskAssignmentRepo.Update(taskAssignment);
+        //            }
+        //        }
+
+        //        entity.PlannedResourceCost = totalCost;
+        //        entity.PlannedCost = totalCost;
+        //    }
+        //    else
+        //    {
+        //        // Warning: No assignments or working hours, costs remain 0
+        //        entity.PlannedResourceCost = 0m;
+        //        entity.PlannedCost = 0m;
+        //    }
+
+        //    try
+        //    {
+        //        await _taskRepo.Update(entity);
+        //        await UpdateTaskProgressAsync(entity);
+
+        //        await _activityLogService.LogAsync(new ActivityLog
+        //        {
+        //            ProjectId = entity.ProjectId,
+        //            TaskId = id,
+        //            SubtaskId = null,
+        //            RelatedEntityType = "Task",
+        //            RelatedEntityId = id,
+        //            ActionType = "UPDATE",
+        //            Message = $"Updated plan hours for task '{id}' to {plannedHours}",
+        //            CreatedBy = createdBy,
+        //            CreatedAt = DateTime.UtcNow
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception($"Failed to change task PlannedHours: {ex.Message}", ex);
+        //    }
+
+        //    return _mapper.Map<TaskResponseDTO>(entity);
+        //}
+
         public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(id);
+            if (subtasks.Any())
+            {
+                // For tasks with subtasks, do not update plannedHours directly
+                throw new InvalidOperationException("Cannot update planned hours for task with subtasks.");
+            }
 
             var actualHours = entity.ActualHours ?? 0;
             entity.RemainingHours = plannedHours - actualHours;
@@ -1074,41 +1168,30 @@ namespace IntelliPM.Services.TaskServices
                 }
             }
 
-            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            projectMembers = projectMembers.OrderBy(m => m.Id).ToList(); // Order by ID for consistent allocation
+
+            decimal remainingHours = plannedHours;
             decimal totalCost = 0m;
 
-            if (totalWorkingHoursPerDay > 0)
+            foreach (var member in projectMembers)
             {
-                foreach (var member in projectMembers)
+                decimal assignHours = Math.Min(remainingHours, member.WorkingHoursPerDay.Value);
+                var taskAssignment = taskAssignments.FirstOrDefault(ta => ta.AccountId == member.AccountId);
+                if (taskAssignment != null)
                 {
-                    //var ratio = member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay;
-                    //var memberAssignedHours = plannedHours * ratio;
-                    //var memberCost = memberAssignedHours * member.HourlyRate.Value;
-
-                    //var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay ?? 0) / totalWorkingHoursPerDay;
-                    //var memberCost = memberAssignedHours * (member.HourlyRate ?? 0);
-                    //totalCost += memberCost;
-                    var memberAssignedHours = plannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
-                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
-                    totalCost += memberCost;
-
-                    var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
-                    if (taskAssignment != null)
-                    {
-                        taskAssignment.PlannedHours = memberAssignedHours;
-                        await _taskAssignmentRepo.Update(taskAssignment);
-                    }
+                    taskAssignment.PlannedHours = assignHours;
+                    await _taskAssignmentRepo.Update(taskAssignment);
                 }
 
-                entity.PlannedResourceCost = totalCost;
-                entity.PlannedCost = totalCost;
+                decimal memberCost = assignHours * member.HourlyRate.Value;
+                totalCost += memberCost;
+
+                remainingHours -= assignHours;
+                if (remainingHours <= 0) break;
             }
-            else
-            {
-                // Warning: No assignments or working hours, costs remain 0
-                entity.PlannedResourceCost = 0m;
-                entity.PlannedCost = 0m;
-            }
+
+            entity.PlannedResourceCost = totalCost;
+            entity.PlannedCost = totalCost;
 
             try
             {
@@ -1123,7 +1206,7 @@ namespace IntelliPM.Services.TaskServices
                     RelatedEntityType = "Task",
                     RelatedEntityId = id,
                     ActionType = "UPDATE",
-                    Message = $"Updated plan hours for task '{id}' to {plannedHours}",
+                    Message = $"Updated planned hours for task '{id}' to {plannedHours}",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
                 });
