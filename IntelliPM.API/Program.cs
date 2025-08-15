@@ -392,7 +392,7 @@ app.MapHub<NotificationHub>("/hubs/notification");
 
 
 app.UseHangfireDashboard();  
-app.UseHangfireServer();
+
 
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
