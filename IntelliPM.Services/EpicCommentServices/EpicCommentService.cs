@@ -69,8 +69,8 @@ namespace IntelliPM.Services.EpicCommentServices
             entity.CreatedAt = DateTime.UtcNow;
 
             var createActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
-            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "EPICCOMMENT_CREATE");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC_COMMENT");
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "EPIC_COMMENT_CREATE");
             var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
 
             try
@@ -149,7 +149,7 @@ namespace IntelliPM.Services.EpicCommentServices
                 throw new KeyNotFoundException($"Epic comment with ID {id} not found.");
 
             var deleteActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
-            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC_COMMENT");
 
             try
             {
@@ -223,7 +223,7 @@ namespace IntelliPM.Services.EpicCommentServices
             entity.CreatedAt = DateTime.UtcNow;
 
             var updateActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPICCOMMENT");
+            var dynamicRelatedEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC_COMMENT");
 
             try
             {

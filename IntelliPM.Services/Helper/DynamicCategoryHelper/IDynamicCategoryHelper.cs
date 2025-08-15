@@ -10,5 +10,13 @@ namespace IntelliPM.Services.Helper.DynamicCategoryHelper
     {
         Task<string> GetCategoryNameAsync(string categoryGroup, string name);
         Task<string> GetDefaultCategoryNameAsync(string categoryGroup);
+        Task<List<string>> GetEpicStatusesAsync();
+        Task<List<string>> GetSubtaskStatusesAsync();
+        Task<List<string>> GetTaskStatusesAsync();
+        Task<List<string>> GetTaskTypesAsync();
+        Task<List<string>> GetSubtaskTypesAsync();
+        Task<List<string>> GetEpicTypesAsync();
+        Task<List<string>> GetTaskPrioritiesAsync();
+        Task<List<string>> GetSubtaskPrioritiesAsync();
     }
 }
