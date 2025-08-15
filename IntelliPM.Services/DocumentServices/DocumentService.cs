@@ -12,7 +12,9 @@ using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.External.ProjectMetricApi;
 using IntelliPM.Services.External.TaskApi;
 using IntelliPM.Services.NotificationServices;
+using IntelliPM.Shared.Hubs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -37,9 +39,10 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IDocumentPermissionRepository _permissionRepo;
         private readonly ILogger<DocumentService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IHubContext<DocumentHub> _hubContext;
 
         public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger)
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext)
         {
             _repo = repo;
             _httpClient = httpClient;
@@ -52,6 +55,7 @@ namespace IntelliPM.Services.DocumentServices
             _permissionRepo = permissionRepo;
             _logger = logger;
             _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -257,6 +261,17 @@ namespace IntelliPM.Services.DocumentServices
             await _repo.UpdateAsync(doc);
             await _repo.SaveChangesAsync();
 
+            await _hubContext.Clients
+             .Group($"document-{id}")
+             .SendAsync("DocumentUpdated", new
+             {
+                 documentId = id,
+                 updatedAt = doc.UpdatedAt,
+                 updatedBy = userId
+             });
+
+
+
             try
             {
                 var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
@@ -457,7 +472,9 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             // "Frontend": { "BaseUrl": "http://localhost:5173" }
             var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
             var path = $"/project/projects/form/document/{document.Id}";
-            var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
+            //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
+            var link = $"{baseUrl.TrimEnd('/')}{path}";
+
 
             // 5) Lấy account map từ emails
             var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
