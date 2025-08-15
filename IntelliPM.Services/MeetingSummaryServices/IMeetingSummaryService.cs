@@ -11,7 +11,7 @@ namespace IntelliPM.Services.MeetingSummaryServices
         Task<List<MeetingSummaryResponseDTO>?> GetSummariesByAccountIdAsync(int accountId);
 
         Task<List<MeetingSummaryResponseDTO>> GetAllMeetingSummariesByAccountIdAsync(int accountId);
-
+        Task<MeetingSummaryResponseDTO?> GetMeetingSummaryByMeetingIdAsync(int meetingId);
         Task<bool> DeleteSummaryAndTranscriptAsync(int meetingTranscriptId);
 
     }

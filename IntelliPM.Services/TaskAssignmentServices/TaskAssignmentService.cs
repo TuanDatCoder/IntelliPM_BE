@@ -293,6 +293,17 @@ namespace IntelliPM.Services.TaskAssignmentServices
             task.ActualResourceCost = totalResourceCost;
 
             await _taskRepo.Update(task);
+            //await _activityLogService.LogAsync(new ActivityLog
+            //{
+            //    ProjectId = task.ProjectId,
+            //    TaskId = task.Id,
+            //    RelatedEntityType = "Task",
+            //    RelatedEntityId = task.Id,
+            //    ActionType = "UPDATE",
+            //    Message = $"Updated actual hours for task '{id}' to {hours}",
+            //    CreatedBy = createdBy,
+            //    CreatedAt = DateTime.UtcNow
+            //});
 
             return new TaskAssignmentHourDTO
             {

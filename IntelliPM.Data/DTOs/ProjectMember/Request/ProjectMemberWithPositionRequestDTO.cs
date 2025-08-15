@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.ProjectPosition.Request;
+﻿using IntelliPM.Common.Attributes;
+using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -14,6 +15,7 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Request
         public int AccountId { get; set; }
 
         [Required(ErrorMessage = "Positions are required")]
+        [DynamicCategoryValidation("account_position", Required = false)]
         public List<string> Positions { get; set; } = new List<string>();
     }
 }

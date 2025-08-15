@@ -7,24 +7,24 @@ using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
-using IntelliPM.Repositories.DocumentRepos.DocumentRepository;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.External.ProjectMetricApi;
 using IntelliPM.Services.External.TaskApi;
 using IntelliPM.Services.NotificationServices;
-using MailKit;
+using IntelliPM.Shared.Hubs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Ocsp;
+using SixLabors.ImageSharp;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace IntelliPM.Services.DocumentServices
-    
+
 {
     public class DocumentService : IDocumentService
     {
@@ -38,10 +38,11 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDocumentPermissionRepository _permissionRepo;
         private readonly ILogger<DocumentService> _logger;
-
+        private readonly IConfiguration _configuration;
+        private readonly IHubContext<DocumentHub> _hubContext;
 
         public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger)
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext)
         {
             _repo = repo;
             _httpClient = httpClient;
@@ -53,6 +54,8 @@ namespace IntelliPM.Services.DocumentServices
             _httpContextAccessor = httpContextAccessor;
             _permissionRepo = permissionRepo;
             _logger = logger;
+            _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -67,8 +70,8 @@ namespace IntelliPM.Services.DocumentServices
 
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
-                (doc.Visibility == "PRIVATE" && doc.CreatedBy == currentUserId) ||
-                (doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
+                (doc.Visibility == "PRIVATE" && doc.CreatedBy == currentUserId)
+            //(doc.Visibility == "SHAREABLE" && doc.DocumentPermission.Any(p => p.AccountId == currentUserId))
             );
 
             return visibleDocs.Select(ToResponse).ToList();
@@ -85,10 +88,9 @@ namespace IntelliPM.Services.DocumentServices
                 ProjectId = d.ProjectId,
                 TaskId = d.TaskId,
                 Title = d.Title,
-                Type = d.Type,
-                Template = d.Template,
+                //Type = d.Type,
+
                 Content = d.Content,
-                FileUrl = d.FileUrl,
                 IsActive = d.IsActive,
                 CreatedBy = d.CreatedBy,
                 UpdatedBy = d.UpdatedBy,
@@ -101,11 +103,13 @@ namespace IntelliPM.Services.DocumentServices
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
             var doc = await _repo.GetByIdAsync(id);
+
             if (doc == null)
-                throw new Exception("Document not found");
+                throw new KeyNotFoundException($"Document {id} not found");
 
             return ToResponse(doc);
         }
+
 
         public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
         {
@@ -127,10 +131,10 @@ namespace IntelliPM.Services.DocumentServices
                 TaskId = req.TaskId,
                 SubtaskId = req.SubTaskId,
                 Title = req.Title,
-                Type = req.Type,
-                Template = req.Template,
+                //Type = req.Type,
+
                 Content = req.Content,
-                FileUrl = req.FileUrl,
+
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -158,24 +162,24 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
-            int count =
-          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+            if (req == null) throw new ArgumentNullException(nameof(req));
+            if (req.ProjectId <= 0) throw new ArgumentException("ProjectId is required.");
+            if (string.IsNullOrWhiteSpace(req.Title)) throw new ArgumentException("Title is required.");
 
-            if (count > 1)
-            {
-                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
-            }
+            var visibility = (req.Visibility ?? "").Trim().ToUpperInvariant();
+            var validVisibilities = new[] { "MAIN", "PRIVATE" };
+            if (!validVisibilities.Contains(visibility))
+                throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
 
-            var validVisibilities = new[] { "MAIN", "PRIVATE", "SHAREABLE" };
+            int linkCount =
+                (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+                (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+                (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-            if (!validVisibilities.Contains(req.Visibility))
-            {
-                throw new ArgumentException("Invalid visibility type. Must be MAIN, PRIVATE, or SHAREABLE.");
-            }
+            if (linkCount > 1)
+                throw new ArgumentException("Document chỉ được liên kết tối đa một trong: Epic, Task hoặc Subtask.");
 
-
+            var now = DateTime.UtcNow;
 
             var doc = new Document
             {
@@ -183,72 +187,125 @@ namespace IntelliPM.Services.DocumentServices
                 EpicId = req.EpicId,
                 TaskId = req.TaskId,
                 SubtaskId = req.SubTaskId,
-                Title = req.Title,
-                Type = req.Type,
-                Template = req.Template,
+                Title = req.Title.Trim(),
                 Content = req.Content,
-                FileUrl = req.FileUrl,
                 CreatedBy = userId,
-                Visibility = req.Visibility,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
+                UpdatedBy = userId,
+                Visibility = visibility,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsActive = true,
             };
 
             try
             {
                 await _repo.AddAsync(doc);
                 await _repo.SaveChangesAsync();
-
-                var mentionedUserIds = Regex.Matches(req.Content, "data-id=[\"'](\\d+)[\"']")
-         .Select(m => int.Parse(m.Groups[1].Value))
-         .Distinct()
-         .ToList();
-                Console.WriteLine("Mentioned IDs found: " + string.Join(",", mentionedUserIds));
-                Console.WriteLine("Document Title: " + doc.Title);
-                Console.WriteLine("Content: " + req.Content);
-
-                await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
-                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+                var rootMsg = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception("Không thể lưu Document: " + rootMsg);
             }
+
+            try
+            {
+                var content = req.Content ?? string.Empty;
+                var mentionedUserIds = Regex.Matches(content, "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                    .Select(m => int.Parse(m.Groups[1].Value))
+                    .Distinct()
+                    .ToList();
+
+                if (mentionedUserIds.Count > 0)
+                {
+                    await _notificationService.SendMentionNotification(
+                        mentionedUserIds, doc.Id, doc.Title, userId);
+                }
+            }
+            catch { }
 
             return ToResponse(doc);
         }
+
+
 
 
 
 
         public async Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId)
         {
-            var doc = await _repo.GetByIdAsync(id);
-            if (doc == null) throw new Exception("Document not found");
+            if (req == null) throw new ArgumentNullException(nameof(req));
 
-            doc.Title = req.Title ?? doc.Title;
-            doc.Content = req.Content ?? doc.Content;
-            doc.FileUrl = req.FileUrl ?? doc.FileUrl;
-            doc.UpdatedBy = userId; 
+            var doc = await _repo.GetByIdAsync(id)
+                      ?? throw new KeyNotFoundException("Document not found");
+
+            if (!string.IsNullOrWhiteSpace(req.Title))
+                doc.Title = req.Title.Trim();
+
+            if (req.Content != null)
+                doc.Content = req.Content;
+
+
+            if (!string.IsNullOrWhiteSpace(req.Visibility))
+            {
+                var v = req.Visibility.Trim().ToUpperInvariant();
+                var valid = new[] { "MAIN", "PRIVATE" };
+                if (!valid.Contains(v))
+                    throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
+                doc.Visibility = v;
+            }
+
+            doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
-
-            if (!string.IsNullOrEmpty(req.Visibility))
-                doc.Visibility = req.Visibility;
-
 
             await _repo.UpdateAsync(doc);
             await _repo.SaveChangesAsync();
 
-            var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']")
-                .Select(m => int.Parse(m.Groups[1].Value))
-                .Distinct()
-                .ToList();
+            await _hubContext.Clients
+             .Group($"document-{id}")
+             .SendAsync("DocumentUpdated", new
+             {
+                 documentId = id,
+                 updatedAt = doc.UpdatedAt,
+                 updatedBy = userId
+             });
 
-            await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
+
+
+            try
+            {
+                var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                    .Select(m => int.Parse(m.Groups[1].Value))
+                    .Distinct()
+                    .ToList();
+
+                if (mentionedUserIds.Count > 0)
+                    await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
+            }
+            catch { }
 
             return ToResponse(doc);
         }
+
+
+        public async Task<bool> DeleteDocument(int id, int deletedBy)
+        {
+            var doc = await _repo.GetByIdAsync(id);
+
+            if (doc == null || !doc.IsActive)
+                throw new KeyNotFoundException($"Document {id} not found or already deleted");
+
+            doc.IsActive = false;
+            doc.UpdatedBy = deletedBy;
+            doc.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.UpdateAsync(doc);
+            await _repo.SaveChangesAsync();
+
+            return true;
+        }
+
+
 
 
 
@@ -341,16 +398,16 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 TaskId = doc.TaskId,
                 SubtaskId = doc.SubtaskId,
                 Title = doc.Title,
-                Type = doc.Type,
-                Template = doc.Template,
+                //Type = doc.Type,
+
                 Content = doc.Content,
-                FileUrl = doc.FileUrl,
+
                 IsActive = doc.IsActive,
                 CreatedBy = doc.CreatedBy,
                 UpdatedBy = doc.UpdatedBy,
                 CreatedAt = doc.CreatedAt,
                 UpdatedAt = doc.UpdatedAt,
-                Visibility = doc.Visibility 
+                Visibility = doc.Visibility
 
             };
         }
@@ -390,69 +447,68 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
 
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
+            // 1) Tìm document
             var document = await _repo.GetByIdAsync(documentId);
             if (document == null || !document.IsActive)
-                throw new Exception("Document not found");
+                throw new KeyNotFoundException($"Document {documentId} not found");
 
-            var failedToSend = new List<string>();
-            var failedToFind = new List<string>();
-
-            var lowerInputEmails = req.Emails?
+            // 2) Validate emails
+            var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
-                .Select(e => e.Trim().ToLower())
+                .Select(e => e.Trim().ToLowerInvariant())
                 .Distinct()
-                .ToList() ?? new List<string>();
-
-            if (lowerInputEmails.Count == 0)
-            {
-                return new ShareDocumentResponseDTO
-                {
-                    Success = false,
-                    FailedEmails = new List<string>()
-                };
-            }
-            var permissionType = req.PermissionType?.ToUpper() ?? "VIEW";
-            var mode = permissionType == "EDIT" ? "edit" : "view";
-
-            // 🔗 Tạo link chia sẻ
-            var projectKey = string.IsNullOrWhiteSpace(req.ProjectKey) ? "DEFAULTKEY" : req.ProjectKey;
-            var link = $"http://localhost:5173/project/projects/form/view/{document.Id}?projectKey={projectKey}&mode={mode}";
-
-            // ✅ Lấy danh sách tài khoản theo email
-            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<email, accountId>
-            var matchedEmails = accountMap.Keys;
-            failedToFind = lowerInputEmails.Except(matchedEmails).ToList();
-
-            if (accountMap.Count == 0)
-            {
-                return new ShareDocumentResponseDTO
-                {
-                    Success = false,
-                    FailedEmails = failedToFind
-                };
-            }
-
-            // 🗑 Xoá các quyền trùng loại PermissionType nếu đã tồn tại
-            var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
-            var toRemove = existingPermissions
-                .Where(p => accountMap.Values.Contains(p.AccountId) && p.PermissionType == req.PermissionType)
                 .ToList();
 
-            _permissionRepo.RemoveRange(toRemove);
+            if (lowerInputEmails.Count == 0)
+                throw new ArgumentException("No emails provided.");
 
-            // ➕ Thêm quyền mới
-            var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
+            // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+            var mode = permissionType == "EDIT" ? "edit" : "view";
+
+            // 4) Tạo link chia sẻ (từ cấu hình)
+            // appsettings.json:
+            // "Frontend": { "BaseUrl": "http://localhost:5173" }
+            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            var path = $"/project/projects/form/document/{document.Id}";
+            //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
+            var link = $"{baseUrl.TrimEnd('/')}{path}";
+
+
+            // 5) Lấy account map từ emails
+            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+
+            // 6) Upsert quyền cho các email có accountId
+            if (accountMap.Count > 0)
             {
-                DocumentId = documentId,
-                AccountId = accountId,
-                PermissionType = req.PermissionType
-            });
+                var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
 
-            await _permissionRepo.AddRangeAsync(newPermissions);
-            await _permissionRepo.SaveChangesAsync();
+                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+                var targetAccountIds = accountMap.Values.ToHashSet();
+                var toRemove = existingPermissions
+                    .Where(p => targetAccountIds.Contains(p.AccountId) &&
+                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
 
-            // 📧 Gửi email
-            foreach (var email in matchedEmails)
+                if (toRemove.Count > 0)
+                    _permissionRepo.RemoveRange(toRemove);
+
+                // Thêm quyền mới
+                var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
+                {
+                    DocumentId = documentId,
+                    AccountId = accountId,
+                    PermissionType = permissionType
+                });
+
+                await _permissionRepo.AddRangeAsync(newPermissions);
+                await _permissionRepo.SaveChangesAsync();
+            }
+
+            // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
+            var failedToSend = new List<string>();
+            foreach (var email in lowerInputEmails)
             {
                 try
                 {
@@ -466,17 +522,32 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 catch (Exception ex)
                 {
                     failedToSend.Add(email);
-                    _logger.LogError(ex, $"Failed to send email to {email}");
+                    _logger.LogError(ex,
+                        """
+                ❌ Failed to send share document email
+                Email: {Email}
+                Title: {Title}
+                Message: {Message}
+                Link: {Link}
+                Error: {ErrorMessage}
+                """,
+                        email,
+                        document.Title,
+                        req.Message ?? "(No message)",
+                        link,
+                        ex.Message
+                    );
                 }
             }
 
-            // ✅ Trả kết quả
             return new ShareDocumentResponseDTO
             {
-                Success = failedToFind.Count == 0 && failedToSend.Count == 0,
-                FailedEmails = failedToFind.Concat(failedToSend).Distinct().ToList()
+                Success = failedToSend.Count == 0,
+                FailedEmails = failedToSend
             };
         }
+
+
 
         //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         //{
@@ -635,38 +706,18 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         private string BuildProjectPlanPrompt(string userPrompt)
         {
             return $@"
-Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qua nội dung không liên quan** và luôn sinh ra một **tài liệu kế hoạch dự án (Project Plan)** có cấu trúc HTML rõ ràng như sau:
+Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
 
-1. Tiêu đề chính: `<h1>📊 Project Plan with Timeline</h1>`
+Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
+-  <h3> cho tiêu đề
+- <p> cho đoạn văn
+- <ul><li> cho danh sách gạch đầu dòng
+- <table><thead><tbody><tr><th><td> cho bảng
 
-2. Phần giới thiệu:  
-   `<h2>📅 Project Overview</h2>`  
-   Một đoạn mô tả ngắn về mục tiêu và phạm vi dự án trong thẻ `<p>`.
+Chỉ trả về HTML, không thêm mô tả bên ngoài.
 
-3. Các giai đoạn (Phases):  
-   Sinh **4 phase** tương ứng với 4 `<section>`, mỗi phase gồm:
-   - Tiêu đề `<h2>Phase X: [Tên Phase]</h2>`
-   - Một bảng `<table>` có đầy đủ các cột:
-     | Task | Description | Owner | Duration (Days) | Deadline | Milestone |
-
-   ⚠️ Yêu cầu bảng phải có:
-   - Thẻ `<colgroup>` với các `<col style=""width: ..."">` để hiển thị rõ cấu trúc
-   - Các ô tiêu đề `<th>` cần có thuộc tính `colwidth=""...""` để hỗ trợ kéo giãn cột trong trình soạn thảo như Tiptap
-
-4. Phần kết:  
-   `<h2>🚀 Next Steps</h2>`  
-   Một danh sách `<ul>` các bước tiếp theo để triển khai dự án.
-
-📌 Ghi nhớ:
-- Trả về **HTML đơn giản** (dùng `<h1>`, `<h2>`, `<table>`, `<ul>`, `<section>`, `<p>`)
-- **Không bao quanh bằng \`\`\`html** hoặc bất kỳ markdown nào
-- Nếu yêu cầu bên dưới không hợp lệ, vẫn phải sinh đúng cấu trúc tài liệu như mô tả
-- Đảm bảo HTML dễ hiển thị trong trình soạn thảo văn bản, và không chứa script hoặc style thừa
-
-🔽 Dưới đây là yêu cầu người dùng:  
-""Viết kế hoạch dự án phát triển hệ thống quản lý nhân sự cho doanh nghiệp vừa và nhỏ""
-""{userPrompt}""
-";
+Yêu cầu:
+{userPrompt}";
 
         }
         public async Task<string> GenerateAIContent(int documentId, string prompt)
@@ -680,8 +731,8 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             var fullPrompt = BuildProjectPlanPrompt(prompt);
             var content = await GenerateContentWithGemini(fullPrompt);
 
-            if (string.IsNullOrWhiteSpace(content) || !IsValidProjectPlanHtml(content))
-                throw new Exception("AI không thể tạo nội dung hợp lệ từ prompt. Hãy nhập mô tả chi tiết hơn về kế hoạch dự án.");
+            //if (string.IsNullOrWhiteSpace(content) || !IsValidProjectPlanHtml(content))
+            //    throw new Exception("AI không thể tạo nội dung hợp lệ từ prompt. Hãy nhập mô tả chi tiết hơn về kế hoạch dự án.");
 
             doc.Content = content;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -697,13 +748,29 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
                 throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
 
-            var response = await GenerateContentWithGemini(prompt);
+
+            var htmlPrompt = $@"
+Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+
+Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
+-  <h3> cho tiêu đề
+- <p> cho đoạn văn
+- <ul><li> cho danh sách gạch đầu dòng
+- <table><thead><tbody><tr><th><td> cho bảng
+
+Chỉ trả về HTML, không thêm mô tả bên ngoài.
+
+Yêu cầu:
+{prompt}";
+
+            var response = await GenerateContentWithGemini(htmlPrompt);
 
             if (string.IsNullOrWhiteSpace(response))
                 throw new Exception("AI không thể trả lời yêu cầu.");
 
             return response;
         }
+
 
         public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
         {
@@ -716,10 +783,10 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
                 ProjectId = doc.ProjectId,
                 TaskId = doc.TaskId,
                 Title = doc.Title,
-                Type = doc.Type,
-                Template = doc.Template,
+                //Type = doc.Type,
+
                 Content = doc.Content,
-                FileUrl = doc.FileUrl,
+
                 IsActive = doc.IsActive,
                 CreatedBy = doc.CreatedBy,
                 UpdatedBy = doc.UpdatedBy,
@@ -757,7 +824,7 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             return mentionedIds.Distinct().ToList();
         }
 
-        public async Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId)
+        public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
             var doc = await _repo.GetByIdAsync(documentId);
             if (doc == null)
@@ -768,20 +835,6 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
             var token = GetAccessToken();
             if (string.IsNullOrWhiteSpace(token))
                 throw new Exception("Access token is missing");
-
-            // Gọi API lấy tasks có gắn token
-            var taskRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://localhost:7128/api/task/by-project-id/{projectId}/detailed");
-            taskRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            var taskResponse = await _httpClient.SendAsync(taskRequest);
-            if (!taskResponse.IsSuccessStatusCode)
-                throw new Exception($"Failed to fetch tasks: {taskResponse.StatusCode}");
-
-            var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
-            var tasks = taskData?.Data ?? new List<TaskDto>();
-            if (!tasks.Any())
-                throw new Exception("No tasks found");
 
             // Gọi API lấy metrics có gắn token
             var metricRequest = new HttpRequestMessage(HttpMethod.Get,
@@ -798,7 +851,46 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
                 throw new Exception("No project metrics found");
 
             // Tạo prompt từ tasks + metrics
-            var prompt = BuildFullTaskPrompt(tasks, metrics, projectId);
+            var prompt = BuildFullTaskPrompt(metrics, projectId);
+            var content = await GenerateContentWithGemini(prompt);
+
+            if (string.IsNullOrWhiteSpace(content))
+                throw new Exception("AI did not generate content");
+
+            return new GenerateDocumentResponse
+            {
+                Content = content
+            };
+        }
+
+        public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
+        {
+            var doc = await _repo.GetByIdAsync(documentId);
+            if (doc == null)
+                throw new Exception("Document not found");
+
+            var projectId = doc.ProjectId;
+            Console.WriteLine(projectId);
+            var token = GetAccessToken();
+            if (string.IsNullOrWhiteSpace(token))
+                throw new Exception("Access token is missing");
+
+            // Gọi API lấy metrics có gắn token
+            var metricRequest = new HttpRequestMessage(HttpMethod.Get,
+                $"https://localhost:7128/api/task/by-project-id/{projectId}/detailed");
+            metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var taskResponse = await _httpClient.SendAsync(metricRequest);
+            if (!taskResponse.IsSuccessStatusCode)
+                throw new Exception($"Failed to fetch metrics: {taskResponse.StatusCode}");
+
+            var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
+            var tasks = taskData?.Data;
+            if (tasks == null)
+                throw new Exception("No project metrics found");
+
+            // Tạo prompt từ tasks + metrics
+            var prompt = BuildTasksTablesPrompt(tasks);
             var content = await GenerateContentWithGemini(prompt);
 
             if (string.IsNullOrWhiteSpace(content))
@@ -811,268 +903,159 @@ Bất kể yêu cầu người dùng bên dưới là gì, bạn cần **bỏ qu
         }
 
 
-
-
-        private string BuildFullTaskPrompt(List<TaskDto> tasks, ProjectMetricResponseDTO metrics, int projectId)
+        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
         {
-            var sb = new StringBuilder();
-
-            // 🧠 System prompt với role definition rõ ràng
-            sb.AppendLine("You are an expert project analyst and technical documentation specialist with extensive experience in project management and data visualization.");
-            sb.AppendLine();
-
-            sb.AppendLine("# Task: Generate Project Summary Document");
-            sb.AppendLine("Create a comprehensive, professional **Project Summary Document** in **pure HTML format** that will be displayed in a WYSIWYG editor (Tiptap). The document must be well-structured, visually appealing, and provide actionable insights.");
-            sb.AppendLine();
-
-            // 📋 Cấu trúc document yêu cầu
-            sb.AppendLine("## Required Document Structure:");
-            sb.AppendLine("1. **Executive Summary** - Key highlights and overall project health");
-            sb.AppendLine("2. **Project Metrics Dashboard** - Financial and performance indicators with visual formatting");
-            sb.AppendLine("3. **Task Analysis Overview** - Summary statistics and distribution");
-            sb.AppendLine("4. **Detailed Task Inventory** - Comprehensive task breakdown in table format");
-            sb.AppendLine("5. **Team Performance Analysis** - Assignee workload and performance metrics");
-            sb.AppendLine("6. **Risk Assessment & Insights** - Analysis of delays, budget issues, and bottlenecks");
-            sb.AppendLine("7. **Recommendations & Action Items** - Specific, actionable next steps");
-            sb.AppendLine();
-
-            // 🎨 HTML formatting requirements
-            sb.AppendLine("## HTML Output Requirements:");
-            sb.AppendLine("- **Pure HTML only** - No markdown, code blocks, or wrapper tags");
-            sb.AppendLine("- **Semantic HTML structure** - Use appropriate tags: `<h1>`, `<h2>`, `<table>`, `<ul>`, `<ol>`, `<p>`, `<strong>`, `<em>`");
-            sb.AppendLine("- **Professional styling** - Use inline styles or CSS classes for visual hierarchy");
-            sb.AppendLine("- **Data visualization** - Present metrics in tables with appropriate formatting");
-            sb.AppendLine("- **Status indicators** - Use color coding or icons for task status (🟢 ✅ ⚠️ 🔴)");
-            sb.AppendLine("- **Exclude tags** - Do NOT include `<html>`, `<head>`, `<body>`, `<script>`, or `<style>` tags");
-            sb.AppendLine();
-
-            // 📊 Project Metrics Section
-            sb.AppendLine("## 📊 Project Performance Metrics");
-            sb.AppendLine($"**Project ID**: {projectId} | **Analysis Date**: {DateTime.Now:yyyy-MM-dd HH:mm}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Financial Performance:");
-            sb.AppendLine($"- **Planned Value (PV)**: {FormatCurrency(metrics.PlannedValue)}");
-            sb.AppendLine($"- **Earned Value (EV)**: {FormatCurrency(metrics.EarnedValue)}");
-            sb.AppendLine($"- **Actual Cost (AC)**: {FormatCurrency(metrics.ActualCost)}");
-            sb.AppendLine($"- **Budget Variance**: {FormatCurrency(metrics.BudgetOverrun)} {GetVarianceIndicator(metrics.BudgetOverrun)}");
-            sb.AppendLine($"- **Projected Total Cost**: {FormatCurrency(metrics.ProjectedTotalCost)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Performance Indices:");
-            sb.AppendLine($"- **Schedule Performance Index (SPI)**: {FormatDouble(metrics.SPI, "0.00")} {GetSPIStatus(metrics.SPI)}");
-            sb.AppendLine($"- **Cost Performance Index (CPI)**: {FormatDouble(metrics.CPI, "0.00")} {GetCPIStatus(metrics.CPI)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Timeline Analysis:");
-            sb.AppendLine($"- **Schedule Variance**: {FormatDelayDays(metrics.DelayDays)}");
-            sb.AppendLine($"- **Projected Completion**: {FormatDate(metrics.ProjectedFinishDate)}");
-            sb.AppendLine();
-
-            sb.AppendLine("### Audit Trail:");
-            sb.AppendLine($"- **Analysis Performed By**: {metrics.CalculatedBy ?? "System"}");
-            sb.AppendLine($"- **Approval Status**: {(metrics.IsApproved == true ? "✅ Approved" : "⏳ Pending Approval")}");
-            sb.AppendLine($"- **Created**: {FormatDateTime(metrics.CreatedAt)}");
-            sb.AppendLine($"- **Last Updated**: {FormatDateTime(metrics.UpdatedAt)}");
-            sb.AppendLine();
-
-            // 📋 Task Portfolio Analysis
-            sb.AppendLine("## 📋 Task Portfolio Analysis");
-            sb.AppendLine($"**Total Tasks**: {tasks.Count}");
-
-            // Task statistics
-            var completedTasks = tasks.Count(t => t.PercentComplete >= 100);
-            var inProgressTasks = tasks.Count(t => t.Status?.Contains("PROGRESS") == true || t.Status?.Contains("IN_PROGRESS") == true);
-            var overdueTasks = tasks.Count(t => t.PlannedEndDate.HasValue && t.PlannedEndDate < DateTime.Now && t.ActualEndDate == null);
-            var totalPlannedHours = tasks.Sum(t => t.PlannedHours ?? 0);
-            var totalActualHours = tasks.Sum(t => t.ActualHours ?? 0);
-            var totalPlannedCost = tasks.Sum(t => t.PlannedCost ?? 0);
-            var totalActualCost = tasks.Sum(t => t.ActualCost ?? 0);
-
-            sb.AppendLine($"- **Completed Tasks**: {completedTasks} ({(tasks.Count > 0 ? (completedTasks * 100.0 / tasks.Count) : 0):F1}%)");
-            sb.AppendLine($"- **In Progress**: {inProgressTasks} ({(tasks.Count > 0 ? (inProgressTasks * 100.0 / tasks.Count) : 0):F1}%)");
-            sb.AppendLine($"- **Overdue Tasks**: {overdueTasks} {(overdueTasks > 0 ? "⚠️" : "✅")}");
-            sb.AppendLine($"- **Total Effort**: {totalPlannedHours:F1}h planned | {totalActualHours:F1}h actual");
-            sb.AppendLine($"- **Total Cost**: {totalPlannedCost:C0} planned | {totalActualCost:C0} actual");
-            sb.AppendLine();
-
-            // 👥 Team Analysis
-            sb.AppendLine("### 👥 Team Workload Distribution:");
-            var assigneeWorkload = tasks
-                .Where(t => t.TaskAssignments != null && t.TaskAssignments.Any())
-                .SelectMany(t => t.TaskAssignments.Select(ta => new {
-                    Name = ta.AccountFullname,
-                    TaskId = t.Id,
-                    TaskTitle = t.Title,
-                    Status = ta.Status,
-                    PlannedHours = t.PlannedHours ?? 0,
-                    ActualHours = t.ActualHours ?? 0,
-                    HourlyRate = ta.HourlyRate,
-                    AssignedAt = ta.AssignedAt,
-                    CompletedAt = ta.CompletedAt,
-                    IsCompleted = ta.CompletedAt.HasValue
-                }))
-                .GroupBy(x => x.Name)
-                .Select(g => new {
-                    Name = g.Key,
-                    TaskCount = g.Count(),
-                    TotalPlannedHours = g.Sum(x => x.PlannedHours),
-                    TotalActualHours = g.Sum(x => x.ActualHours),
-                    CompletedTasks = g.Count(x => x.IsCompleted),
-                    Tasks = g.ToList()
-                })
-                .OrderByDescending(x => x.TotalActualHours)
-                .ToList();
-
-            foreach (var assignee in assigneeWorkload)
+            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
             {
-                var efficiency = assignee.TotalPlannedHours > 0 ? (assignee.TotalActualHours / assignee.TotalPlannedHours) : 0;
-                var completionRate = assignee.TaskCount > 0 ? (assignee.CompletedTasks * 100.0 / assignee.TaskCount) : 0;
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
 
-                sb.AppendLine($"- **{assignee.Name}**: {assignee.TaskCount} tasks | {assignee.TotalActualHours:F1}h actual | {completionRate:F1}% completion rate");
-            }
-            sb.AppendLine();
+            return $@"
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích) là một bảng (<table>) dạng NGANG, trong đó:
+- Hàng đầu tiên (<thead>) chứa tên các trường (label) rõ ràng như định nghĩa.
+- Hàng thứ hai (<tbody>) chứa giá trị tương ứng lấy từ JSON.
+- Không thêm style hay class.
+- Nếu giá trị null, để rỗng.
+- Giá trị lấy từ JSON (camelCase), riêng Project ID lấy từ tham số bên ngoài: {projectId}.
 
-            // 📋 Detailed Task Information
-            sb.AppendLine("## 📋 Detailed Task Information");
-            foreach (var task in tasks.OrderBy(t => t.Id))
+JSON:
+{json}
+
+CẤU TRÚC MONG MUỐN:
+<table>
+  <thead>
+    <tr>
+      <th>Project ID</th>
+      <th>Planned Value (PV)</th>
+      <th>Earned Value (EV)</th>
+      <th>Actual Cost (AC)</th>
+      <th>Budget At Completion (BAC)</th>
+      <th>Cost Variance (CV)</th>
+      <th>Schedule Variance (SV)</th>
+      <th>Cost Performance Index (CPI)</th>
+      <th>Schedule Performance Index (SPI)</th>
+      <th>Estimate At Completion (EAC)</th>
+      <th>Estimate To Complete (ETC)</th>
+      <th>Variance At Completion (VAC)</th>
+      <th>Duration at Completion (days)</th>
+      <th>Estimate Duration at Completion (days)</th>
+      <th>Calculated By</th>
+      <th>Is Improved?</th>
+      <th>Improvement Summary</th>
+      <th>Confidence Score</th>
+      <th>Project Status</th>
+      <th>Created At (UTC)</th>
+      <th>Updated At (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>{projectId}</td>
+      <td>{{metrics.plannedValue}}</td>
+      <td>{{metrics.earnedValue}}</td>
+      <td>{{metrics.actualCost}}</td>
+      <td>{{metrics.budgetAtCompletion}}</td>
+      <td>{{metrics.costVariance}}</td>
+      <td>{{metrics.scheduleVariance}}</td>
+      <td>{{metrics.costPerformanceIndex}}</td>
+      <td>{{metrics.schedulePerformanceIndex}}</td>
+      <td>{{metrics.estimateAtCompletion}}</td>
+      <td>{{metrics.estimateToComplete}}</td>
+      <td>{{metrics.varianceAtCompletion}}</td>
+      <td>{{metrics.durationAtCompletion}}</td>
+      <td>{{metrics.estimateDurationAtCompletion}}</td>
+      <td>{{metrics.calculatedBy}}</td>
+      <td>{{metrics.isImproved}}</td>
+      <td>{{metrics.improvementSummary}}</td>
+      <td>{{metrics.confidenceScore}}</td>
+      <td>{{metrics.projectStatus}}</td>
+      <td>{{metrics.createdAt}}</td>
+      <td>{{metrics.updatedAt}}</td>
+    </tr>
+  </tbody>
+</table>";
+        }
+
+
+
+        private string BuildTasksTablesPrompt(List<TaskDto> tasks)
+        {
+            // JSON camelCase cho AI đọc đúng key
+            var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
             {
-                sb.AppendLine($"### 📋 Task #{task.Id}: {task.Title}");
-                sb.AppendLine();
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
 
-                // Basic Information
-                sb.AppendLine("**📝 Basic Information:**");
-                sb.AppendLine($"- **Project**: {task.ProjectName ?? "N/A"} (ID: {task.ProjectId})");
-                sb.AppendLine($"- **Task ID**: {task.Id}");
-                sb.AppendLine($"- **Title**: {task.Title ?? "No title"}");
-                sb.AppendLine($"- **Description**: {task.Description ?? "No description provided"}");
-                sb.AppendLine($"- **Type**: {GetTaskTypeWithIcon(task.Type)} | **Priority**: {GetPriorityWithIcon(task.Priority)}");
-                sb.AppendLine($"- **Epic Reference**: {task.EpicId ?? "None"}");
-                sb.AppendLine();
+            return $@"
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích).
 
-                // Reporter Information
-                sb.AppendLine("**👤 Reporter Information:**");
-                sb.AppendLine($"- **Reporter**: {task.ReporterFullname ?? "Unknown"} (ID: {task.ReporterId})");
-                if (!string.IsNullOrEmpty(task.ReporterPicture))
-                {
-                    sb.AppendLine($"- **Profile Picture**: Available");
-                }
-                sb.AppendLine();
+Yêu cầu:
+- Đầu ra là NHIỀU bảng <table>, mỗi task trong JSON phải được in ra thành đúng 1 bảng.
+- Mỗi bảng có cấu trúc dọc (Name/Information) như bên dưới.
+- Không thêm style hay class.
+- Không format lại giá trị, in đúng giá trị từ JSON (nếu null để rỗng).
+- TUYỆT ĐỐI KHÔNG hiển thị các field: taskAssignments, commentCount, comments, labels.
+- Chỉ dùng các thẻ: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- Không thêm text ngoài các <table>.
 
-                // Sprint Assignment
-                sb.AppendLine("**🏃 Sprint Assignment:**");
-                sb.AppendLine($"- **Sprint**: {task.SprintName ?? "Unassigned"} {(task.SprintId.HasValue ? $"(#{task.SprintId})" : "")}");
-                sb.AppendLine();
+Dữ liệu JSON (mảng các task):
+{json}
 
-                // Progress Tracking
-                sb.AppendLine("**📊 Progress Tracking:**");
-                sb.AppendLine($"- **Current Status**: {GetStatusWithIcon(task.Status)}");
-                sb.AppendLine($"- **Completion Percentage**: {task.PercentComplete?.ToString("0.##") ?? "0"}%");
-                sb.AppendLine($"- **Quality Assessment**: {task.Evaluate ?? "Pending evaluation"}");
-                sb.AppendLine();
+Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố định** này, map label → key JSON tương ứng:
 
-                // Timeline Information
-                sb.AppendLine("**⏱️ Timeline Information:**");
-                sb.AppendLine($"- **Planned Period**: {FormatDateRange(task.PlannedStartDate, task.PlannedEndDate)}");
-                sb.AppendLine($"- **Actual Period**: {FormatDateRange(task.ActualStartDate, task.ActualEndDate)}");
-                sb.AppendLine($"- **Schedule Status**: {GetScheduleStatus(task.PlannedEndDate, task.ActualEndDate)}");
-                sb.AppendLine($"- **Created**: {FormatDateTime(task.CreatedAt)}");
-                sb.AppendLine($"- **Last Updated**: {FormatDateTime(task.UpdatedAt)}");
-                sb.AppendLine();
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Information</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>ID</td><td>{{task.id}}</td></tr>
+    <tr><td>Project ID</td><td>{{task.projectId}}</td></tr>
+    <tr><td>Project Name</td><td>{{task.projectName}}</td></tr>
+    <tr><td>Type</td><td>{{task.type}}</td></tr>
+    <tr><td>Title</td><td>{{task.title}}</td></tr>
+    <tr><td>Description</td><td>{{task.description}}</td></tr>
 
-                // Resource Planning
-                sb.AppendLine("**💰 Resource Planning:**");
-                sb.AppendLine($"- **Time Budget**: {FormatHours(task.PlannedHours)} planned | {FormatHours(task.ActualHours)} actual | {FormatHours(task.RemainingHours)} remaining");
-                sb.AppendLine($"- **Task Cost**: {FormatCurrency(task.PlannedCost)} planned | {FormatCurrency(task.ActualCost)} actual");
-                sb.AppendLine($"- **Resource Cost**: {FormatCurrency(task.PlannedResourceCost)} planned | {FormatCurrency(task.ActualResourceCost)} actual");
+    <tr><td>Planned Start Date</td><td>{{task.plannedStartDate}}</td></tr>
+    <tr><td>Planned End Date</td><td>{{task.plannedEndDate}}</td></tr>
+    <tr><td>Actual Start Date</td><td>{{task.actualStartDate}}</td></tr>
+    <tr><td>Actual End Date</td><td>{{task.actualEndDate}}</td></tr>
 
-                if (task.PlannedHours.HasValue && task.ActualHours.HasValue && task.PlannedHours > 0)
-                {
-                    var efficiency = (task.ActualHours.Value / task.PlannedHours.Value) * 100;
-                    var efficiencyStatus = efficiency <= 100 ? "✅ Efficient" : efficiency <= 120 ? "⚠️ Slightly Over" : "🔴 Over Budget";
-                    sb.AppendLine($"- **Time Efficiency**: {efficiency:F1}% {efficiencyStatus}");
-                }
-                sb.AppendLine();
+    <tr><td>Created At</td><td>{{task.createdAt}}</td></tr>
+    <tr><td>Updated At</td><td>{{task.updatedAt}}</td></tr>
+    <tr><td>Status</td><td>{{task.status}}</td></tr>
+    <tr><td>Priority</td><td>{{task.priority}}</td></tr>
+    <tr><td>Reporter ID</td><td>{{task.reporterId}}</td></tr>
+    <tr><td>Reporter Fullname</td><td>{{task.reporterFullname}}</td></tr>
+    <tr><td>Reporter Picture</td><td>{{task.reporterPicture}}</td></tr>
 
-                // Team Assignment Details
-                sb.AppendLine("**👥 Team Assignment:**");
-                if (task.TaskAssignments != null && task.TaskAssignments.Any())
-                {
-                    foreach (var assignment in task.TaskAssignments)
-                    {
-                        sb.AppendLine($"- **Assignee**: {assignment.AccountFullname}");
-                        sb.AppendLine($"  - **Status**: {GetStatusWithIcon(assignment.Status)}");
-                        sb.AppendLine($"  - **Assigned Date**: {FormatDateTime(assignment.AssignedAt)}");
-                        if (assignment.CompletedAt.HasValue && assignment.AssignedAt.HasValue)
-                        {
-                            sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
-                            var workDuration = (assignment.CompletedAt.Value - assignment.AssignedAt.Value).Days;
-                            sb.AppendLine($"  - **Work Duration**: {workDuration} days");
-                        }
-                        else if (assignment.CompletedAt.HasValue)
-                        {
-                            sb.AppendLine($"  - **Completed Date**: {FormatDateTime(assignment.CompletedAt.Value)}");
-                        }
-                        if (assignment.HourlyRate.HasValue)
-                        {
-                            sb.AppendLine($"  - **Hourly Rate**: {assignment.HourlyRate:C}/hour");
-                            if (task.ActualHours.HasValue)
-                            {
-                                var estimatedCost = assignment.HourlyRate.Value * task.ActualHours.Value;
-                                sb.AppendLine($"  - **Estimated Labor Cost**: {estimatedCost:C}");
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(assignment.AccountPicture))
-                        {
-                            sb.AppendLine($"  - **Profile Picture**: Available");
-                        }
-                        sb.AppendLine();
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("- **Assignment Status**: ⚠️ Unassigned");
-                    sb.AppendLine();
-                }
+    <tr><td>Percent Complete</td><td>{{task.percentComplete}}</td></tr>
+    <tr><td>Planned Hours</td><td>{{task.plannedHours}}</td></tr>
+    <tr><td>Actual Hours</td><td>{{task.actualHours}}</td></tr>
+    <tr><td>Planned Cost</td><td>{{task.plannedCost}}</td></tr>
+    <tr><td>Planned Resource Cost</td><td>{{task.plannedResourceCost}}</td></tr>
+    <tr><td>Actual Cost</td><td>{{task.actualCost}}</td></tr>
+    <tr><td>Actual Resource Cost</td><td>{{task.actualResourceCost}}</td></tr>
+    <tr><td>Remaining Hours</td><td>{{task.remainingHours}}</td></tr>
 
-                sb.AppendLine("---");
-                sb.AppendLine();
-            }
+    <tr><td>Sprint ID</td><td>{{task.sprintId}}</td></tr>
+    <tr><td>Sprint Name</td><td>{{task.sprintName}}</td></tr>
+    <tr><td>Epic ID</td><td>{{task.epicId}}</td></tr>
 
-            // Final instructions for AI
-            sb.AppendLine("## 📝 Analysis Instructions");
-            sb.AppendLine("Please analyze the above data and create a professional project summary document that:");
-            sb.AppendLine("- Identifies critical project risks, bottlenecks, and resource constraints");
-            sb.AppendLine("- Highlights successful areas, efficient team members, and on-track deliverables");
-            sb.AppendLine("- Analyzes team workload distribution and identifies potential burnout risks");
-            sb.AppendLine("- Provides specific, actionable recommendations for project improvement");
-            sb.AppendLine("- Uses appropriate visual formatting, status indicators, and professional presentation");
-            sb.AppendLine("- Maintains professional tone suitable for stakeholder and executive review");
-            sb.AppendLine("- Include data-driven insights and quantitative analysis where possible");
-
-            return sb.ToString();
+    <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
+  </tbody>
+</table>";
         }
 
-        // Helper Methods
-        private string FormatCurrency(decimal? value)
-        {
-            return value?.ToString("C0") ?? "Not specified";
-        }
 
-        private string FormatCurrency(double? value)
-        {
-            return value?.ToString("C0") ?? "Not specified";
-        }
 
-        private string FormatDecimal(decimal? value, string format)
-        {
-            return value?.ToString(format) ?? "N/A";
-        }
 
-        private string FormatDouble(double? value, string format)
-        {
-            return value?.ToString(format) ?? "N/A";
-        }
+
+
 
         private string FormatDate(DateTime? date)
         {

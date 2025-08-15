@@ -1,14 +1,7 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.ActivityLog.Response;
-using IntelliPM.Data.DTOs.Epic.Response;
-using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ActivityLogRepos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.ActivityLogServices
 {
@@ -80,6 +73,18 @@ namespace IntelliPM.Services.ActivityLogServices
             }
         }
 
+        public async Task<List<ActivityLogResponseDTO>> GetActivityLogsByEpicId(string epicId)
+        {
+            {
+                var entities = await _activityLogRepository.GetByEpicIdAsync(epicId);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No activityLogs found for Epic ID {epicId}.");
+
+                return _mapper.Map<List<ActivityLogResponseDTO>>(entities);
+            }
+        }
+
         public async Task LogFieldChangeAsync(
             string entityType,
             string? entityId,
@@ -90,13 +95,15 @@ namespace IntelliPM.Services.ActivityLogServices
             string actionType,
             int userId,
             string? taskId = null,
-            string? subtaskId = null)
+            string? subtaskId = null,
+            string? epicId = null)
         {
             var log = new ActivityLog
             {
                 ProjectId = projectId,
                 TaskId = taskId,
                 SubtaskId = subtaskId,
+                EpicId = epicId,
                 RelatedEntityType = entityType,
                 RelatedEntityId = entityId,
                 ActionType = actionType,
@@ -118,13 +125,15 @@ namespace IntelliPM.Services.ActivityLogServices
             string actionType,
             int userId,
             string? taskId = null,
-            string? subtaskId = null)
+            string? subtaskId = null,
+             string? epicId = null)
         {
             var log = new ActivityLog
             {
                 ProjectId = projectId,
                 TaskId = taskId,
                 SubtaskId = subtaskId,
+                EpicId = epicId,
                 RelatedEntityType = entityType,
                 RelatedEntityId = entityId,
                 ActionType = actionType,

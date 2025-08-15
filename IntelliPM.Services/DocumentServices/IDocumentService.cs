@@ -18,6 +18,9 @@ namespace IntelliPM.Services.DocumentServices
         Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId);
 
         Task<DocumentResponseDTO> UpdateDocument(int id, UpdateDocumentRequest req, int userId);
+
+        Task<bool> DeleteDocument(int id, int deletedBy);
+
         Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId);
 
         Task<string> SummarizeContent(int documentId);
@@ -43,7 +46,9 @@ namespace IntelliPM.Services.DocumentServices
         Task<Dictionary<string, int>> GetStatusCountByProject(int projectId);
 
 
-        Task<GenerateDocumentResponse> GenerateFromExistingDocument(int documentId);
+        Task<GenerateDocumentResponse> GenerateFromProject(int documentId);
+        Task<GenerateDocumentResponse> GenerateFromTask(int documentId);
+
 
         Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest request);
 

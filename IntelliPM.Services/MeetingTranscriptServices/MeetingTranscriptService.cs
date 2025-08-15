@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
 using IntelliPM.Services.GeminiServices;
@@ -31,6 +32,7 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _openAiApiKey;
         private readonly IConfiguration _config;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
 
         public MeetingTranscriptService(
@@ -41,7 +43,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             ILogger<MeetingTranscriptService> logger,
             IConfiguration config,
             IHttpClientFactory httpClientFactory,
-            CloudConvertService cloudConvertService)
+            CloudConvertService cloudConvertService,
+            IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _repo = repo;
             _summaryRepo = summaryRepo;
@@ -52,16 +55,21 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             _uploadPath = Path.Combine(AppContext.BaseDirectory, config["UploadPath"]);
             _httpClientFactory = httpClientFactory;
             _cloudConvertService = cloudConvertService;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
 
             //// Lấy API Key từ biến môi trường
             _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-                            ?? config["OpenAI:ApiKey"]; // Nếu không có biến môi trường, dùng appsettings.json (để phát triển)
 
-            if (string.IsNullOrEmpty(_openAiApiKey))
+                            ?? config["OpenAI:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(_openAiApiKey))
+
             {
                 throw new Exception("API Key không được thiết lập.");
             }
         }
+
+
 
         public async Task<MeetingTranscriptResponseDTO> UploadTranscriptFromUrlAsync(MeetingTranscriptFromUrlRequestDTO dto)
         {
@@ -133,7 +141,6 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 throw;
             }
         }
-
         public async Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto)
         {
             try
@@ -156,6 +163,14 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 // Call Whisper API
                 string transcript = await GenerateTranscriptAsync(wavPath);
 
+                _logger.LogInformation("Generated transcript: {Transcript}", transcript);
+
+                if (string.IsNullOrWhiteSpace(transcript))
+                {
+                    _logger.LogWarning("Transcript is empty or null for meeting ID: {MeetingId}", dto.MeetingId);
+                    transcript = "[Transcript could not be generated.]";
+                }
+
                 try
                 {
                     if (File.Exists(mp3Path)) File.Delete(mp3Path);
@@ -177,7 +192,15 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 string summary;
                 try
                 {
-                    summary = await _geminiService.SummarizeTextAsync(transcript);
+                    if (string.IsNullOrWhiteSpace(transcript) || transcript.Contains("Transcript could not be generated"))
+                    {
+                        summary = "Cannot auto-generate summary.";
+                    }
+                    else
+                    {
+                        summary = await _geminiService.SummarizeTextAsync(transcript);
+                        _logger.LogInformation("Generated summary: {Summary}", summary);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -203,6 +226,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 throw;
             }
         }
+
+
 
         public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
         {
@@ -236,6 +261,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Whisper API raw response: {Response}", responseString);
+
             using var doc = JsonDocument.Parse(responseString);
 
             string text = doc.RootElement.GetProperty("text").GetString() ?? "";

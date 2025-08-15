@@ -78,6 +78,13 @@ namespace IntelliPM.Repositories.RiskRepos
                 .ToListAsync();
         }
 
+        public async Task<List<Risk>> GetRiskByTaskIdAsync(string taskId)
+        {
+            return await _context.Risk
+                .Where(m => m.TaskId == taskId)
+                .ToListAsync();
+        }
+
         public async Task<List<Risk>> GetUnapprovedAIRisksByProjectIdAsync(int projectId)
         {
             return await _context.Risk

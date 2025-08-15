@@ -38,5 +38,9 @@ namespace IntelliPM.Services.EmailServices
         Task SendDocumentShareEmailMeeting(string toEmail, string subject, string body, byte[] fileBytes, string fileName);
 
         Task SendSubtaskAssignmentEmail(string assigneeFullName, string assigneeEmail, string subtaskId, string subtaskTitle);
+
+        Task SendRiskAssignmentEmail(string assigneeFullName, string assigneeEmail, string riskKey, string riskTitle, string projectKey, string severityLevel, DateTime? dueDate, string riskDetailUrl);
+
+        Task SendOverdueTaskNotificationEmailAsync(string assigneeFullName, string assigneeEmail, string taskId, string taskTitle, string projectKey, DateTime plannedEndDate, string taskDetailUrl);
     }
 }

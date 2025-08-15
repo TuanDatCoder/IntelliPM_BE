@@ -1,4 +1,6 @@
-﻿namespace IntelliPM.Data.DTOs.Meeting.Request
+﻿using IntelliPM.Common.Attributes;
+
+namespace IntelliPM.Data.DTOs.Meeting.Request
 {
     public class MeetingRequestDTO
     {
@@ -11,6 +13,9 @@
         public int? Attendees { get; set; }
 
         public List<int> ParticipantIds { get; set; } = new();
-        
+
+        [DynamicCategoryValidation("meeting_status", Required = false)]
+        public string? Status { get; set; }
+
     }
 }

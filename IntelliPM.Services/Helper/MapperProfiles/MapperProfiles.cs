@@ -43,6 +43,7 @@ using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectMetric.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
+using IntelliPM.Data.DTOs.ProjectMetricHistory.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Request;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
@@ -155,6 +156,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
             CreateMap<ProjectMetric, NewProjectMetricResponseDTO>();
+
+            // ProjectMetricHistory
+            CreateMap<ProjectMetricHistory, ProjectMetricHistoryResponseDTO>();
 
             // ProjectRecommendation
             CreateMap<ProjectRecommendation, ProjectRecommendationResponseDTO>();
@@ -401,7 +405,9 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
                 .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null))
                 .ForMember(dest => dest.AssignedPicture, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Picture : null));
-            CreateMap<Subtask, SubtaskDependencyResponseDTO>();
+            CreateMap<Subtask, SubtaskDependencyResponseDTO>()
+                .ForMember(dest => dest.AssignedFullName, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.FullName : null))
+                .ForMember(dest => dest.AssignedUsername, opt => opt.MapFrom(src => src.AssignedByNavigation != null ? src.AssignedByNavigation.Username : null));
 
             // ProjectMember
             CreateMap<ProjectMemberRequestDTO, ProjectMember>()
@@ -409,7 +415,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<ProjectMember, ProjectMemberResponseDTO>()
                 .ForMember(dest => dest.AccountEmail, opt => opt.MapFrom(src => src.Account != null ? src.Account.Email : null))
                 .ForMember(dest => dest.AccountPicture, opt => opt.MapFrom(src => src.Account != null ? src.Account.Picture : null))
-                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null));
+                .ForMember(dest => dest.AccountName, opt => opt.MapFrom(src => src.Account != null ? src.Account.FullName : null)); //
 
 
             CreateMap<ProjectMember, ProjectMemberWithPositionsResponseDTO>()

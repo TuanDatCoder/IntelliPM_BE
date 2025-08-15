@@ -51,6 +51,8 @@ public partial class Project
 
     public virtual ICollection<ProjectMetric> ProjectMetric { get; set; } = new List<ProjectMetric>();
 
+    public virtual ICollection<ProjectMetricHistory> ProjectMetricHistory { get; set; } = new List<ProjectMetricHistory>();
+
     public virtual ICollection<ProjectRecommendation> ProjectRecommendation { get; set; } = new List<ProjectRecommendation>();
 
     public virtual ICollection<Requirement> Requirement { get; set; } = new List<Requirement>();

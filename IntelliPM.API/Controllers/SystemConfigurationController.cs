@@ -28,6 +28,7 @@ namespace IntelliPM.API.Controllers
                 Message = "View all system configurations successfully",
                 Data = result
             });
+//hello
         }
 
         [HttpGet("{id}")]

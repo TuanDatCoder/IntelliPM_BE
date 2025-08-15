@@ -19,6 +19,8 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public string? FullName { get; set; }    
         public string? Username { get; set; } 
         public string? Picture { get; set; }
+
+        public string? Role { get; set; }
         public List<ProjectPositionResponseDTO> ProjectPositions { get; set; } = new List<ProjectPositionResponseDTO>();
     }
 }
