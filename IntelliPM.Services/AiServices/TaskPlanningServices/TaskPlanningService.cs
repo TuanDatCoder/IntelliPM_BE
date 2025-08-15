@@ -55,7 +55,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            // Move API key to configuration for security
+
             var apiKey = configuration["Gemini:ApiKey"] ?? "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={apiKey}";
         }
@@ -86,21 +86,28 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             }
             var requirementRequests = _mapper.Map<List<RequirementRequestDTO>>(requirements);
 
-            // Retrieve all account positions from dynamic categories
+            // Lấy danh sách account_role và account_position từ dynamic categories
+            var accountRoles = await _dynamicCategoryService.GetDynamicCategoryByCategoryGroup("account_role");
             var accountPositions = await _dynamicCategoryService.GetDynamicCategoryByCategoryGroup("account_position");
-            var allPositions = accountPositions.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Define excluded positions (validated against DB positions)
+            var allRoles = accountRoles.Where(r => r.IsActive).Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var allPositions = accountPositions.Where(p => p.IsActive).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Define excluded roles and positions từ DB
+            var excludedRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "CLIENT", "ADMIN" };
             var excludedPositionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
+
+            var excludedRoles = excludedRoleNames.Where(r => allRoles.Contains(r)).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var excludedPositions = excludedPositionNames.Where(p => allPositions.Contains(p)).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Retrieve project members and filter out excluded positions
+            // Retrieve project members và filter out excluded roles/positions
             List<ProjectMemberWithPositionsResponseDTO> projectMembers;
             try
             {
                 projectMembers = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
                 projectMembers = projectMembers
-                    .Where(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
+                    .Where(m => m.ProjectPositions != null &&
+                              m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
                     .OrderBy(m => m.FullName)
                     .ToList();
             }
@@ -110,11 +117,19 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 projectMembers = new List<ProjectMemberWithPositionsResponseDTO>();
             }
 
-            // Generate epic tasks
-            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirementRequests, projectKey);
+            // Tạo mapping roles từ DB cho AI prompt (với readable labels)
+            var roleLabels = accountRoles.Where(r => r.IsActive && !excludedRoles.Contains(r.Name))
+                                       .ToDictionary(r => r.Name, r => r.Label, StringComparer.OrdinalIgnoreCase);
+
+            // Tạo member assignment tracker để đảm bảo đa dạng
+            var memberAssignmentTracker = new Dictionary<int, int>(); // AccountId -> số lần được assign
+
+            // Generate epic tasks với roles từ DB
+            var epicTasks = await GenerateEpicTasksFromAIResponse(startDate, endDate, projectId, requirementRequests, projectKey, roleLabels);
 
             foreach (var epic in epicTasks)
             {
+                // Validate và clean epic data
                 if (string.IsNullOrWhiteSpace(epic.Title))
                 {
                     epic.Title = $"Unnamed Epic - {epic.EpicId ?? "Unknown"}";
@@ -130,6 +145,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
                 foreach (var task in epic.Tasks)
                 {
+                    // Validate và clean task data
                     if (string.IsNullOrWhiteSpace(task.Title))
                     {
                         task.Title = $"Unnamed Task - {task.TaskId ?? "Unknown"}";
@@ -143,34 +159,16 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         task.Description = $"Default description for {task.TaskId ?? "Unknown"}";
                     }
 
-                    var taskRequest = new TaskRequestDTO
-                    {
-                        Title = task.Title,
-                        Description = task.Description,
-                        ProjectId = projectId,
-                        ReporterId = 2
-                    };
+                    // Assign members dựa trên role và position một cách thông minh và đa dạng
+                    task.AssignedMembers = AssignMembersToTaskIntelligently(task.SuggestedRole, projectMembers, allPositions, allRoles, memberAssignmentTracker);
 
-                    // Assign 1 to 3 members based on role, sorted by FullName
-                    task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers, allPositions);
-
-                    // If no members assigned, assign default members (up to 3, sorted)
+                    // Fallback assignment nếu không tìm được ai phù hợp
                     if (task.AssignedMembers == null || !task.AssignedMembers.Any())
                     {
-                        if (projectMembers.Any())
+                        task.AssignedMembers = AssignFallbackMembers(projectMembers, memberAssignmentTracker);
+                        if (task.AssignedMembers.Any())
                         {
-                            task.AssignedMembers = projectMembers
-                                .Take(3)
-                                .Select(m => new TaskMemberDTO
-                                {
-                                    AccountId = m.AccountId,
-                                    Picture = m.Picture,
-                                    FullName = m.FullName
-                                })
-                                .OrderBy(m => m.FullName)
-                                .ToList();
-                            _logger.LogWarning("No eligible members found for role {SuggestedRole}, assigned up to 3 default members (sorted by name)",
-                                task.SuggestedRole);
+                            _logger.LogWarning("No specific members found for role {SuggestedRole}, assigned fallback members", task.SuggestedRole);
                         }
                         else
                         {
@@ -198,14 +196,12 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                             StartDate = t.StartDate,
                             EndDate = t.EndDate,
                             SuggestedRole = t.SuggestedRole,
-                            AssignedMembers = t.AssignedMembers != null
-                                ? t.AssignedMembers.Select(m => (object)new
-                                {
-                                    m.AccountId,
-                                    m.Picture,
-                                    m.FullName
-                                }).ToList()
-                                : new List<object>()
+                            AssignedMembers = t.AssignedMembers?.Select(m => (object)new
+                            {
+                                m.AccountId,
+                                m.Picture,
+                                m.FullName
+                            }).ToList() ?? new List<object>()
                         }).ToList()
                     }
                 });
@@ -214,7 +210,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return result;
         }
 
-        private List<TaskMemberDTO> AssignMembersToTask(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers, HashSet<string> allPositions)
+        private List<TaskMemberDTO> AssignMembersToTaskIntelligently(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers, HashSet<string> allPositions, HashSet<string> allRoles, Dictionary<int, int> memberAssignmentTracker)
         {
             var assignedMembers = new List<TaskMemberDTO>();
 
@@ -224,40 +220,30 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 return assignedMembers;
             }
 
-            // Map SuggestedRole to matching positions (using DB positions for validation)
-            var matchingPositionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            switch (suggestedRole?.ToLowerInvariant())
+            // Mapping intelligent từ SuggestedRole sang positions tương ứng
+            var roleToPositionsMapping = GetRoleToPositionsMapping(suggestedRole, allPositions);
+
+            if (!roleToPositionsMapping.Any())
             {
-                case "designer":
-                    matchingPositionNames.Add("DESIGNER");
-                    break;
-                case "developer":
-                    matchingPositionNames.Add("FRONTEND_DEVELOPER");
-                    matchingPositionNames.Add("BACKEND_DEVELOPER");
-                    break;
-                case "tester":
-                    matchingPositionNames.Add("TESTER");
-                    break;
-                default:
-                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}, defaulting to developers", suggestedRole);
-                    matchingPositionNames.Add("FRONTEND_DEVELOPER");
-                    matchingPositionNames.Add("BACKEND_DEVELOPER");
-                    break;
+                _logger.LogWarning("No position mapping found for role: {SuggestedRole}", suggestedRole);
+                return AssignFallbackMembers(projectMembers, memberAssignmentTracker);
             }
 
-            // Filter to only valid positions from DB
-            var matchingPositions = matchingPositionNames.Where(p => allPositions.Contains(p)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // Filter eligible members with matching positions, sorted by FullName
+            // Tìm members có positions phù hợp
             var eligibleMembers = projectMembers
-                .Where(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => matchingPositions.Contains(p.Position)))
-                .OrderBy(m => m.FullName)
-                .Take(3) // Limit to 3 members
+                .Where(m => m.ProjectPositions != null &&
+                          m.ProjectPositions.Any(p => roleToPositionsMapping.Contains(p.Position)))
                 .ToList();
+
+            // Phân chia thông minh: 1-3 members tùy theo complexity và role
+            var assignmentCount = DetermineOptimalAssignmentCount(suggestedRole, eligibleMembers.Count);
 
             if (eligibleMembers.Any())
             {
-                assignedMembers = eligibleMembers
+                // Chọn members đa dạng với load balancing
+                var selectedMembers = SelectDiverseMembersWithLoadBalancing(eligibleMembers, roleToPositionsMapping, assignmentCount, memberAssignmentTracker);
+
+                assignedMembers = selectedMembers
                     .Select(m => new TaskMemberDTO
                     {
                         AccountId = m.AccountId,
@@ -266,11 +252,208 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     })
                     .ToList();
 
-                _logger.LogInformation("Assigned {Count} members to role {SuggestedRole}", assignedMembers.Count, suggestedRole);
+                // Update assignment tracker
+                foreach (var member in selectedMembers)
+                {
+                    memberAssignmentTracker[member.AccountId] = memberAssignmentTracker.GetValueOrDefault(member.AccountId, 0) + 1;
+                }
+
+                _logger.LogInformation("Assigned {Count} members to role {SuggestedRole}: {Members}",
+                    assignedMembers.Count, suggestedRole, string.Join(", ", assignedMembers.Select(m => m.FullName)));
             }
             else
             {
                 _logger.LogWarning("No eligible members found for role: {SuggestedRole}", suggestedRole);
+            }
+
+            return assignedMembers;
+        }
+
+        private HashSet<string> GetRoleToPositionsMapping(string suggestedRole, HashSet<string> allPositions)
+        {
+            var matchingPositions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            switch (suggestedRole?.ToLowerInvariant())
+            {
+                case "business analyst":
+                case "business_analyst":
+                    if (allPositions.Contains("BUSINESS_ANALYST"))
+                        matchingPositions.Add("BUSINESS_ANALYST");
+                    break;
+
+                case "designer":
+                    if (allPositions.Contains("DESIGNER"))
+                        matchingPositions.Add("DESIGNER");
+                    break;
+
+                case "frontend developer":
+                case "frontend_developer":
+                case "front-end developer":
+                    if (allPositions.Contains("FRONTEND_DEVELOPER"))
+                        matchingPositions.Add("FRONTEND_DEVELOPER");
+                    break;
+
+                case "backend developer":
+                case "backend_developer":
+                case "back-end developer":
+                    if (allPositions.Contains("BACKEND_DEVELOPER"))
+                        matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+
+                case "developer":
+                case "full-stack developer":
+                    // Developer chung có thể là cả frontend và backend
+                    if (allPositions.Contains("FRONTEND_DEVELOPER"))
+                        matchingPositions.Add("FRONTEND_DEVELOPER");
+                    if (allPositions.Contains("BACKEND_DEVELOPER"))
+                        matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+
+                case "tester":
+                case "qa":
+                case "quality assurance":
+                    if (allPositions.Contains("TESTER"))
+                        matchingPositions.Add("TESTER");
+                    break;
+
+                case "team leader":
+                case "team_leader":
+                case "tech lead":
+                    if (allPositions.Contains("TEAM_LEADER"))
+                        matchingPositions.Add("TEAM_LEADER");
+                    // Team leader cũng có thể có technical skills
+                    if (allPositions.Contains("FRONTEND_DEVELOPER"))
+                        matchingPositions.Add("FRONTEND_DEVELOPER");
+                    if (allPositions.Contains("BACKEND_DEVELOPER"))
+                        matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+
+                default:
+                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}, using default developer positions", suggestedRole);
+                    // Default fallback cho unknown roles
+                    if (allPositions.Contains("FRONTEND_DEVELOPER"))
+                        matchingPositions.Add("FRONTEND_DEVELOPER");
+                    if (allPositions.Contains("BACKEND_DEVELOPER"))
+                        matchingPositions.Add("BACKEND_DEVELOPER");
+                    break;
+            }
+
+            return matchingPositions;
+        }
+
+        private int DetermineOptimalAssignmentCount(string suggestedRole, int availableCount)
+        {
+            if (availableCount == 0) return 0;
+
+            // Các role phức tạp cần nhiều người hơn
+            switch (suggestedRole?.ToLowerInvariant())
+            {
+                case "developer":
+                case "full-stack developer":
+                    return Math.Min(3, availableCount); // Developer tasks có thể cần nhiều người
+
+                case "team leader":
+                case "team_leader":
+                    return Math.Min(2, availableCount); // Team leader + 1 member
+
+                case "tester":
+                case "designer":
+                case "business analyst":
+                case "business_analyst":
+                    return Math.Min(2, availableCount); // Thường 1-2 người là đủ
+
+                default:
+                    return Math.Min(2, availableCount); // Default 1-2 người
+            }
+        }
+
+        private List<ProjectMemberWithPositionsResponseDTO> SelectDiverseMembersWithLoadBalancing(
+            List<ProjectMemberWithPositionsResponseDTO> eligibleMembers,
+            HashSet<string> roleToPositionsMapping,
+            int assignmentCount,
+            Dictionary<int, int> memberAssignmentTracker)
+        {
+            var selectedMembers = new List<ProjectMemberWithPositionsResponseDTO>();
+            var usedPositions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Sắp xếp members theo số lần được assign (ít nhất trước) và sau đó theo tên
+            var sortedMembers = eligibleMembers
+                .OrderBy(m => memberAssignmentTracker.GetValueOrDefault(m.AccountId, 0)) // Ít được assign nhất trước
+                .ThenBy(m => m.FullName) // Sau đó sort theo tên
+                .ToList();
+
+            // Phase 1: Ưu tiên chọn members có position đa dạng và ít được assign
+            foreach (var member in sortedMembers)
+            {
+                if (selectedMembers.Count >= assignmentCount) break;
+
+                var memberPositions = member.ProjectPositions.Select(p => p.Position).ToList();
+                var matchingPositions = memberPositions.Where(p => roleToPositionsMapping.Contains(p)).ToList();
+
+                // Ưu tiên members có position chưa được chọn HOẶC ít được assign nhất
+                bool hasNewPosition = matchingPositions.Any(p => !usedPositions.Contains(p));
+                int currentAssignmentCount = memberAssignmentTracker.GetValueOrDefault(member.AccountId, 0);
+
+                if (hasNewPosition || selectedMembers.Count == 0 ||
+                    currentAssignmentCount <= selectedMembers.Min(sm => memberAssignmentTracker.GetValueOrDefault(sm.AccountId, 0)))
+                {
+                    selectedMembers.Add(member);
+                    foreach (var pos in matchingPositions)
+                    {
+                        usedPositions.Add(pos);
+                    }
+                }
+            }
+
+            // Phase 2: Nếu chưa đủ người, chọn thêm từ remaining members (ưu tiên ít được assign)
+            if (selectedMembers.Count < assignmentCount)
+            {
+                var remainingMembers = sortedMembers
+                    .Except(selectedMembers)
+                    .Take(assignmentCount - selectedMembers.Count);
+                selectedMembers.AddRange(remainingMembers);
+            }
+
+            // Shuffle randomly trong nhóm có cùng assignment count để tăng đa dạng
+            var finalSelection = new List<ProjectMemberWithPositionsResponseDTO>();
+            var groupedByAssignmentCount = selectedMembers
+                .GroupBy(m => memberAssignmentTracker.GetValueOrDefault(m.AccountId, 0))
+                .OrderBy(g => g.Key);
+
+            var random = new Random();
+            foreach (var group in groupedByAssignmentCount)
+            {
+                var shuffledGroup = group.OrderBy(x => random.Next()).ToList();
+                finalSelection.AddRange(shuffledGroup);
+            }
+
+            return finalSelection.Take(assignmentCount).ToList();
+        }
+
+        private List<TaskMemberDTO> AssignFallbackMembers(List<ProjectMemberWithPositionsResponseDTO> projectMembers, Dictionary<int, int> memberAssignmentTracker)
+        {
+            if (!projectMembers.Any()) return new List<TaskMemberDTO>();
+
+            // Sắp xếp theo số lần được assign (ít nhất trước) và shuffle trong cùng nhóm
+            var sortedMembers = projectMembers
+                .OrderBy(m => memberAssignmentTracker.GetValueOrDefault(m.AccountId, 0))
+                .ThenBy(m => Guid.NewGuid()) // Random shuffle trong cùng assignment count
+                .Take(2) // Default assign 2 members
+                .ToList();
+
+            var assignedMembers = sortedMembers
+                .Select(m => new TaskMemberDTO
+                {
+                    AccountId = m.AccountId,
+                    Picture = m.Picture,
+                    FullName = m.FullName
+                })
+                .ToList();
+
+            // Update assignment tracker
+            foreach (var member in sortedMembers)
+            {
+                memberAssignmentTracker[member.AccountId] = memberAssignmentTracker.GetValueOrDefault(member.AccountId, 0) + 1;
             }
 
             return assignedMembers;
@@ -300,7 +483,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             };
         }
 
-        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, string projectKey)
+        private async Task<List<EpicWithTasksDTO>> GenerateEpicTasksFromAIResponse(DateTime startDate, DateTime endDate, int projectId, List<RequirementRequestDTO> requirements, string projectKey, Dictionary<string, string> roleLabels)
         {
             var projectResponse = await _projectService.GetProjectById(projectId);
             if (projectResponse == null)
@@ -315,6 +498,9 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
             var requirementsText = string.Join(" | ", requirements.Select(r => $"{r.Title}: {r.Description}"));
 
+            // Tạo danh sách roles từ DB cho AI
+            var availableRoles = string.Join(", ", roleLabels.Select(r => $"{r.Key} ({r.Value})"));
+
             var prompt = $@"⚠️ Task titles MUST be 100% unique across all Epics; no repetition or generic terms like 'Task X for...'. Keep all titles concise (under 100 characters).
 
 Generate a comprehensive task plan for project ID {projectId}:
@@ -325,20 +511,32 @@ PROJECT DETAILS:
 - Requirements: {requirementsText}
 - Duration: {startDateStr} to {endDateStr}
 
+AVAILABLE ROLES FROM DATABASE: {availableRoles}
+
+USER STORY FORMAT EXAMPLES:
+- ""As a project manager, I want to track project progress so that I can ensure timely delivery""
+- ""As a team leader, I want to assign tasks efficiently so that team productivity is maximized""
+- ""As a business analyst, I want to gather requirements so that development aligns with business needs""
+- ""As a frontend developer, I want to create responsive UI so that users have optimal experience""
+- ""As a backend developer, I want to implement secure APIs so that data integrity is maintained""
+- ""As a tester, I want to validate functionality so that bugs are identified early""
+- ""As a designer, I want to create user-friendly interfaces so that user engagement increases""
+
 INSTRUCTIONS:
 1. Create {requirements.Count} Epics based on the requirements
 2. For each Epic, generate a unique 'title' (under 100 chars) and 'description' that represents a major feature
 3. For each Epic, generate 5 tasks with:
-   - UNIQUE 'title' (under 100 chars) in User Story format: ""As a [user type], I want [functionality] so that [benefit]""
+   - UNIQUE 'title' (under 100 chars) in User Story format using lowercase readable role names (e.g., 'project manager', 'frontend developer', 'business analyst')
    - Detailed 'description' explaining acceptance criteria and implementation requirements
    - 'startDate' and 'endDate' (YYYY-MM-DD format) within project duration
-   - 'suggestedRole' (Designer/Developer/Tester) based on task nature
+   - 'suggestedRole' using EXACT role names from the database (e.g., 'BUSINESS_ANALYST', 'FRONTEND_DEVELOPER', etc.)
 
 TASK WRITING GUIDELINES:
-- Title: Use User Story format (As a... I want... so that...), keep under 100 characters
+- Title: Use lowercase readable role names in User Story format (""As a frontend developer, I want...""), keep under 100 characters, Always start with capital ""A"" in ""As""
 - Description: Include detailed acceptance criteria and technical requirements
 - Focus on user value and business outcomes
 - Each task should be implementable within 1-2 weeks
+- Distribute roles evenly across tasks for balanced workload
 
 IMPORTANT: Return ONLY a valid JSON array with this exact structure:
 [
@@ -350,11 +548,11 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
     ""endDate"": ""<YYYY-MM-DD>"",
     ""tasks"": [
       {{
-        ""title"": ""As a [user] I want [functionality] so that [benefit]"",
+        ""title"": ""As a [lowercase_readable_role] I want [functionality] so that [benefit]"",
         ""description"": ""<detailed_acceptance_criteria_and_implementation_details>"",
         ""startDate"": ""<YYYY-MM-DD>"",
         ""endDate"": ""<YYYY-MM-DD>"",
-        ""suggestedRole"": ""<Designer|Developer|Tester>""
+        ""suggestedRole"": ""<EXACT_DATABASE_ROLE_NAME>""
       }}
     ]
   }}
@@ -363,7 +561,7 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
             var requestData = new
             {
                 contents = new[] { new { parts = new[] { new { text = prompt } } } },
-                generationConfig = new { maxOutputTokens = 5000, temperature = 0.7 }
+                generationConfig = new { maxOutputTokens = 6000, temperature = 0.7 }
             };
 
             var requestJson = JsonConvert.SerializeObject(requestData);
@@ -404,13 +602,22 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
                     throw new Exception("No valid epic tasks from Gemini reply.");
                 }
 
-                for (int i = 0; i < aiEpicTasks.Count; i++)
+                // Validate và clean roles từ AI response
+                foreach (var epic in aiEpicTasks)
                 {
-                    aiEpicTasks[i].EpicId = $"{projectKey}-{i + 1}";
-                    aiEpicTasks[i].AIGenerated = true;
-                    for (int j = 0; j < aiEpicTasks[i].Tasks.Count; j++)
+                    epic.EpicId = $"{projectKey}-{aiEpicTasks.IndexOf(epic) + 1}";
+                    epic.AIGenerated = true;
+
+                    foreach (var task in epic.Tasks)
                     {
-                        aiEpicTasks[i].Tasks[j].TaskId = $"{projectKey}-{i + 1}-{j + 1}";
+                        task.TaskId = $"{epic.EpicId}-{epic.Tasks.IndexOf(task) + 1}";
+
+                        // Validate suggestedRole against database roles
+                        if (!string.IsNullOrEmpty(task.SuggestedRole) && !roleLabels.ContainsKey(task.SuggestedRole))
+                        {
+                            _logger.LogWarning("Invalid role {Role} from AI, defaulting to TEAM_MEMBER", task.SuggestedRole);
+                            task.SuggestedRole = "TEAM_MEMBER"; // Default fallback role
+                        }
                     }
                 }
 
@@ -426,19 +633,32 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
         private string CleanJsonResponse(string rawJson)
         {
             if (string.IsNullOrWhiteSpace(rawJson)) return "[]";
+
             var cleaned = rawJson.Trim();
-            if (cleaned.StartsWith("```json")) cleaned = cleaned.Substring(7).Trim();
-            if (cleaned.EndsWith("```")) cleaned = cleaned.Substring(0, cleaned.Length - 3).Trim();
-            if (!cleaned.StartsWith("[")) cleaned = "[" + cleaned;
-            if (!cleaned.EndsWith("]")) cleaned += "]";
+
+            // Remove markdown code blocks
+            if (cleaned.StartsWith("```json"))
+                cleaned = cleaned.Substring(7).Trim();
+            if (cleaned.StartsWith("```"))
+                cleaned = cleaned.Substring(3).Trim();
+            if (cleaned.EndsWith("```"))
+                cleaned = cleaned.Substring(0, cleaned.Length - 3).Trim();
+
+            // Ensure proper JSON array format
+            if (!cleaned.StartsWith("["))
+                cleaned = "[" + cleaned;
+            if (!cleaned.EndsWith("]"))
+                cleaned += "]";
+
+            // Validate JSON
             try
             {
                 JsonConvert.DeserializeObject<object>(cleaned);
                 return cleaned;
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogWarning("Invalid JSON response, returning empty array: {RawJson}", rawJson);
+                _logger.LogWarning("Invalid JSON response, returning empty array. Error: {Error}\nRaw JSON: {RawJson}", ex.Message, rawJson);
                 return "[]";
             }
         }
@@ -472,7 +692,7 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool AIGenerated { get; set; }
-        public List<TaskWithMembersDTO> Tasks { get; set; }
+        public List<TaskWithMembersDTO> Tasks { get; set; } = new List<TaskWithMembersDTO>();
     }
 
     public class TaskWithMembersDTO
@@ -483,7 +703,7 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string SuggestedRole { get; set; }
-        public List<TaskMemberDTO> AssignedMembers { get; set; }
+        public List<TaskMemberDTO> AssignedMembers { get; set; } = new List<TaskMemberDTO>();
     }
 
     public class TaskMemberDTO
