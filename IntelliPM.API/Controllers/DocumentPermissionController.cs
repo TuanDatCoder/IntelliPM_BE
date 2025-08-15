@@ -125,5 +125,60 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpGet("{id}/permission-type")]
+        public async Task<IActionResult> GetPermissionType(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new
+                {
+                    isSuccess = false,
+                    code = 400,
+                    message = "Invalid document ID."
+                });
+            }
+
+            try
+            {
+                var permissionType = await _service.GetPermissionTypeAsync(id);
+
+                return Ok(new
+                {
+                    isSuccess = true,
+                    code = 200,
+                    documentId = id,
+                    permissionType
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    isSuccess = false,
+                    code = 404,
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    isSuccess = false,
+                    code = 401,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    isSuccess = false,
+                    code = 500,
+                    message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+
+
     }
 }

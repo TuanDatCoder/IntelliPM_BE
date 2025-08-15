@@ -91,6 +91,7 @@ namespace IntelliPM.Repositories.SubtaskRepos
         public async Task<List<Subtask>> GetByProjectIdAsync(int projectId)
         {
             return await _context.Subtask
+                .Include(s => s.AssignedByNavigation)
                 .Where(d => _context.Tasks
                 .Where(t => t.ProjectId == projectId)
                 .Select(t => t.Id)

@@ -589,142 +589,6 @@ namespace IntelliPM.Services.ProjectServices
             return project != null;
         }
 
-        //public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)
-        //{
-        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
-        //    if (project == null) return null;
-
-        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-        //    var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
-        //    var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
-        //    var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
-        //    var dependencies = await _taskDependencyRepo.GetByProjectIdAsync(project.Id);
-
-        //    var dependenciesGrouped = dependencies
-        //        .GroupBy(d => d.TaskId)
-        //        .ToDictionary(
-        //            g => g.Key,
-        //            g => g.Select(dep => new TaskDependencyResponseDTO
-        //            {
-        //                Id = dep.Id,
-        //                TaskId = dep.TaskId,
-        //                LinkedFrom = dep.LinkedFrom,
-        //                LinkedTo = dep.LinkedTo,
-        //                Type = dep.Type
-        //            }).ToList()
-        //        );
-
-        //    var subtasksGrouped = subtasks
-        //        .GroupBy(s => s.TaskId)
-        //        .ToDictionary(g => g.Key, g => g.Select(s => new SubtaskFullResponseDTO
-        //        {
-        //            Id = s.Id,
-        //            TaskId = s.TaskId,
-        //            AssignedBy = (int)s.AssignedBy,
-        //            Title = s.Title,
-        //            Description = s.Description,
-        //            ReporterId = s.ReporterId,
-        //            Status = s.Status,
-        //            Priority = s.Priority,
-        //            ManualInput = s.ManualInput,
-        //            GenerationAiInput = s.GenerationAiInput,
-        //            SprintId = s.SprintId,
-        //            PlannedStartDate = s.PlannedStartDate,
-        //            PlannedEndDate = s.PlannedEndDate,
-        //            ActualStartDate = s.ActualStartDate,
-        //            Duration = s.Duration,
-        //            ActualEndDate = s.ActualEndDate,
-        //            PercentComplete = s.PercentComplete,
-        //            PlannedHours = s.PlannedHours,
-        //            ActualHours = s.ActualHours,
-        //            RemainingHours = s.RemainingHours,
-        //            PlannedCost = s.PlannedCost,
-        //            PlannedResourceCost = s.PlannedResourceCost,
-        //            ActualCost = s.ActualCost,
-        //            ActualResourceCost = s.ActualResourceCost,
-        //            Evaluate = s.Evaluate,
-        //            CreatedAt = s.CreatedAt,
-        //            UpdatedAt = s.UpdatedAt,
-        //            StartDate = s.StartDate,
-        //            EndDate = s.EndDate
-        //        }).ToList());
-
-        //    return new ProjectViewDTO
-        //    {
-        //        Id = project.Id,
-        //        ProjectKey = project.ProjectKey,
-        //        Name = project.Name,
-        //        Description = project.Description,
-        //        Budget = project.Budget,
-        //        ProjectType = project.ProjectType,
-        //        CreatedBy = project.CreatedBy,
-        //        StartDate = project.StartDate,
-        //        EndDate = project.EndDate,
-        //        CreatedAt = project.CreatedAt,
-        //        UpdatedAt = project.UpdatedAt,
-        //        IconUrl = project.IconUrl,
-        //        Status = project.Status,
-
-        //        Sprints = sprints.Select(s => new SprintResponseDTO
-        //        {
-        //            Id = s.Id,
-        //            Name = s.Name,
-        //            Goal = s.Goal,
-        //            StartDate = s.StartDate,
-        //            EndDate = s.EndDate,
-        //            Status = s.Status,
-        //            CreatedAt = s.CreatedAt,
-        //            UpdatedAt = s.UpdatedAt,
-        //        }).ToList(),
-        //        Tasks = tasks.Select(t => new TaskSubtaskDependencyResponseDTO
-        //        {
-        //            Id = t.Id,
-        //            ReporterId = t.ReporterId,
-        //            ProjectId = t.ProjectId,
-        //            EpicId = t.EpicId,
-        //            SprintId = t.SprintId,
-        //            Type = t.Type,
-        //            ManualInput = t.ManualInput,
-        //            GenerationAiInput = t.GenerationAiInput,
-        //            Title = t.Title,
-        //            Description = t.Description,
-        //            PlannedStartDate = t.PlannedStartDate,
-        //            PlannedEndDate = t.PlannedEndDate,
-        //            ActualStartDate = t.ActualStartDate,
-        //            ActualEndDate = t.ActualEndDate,
-        //            Duration = t.Duration,
-        //            PercentComplete = t.PercentComplete,
-        //            PlannedHours = t.PlannedHours,
-        //            ActualHours = t.ActualHours,
-        //            RemainingHours = t.RemainingHours,
-        //            PlannedCost = t.PlannedCost,
-        //            PlannedResourceCost = t.PlannedResourceCost,
-        //            ActualCost = t.ActualCost,
-        //            ActualResourceCost = t.ActualResourceCost,
-        //            Evaluate = t.Evaluate,
-        //            Status = t.Status,
-        //            Priority = t.Priority,
-        //            CreatedAt = t.CreatedAt,
-        //            UpdatedAt = t.UpdatedAt,
-        //            Dependencies = dependenciesGrouped.ContainsKey(t.Id) ? dependenciesGrouped[t.Id] : new List<TaskDependencyResponseDTO>(),
-        //            Subtasks = subtasksGrouped.ContainsKey(t.Id) ? subtasksGrouped[t.Id] : new List<SubtaskFullResponseDTO>()
-        //        }).ToList(),
-        //        Milestones = milestones.Select(m => new MilestoneResponseDTO
-        //        {
-        //            Id = m.Id,
-        //            ProjectId = m.ProjectId,
-        //            SprintId = m.SprintId,
-        //            Name = m.Name,
-        //            Description = m.Description,
-        //            StartDate = m.StartDate,
-        //            EndDate = m.EndDate,
-        //            CreatedAt = m.CreatedAt,
-        //            UpdatedAt = m.UpdatedAt,
-        //            Status = m.Status,
-        //        }).ToList()
-        //    };
-        //}
-
         public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
@@ -738,11 +602,9 @@ namespace IntelliPM.Services.ProjectServices
 
             var dependencyDTOs = _mapper.Map<List<TaskDependencyResponseDTO>>(dependencies);
 
-            // Group theo from_id để dễ inject
             var groupedDependencies = dependencyDTOs
                 .GroupBy(d => (d.LinkedFrom, d.FromType))
                 .ToDictionary(g => g.Key, g => g.ToList());
-
 
             var subtasksGrouped = _mapper.Map<List<SubtaskDependencyResponseDTO>>(subtasks)
                 .OrderBy(s => s.StartDate ?? DateTime.MaxValue)
@@ -774,8 +636,6 @@ namespace IntelliPM.Services.ProjectServices
                 m.Dependencies = groupedDependencies.TryGetValue((m.Key, "milestone"), out var mdeps) ? mdeps : new();
             }
 
-
-            // Final result
             var projectDTO = _mapper.Map<ProjectViewDTO>(project);
             projectDTO.Sprints = _mapper.Map<List<SprintResponseDTO>>(sprints);
             projectDTO.Milestones = milestoneDTOs;

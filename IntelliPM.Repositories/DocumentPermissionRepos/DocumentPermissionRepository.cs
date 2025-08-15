@@ -64,8 +64,14 @@ namespace IntelliPM.Repositories.DocumentPermissionRepos
                 .ToListAsync();
         }
 
-
-
+        public async Task<string?> GetPermissionTypeByDocumentIdAsync(int documentId)
+        {
+            return await _context.DocumentPermission
+                .Where(dp => dp.DocumentId == documentId)
+                .OrderByDescending(dp => dp.CreatedAt) 
+                .Select(dp => dp.PermissionType)
+                .FirstOrDefaultAsync();
+        }
 
 
         public async Task UpdateAsync(DocumentPermission permission)
