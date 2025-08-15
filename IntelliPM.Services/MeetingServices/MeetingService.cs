@@ -851,5 +851,128 @@ namespace IntelliPM.Services.MeetingServices
 
             return conflictingAccountIds;
         }
+
+        public async Task<(List<int> Added, List<int> AlreadyIn, List<int> Conflicted, List<int> NotFound)>
+    AddParticipantsAsync(int meetingId, List<int> participantIds)
+        {
+            if (participantIds == null || participantIds.Count == 0)
+                throw new ArgumentException("Participant list cannot be empty.");
+
+            var meeting = await _context.Meeting
+                .Where(m => m.Id == meetingId)
+                .Select(m => new { m.Id, m.Status, m.MeetingDate, m.StartTime, m.EndTime, m.MeetingTopic, m.MeetingUrl })
+                .FirstOrDefaultAsync();
+
+            if (meeting == null) throw new KeyNotFoundException("Meeting not found.");
+            if (meeting.Status == "CANCELLED")
+                throw new InvalidOperationException("Cannot add participants to a cancelled meeting.");
+
+            // hiện có
+            var existingIds = await _context.MeetingParticipant
+                .Where(mp => mp.MeetingId == meetingId)
+                .Select(mp => mp.AccountId)
+                .ToListAsync();
+
+            var reqSet = participantIds.Distinct().ToHashSet();
+            var alreadyIn = reqSet.Intersect(existingIds).ToList();
+            var needToAdd = reqSet.Except(existingIds).ToList();
+
+            var added = new List<int>();
+            var conflicted = new List<int>();
+            var notFound = new List<int>();
+
+            if (needToAdd.Count == 0)
+                return (added, alreadyIn, conflicted, notFound);
+
+            // fetch accounts
+            var accounts = await _context.Account
+                .Where(a => needToAdd.Contains(a.Id))
+                .Select(a => new { a.Id, a.Email, a.FullName, a.Role })
+                .AsNoTracking()
+                .ToListAsync();
+
+            var foundIds = accounts.Select(a => a.Id).ToHashSet();
+            notFound = needToAdd.Except(foundIds).ToList();
+
+            // check conflict nếu có time
+            var okToInsert = new List<(int Id, string? Email, string? FullName, string? Role)>();
+            if (meeting.StartTime.HasValue && meeting.EndTime.HasValue)
+            {
+                var start = meeting.StartTime.Value;
+                var end = meeting.EndTime.Value;
+                var validStatuses = new[] { "Active", "Present", "Absent" };
+
+                foreach (var acc in accounts)
+                {
+                    var hasConflict = await _context.MeetingParticipant
+                        .Where(mp => mp.AccountId == acc.Id && validStatuses.Contains(mp.Status))
+                        .Join(_context.Meeting, mp => mp.MeetingId, m => m.Id, (mp, m) => m)
+                        .AnyAsync(m =>
+                            m.Status == "ACTIVE" &&
+                            m.MeetingDate.Date == meeting.MeetingDate.Date &&
+                            m.StartTime < end && m.EndTime > start
+                        );
+
+                    if (hasConflict) conflicted.Add(acc.Id);
+                    else okToInsert.Add((acc.Id, acc.Email, acc.FullName, acc.Role));
+                }
+            }
+            else
+            {
+                okToInsert = accounts.Select(a => (a.Id, a.Email, a.FullName, a.Role)).ToList();
+            }
+
+            // insert
+            if (okToInsert.Any())
+            {
+                var entities = okToInsert.Select(acc => new MeetingParticipant
+                {
+                    MeetingId = meetingId,
+                    AccountId = acc.Id,
+                    Role = acc.Role ?? "Attendee",
+                    Status = "Active",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.MeetingParticipant.AddRangeAsync(entities);
+                await _context.SaveChangesAsync();
+                added = okToInsert.Select(x => x.Id).ToList();
+            }
+
+            // email song song
+            if (okToInsert.Any())
+            {
+                var sem = new SemaphoreSlim(5);
+                var tasks = okToInsert.Where(a => !string.IsNullOrWhiteSpace(a.Email)).Select(a => Task.Run(async () =>
+                {
+                    await sem.WaitAsync();
+                    try
+                    {
+                        await _emailService.SendMeetingInvitation(
+                            a.Email!, a.FullName ?? "User",
+                            meeting.MeetingTopic,
+                            meeting.StartTime ?? DateTime.UtcNow,
+                            meeting.MeetingUrl ?? ""
+                        );
+                    }
+                    catch (Exception emailEx)
+                    {
+                        Console.WriteLine($"[EmailError] Failed to send invitation to {a.Email}: {emailEx.Message}");
+                    }
+                    finally { sem.Release(); }
+                })).ToList();
+                await Task.WhenAll(tasks);
+            }
+
+            // notification cho người mới
+            if (added.Count > 0)
+            {
+                await _notificationService.SendMeetingNotification(
+                    added, meetingId, meeting.MeetingTopic, added.First()
+                );
+            }
+
+            return (added, alreadyIn, conflicted, notFound);
+        }
+
     }
 }
