@@ -171,5 +171,56 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
                 return StatusCode(500, new { message = "An error occurred while checking meeting conflicts." });
             }
         }
+
+        [HttpPost("{id}/participants")]
+        public async Task<IActionResult> AddParticipants(int id, [FromBody] List<int> participantIds)
+        {
+            try
+            {
+                var (added, alreadyIn, conflicted, notFound) =
+                    await _service.AddParticipantsAsync(id, participantIds);
+
+                var nothingAdded = added == null || added.Count == 0;
+                if (nothingAdded && ((conflicted?.Count ?? 0) > 0 || (notFound?.Count ?? 0) > 0))
+                {
+                    return Conflict(new
+                    {
+                        message = "No participant was added due to conflicts or not found.",
+                        added,
+                        alreadyIn,
+                        conflicted,
+                        notFound
+                    });
+                }
+
+                return Ok(new { added, alreadyIn, conflicted, notFound });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in AddParticipants: " + ex.Message);
+                Console.WriteLine("Stack Trace: " + ex.StackTrace);
+                if (ex.InnerException != null)
+                    Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while adding participants.",
+                    details = ex.Message,
+                    innerDetails = ex.InnerException?.Message
+                });
+            }
+        }
     }
 }

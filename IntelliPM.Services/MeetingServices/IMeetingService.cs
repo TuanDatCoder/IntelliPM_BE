@@ -29,6 +29,9 @@ namespace IntelliPM.Services.MeetingServices
         Task CompleteMeeting(int meetingId);
 
         Task<List<int>> CheckMeetingConflictAsync(List<int> participantIds, DateTime date, DateTime startTime, DateTime endTime);
+
+        Task<(List<int> Added, List<int> AlreadyIn, List<int> Conflicted, List<int> NotFound)>
+    AddParticipantsAsync(int meetingId, List<int> participantIds);
     }
 }
 
