@@ -129,7 +129,6 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 
-
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -391,16 +390,15 @@ app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notification");
 
 
-app.UseHangfireDashboard();  
-
-
-//RecurringJob.AddOrUpdate<IWorkLogService>(
-//    "generate-daily-worklog",
-//    x => x.GenerateDailyWorkLogsAsync(),
-//     "0 17 * * *"
-//     //"0 1 * * *"
-//     // "*/1 * * * *"
-//);
+app.UseHangfireDashboard();
+app.UseHangfireServer();
+RecurringJob.AddOrUpdate<IWorkLogService>(
+    "generate-daily-worklog",
+    x => x.GenerateDailyWorkLogsAsync(),
+     "0 17 * * *"
+//"0 1 * * *"
+// "*/1 * * * *"
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();

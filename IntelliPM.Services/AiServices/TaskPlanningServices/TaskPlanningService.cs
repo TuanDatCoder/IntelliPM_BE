@@ -4,7 +4,7 @@ using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Task.Request;
-using IntelliPM.Data.Entities;
+using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.ProjectServices;
@@ -14,12 +14,7 @@ using IntelliPM.Services.TaskServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.AiServices.TaskPlanningServices
 {
@@ -31,10 +26,10 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
         private readonly IEpicService _epicService;
         private readonly ISprintService _sprintService;
         private readonly IProjectMemberService _projectMemberService;
+        private readonly IDynamicCategoryService _dynamicCategoryService;
         private readonly IMapper _mapper;
         private readonly ILogger<TaskPlanningService> _logger;
         private readonly HttpClient _httpClient;
-        private const string _apiKey = "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
         private readonly string _url;
 
         public TaskPlanningService(
@@ -44,6 +39,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             IEpicService epicService,
             ISprintService sprintService,
             IProjectMemberService projectMemberService,
+            IDynamicCategoryService dynamicCategoryService,
             IMapper mapper,
             ILogger<TaskPlanningService> logger,
             IConfiguration configuration,
@@ -55,10 +51,13 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             _epicService = epicService ?? throw new ArgumentNullException(nameof(epicService));
             _sprintService = sprintService ?? throw new ArgumentNullException(nameof(sprintService));
             _projectMemberService = projectMemberService ?? throw new ArgumentNullException(nameof(projectMemberService));
+            _dynamicCategoryService = dynamicCategoryService ?? throw new ArgumentNullException(nameof(dynamicCategoryService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+            // Move API key to configuration for security
+            var apiKey = configuration["Gemini:ApiKey"] ?? "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+            _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={apiKey}";
         }
 
         public async Task<List<object>> GenerateTaskPlan(int projectId)
@@ -87,14 +86,22 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             }
             var requirementRequests = _mapper.Map<List<RequirementRequestDTO>>(requirements);
 
-            // Retrieve project members and filter out CLIENT, PROJECT_MANAGER, ADMIN
+            // Retrieve all account positions from dynamic categories
+            var accountPositions = await _dynamicCategoryService.GetDynamicCategoryByCategoryGroup("account_position");
+            var allPositions = accountPositions.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Define excluded positions (validated against DB positions)
+            var excludedPositionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
+            var excludedPositions = excludedPositionNames.Where(p => allPositions.Contains(p)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Retrieve project members and filter out excluded positions
             List<ProjectMemberWithPositionsResponseDTO> projectMembers;
             try
             {
                 projectMembers = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
-                var excludedPositions = new HashSet<string> { "CLIENT", "PROJECT_MANAGER", "ADMIN" };
                 projectMembers = projectMembers
-                    .Where(m => m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
+                    .Where(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => !excludedPositions.Contains(p.Position)))
+                    .OrderBy(m => m.FullName)
                     .ToList();
             }
             catch (KeyNotFoundException ex)
@@ -112,17 +119,24 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                 {
                     epic.Title = $"Unnamed Epic - {epic.EpicId ?? "Unknown"}";
                 }
+                else if (epic.Title.Length > 100)
+                {
+                    epic.Title = epic.Title.Substring(0, 100) + "...";
+                }
                 if (string.IsNullOrWhiteSpace(epic.Description))
                 {
                     epic.Description = $"Default description for {epic.EpicId ?? "Unknown"}";
                 }
 
-                var tasks = new List<Tasks>();
                 foreach (var task in epic.Tasks)
                 {
                     if (string.IsNullOrWhiteSpace(task.Title))
                     {
                         task.Title = $"Unnamed Task - {task.TaskId ?? "Unknown"}";
+                    }
+                    else if (task.Title.Length > 100)
+                    {
+                        task.Title = task.Title.Substring(0, 100) + "...";
                     }
                     if (string.IsNullOrWhiteSpace(task.Description))
                     {
@@ -134,11 +148,35 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         Title = task.Title,
                         Description = task.Description,
                         ProjectId = projectId,
-                        ReporterId = 2 
+                        ReporterId = 2
                     };
-               
 
-                    task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers);
+                    // Assign 1 to 3 members based on role, sorted by FullName
+                    task.AssignedMembers = AssignMembersToTask(task.SuggestedRole, projectMembers, allPositions);
+
+                    // If no members assigned, assign default members (up to 3, sorted)
+                    if (task.AssignedMembers == null || !task.AssignedMembers.Any())
+                    {
+                        if (projectMembers.Any())
+                        {
+                            task.AssignedMembers = projectMembers
+                                .Take(3)
+                                .Select(m => new TaskMemberDTO
+                                {
+                                    AccountId = m.AccountId,
+                                    Picture = m.Picture,
+                                    FullName = m.FullName
+                                })
+                                .OrderBy(m => m.FullName)
+                                .ToList();
+                            _logger.LogWarning("No eligible members found for role {SuggestedRole}, assigned up to 3 default members (sorted by name)",
+                                task.SuggestedRole);
+                        }
+                        else
+                        {
+                            _logger.LogError("No project members available to assign to task {TaskTitle}", task.Title);
+                        }
+                    }
                 }
 
                 result.Add(new
@@ -160,12 +198,14 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                             StartDate = t.StartDate,
                             EndDate = t.EndDate,
                             SuggestedRole = t.SuggestedRole,
-                            AssignedMembers = t.AssignedMembers.Select(m => new
-                            {
-                                AccountId = m.AccountId,
-                                Picture = m.Picture,
-                                FullName = m.FullName
-                            }).ToList()
+                            AssignedMembers = t.AssignedMembers != null
+                                ? t.AssignedMembers.Select(m => (object)new
+                                {
+                                    m.AccountId,
+                                    m.Picture,
+                                    m.FullName
+                                }).ToList()
+                                : new List<object>()
                         }).ToList()
                     }
                 });
@@ -174,52 +214,64 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
             return result;
         }
 
-        private List<TaskMemberDTO> AssignMembersToTask(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers)
+        private List<TaskMemberDTO> AssignMembersToTask(string suggestedRole, List<ProjectMemberWithPositionsResponseDTO> projectMembers, HashSet<string> allPositions)
         {
             var assignedMembers = new List<TaskMemberDTO>();
-            var random = new Random();
 
-            // Map SuggestedRole to project positions
-            var matchingPositions = new List<string>();
-            switch (suggestedRole?.ToLower())
+            if (projectMembers == null || !projectMembers.Any())
             {
-                case "designer":
-                    matchingPositions.Add("DESIGNER");
-                    break;
-                case "developer":
-                    matchingPositions.Add("FRONTEND_DEVELOPER");
-                    matchingPositions.Add("BACKEND_DEVELOPER");
-                    break;
-                case "tester":
-                    matchingPositions.Add("TESTER");
-                    break;
-                default:
-                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}", suggestedRole);
-                    return assignedMembers; // Return empty list for unknown roles
-            }
-
-            // Filter members with matching positions
-            var eligibleMembers = projectMembers
-                .Where(m => m.ProjectPositions.Any(p => matchingPositions.Contains(p.Position)))
-                .ToList();
-
-            // Assign 1-2 members randomly
-            int membersToAssign = random.Next(1, 3); // Randomly choose 1 or 2
-            if (eligibleMembers.Count == 0)
-            {
-                _logger.LogWarning("No eligible members found for role: {SuggestedRole}", suggestedRole);
+                _logger.LogWarning("No project members available for assignment");
                 return assignedMembers;
             }
 
-            // Shuffle and take up to membersToAssign
-            var selectedMembers = eligibleMembers.OrderBy(x => random.Next()).Take(membersToAssign).ToList();
-
-            assignedMembers.AddRange(selectedMembers.Select(m => new TaskMemberDTO
+            // Map SuggestedRole to matching positions (using DB positions for validation)
+            var matchingPositionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            switch (suggestedRole?.ToLowerInvariant())
             {
-                AccountId = m.AccountId,
-                Picture = m.Picture,
-                FullName = m.FullName
-            }));
+                case "designer":
+                    matchingPositionNames.Add("DESIGNER");
+                    break;
+                case "developer":
+                    matchingPositionNames.Add("FRONTEND_DEVELOPER");
+                    matchingPositionNames.Add("BACKEND_DEVELOPER");
+                    break;
+                case "tester":
+                    matchingPositionNames.Add("TESTER");
+                    break;
+                default:
+                    _logger.LogWarning("Unknown SuggestedRole: {SuggestedRole}, defaulting to developers", suggestedRole);
+                    matchingPositionNames.Add("FRONTEND_DEVELOPER");
+                    matchingPositionNames.Add("BACKEND_DEVELOPER");
+                    break;
+            }
+
+            // Filter to only valid positions from DB
+            var matchingPositions = matchingPositionNames.Where(p => allPositions.Contains(p)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Filter eligible members with matching positions, sorted by FullName
+            var eligibleMembers = projectMembers
+                .Where(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => matchingPositions.Contains(p.Position)))
+                .OrderBy(m => m.FullName)
+                .Take(3) // Limit to 3 members
+                .ToList();
+
+            if (eligibleMembers.Any())
+            {
+                assignedMembers = eligibleMembers
+                    .Select(m => new TaskMemberDTO
+                    {
+                        AccountId = m.AccountId,
+                        Picture = m.Picture,
+                        FullName = m.FullName
+                    })
+                    .ToList();
+
+                _logger.LogInformation("Assigned {Count} members to role {SuggestedRole}", assignedMembers.Count, suggestedRole);
+            }
+            else
+            {
+                _logger.LogWarning("No eligible members found for role: {SuggestedRole}", suggestedRole);
+            }
 
             return assignedMembers;
         }
@@ -263,14 +315,50 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
 
             var requirementsText = string.Join(" | ", requirements.Select(r => $"{r.Title}: {r.Description}"));
 
-            var prompt = $@"⚠️ Task titles MUST be 100% unique across all Epics; no repetition or generic terms like 'Task X for...'
-Generate a task plan for a project with ID {projectId}. Project Name: '{projectName}'. Project Type: '{projectType}'.
-Requirements: {requirementsText}. Duration: {startDateStr} to {endDateStr}.
-Create {requirements.Count} Epics based on requirements.
-For each Epic, generate a unique 'title' and 'description'.
-For each Epic, generate 5 tasks with unique 'title' and 'description' tailored to the Epic.
-Include 'startDate' and 'endDate' (YYYY-MM-DD) within the project duration, and 'suggestedRole' (e.g., 'Designer', 'Developer', 'Tester') for each task.
-Return ONLY a valid JSON array: [{{""epicId"": ""<id>"", ""title"": ""<title>"", ""description"": ""<desc>"", ""startDate"": ""<date>"", ""endDate"": ""<date>"", ""tasks"": [{{""title"": ""<title>"", ""description"": ""<desc>"", ""startDate"": ""<date>"", ""endDate"": ""<date>"", ""suggestedRole"": ""<role>""}}]}}].";
+            var prompt = $@"⚠️ Task titles MUST be 100% unique across all Epics; no repetition or generic terms like 'Task X for...'. Keep all titles concise (under 100 characters).
+
+Generate a comprehensive task plan for project ID {projectId}:
+
+PROJECT DETAILS:
+- Name: '{projectName}'
+- Type: '{projectType}'
+- Requirements: {requirementsText}
+- Duration: {startDateStr} to {endDateStr}
+
+INSTRUCTIONS:
+1. Create {requirements.Count} Epics based on the requirements
+2. For each Epic, generate a unique 'title' (under 100 chars) and 'description' that represents a major feature
+3. For each Epic, generate 5 tasks with:
+   - UNIQUE 'title' (under 100 chars) in User Story format: ""As a [user type], I want [functionality] so that [benefit]""
+   - Detailed 'description' explaining acceptance criteria and implementation requirements
+   - 'startDate' and 'endDate' (YYYY-MM-DD format) within project duration
+   - 'suggestedRole' (Designer/Developer/Tester) based on task nature
+
+TASK WRITING GUIDELINES:
+- Title: Use User Story format (As a... I want... so that...), keep under 100 characters
+- Description: Include detailed acceptance criteria and technical requirements
+- Focus on user value and business outcomes
+- Each task should be implementable within 1-2 weeks
+
+IMPORTANT: Return ONLY a valid JSON array with this exact structure:
+[
+  {{
+    ""epicId"": ""<unique_id>"",
+    ""title"": ""<epic_title>"",
+    ""description"": ""<epic_description>"",
+    ""startDate"": ""<YYYY-MM-DD>"",
+    ""endDate"": ""<YYYY-MM-DD>"",
+    ""tasks"": [
+      {{
+        ""title"": ""As a [user] I want [functionality] so that [benefit]"",
+        ""description"": ""<detailed_acceptance_criteria_and_implementation_details>"",
+        ""startDate"": ""<YYYY-MM-DD>"",
+        ""endDate"": ""<YYYY-MM-DD>"",
+        ""suggestedRole"": ""<Designer|Developer|Tester>""
+      }}
+    ]
+  }}
+]";
 
             var requestData = new
             {
