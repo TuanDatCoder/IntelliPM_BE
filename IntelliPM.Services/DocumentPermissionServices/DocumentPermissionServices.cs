@@ -1,6 +1,8 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.DocumentPermission;
 using IntelliPM.Repositories.DocumentPermissionRepos;
+using IntelliPM.Shared.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,13 +16,17 @@ namespace IntelliPM.Services.DocumentPermissionServices
     {
         private readonly IDocumentPermissionRepository _repo;
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IHubContext<DocumentHub> _hubContext;
 
         public DocumentPermissionServices(
             IDocumentPermissionRepository repo,
-            Su25Sep490IntelliPmContext context)
+            Su25Sep490IntelliPmContext context,
+           IHubContext<DocumentHub> hubContext)
+          
         {
             _repo = repo;
             _context = context;
+            _hubContext = hubContext;
         }
 
         public async Task<bool> UpdatePermissionTypeAsync(int documentId, string newType)
@@ -36,6 +42,10 @@ namespace IntelliPM.Services.DocumentPermissionServices
             }
 
             await _repo.SaveChangesAsync();
+            await _hubContext.Clients
+    .Group($"document-{documentId}")
+    .SendAsync("PermissionChanged", documentId);
+
             return true;
         }
 
