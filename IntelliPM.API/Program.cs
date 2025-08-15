@@ -388,6 +388,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notification");
+app.MapHub<DocumentHub>("/hubs/document");
 
 
 app.UseHangfireDashboard();
