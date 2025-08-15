@@ -59,7 +59,7 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] SubtaskRequest1DTO request)
+        public async Task<IActionResult> Create([FromBody] SubtaskRequest2DTO request)
         {
             if (!ModelState.IsValid)
             {

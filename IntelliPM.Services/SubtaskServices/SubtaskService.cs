@@ -102,7 +102,7 @@ namespace IntelliPM.Services.SubtaskServices
             return checklists;
         }
 
-        public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request)
+        public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest2DTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
@@ -124,8 +124,8 @@ namespace IntelliPM.Services.SubtaskServices
             var entity = _mapper.Map<Subtask>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
             entity.Status = dynamicStatus;
-            entity.ManualInput = true;
-            entity.GenerationAiInput = false;
+            entity.ManualInput = false;
+            entity.GenerationAiInput = true;
             entity.Priority = dynamicPriority;
 
             try
@@ -153,7 +153,7 @@ namespace IntelliPM.Services.SubtaskServices
 
             foreach (var request in previews)
             {
-                var created = await Create2Subtask(request);
+                var created = await CreateSubtask(request);
                 result.Add(created);
             }
 
