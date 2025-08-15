@@ -15,6 +15,7 @@ using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EpicCommentServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
@@ -39,8 +40,8 @@ namespace IntelliPM.Services.EpicServices
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IActivityLogService _activityLogService;
-
-        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService)
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _epicRepo = epicRepo;
@@ -54,6 +55,7 @@ namespace IntelliPM.Services.EpicServices
             _taskAssignmentRepo = taskAssignmentRepo;
             _decodeToken = decodeToken;
             _activityLogService = activityLogService;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -132,6 +134,9 @@ namespace IntelliPM.Services.EpicServices
             var entity = _mapper.Map<Epic>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+
             try
             {
                 await _epicRepo.Add(entity);
@@ -140,9 +145,9 @@ namespace IntelliPM.Services.EpicServices
                     ProjectId = request.ProjectId,
                     EpicId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Epic",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Created epic '{entity.Id}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -169,6 +174,9 @@ namespace IntelliPM.Services.EpicServices
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             try
             {
                 await _epicRepo.Update(entity);
@@ -177,9 +185,9 @@ namespace IntelliPM.Services.EpicServices
                     ProjectId = request.ProjectId,
                     EpicId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Epic",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Update epic '{entity.Id}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -209,11 +217,14 @@ namespace IntelliPM.Services.EpicServices
                 throw new Exception($"Failed to delete epic: {ex.Message}", ex);
             }
         }
-
         public async Task<EpicResponseDTO> ChangeEpicStatus(string id, string status, int createdBy)
         {
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
+
+            var validStatuses = await _dynamicCategoryHelper.GetEpicStatusesAsync();
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
 
             var entity = await _epicRepo.GetByIdAsync(id);
             if (entity == null)
@@ -221,6 +232,9 @@ namespace IntelliPM.Services.EpicServices
 
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
 
             try
             {
@@ -230,9 +244,9 @@ namespace IntelliPM.Services.EpicServices
                     ProjectId = (await _epicRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     EpicId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Epic",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed status of epic '{entity.Id}' to '{status}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow

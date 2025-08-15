@@ -12,6 +12,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -36,8 +37,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
         private readonly IAccountRepository _accountRepository;
         private readonly IEmailService _emailService;
         private readonly IProjectRepository _projectRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _repo = repo;
@@ -50,8 +52,8 @@ namespace IntelliPM.Services.SubtaskCommentServices
             _accountRepository = accountRepository;
             _emailService = emailService;
             _projectRepo = projectRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
-
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
         {
             if (request == null)
@@ -63,14 +65,19 @@ namespace IntelliPM.Services.SubtaskCommentServices
             var entity = _mapper.Map<SubtaskComment>(request);
             entity.CreatedAt = DateTime.UtcNow;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "SUBTASK_COMMENT_CREATE");
+            var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
+
             try
             {
                 await _repo.Add(entity);
 
                 var subtask = await _subtaskRepo.GetByIdAsync(request.SubtaskId);
-                Console.WriteLine($"Creating comment for TaskId: {request.SubtaskId}");
+                Console.WriteLine($"Creating comment for SubtaskId: {request.SubtaskId}");
                 if (subtask == null)
-                    throw new Exception($"Task with ID {request.SubtaskId} not found.");
+                    throw new Exception($"Subtask with ID {request.SubtaskId} not found.");
 
                 var projectId = subtask.Task.ProjectId;
                 var project = await _projectRepo.GetByIdAsync(projectId);
@@ -82,15 +89,14 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
                 });
 
-                // 👥 2. Lấy danh sách thành viên dự án (trừ người đang comment)
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
                     .Where(m => m.AccountId != request.AccountId)
@@ -102,10 +108,10 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
-                        Type = "COMMENT",
-                        Priority = "NORMAL",
+                        Type = dynamicNotificationType,
+                        Priority = dynamicNotificationPriority,
                         Message = $"Comment in project {project.ProjectKey} - subtask {request.SubtaskId}: {request.Content}",
-                        RelatedEntityType = "Subtask",
+                        RelatedEntityType = dynamicEntityType,
                         RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -147,6 +153,10 @@ namespace IntelliPM.Services.SubtaskCommentServices
                 throw new KeyNotFoundException($"Task subtask comment with ID {id} not found.");
             var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             try
             {
                 await _repo.Delete(entity);
@@ -155,9 +165,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = "DELETE",
+                    ActionType = dynamicActionType,
                     Message = $"Delete comment in subtask '{entity.SubtaskId}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -194,6 +204,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
             var subtask = await _subtaskRepo.GetByIdAsync(request.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             try
             {
                 await _repo.Update(entity);
@@ -202,9 +215,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = "SubtaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Update comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow

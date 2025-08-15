@@ -178,6 +178,8 @@ namespace IntelliPM.Services.SubtaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
             var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
             var projectKey = project.ProjectKey;
 
             var entity = _mapper.Map<Subtask>(request);
@@ -200,9 +202,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = task.ProjectId,
                     TaskId = task.Id,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Created subtask '{entity.Id}' under task '{task.Id}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
@@ -378,6 +380,9 @@ namespace IntelliPM.Services.SubtaskServices
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -403,9 +408,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -481,6 +486,10 @@ namespace IntelliPM.Services.SubtaskServices
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
 
+            var validStatuses = await _dynamicCategoryHelper.GetSubtaskStatusesAsync();
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
+
             var entity = await _subtaskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
@@ -493,7 +502,6 @@ namespace IntelliPM.Services.SubtaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
-            // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
                 .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Subtask");
 
@@ -574,6 +582,9 @@ namespace IntelliPM.Services.SubtaskServices
             await UpdateSubtaskProgressAsync(entity);
             await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -583,9 +594,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed status of subtask '{entity.Id}' to '{status}' under task '{entity.TaskId}",
                     CreatedBy = createdBy, 
                     CreatedAt = DateTime.UtcNow
