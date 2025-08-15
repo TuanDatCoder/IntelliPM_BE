@@ -145,5 +145,13 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
             return query;
 
         }
+
+        public async Task<List<ProjectMember>> GetByProjectIdAndAccountIdsAsync(int projectId, List<int> accountIds)
+        {
+            return await _context.ProjectMember
+                .Where(pm => pm.ProjectId == projectId && accountIds.Contains(pm.AccountId))
+                .ToListAsync();
+        }
+
     }
 }

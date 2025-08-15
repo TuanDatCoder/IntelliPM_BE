@@ -27,6 +27,7 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
                 .Where(ta => ta.TaskId == taskId)
                 .Include(ta => ta.Account)
                 .Include(ta => ta.Task)
+                .ThenInclude(t => t.Project)
                 .ToListAsync();
         }
 
@@ -107,6 +108,10 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
             await _context.SaveChangesAsync();
         }
 
-
+        public async Task UpdateRange(List<TaskAssignment> entities)
+        {
+            _context.TaskAssignment.UpdateRange(entities);
+            await _context.SaveChangesAsync();
+        }
     }
 }
