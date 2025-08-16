@@ -11,7 +11,7 @@ namespace IntelliPM.Data.DTOs.Epic.Request
     {
         public int CreatedBy { get; set; }
 
-        [DynamicCategoryValidation("epic_status", Required = false)]
+        //[DynamicCategoryValidation("epic_status", Required = false)]
         public string? Status { get; set; }
     }
 }
