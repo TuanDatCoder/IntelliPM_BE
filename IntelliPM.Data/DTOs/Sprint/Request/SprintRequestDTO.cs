@@ -14,24 +14,26 @@ namespace IntelliPM.Data.DTOs.Sprint.Request
         public int ProjectId { get; set; }
 
         [Required(ErrorMessage = "Sprint name is required")]
-        [MaxLength(255, ErrorMessage = "Sprint name cannot exceed 255 characters")]
+        [DynamicMaxLength("sprint_name_length")]
         public string Name { get; set; } = null!;
 
         public string? Goal { get; set; }
 
-        public DateTime? StartDate { get; set; } 
+        [DynamicDuration("sprint_duration_days")]
+        public DateTime? StartDate { get; set; }
 
+        [DynamicDuration("sprint_duration_days")]
         public DateTime? EndDate { get; set; }
 
+        [DynamicDuration("sprint_planned_duration_days")]
         public DateTime? PlannedStartDate { get; set; }
 
+        [DynamicDuration("sprint_planned_duration_days")]
         public DateTime? PlannedEndDate { get; set; }
 
 
-        [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
-
-
         [DynamicCategoryValidation("sprint_status", Required = false)]
+        [DynamicMaxLength("sprint_status_length")]
         public string? Status { get; set; }
     }
 }
