@@ -381,7 +381,7 @@ app.UseCors("AllowAll");
 
 app.UseMiddleware<DynamicCategoryValidationMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
-
+app.UseMiddleware<DynamicConfigValidationMiddleware>();
 
 
 app.UseHttpsRedirection();

@@ -1225,7 +1225,22 @@ INSERT INTO project_metric (
     (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 31000.00, 60.00, -1000.00, -2000.00, 31000.00, 3000.00, -1000.00, 62.00),
     (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 42000.00, 75.00, -1000.00, -5000.00, 42000.00, 6000.00, -2000.00, 78.00);
 
-	-- Insert sample data into system_configuration
+
+
+
+-- Insert sample data into meeting_reschedule_request
+INSERT INTO meeting_reschedule_request (meeting_id, requester_id, requested_date, reason, status, pm_id, pm_proposed_date, pm_note)
+VALUES 
+    (1, 2, '2025-06-26 14:00:00+07', 'Conflict with another meeting', 'PENDING', 1, NULL, NULL),
+    (2, 3, '2025-07-11 15:00:00+07', 'Need more preparation time', 'APPROVED', 2, '2025-07-11 15:00:00+07', 'Approved with new time'),
+    (3, 4, '2025-08-16 10:00:00+07', 'Team unavailable', 'REJECTED', 3, NULL, 'Reschedule not needed'),
+    (4, 5, '2025-09-13 14:00:00+07', 'Client requested delay', 'PENDING', 4, NULL, NULL),
+    (5, 1, '2025-10-21 12:00:00+07', 'Technical issues', 'APPROVED', 5, '2025-10-21 12:00:00+07', 'Adjusted for technical setup');
+
+
+
+
+		-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
     ('max_sprint_duration', '30', '7', '60', '14', 'Maximum duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
@@ -1239,15 +1254,17 @@ VALUES
     ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
     ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 
-
--- Insert sample data into meeting_reschedule_request
-INSERT INTO meeting_reschedule_request (meeting_id, requester_id, requested_date, reason, status, pm_id, pm_proposed_date, pm_note)
+INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
-    (1, 2, '2025-06-26 14:00:00+07', 'Conflict with another meeting', 'PENDING', 1, NULL, NULL),
-    (2, 3, '2025-07-11 15:00:00+07', 'Need more preparation time', 'APPROVED', 2, '2025-07-11 15:00:00+07', 'Approved with new time'),
-    (3, 4, '2025-08-16 10:00:00+07', 'Team unavailable', 'REJECTED', 3, NULL, 'Reschedule not needed'),
-    (4, 5, '2025-09-13 14:00:00+07', 'Client requested delay', 'PENDING', 4, NULL, NULL),
-    (5, 1, '2025-10-21 12:00:00+07', 'Technical issues', 'APPROVED', 5, '2025-10-21 12:00:00+07', 'Adjusted for technical setup');
+    ('project_duration_days', '365', '30', '1095', '365', 'Duration of a project in days', 'Adjust based on project scope', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_budget', '5000000000', '1', '100000000000', '5000000000', 'Budget for a project in VND', 'Supports VND; adjust for other currencies if needed', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_members', '20', '5', '100', '20', 'Number of members in a project', 'Ensure sufficient team size', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00')
+	 ('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
+
+
 
 -- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
