@@ -359,5 +359,55 @@ namespace IntelliPM.API.Controllers
                 message = "Actual hours updated successfully"
             });
         }
+
+        [HttpPatch("taskassignment/{id}/planned-hours")]
+        public async Task<IActionResult> ChangeAssignmentPlannedHours(int id, [FromBody] decimal plannedHours, int createdBy)
+        {
+            try
+            {
+                var result = await _service.ChangeAssignmentPlannedHours(id, plannedHours, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Updated planned hours successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task assignment status: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("taskassignments/bulk/planned-hours")]
+        public async Task<IActionResult> UpdateAssignmentPlannedHoursBulk(string taskId, [FromBody] List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy)
+        {
+            try
+            {
+                var result = await _service.UpdateAssignmentPlannedHoursBulk(taskId, updates, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Updated planned hours for multiple assignments successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task assignment hours: {ex.Message}"
+                });
+            }
+        }
     }
 }

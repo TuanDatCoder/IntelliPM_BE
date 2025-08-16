@@ -12,6 +12,7 @@ namespace IntelliPM.Data.DTOs.TaskAssignment.Response
         public string TaskId { get; set; }
         public int AccountId { get; set; }
         public decimal? HourlyRate { get; set; }
+        public decimal? WorkingHoursPerDay { get; set; }
         public string? AccountFullname { get; set; }
         public string? AccountUsername { get; set; }
         public string? AccountPicture { get; set; }

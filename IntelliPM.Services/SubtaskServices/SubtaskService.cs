@@ -102,7 +102,7 @@ namespace IntelliPM.Services.SubtaskServices
             return checklists;
         }
 
-        public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request)
+        public async Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest2DTO request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
@@ -124,8 +124,8 @@ namespace IntelliPM.Services.SubtaskServices
             var entity = _mapper.Map<Subtask>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
             entity.Status = dynamicStatus;
-            entity.ManualInput = true;
-            entity.GenerationAiInput = false;
+            entity.ManualInput = false;
+            entity.GenerationAiInput = true;
             entity.Priority = dynamicPriority;
 
             try
@@ -153,7 +153,7 @@ namespace IntelliPM.Services.SubtaskServices
 
             foreach (var request in previews)
             {
-                var created = await Create2Subtask(request);
+                var created = await CreateSubtask(request);
                 result.Add(created);
             }
 
@@ -178,6 +178,8 @@ namespace IntelliPM.Services.SubtaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
             var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
             var projectKey = project.ProjectKey;
 
             var entity = _mapper.Map<Subtask>(request);
@@ -200,9 +202,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = task.ProjectId,
                     TaskId = task.Id,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Created subtask '{entity.Id}' under task '{task.Id}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
@@ -378,6 +380,9 @@ namespace IntelliPM.Services.SubtaskServices
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -403,9 +408,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -481,6 +486,10 @@ namespace IntelliPM.Services.SubtaskServices
             if (string.IsNullOrEmpty(status))
                 throw new ArgumentException("Status cannot be null or empty.");
 
+            var validStatuses = await _dynamicCategoryHelper.GetSubtaskStatusesAsync();
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
+
             var entity = await _subtaskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
@@ -493,7 +502,6 @@ namespace IntelliPM.Services.SubtaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
-            // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
                 .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Subtask");
 
@@ -574,6 +582,9 @@ namespace IntelliPM.Services.SubtaskServices
             await UpdateSubtaskProgressAsync(entity);
             await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -583,9 +594,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed status of subtask '{entity.Id}' to '{status}' under task '{entity.TaskId}",
                     CreatedBy = createdBy, 
                     CreatedAt = DateTime.UtcNow
@@ -632,30 +643,46 @@ namespace IntelliPM.Services.SubtaskServices
             return result;
         }
 
+        //private async Task UpdateSubtaskProgressAsync(Subtask subtask)
+        //{
+        //    if (subtask.Status == "DONE")
+        //    {
+        //        subtask.PercentComplete = 100;
+        //    }
+        //    else if (subtask.Status == "TO_DO")
+        //    {
+        //        subtask.PercentComplete = 0;
+        //    }
+        //    else if (subtask.Status == "IN_PROGRESS")
+        //    {
+        //        var actual = subtask.ActualHours ?? 0;
+        //        var planned = subtask.PlannedHours ?? 0;
+
+        //        if (planned > 0)
+        //        {
+        //            var rawProgress = (actual / planned) * 100;
+        //            subtask.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            subtask.PercentComplete = 0;
+        //        }
+        //    }
+
+        //    subtask.UpdatedAt = DateTime.UtcNow;
+        //    await _subtaskRepo.Update(subtask);
+        //}
+
         private async Task UpdateSubtaskProgressAsync(Subtask subtask)
         {
-            if (subtask.Status == "DONE")
-            {
-                subtask.PercentComplete = 100;
-            }
-            else if (subtask.Status == "TO_DO")
-            {
-                subtask.PercentComplete = 0;
-            }
+            if (subtask.Status == "DONE") subtask.PercentComplete = 100;
+            else if (subtask.Status == "TO_DO") subtask.PercentComplete = 0;
             else if (subtask.Status == "IN_PROGRESS")
             {
                 var actual = subtask.ActualHours ?? 0;
-                var planned = subtask.PlannedHours ?? 0;
-
-                if (planned > 0)
-                {
-                    var rawProgress = (actual / planned) * 100;
-                    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else
-                {
-                    subtask.PercentComplete = 0;
-                }
+                var planned = subtask.PlannedHours ?? 1; 
+                var rawProgress = (actual / planned) * 100;
+                subtask.PercentComplete = Math.Min((int)rawProgress, 99);
             }
 
             subtask.UpdatedAt = DateTime.UtcNow;
@@ -804,17 +831,6 @@ namespace IntelliPM.Services.SubtaskServices
                     task.PlannedCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
-
-                //var relatedEntityTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_related_entity_type");
-                //var actionTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("activity_log_action_type");
-
-                //var relatedEntityType = relatedEntityTypes.FirstOrDefault(s => s.Name == "SUBTASK")?.Name;
-                //var actionType = actionTypes.FirstOrDefault(s => s.Name == "UPDATE")?.Name;
-
-                //if (relatedEntityType == null || actionType == null)
-                //{
-                //    throw new InvalidOperationException("Required activity log values (SUBTASK, UPDATE) not found in dynamic_category table.");
-                //}
 
                 // Ghi log hoạt động
                 await _activityLogService.LogAsync(new ActivityLog

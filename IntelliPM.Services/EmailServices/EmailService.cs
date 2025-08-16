@@ -1264,6 +1264,134 @@ namespace IntelliPM.Services.EmailServices
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
+
+        public async Task SendOverdueTaskNotificationEmailAsync(string assigneeFullName, string assigneeEmail, string taskId, string taskTitle, string projectKey, DateTime plannedEndDate, string taskDetailUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(assigneeEmail));
+            email.Subject = $"[IntelliPM] Task Overdue: {taskId} - {taskTitle}";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }}
+        .header {{
+            background-color: #dc3545; /* Red for urgency */
+            padding: 20px;
+            text-align: center;
+        }}
+        .header img {{
+            max-width: 150px;
+        }}
+        .content {{
+            padding: 20px;
+            color: #333333;
+        }}
+        .content h2 {{
+            color: #dc3545; /* Red to match header */
+            font-size: 24px;
+            margin-bottom: 10px;
+        }}
+        .content p {{
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }}
+        .details {{
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }}
+        .details ul {{
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }}
+        .details ul li {{
+            margin-bottom: 8px;
+        }}
+        .details ul li strong {{
+            display: inline-block;
+            width: 120px;
+            color: #555555;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #dc3545; /* Red for urgency */
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }}
+        .footer {{
+            background-color: #f4f4f4;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{logoUrl}' alt='IntelliPM Logo'>
+        </div>
+        <div class='content'>
+            <h2>Hi {assigneeFullName},</h2>
+            <p>A task assigned to you in the IntelliPM system is overdue. Please review the details below and take immediate action to address the delay.</p>
+            <div class='details'>
+                <ul>
+                    <li><strong>Task ID:</strong> {taskId}</li>
+                    <li><strong>Title:</strong> {taskTitle}</li>
+                    <li><strong>Project:</strong> {projectKey}</li>
+                    <li><strong>Planned End Date:</strong> {plannedEndDate:MMM dd, yyyy}</li>
+                </ul>
+            </div>
+            <p>Please log in to the IntelliPM system to review the task and update its status.</p>
+            <a href='{taskDetailUrl}' class='button'>View Task Details</a>
+        </div>
+        <div class='footer'>
+            <p>Best regards,<br>IntelliPM Notification System</p>
+            <p>&copy; {DateTime.UtcNow.Year} IntelliPM. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+    
     }
 
 }

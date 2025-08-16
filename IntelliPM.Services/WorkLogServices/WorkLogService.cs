@@ -68,7 +68,6 @@ namespace IntelliPM.Services.WorkLogServices
                 results.Add(_mapper.Map<WorkLogResponseDTO>(entity));
             }
 
-            // Sau khi cập nhật tất cả work logs, cập nhật lại các subtasks bị ảnh hưởng
             foreach (var subtaskId in affectedSubtaskIds)
             {
                 var allWorkLogs = await _workLogRepo.GetBySubtaskIdAsync(subtaskId);

@@ -11,6 +11,7 @@ using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using System;
 using System.Collections.Generic;
 using System.Formats.Tar;
@@ -28,8 +29,9 @@ namespace IntelliPM.Services.SubtaskFileServices
         private readonly IActivityLogService _activityLogService;
         private readonly ITaskRepository _taskRepo;
         private readonly ISubtaskRepository _subtaskRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public SubtaskFileService(ISubtaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, ITaskRepository taskRepo, ISubtaskRepository subtaskRepo)
+        public SubtaskFileService(ISubtaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, ITaskRepository taskRepo, ISubtaskRepository subtaskRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _repository = repository;
             _cloudinaryService = cloudinaryService;
@@ -37,18 +39,21 @@ namespace IntelliPM.Services.SubtaskFileServices
             _activityLogService = activityLogService;
             _taskRepo = taskRepo;
             _subtaskRepo = subtaskRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
-
         public async Task<SubtaskFileResponseDTO> UploadSubtaskFileAsync(SubtaskFileRequestDTO request)
         {
             var url = await _cloudinaryService.UploadFileAsync(request.File.OpenReadStream(), request.File.FileName);
+            var statusFileDynamic = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_file_status");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
 
             var entity = new SubtaskFile
             {
                 SubtaskId = request.SubtaskId,
                 Title = request.Title,
                 UrlFile = url,
-                Status = "UPLOADED"
+                Status = statusFileDynamic,
             };
 
             var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
@@ -60,9 +65,9 @@ namespace IntelliPM.Services.SubtaskFileServices
                 ProjectId = projectId,
                 TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                 SubtaskId = entity.SubtaskId,
-                RelatedEntityType = "SubtaskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = entity.SubtaskId,
-                ActionType = "CREATE",
+                ActionType = dynamicActionType,
                 Message = $"Upload file in subtask '{entity.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId}'",
                 CreatedBy = request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
@@ -78,6 +83,8 @@ namespace IntelliPM.Services.SubtaskFileServices
 
             var subtask = await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
 
             await _repository.DeleteAsync(subtaskFile);
             await _activityLogService.LogAsync(new ActivityLog
@@ -85,9 +92,9 @@ namespace IntelliPM.Services.SubtaskFileServices
                 ProjectId = projectId,
                 TaskId = (await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId ?? null,
                 SubtaskId = subtaskFile.SubtaskId,
-                RelatedEntityType = "SubtaskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = subtaskFile.SubtaskId,
-                ActionType = "DELETE",
+                ActionType = dynamicActionType,
                 Message = $"Delete file in subtask '{subtaskFile.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow

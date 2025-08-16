@@ -1,7 +1,7 @@
-using IntelliPM.API.Middlewares;
 using Google.Api;
 using Hangfire;
 using Hangfire.PostgreSql;
+using IntelliPM.API.Middlewares;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
@@ -24,6 +24,7 @@ using IntelliPM.Repositories.MeetingRepos;
 using IntelliPM.Repositories.MeetingRescheduleRequestRepos;
 using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
+using IntelliPM.Repositories.MetricHistoryRepos;
 using IntelliPM.Repositories.MilestoneCommentRepos;
 using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -65,6 +66,7 @@ using IntelliPM.Services.ChatGPTServices;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.DocumentCommentServices;
 using IntelliPM.Services.DocumentExportService;
+using IntelliPM.Services.DocumentPermissionServices;
 using IntelliPM.Services.DocumentServices;
 using IntelliPM.Services.DynamicCategoryServices;
 using IntelliPM.Services.EmailServices;
@@ -90,6 +92,7 @@ using IntelliPM.Services.MilestoneFeedbackServices;
 using IntelliPM.Services.MilestoneServices;
 using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.ProjectMemberServices;
+using IntelliPM.Services.ProjectMetricHistoryServices;
 using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ProjectPositionServices;
 using IntelliPM.Services.ProjectRecommendationServices;
@@ -119,14 +122,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using IntelliPM.Repositories.MetricHistoryRepos;
-using IntelliPM.Services.ProjectMetricHistoryServices;
 
 
 
 
 var builder = WebApplication.CreateBuilder(args);
-
 
 
 // Add services to the container.
@@ -257,6 +257,7 @@ builder.Services.AddTransient<CloudConvertService>();
 builder.Services.AddScoped<ISprintTaskPlanningService, SprintTaskPlanningService>();
 builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
 builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
+builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
 
 
 // ------------------------- HttpClient -----------------------------
@@ -387,17 +388,17 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notification");
+app.MapHub<DocumentHub>("/hubs/document");
 
 
-app.UseHangfireDashboard();  
+app.UseHangfireDashboard();
 app.UseHangfireServer();
-
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
      "0 17 * * *"
-     //"0 1 * * *"
-     // "*/1 * * * *"
+//"0 1 * * *"
+// "*/1 * * * *"
 );
 
 app.UseDefaultFiles();   

@@ -538,6 +538,104 @@ namespace IntelliPM.Services.ProjectMemberServices
             return await _projectMemberRepo.GetProjectMembersWithTasksAsync(projectId);
         }
 
+        //public async Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate)
+        //{
+        //    // Validate input
+        //    if (hourlyRate < 0)
+        //        throw new ArgumentException("Hourly rate cannot be negative.");
+
+        //    // Get the project member
+        //    var projectMember = await _projectMemberRepo.GetByIdAsync(id);
+        //    if (projectMember == null)
+        //        throw new KeyNotFoundException($"Project member with ID {id} not found.");
+
+        //    // Store the original hourly rate for comparison (if needed)
+        //    var originalHourlyRate = projectMember.HourlyRate ?? 0m;
+
+        //    // Update the hourly rate
+        //    projectMember.HourlyRate = hourlyRate;
+        //    await _projectMemberRepo.Update(projectMember);
+
+        //    // Step 1: Recalculate costs for subtasks assigned by this account
+        //    var subtaskUpdates = new List<Subtask>();
+        //    var subtasks = await _subtaskRepo.GetByProjectAndAccountAsync(projectMember.ProjectId, projectMember.AccountId);
+        //    foreach (var subtask in subtasks)
+        //    {
+        //        decimal plannedHours = subtask.PlannedHours ?? 0m;
+        //        decimal actualHours = subtask.ActualHours ?? 0m;
+        //        decimal plannedResourceCost = hourlyRate * plannedHours;
+        //        decimal actualResourceCost = hourlyRate * actualHours;
+
+        //        subtask.PlannedResourceCost = plannedResourceCost;
+        //        subtask.PlannedCost = plannedResourceCost;
+        //        subtask.ActualResourceCost = actualResourceCost;
+        //        subtask.ActualCost = actualResourceCost;
+        //        subtask.UpdatedAt = DateTime.UtcNow;
+        //        subtaskUpdates.Add(subtask);
+        //    }
+
+        //    // Batch update subtasks
+        //    await _subtaskRepo.UpdateRange(subtaskUpdates);
+
+        //    // Step 2: Update parent tasks based on subtasks
+        //    var taskUpdates = new List<Tasks>();
+        //    var uniqueTaskIds = subtaskUpdates.Select(s => s.TaskId).Distinct();
+        //    foreach (var taskId in uniqueTaskIds)
+        //    {
+        //        var relatedSubtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+        //        var task = await _taskRepo.GetByIdAsync(taskId);
+        //        if (task != null)
+        //        {
+        //            decimal plannedResourceCost = relatedSubtasks.Sum(s => s.PlannedResourceCost ?? 0m);
+        //            decimal actualResourceCost = relatedSubtasks.Sum(s => s.ActualResourceCost ?? 0m);
+        //            task.PlannedResourceCost = plannedResourceCost;
+        //            task.PlannedCost = plannedResourceCost;
+        //            task.ActualResourceCost = actualResourceCost;
+        //            task.ActualCost = actualResourceCost;
+        //            task.UpdatedAt = DateTime.UtcNow;
+        //            taskUpdates.Add(task);
+        //        }
+        //    }
+        //    await _taskRepo.UpdateRange(taskUpdates);
+
+        //    // Step 3: Recalculate costs for tasks with no subtasks assigned to this member
+        //    var taskAssignments = await _taskAssignmentRepo.GetByAccountIdAsync(projectMember.AccountId);
+        //    var subtasksCheck = await _subtaskRepo.GetByProjectIdAsync(projectMember.ProjectId);
+        //    var tasksWithoutSubtasks = taskAssignments
+        //        .Select(ta => ta.TaskId)
+        //        .Distinct()
+        //        .Select(taskId => _taskRepo.GetByIdAsync(taskId).Result)
+        //        .Where(t => t != null && !subtasksCheck.Any(s => s.TaskId == t.Id))
+        //        .ToList();
+
+        //    foreach (var task in tasksWithoutSubtasks)
+        //    {
+        //        // Recalculate planned_resource_cost and actual_resource_cost based on all task assignments
+        //        var allTaskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(task.Id);
+        //        decimal plannedResourceCost = 0m;
+        //        decimal actualResourceCost = 0m;
+
+        //        foreach (var assignment in allTaskAssignments)
+        //        {
+        //            var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, projectMember.ProjectId);
+        //            decimal memberHourlyRate = member?.HourlyRate ?? 0m;
+        //            plannedResourceCost += (assignment.PlannedHours ?? 0m) * memberHourlyRate;
+        //            actualResourceCost += (assignment.ActualHours ?? 0m) * memberHourlyRate;
+        //        }
+
+        //        task.PlannedResourceCost = plannedResourceCost;
+        //        task.PlannedCost = plannedResourceCost;
+        //        task.ActualResourceCost = actualResourceCost;
+        //        task.ActualCost = actualResourceCost;
+        //        task.UpdatedAt = DateTime.UtcNow;
+        //        await _taskRepo.Update(task);
+        //    }
+
+        //    // Return response (assuming ProjectMemberWithTasksResponseDTO includes updated data)
+        //    var updatedMember = await _projectMemberRepo.GetByIdAsync(id);
+        //    return _mapper.Map<ProjectMemberWithTasksResponseDTO>(updatedMember);
+        //}
+
         public async Task<ProjectMemberWithTasksResponseDTO> ChangeHourlyRate(int id, decimal hourlyRate)
         {
             // Validate input
@@ -549,73 +647,65 @@ namespace IntelliPM.Services.ProjectMemberServices
             if (projectMember == null)
                 throw new KeyNotFoundException($"Project member with ID {id} not found.");
 
-            // Store the original hourly rate for comparison (if needed)
-            var originalHourlyRate = projectMember.HourlyRate ?? 0m;
-
             // Update the hourly rate
             projectMember.HourlyRate = hourlyRate;
             await _projectMemberRepo.Update(projectMember);
 
-            // Step 1: Recalculate costs for subtasks assigned by this account
+            // Step 1: Recalculate costs for subtasks assigned by this member
             var subtaskUpdates = new List<Subtask>();
             var subtasks = await _subtaskRepo.GetByProjectAndAccountAsync(projectMember.ProjectId, projectMember.AccountId);
             foreach (var subtask in subtasks)
             {
+                if (subtask.AssignedBy == null) continue; // Skip unassigned subtasks
+
                 decimal plannedHours = subtask.PlannedHours ?? 0m;
                 decimal actualHours = subtask.ActualHours ?? 0m;
-                decimal plannedResourceCost = hourlyRate * plannedHours;
-                decimal actualResourceCost = hourlyRate * actualHours;
-
-                subtask.PlannedResourceCost = plannedResourceCost;
-                subtask.PlannedCost = plannedResourceCost;
-                subtask.ActualResourceCost = actualResourceCost;
-                subtask.ActualCost = actualResourceCost;
+                subtask.PlannedResourceCost = plannedHours * hourlyRate;
+                subtask.PlannedCost = subtask.PlannedResourceCost; // Only personnel costs
+                subtask.ActualResourceCost = actualHours * hourlyRate;
+                subtask.ActualCost = subtask.ActualResourceCost;
                 subtask.UpdatedAt = DateTime.UtcNow;
                 subtaskUpdates.Add(subtask);
             }
-
-            // Batch update subtasks
             await _subtaskRepo.UpdateRange(subtaskUpdates);
 
-            // Step 2: Update parent tasks based on subtasks
-            var taskUpdates = new List<Tasks>();
-            var uniqueTaskIds = subtaskUpdates.Select(s => s.TaskId).Distinct();
-            foreach (var taskId in uniqueTaskIds)
-            {
-                var relatedSubtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-                var task = await _taskRepo.GetByIdAsync(taskId);
-                if (task != null)
-                {
-                    decimal plannedResourceCost = relatedSubtasks.Sum(s => s.PlannedResourceCost ?? 0m);
-                    decimal actualResourceCost = relatedSubtasks.Sum(s => s.ActualResourceCost ?? 0m);
-                    task.PlannedResourceCost = plannedResourceCost;
-                    task.PlannedCost = plannedResourceCost;
-                    task.ActualResourceCost = actualResourceCost;
-                    task.ActualCost = actualResourceCost;
-                    task.UpdatedAt = DateTime.UtcNow;
-                    taskUpdates.Add(task);
-                }
-            }
-            await _taskRepo.UpdateRange(taskUpdates);
-
-            // Step 3: Recalculate costs for tasks with no subtasks assigned to this member
+            // Step 2: Get all tasks affected by this member (via subtasks or task assignments)
+            var taskIdsFromSubtasks = subtaskUpdates.Select(s => s.TaskId).Distinct().ToList();
             var taskAssignments = await _taskAssignmentRepo.GetByAccountIdAsync(projectMember.AccountId);
-            var subtasksCheck = await _subtaskRepo.GetByProjectIdAsync(projectMember.ProjectId);
-            var tasksWithoutSubtasks = taskAssignments
+            var taskIdsFromAssignments = taskAssignments
+                .Where(ta => ta.Task != null && ta.Task.ProjectId == projectMember.ProjectId)
                 .Select(ta => ta.TaskId)
                 .Distinct()
-                .Select(taskId => _taskRepo.GetByIdAsync(taskId).Result)
-                .Where(t => t != null && !subtasksCheck.Any(s => s.TaskId == t.Id))
                 .ToList();
+            var allAffectedTaskIds = taskIdsFromSubtasks.Union(taskIdsFromAssignments).Distinct().ToList();
 
-            foreach (var task in tasksWithoutSubtasks)
+            // Step 3: Recalculate costs for affected tasks
+            var taskUpdates = new List<Tasks>();
+            foreach (var taskId in allAffectedTaskIds)
             {
-                // Recalculate planned_resource_cost and actual_resource_cost based on all task assignments
-                var allTaskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(task.Id);
+                var task = await _taskRepo.GetByIdAsync(taskId);
+                if (task == null) continue;
+
+                // Get subtasks for this task
+                var relatedSubtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+
+                // Get task assignments for this task
+                var relatedAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+
+                // Calculate task costs
                 decimal plannedResourceCost = 0m;
                 decimal actualResourceCost = 0m;
 
-                foreach (var assignment in allTaskAssignments)
+                // Case 1: Task has subtasks
+                if (relatedSubtasks.Any())
+                {
+                    // Sum costs from subtasks
+                    plannedResourceCost = relatedSubtasks.Sum(s => s.PlannedResourceCost ?? 0m);
+                    actualResourceCost = relatedSubtasks.Sum(s => s.ActualResourceCost ?? 0m);
+                }
+
+                // Case 2: Task has assignments (with or without subtasks)
+                foreach (var assignment in relatedAssignments)
                 {
                     var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, projectMember.ProjectId);
                     decimal memberHourlyRate = member?.HourlyRate ?? 0m;
@@ -623,15 +713,30 @@ namespace IntelliPM.Services.ProjectMemberServices
                     actualResourceCost += (assignment.ActualHours ?? 0m) * memberHourlyRate;
                 }
 
+                // Update task costs
                 task.PlannedResourceCost = plannedResourceCost;
-                task.PlannedCost = plannedResourceCost;
+                task.PlannedCost = plannedResourceCost; 
                 task.ActualResourceCost = actualResourceCost;
                 task.ActualCost = actualResourceCost;
                 task.UpdatedAt = DateTime.UtcNow;
-                await _taskRepo.Update(task);
+                taskUpdates.Add(task);
             }
+            await _taskRepo.UpdateRange(taskUpdates);
 
-            // Return response (assuming ProjectMemberWithTasksResponseDTO includes updated data)
+            // Step 5: Update project metrics (optional, if dashboard relies on project_metric)
+            //var projectMetric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(projectMember.ProjectId, "System");
+            //if (projectMetric != null)
+            //{
+            //    var allTasks = await _taskRepo.GetByProjectIdAsync(projectMember.ProjectId);
+            //    projectMetric.ActualCost = allTasks.Sum(t => t.ActualCost ?? 0m);
+            //    projectMetric.PlannedValue = allTasks.Sum(t => t.PlannedCost ?? 0m);
+            //    // Recalculate EVM metrics (e.g., CPI, SPI) if needed
+            //    projectMetric.CostPerformanceIndex = projectMetric.EarnedValue > 0 ? projectMetric.EarnedValue / projectMetric.ActualCost : 0m;
+            //    projectMetric.UpdatedAt = DateTime.UtcNow;
+            //    await _projectMetricRepo.Update(projectMetric);
+            //}
+
+            // Return updated member
             var updatedMember = await _projectMemberRepo.GetByIdAsync(id);
             return _mapper.Map<ProjectMemberWithTasksResponseDTO>(updatedMember);
         }

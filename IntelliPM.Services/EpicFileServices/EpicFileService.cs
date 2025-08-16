@@ -10,6 +10,7 @@ using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
@@ -26,27 +27,29 @@ namespace IntelliPM.Services.EpicFileServices
         private readonly IActivityLogService _activityLogService;
         private readonly IEpicRepository _epicRepo;
         private readonly IMapper _mapper;
-
-        public EpicFileService(IEpicFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, IEpicRepository epicRepo)
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        public EpicFileService(IEpicFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, IEpicRepository epicRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _repository = repository;
             _cloudinaryService = cloudinaryService;
             _activityLogService = activityLogService;
             _mapper = mapper;
             _epicRepo = epicRepo;
-            
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
-
         public async Task<EpicFileResponseDTO> UploadEpicFileAsync(EpicFileRequestDTO request)
         {
             var url = await _cloudinaryService.UploadFileAsync(request.UrlFile.OpenReadStream(), request.UrlFile.FileName);
+            var statusFileDynamic = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("epic_file_status");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
 
             var entity = new EpicFile
             {
                 EpicId = request.EpicId,
                 Title = request.Title,
                 UrlFile = url,
-                Status = "UPLOADED"
+                Status = statusFileDynamic,
             };
 
             await _repository.AddAsync(entity);
@@ -56,9 +59,9 @@ namespace IntelliPM.Services.EpicFileServices
                 EpicId = request.EpicId,
                 //TaskId = entity.TaskId,
                 //SubtaskId = entity.Subtask,
-                RelatedEntityType = "EpicFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = request.EpicId,
-                ActionType = "CREATE",
+                ActionType = dynamicActionType,
                 Message = $"Upload file in epic '{request.EpicId}' is '{request.Title}'",
                 CreatedBy = request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
@@ -71,6 +74,9 @@ namespace IntelliPM.Services.EpicFileServices
             var epicFile = await _repository.GetByIdAsync(epicId);
             if (epicFile == null) return false;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             await _repository.DeleteAsync(epicFile);
             await _activityLogService.LogAsync(new ActivityLog
             {
@@ -78,9 +84,9 @@ namespace IntelliPM.Services.EpicFileServices
                 EpicId = epicFile.EpicId,
                 //TaskId = entity.TaskId,
                 //SubtaskId = entity.Subtask,
-                RelatedEntityType = "EpicFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = epicFile.EpicId,
-                ActionType = "DELETE",
+                ActionType = dynamicActionType,
                 Message = $"Delete file in epic '{epicFile.EpicId}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
