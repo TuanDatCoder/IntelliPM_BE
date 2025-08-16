@@ -14,6 +14,7 @@ using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EpicCommentServices;
+using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.Utilities;
@@ -41,7 +42,8 @@ namespace IntelliPM.Services.EpicServices
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IActivityLogService _activityLogService;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
-        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService, IDynamicCategoryHelper dynamicCategoryHelper)
+        private readonly IGeminiService _geminiService;
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService, IDynamicCategoryHelper dynamicCategoryHelper, IGeminiService geminiService)
         {
             _mapper = mapper;
             _epicRepo = epicRepo;
@@ -56,6 +58,35 @@ namespace IntelliPM.Services.EpicServices
             _decodeToken = decodeToken;
             _activityLogService = activityLogService;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _geminiService = geminiService;
+        }
+
+        public async Task<List<EpicResponseDTO>> GenerateEpicPreviewAsync(int projectId)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("epic_status");
+
+            var suggestions = await _geminiService.GenerateEpicAsync(project.Description);
+
+            if (suggestions == null || !suggestions.Any())
+                return new List<EpicResponseDTO>();
+
+            var now = DateTime.UtcNow;
+
+            var epics = suggestions.Select(s => new Epic
+            {
+                ProjectId = projectId,
+                Name = s.Name?.Trim() ?? "Untitled Epic",
+                Description = s.Description?.Trim() ?? string.Empty,
+                Status = "TO-DO",
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+
+            return _mapper.Map<List<EpicResponseDTO>>(epics);
         }
 
         public async Task<List<EpicResponseDTO>> GetAllEpics()
@@ -297,8 +328,6 @@ namespace IntelliPM.Services.EpicServices
 
             epicDetailedDTO.Type = "EPIC";
         }
-
-
 
 
         public async Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests,string type)
