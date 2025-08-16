@@ -252,9 +252,6 @@ namespace IntelliPM.Services.SprintServices
             // Explicitly check project timeline
             if (checkStartDate < projectStart || checkEndDate > projectEnd)
             {
-                _logger.LogWarning(
-                    "Sprint dates (Start: {StartDate:yyyy-MM-dd}, End: {EndDate:yyyy-MM-dd}) are not within project timeline (Start: {ProjectStart:yyyy-MM-dd}, End: {ProjectEnd:yyyy-MM-dd}).",
-                    checkStartDate, checkEndDate, projectStart, projectEnd);
                 return (false, $"Sprint dates are not within project timeline (Start: {projectStart:yyyy-MM-dd}, End: {projectEnd:yyyy-MM-dd}).");
             }
 
@@ -280,9 +277,7 @@ namespace IntelliPM.Services.SprintServices
                 // Check for overlap
                 if (checkStartDate <= sprintEnd && checkEndDate >= sprintStart)
                 {
-                    _logger.LogWarning(
-                        "Sprint dates (Start: {StartDate:yyyy-MM-dd}, End: {EndDate:yyyy-MM-dd}) overlap with existing sprint '{SprintName}' (Start: {SprintStart:yyyy-MM-dd}, End: {SprintEnd:yyyy-MM-dd}).",
-                        checkStartDate, checkEndDate, sprint.Name, sprintStart, sprintEnd);
+
                     return (false, $"Sprint dates overlap with existing sprint '{sprint.Name}' (Start: {sprintStart:yyyy-MM-dd}, End: {sprintEnd:yyyy-MM-dd}).");
                 }
             }
