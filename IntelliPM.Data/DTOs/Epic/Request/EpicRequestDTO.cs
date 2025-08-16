@@ -14,7 +14,7 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         public int ProjectId { get; set; }
 
         [Required(ErrorMessage = "Epic name is required")]
-        [MaxLength(255, ErrorMessage = "Epic name cannot exceed 255 characters")]
+        [DynamicMaxLength("title_length")]
         public string Name { get; set; } = null!;
 
         public int? ReporterId { get; set; }
@@ -23,11 +23,13 @@ namespace IntelliPM.Data.DTOs.Epic.Request
 
         public string? Description { get; set; }
 
-        public DateTime? StartDate { get; set; } 
+        [DynamicDuration("epic_duration_days")]
+        public DateTime? StartDate { get; set; }
+        [DynamicDuration("epic_duration_days")]
         public DateTime? EndDate { get; set; }   
 
-        [MaxLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
-        //[DynamicCategoryValidation("epic_status", Required = false)]
+       
+        [DynamicCategoryValidation("epic_status", Required = false)]
         public string? Status { get; set; }
 
         [Required(ErrorMessage = "CreatedBy is required")]

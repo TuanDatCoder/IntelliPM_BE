@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
@@ -31,7 +30,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly ITaskRepository _taskRepo;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
-        
+
 
         public ProjectMemberService(IMapper mapper, IProjectMemberRepository projectMemberRepo, IProjectPositionRepository projectPositionRepo, IProjectRepository projectRepo, ILogger<ProjectMemberService> logger, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, ITaskAssignmentRepository taskAssignmentRepo)
         {
@@ -153,31 +152,7 @@ namespace IntelliPM.Services.ProjectMemberServices
         }
 
 
-        public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId)
-        {
-            var members = await _projectMemberRepo.GetAllAsync();
-            var accountProjects = members
-                .Where(pm => pm.AccountId == accountId)
-                .Select(pm => new ProjectByAccountResponseDTO
-                {
-                    ProjectId = pm.ProjectId,
-                    ProjectName = pm.Project.Name,
-                    ProjectKey = pm.Project.ProjectKey,
-                    ProjectStatus = pm.Project.Status,
-                    ProjectType = pm.Project.ProjectType,
-                    ProjectCreateAt = pm.Project.CreatedAt,
-                    IconUrl = pm.Project.IconUrl,
-                    JoinedAt = pm.JoinedAt,
-                    InvitedAt = pm.InvitedAt,
-                    Status = pm.Status
-                })
-                .ToList();
 
-            if (!accountProjects.Any())
-                throw new KeyNotFoundException($"No projects found for Account ID {accountId}.");
-
-            return accountProjects;
-        }
 
 
 
@@ -220,7 +195,71 @@ namespace IntelliPM.Services.ProjectMemberServices
 
 
 
+        public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccountId(int accountId)
+        {
+            var currentAccount = await _accountRepo.GetAccountById(accountId);
+            if (currentAccount == null)
+            {
+                throw new ApiException(HttpStatusCode.NotFound, "User not found");
+            }
 
+            var members = await _projectMemberRepo.GetAllAsync();
+            var accountProjects = new List<ProjectByAccountResponseDTO>();
+
+            var isLimitedRole = currentAccount.Role.Equals("TEAM_MEMBER", StringComparison.OrdinalIgnoreCase)
+                             || currentAccount.Role.Equals("CLIENT", StringComparison.OrdinalIgnoreCase);
+
+            if (isLimitedRole)
+            {
+                accountProjects = members
+                    .Where(pm => pm.AccountId == accountId)
+                    .Where(pm => !string.Equals(pm.Project.Status, "PLANNING", StringComparison.OrdinalIgnoreCase))
+                    .Select(pm => new ProjectByAccountResponseDTO
+                    {
+                        ProjectId = pm.ProjectId,
+                        ProjectName = pm.Project.Name,
+                        ProjectKey = pm.Project.ProjectKey,
+                        ProjectStatus = pm.Project.Status,
+                        ProjectType = pm.Project.ProjectType,
+                        ProjectCreateAt = pm.Project.CreatedAt,
+                        IconUrl = pm.Project.IconUrl,
+                        JoinedAt = pm.JoinedAt,
+                        InvitedAt = pm.InvitedAt,
+                        Status = pm.Status
+                    })
+                    .ToList();
+            }
+            else
+            {
+                accountProjects = members
+                    .Where(pm => pm.AccountId == accountId)
+                    .Select(pm => new ProjectByAccountResponseDTO
+                    {
+                        ProjectId = pm.ProjectId,
+                        ProjectName = pm.Project.Name,
+                        ProjectKey = pm.Project.ProjectKey,
+                        ProjectStatus = pm.Project.Status,
+                        ProjectType = pm.Project.ProjectType,
+                        ProjectCreateAt = pm.Project.CreatedAt,
+                        IconUrl = pm.Project.IconUrl,
+                        JoinedAt = pm.JoinedAt,
+                        InvitedAt = pm.InvitedAt,
+                        Status = pm.Status
+                    })
+                    .ToList();
+            }
+
+            if (!accountProjects.Any())
+            {
+                throw new KeyNotFoundException($"No projects found for Account ID {accountId}.");
+            }
+
+            return accountProjects
+                .OrderByDescending(p => p.ProjectCreateAt)
+                .ThenByDescending(p => p.ProjectId)
+                .ToList();
+
+        }
 
         public async Task<List<ProjectByAccountResponseDTO>> GetProjectsByAccount(string token)
         {
@@ -243,7 +282,6 @@ namespace IntelliPM.Services.ProjectMemberServices
                 accountProjects = members
                     .Where(pm => pm.AccountId == currentAccount.Id)
                     .Where(pm =>
-                        !string.Equals(pm.Project.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
                         !string.Equals(pm.Project.Status, "PLANNING", StringComparison.OrdinalIgnoreCase))
                     .Select(pm => new ProjectByAccountResponseDTO
                     {
@@ -251,6 +289,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                         ProjectName = pm.Project.Name,
                         ProjectKey = pm.Project.ProjectKey,
                         ProjectStatus = pm.Project.Status,
+                        ProjectCreateAt = pm.Project.CreatedAt,
                         IconUrl = pm.Project.IconUrl,
                         JoinedAt = pm.JoinedAt,
                         InvitedAt = pm.InvitedAt,
@@ -268,6 +307,7 @@ namespace IntelliPM.Services.ProjectMemberServices
                         ProjectName = pm.Project.Name,
                         ProjectKey = pm.Project.ProjectKey,
                         ProjectStatus = pm.Project.Status,
+                        ProjectCreateAt = pm.Project.CreatedAt,
                         IconUrl = pm.Project.IconUrl,
                         JoinedAt = pm.JoinedAt,
                         InvitedAt = pm.InvitedAt,
@@ -281,7 +321,10 @@ namespace IntelliPM.Services.ProjectMemberServices
                 throw new KeyNotFoundException($"No projects found for Account ID {currentAccount.Id}.");
             }
 
-            return accountProjects;
+            return accountProjects
+                .OrderByDescending(p => p.ProjectCreateAt)
+                .ThenByDescending(p => p.ProjectId)
+                .ToList();
         }
 
 
@@ -337,7 +380,7 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<List<ProjectMemberResponseDTO>>(entities);
         }
 
-        public async Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId,int accountId)
+        public async Task<ProjectMemberResponseDTO> GetProjectMemberByProjectIdAndAccountId(int projectId, int accountId)
         {
             var entity = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, projectId);
 
@@ -715,7 +758,7 @@ namespace IntelliPM.Services.ProjectMemberServices
 
                 // Update task costs
                 task.PlannedResourceCost = plannedResourceCost;
-                task.PlannedCost = plannedResourceCost; 
+                task.PlannedCost = plannedResourceCost;
                 task.ActualResourceCost = actualResourceCost;
                 task.ActualCost = actualResourceCost;
                 task.UpdatedAt = DateTime.UtcNow;
