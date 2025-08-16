@@ -26,6 +26,6 @@ namespace IntelliPM.Services.TaskAssignmentServices
         // Task<TaskAssignmentHourDTO> ChangeActualHours(int id, decimal hours);
         Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates, int createdBy);
         Task<TaskAssignmentResponseDTO> ChangeAssignmentPlannedHours(int id, decimal plannedHours, int createdBy);
-        Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy);
+        Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<TaskAssignmentUpdateDTO> updates, int createdBy);
     }
 }
