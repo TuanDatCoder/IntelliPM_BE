@@ -386,10 +386,18 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpPatch("taskassignments/bulk/planned-hours")]
-        public async Task<IActionResult> UpdateAssignmentPlannedHoursBulk(string taskId, [FromBody] List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy)
+        public async Task<IActionResult> UpdateAssignmentPlannedHoursBulk(string taskId, [FromBody] List<TaskAssignmentUpdateDTO> updates, int createdBy)
         {
             try
             {
+                if (updates == null || !updates.Any())
+                    return BadRequest(new ApiResponseDTO
+                    {
+                        IsSuccess = false,
+                        Code = 400,
+                        Message = "Invalid request body: Updates list is empty or null."
+                    });
+
                 var result = await _service.UpdateAssignmentPlannedHoursBulk(taskId, updates, createdBy);
                 return Ok(new ApiResponseDTO
                 {
@@ -401,6 +409,7 @@ namespace IntelliPM.API.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error in UpdateAssignmentPlannedHoursBulk: {ex}");
                 return StatusCode(500, new ApiResponseDTO
                 {
                     IsSuccess = false,

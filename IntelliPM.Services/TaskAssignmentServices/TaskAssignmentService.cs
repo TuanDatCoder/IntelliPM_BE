@@ -16,6 +16,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using IntelliPM.Services.ActivityLogServices;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace IntelliPM.Services.TaskAssignmentServices
 {
@@ -639,7 +641,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             return _mapper.Map<TaskAssignmentResponseDTO>(assignment);
         }
 
-        public async Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy)
+        public async Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<TaskAssignmentUpdateDTO> updates, int createdBy)
         {
             var task = await _taskRepo.GetByIdAsync(taskId);
             if (task == null)
@@ -648,6 +650,15 @@ namespace IntelliPM.Services.TaskAssignmentServices
             var allAssignments = await _repo.GetByTaskIdAsync(taskId);
             if (allAssignments == null || !allAssignments.Any())
                 throw new KeyNotFoundException($"No assignments found for task with ID {taskId}.");
+
+            // Log allAssignments and updates
+            Console.WriteLine($"allAssignments for task {taskId}: {System.Text.Json.JsonSerializer.Serialize(allAssignments, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles })}");
+            Console.WriteLine($"Received updates: {System.Text.Json.JsonSerializer.Serialize(updates)}");
+
+            // Filter out invalid assignments
+            allAssignments = allAssignments.Where(a => a.Id > 0).ToList();
+            if (!allAssignments.Any())
+                throw new KeyNotFoundException($"No valid assignments (Id > 0) found for task with ID {taskId}.");
 
             // Validate and update each assignment
             var updatedAssignments = new List<TaskAssignment>();
@@ -661,8 +672,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 if (member == null || !member.WorkingHoursPerDay.HasValue)
                     throw new InvalidOperationException($"Member for account {assignment.AccountId} not found or working hours not set.");
 
-                if (update.PlannedHours > member.WorkingHoursPerDay.Value)
-                    throw new ArgumentException($"Planned hours for assignment {update.AssignmentId} cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
+                //if (update.PlannedHours > member.WorkingHoursPerDay.Value)
+                //    throw new ArgumentException($"Planned hours for assignment {update.AssignmentId} cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
 
                 assignment.PlannedHours = update.PlannedHours;
                 updatedAssignments.Add(assignment);
@@ -707,7 +718,10 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 CreatedAt = DateTime.UtcNow
             });
 
-            return _mapper.Map<List<TaskAssignmentResponseDTO>>(updatedAssignments);
+            // Map to DTO without cycles
+            var result = _mapper.Map<List<TaskAssignmentResponseDTO>>(updatedAssignments);
+            Console.WriteLine($"Returning response: {System.Text.Json.JsonSerializer.Serialize(result)}");
+            return result;
         }
     }
 }
