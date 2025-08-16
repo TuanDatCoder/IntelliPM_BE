@@ -246,16 +246,55 @@ namespace IntelliPM.Services.TaskAssignmentServices
             }
         }
 
+        //public async Task<List<TaskAssignmentHourDTO>> GetTaskAssignmentHoursByTaskIdAsync(string taskId)
+        //{
+        //    if (string.IsNullOrEmpty(taskId))
+        //        throw new ArgumentException("Task ID cannot be null or empty.");
+
+        //    var entities = await _repo.GetByTaskIdAsync(taskId);
+        //    if (!entities.Any())
+        //        throw new KeyNotFoundException($"No task assignments found for Task ID {taskId}.");
+
+        //    return _mapper.Map<List<TaskAssignmentHourDTO>>(entities);
+        //}
+
         public async Task<List<TaskAssignmentHourDTO>> GetTaskAssignmentHoursByTaskIdAsync(string taskId)
         {
             if (string.IsNullOrEmpty(taskId))
                 throw new ArgumentException("Task ID cannot be null or empty.");
 
-            var entities = await _repo.GetByTaskIdAsync(taskId);
-            if (!entities.Any())
+            // 1. Lấy task để biết projectId
+            var taskEntity = await _taskRepo.GetByIdAsync(taskId);
+            if (taskEntity == null)
+                throw new KeyNotFoundException($"Task with ID {taskId} not found.");
+
+            var projectId = taskEntity.ProjectId;
+
+            // 2. Lấy các assignment của task
+            var assignments = await _repo.GetByTaskIdAsync(taskId);
+            if (!assignments.Any())
                 throw new KeyNotFoundException($"No task assignments found for Task ID {taskId}.");
 
-            return _mapper.Map<List<TaskAssignmentHourDTO>>(entities);
+            // 3. Lấy accountId của các assignment
+            var accountIds = assignments.Select(a => a.AccountId).Distinct().ToList();
+
+            // 4. Lấy thông tin ProjectMember tương ứng
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAndAccountIdsAsync(projectId, accountIds);
+
+            // 5. Map sang DTO và thêm HourlyRate + WorkingHoursPerDay
+            var result = assignments.Select(a =>
+            {
+                var dto = _mapper.Map<TaskAssignmentHourDTO>(a);
+                var pm = projectMembers.FirstOrDefault(m => m.AccountId == a.AccountId);
+                if (pm != null)
+                {
+                    dto.HourlyRate = pm.HourlyRate;
+                    dto.WorkingHoursPerDay = pm.WorkingHoursPerDay;
+                }
+                return dto;
+            }).ToList();
+
+            return result;
         }
 
         public async Task<TaskAssignmentHourDTO> ChangeActualHours(int id, decimal hours)
@@ -412,6 +451,263 @@ namespace IntelliPM.Services.TaskAssignmentServices
             await _taskRepo.Update(task);
         }
 
+        //public async Task UpdateTaskAssignmentPlannedHoursAsync(string taskId, decimal plannedHours, int createdBy)
+        //{
+        //    // Fetch the task
+        //    var task = await _taskRepo.GetByIdAsync(taskId);
+        //    if (task == null)
+        //        throw new KeyNotFoundException($"Task with ID {taskId} not found.");
 
+        //    // Fetch all task assignments for the task
+        //    var taskAssignments = await _repo.GetByTaskIdAsync(taskId)
+        //        .Include(ta => ta.Account)
+        //        .ToListAsync();
+
+        //    if (!taskAssignments.Any())
+        //        throw new InvalidOperationException($"No assignments found for task with ID {taskId}.");
+
+        //    // Fetch project members to get workingHoursPerDay
+        //    var assignedAccountIds = taskAssignments.Select(ta => ta.AccountId).Distinct().ToList();
+        //    var projectMembers = await _projectMemberRepo.GetByAccountAndProjectAsync(assignedAccountIds, task.ProjectId)
+        //        .ToListAsync();
+
+        //    if (!projectMembers.Any())
+        //        throw new InvalidOperationException($"No project members found for task with ID {taskId}.");
+
+        //    // Create a mapping of accountId to workingHoursPerDay
+        //    var memberMaxHours = projectMembers.ToDictionary(
+        //        m => m.AccountId,
+        //        m => m.WorkingHoursPerDay ?? 8m // Default to 8 if null
+        //    );
+
+        //    // Sort assignments by accountId for consistent distribution
+        //    var assignmentsWithMaxHours = taskAssignments
+        //        .Select(ta => new
+        //        {
+        //            TaskAssignment = ta,
+        //            MaxHours = memberMaxHours.ContainsKey(ta.AccountId) ? memberMaxHours[ta.AccountId] : 8m
+        //        })
+        //        .OrderBy(a => a.TaskAssignment.AccountId)
+        //        .ToList();
+
+        //    decimal totalMaxHours = assignmentsWithMaxHours.Sum(a => a.MaxHours);
+        //    var assignedHours = new List<decimal>();
+
+        //    if (totalMaxHours <= 0)
+        //    {
+        //        // If no valid working hours, set all to 0 and warn
+        //        foreach (var assignment in assignmentsWithMaxHours)
+        //        {
+        //            assignment.TaskAssignment.PlannedHours = 0m;
+        //            await _repo.Update(assignment.TaskAssignment);
+        //        }
+        //        task.PlannedResourceCost = 0m;
+        //        task.PlannedCost = 0m;
+        //    }
+        //    else
+        //    {
+        //        // Distribute plannedHours
+        //        decimal remainingHours = plannedHours;
+        //        foreach (var assignment in assignmentsWithMaxHours)
+        //        {
+        //            decimal assigned = Math.Min(assignment.MaxHours, remainingHours);
+        //            assignment.TaskAssignment.PlannedHours = assigned;
+        //            assignedHours.Add(assigned);
+        //            remainingHours -= assigned;
+
+        //            if (remainingHours <= 0) break;
+
+        //            await _repo.Update(assignment.TaskAssignment);
+        //        }
+
+        //        // If there are remaining hours and more assignments, distribute proportionally
+        //        if (remainingHours > 0 && assignmentsWithMaxHours.Count > assignedHours.Count)
+        //        {
+        //            var remainingAssignments = assignmentsWithMaxHours.Skip(assignedHours.Count).ToList();
+        //            decimal totalRemainingMax = remainingAssignments.Sum(a => a.MaxHours);
+        //            if (totalRemainingMax > 0)
+        //            {
+        //                foreach (var assignment in remainingAssignments)
+        //                {
+        //                    decimal proportionalHours = (remainingHours * assignment.MaxHours) / totalRemainingMax;
+        //                    decimal assigned = Math.Min(assignment.MaxHours, proportionalHours);
+        //                    assignment.TaskAssignment.PlannedHours = assigned;
+        //                    remainingHours -= assigned;
+
+        //                    await _repo.Update(assignment.TaskAssignment);
+
+        //                    if (remainingHours <= 0) break;
+        //                }
+        //            }
+        //        }
+
+        //        // Calculate total cost based on assigned hours and hourly rates
+        //        decimal totalCost = 0m;
+        //        foreach (var assignment in assignmentsWithMaxHours)
+        //        {
+        //            var member = projectMembers.FirstOrDefault(m => m.AccountId == assignment.TaskAssignment.AccountId);
+        //            if (member?.HourlyRate.HasValue == true)
+        //            {
+        //                decimal memberCost = assignment.TaskAssignment.PlannedHours * member.HourlyRate.Value;
+        //                totalCost += memberCost;
+        //            }
+        //        }
+
+        //        task.PlannedResourceCost = totalCost;
+        //        task.PlannedCost = totalCost;
+        //    }
+
+        //    // Update task with new planned hours and costs
+        //    task.PlannedHours = plannedHours;
+        //    task.RemainingHours = plannedHours - (task.ActualHours ?? 0m);
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //    await UpdateTaskProgressAsync(task);
+
+        //    // Log the activity
+        //    await _activityLogService.LogAsync(new ActivityLog
+        //    {
+        //        ProjectId = task.ProjectId,
+        //        TaskId = taskId,
+        //        SubtaskId = null,
+        //        RelatedEntityType = "Task",
+        //        RelatedEntityId = taskId,
+        //        ActionType = "UPDATE",
+        //        Message = $"Updated planned hours for task '{taskId}' to {plannedHours} and distributed to assignments",
+        //        CreatedBy = createdBy,
+        //        CreatedAt = DateTime.UtcNow
+        //    });
+        //}
+
+        public async Task<TaskAssignmentResponseDTO> ChangeAssignmentPlannedHours(int id, decimal plannedHours, int createdBy)
+        {
+            var assignment = await _repo.GetByIdAsync(id);
+            if (assignment == null)
+                throw new KeyNotFoundException($"TaskAssignment with ID {id} not found.");
+
+            var task = await _taskRepo.GetByIdAsync(assignment.TaskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {assignment.TaskId} not found.");
+
+            var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+            if (member == null || !member.WorkingHoursPerDay.HasValue)
+                throw new InvalidOperationException($"Member for account {assignment.AccountId} not found or working hours not set.");
+
+            if (plannedHours > member.WorkingHoursPerDay.Value)
+                throw new ArgumentException($"Planned hours cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
+
+            assignment.PlannedHours = plannedHours;
+            await _repo.Update(assignment);
+
+            // Recalculate task totals
+            var allAssignments = await _repo.GetByTaskIdAsync(assignment.TaskId);
+            decimal totalPlannedHours = allAssignments.Sum(a => a.PlannedHours ?? 0);
+            decimal totalPlannedResourceCost = 0m;
+
+            foreach (var ass in allAssignments)
+            {
+                var mem = await _projectMemberRepo.GetByAccountAndProjectAsync(ass.AccountId, task.ProjectId);
+                if (mem != null && mem.HourlyRate.HasValue)
+                {
+                    totalPlannedResourceCost += (ass.PlannedHours ?? 0) * mem.HourlyRate.Value;
+                }
+            }
+
+            var actualHours = task.ActualHours ?? 0;
+            task.RemainingHours = totalPlannedHours - actualHours;
+            task.PlannedHours = totalPlannedHours;
+            task.PlannedResourceCost = totalPlannedResourceCost;
+            task.PlannedCost = totalPlannedResourceCost;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _taskRepo.Update(task);
+            await UpdateTaskProgressAsync(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                SubtaskId = null,
+                RelatedEntityType = "TaskAssignment",
+                RelatedEntityId = id.ToString(),
+                ActionType = "UPDATE",
+                Message = $"Updated planned hours for task assignment '{id}' to {plannedHours} in task '{task.Id}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskAssignmentResponseDTO>(assignment);
+        }
+
+        public async Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {taskId} not found.");
+
+            var allAssignments = await _repo.GetByTaskIdAsync(taskId);
+            if (allAssignments == null || !allAssignments.Any())
+                throw new KeyNotFoundException($"No assignments found for task with ID {taskId}.");
+
+            // Validate and update each assignment
+            var updatedAssignments = new List<TaskAssignment>();
+            foreach (var update in updates)
+            {
+                var assignment = allAssignments.FirstOrDefault(a => a.Id == update.AssignmentId);
+                if (assignment == null)
+                    throw new KeyNotFoundException($"Assignment with ID {update.AssignmentId} not found.");
+
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+                if (member == null || !member.WorkingHoursPerDay.HasValue)
+                    throw new InvalidOperationException($"Member for account {assignment.AccountId} not found or working hours not set.");
+
+                if (update.PlannedHours > member.WorkingHoursPerDay.Value)
+                    throw new ArgumentException($"Planned hours for assignment {update.AssignmentId} cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
+
+                assignment.PlannedHours = update.PlannedHours;
+                updatedAssignments.Add(assignment);
+            }
+
+            await _repo.UpdateRange(updatedAssignments);
+
+            // Recalculate task totals
+            decimal totalPlannedHours = allAssignments.Sum(a => a.PlannedHours ?? 0);
+            decimal totalPlannedResourceCost = 0m;
+
+            foreach (var ass in allAssignments)
+            {
+                var mem = await _projectMemberRepo.GetByAccountAndProjectAsync(ass.AccountId, task.ProjectId);
+                if (mem != null && mem.HourlyRate.HasValue)
+                {
+                    totalPlannedResourceCost += (ass.PlannedHours ?? 0) * mem.HourlyRate.Value;
+                }
+            }
+
+            var actualHours = task.ActualHours ?? 0;
+            task.RemainingHours = totalPlannedHours - actualHours;
+            task.PlannedHours = totalPlannedHours;
+            task.PlannedResourceCost = totalPlannedResourceCost;
+            task.PlannedCost = totalPlannedResourceCost;
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _taskRepo.Update(task);
+            await UpdateTaskProgressAsync(task);
+
+            // Log the bulk update
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                SubtaskId = null,
+                RelatedEntityType = "TaskAssignment",
+                RelatedEntityId = string.Join(",", updates.Select(u => u.AssignmentId)),
+                ActionType = "BULK_UPDATE",
+                Message = $"Updated planned hours for multiple task assignments in task '{task.Id}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<List<TaskAssignmentResponseDTO>>(updatedAssignments);
+        }
     }
 }
