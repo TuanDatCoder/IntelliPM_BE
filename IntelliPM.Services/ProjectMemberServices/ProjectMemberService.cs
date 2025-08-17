@@ -784,6 +784,69 @@ namespace IntelliPM.Services.ProjectMemberServices
             return _mapper.Map<ProjectMemberWithTasksResponseDTO>(updatedMember);
         }
 
+        //public async Task<ProjectMemberWithTasksResponseDTO> ChangeWorkingHoursPerDay(int id, decimal workingHoursPerDay)
+        //{
+        //    // Validate input
+        //    if (workingHoursPerDay < 0)
+        //        throw new ArgumentException("Working hours per day cannot be negative.");
+
+        //    // Get the project member
+        //    var projectMember = await _projectMemberRepo.GetByIdAsync(id);
+        //    if (projectMember == null)
+        //        throw new KeyNotFoundException($"Project member with ID {id} not found.");
+
+        //    // Store the original working hours per day for comparison (if needed)
+        //    var originalWorkingHoursPerDay = projectMember.WorkingHoursPerDay ?? 0;
+
+        //    // Update the working hours per day and timestamp
+        //    projectMember.WorkingHoursPerDay = workingHoursPerDay;
+        //    await _projectMemberRepo.Update(projectMember);
+
+        //    // Get all task assignments for the member's account
+        //    var taskAssignments = await _taskAssignmentRepo.GetByAccountIdAsync(projectMember.AccountId);
+        //    if (taskAssignments == null || !taskAssignments.Any())
+        //        return _mapper.Map<ProjectMemberWithTasksResponseDTO>(projectMember); // No assignments to update
+
+        //    // Get all tasks for the project to map taskIds to plannedHours
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(projectMember.ProjectId);
+        //    var taskDict = tasks.ToDictionary(t => t.Id, t => t.PlannedHours ?? 0m);
+
+        //    // Process each task assignment for the member
+        //    foreach (var assignment in taskAssignments)
+        //    {
+        //        if (taskDict.TryGetValue(assignment.TaskId, out decimal taskPlannedHours))
+        //        {
+        //            // Get all assignments for the same task to calculate total working hours per day
+        //            var allTaskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(assignment.TaskId);
+        //            var relatedMembers = new List<ProjectMember>();
+        //            foreach (var ta in allTaskAssignments)
+        //            {
+        //                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(ta.AccountId, projectMember.ProjectId);
+        //                if (member != null && member.WorkingHoursPerDay.HasValue)
+        //                {
+        //                    relatedMembers.Add(member);
+        //                }
+        //            }
+
+        //            decimal totalWorkingHoursPerDay = relatedMembers.Sum(m => m.WorkingHoursPerDay.Value);
+        //            if (totalWorkingHoursPerDay > 0)
+        //            {
+        //                // Calculate the ratio based on the updated workingHoursPerDay
+        //                decimal memberRatio = (decimal)projectMember.WorkingHoursPerDay / totalWorkingHoursPerDay;
+        //                decimal newPlannedHours = taskPlannedHours * memberRatio;
+
+        //                // Update the task assignment's planned hours
+        //                assignment.PlannedHours = newPlannedHours;
+        //                await _taskAssignmentRepo.Update(assignment);
+        //            }
+        //        }
+        //    }
+
+        //    // Return response (assuming ProjectMemberWithTasksResponseDTO includes updated data)
+        //    var updatedMember = await _projectMemberRepo.GetByIdAsync(id);
+        //    return _mapper.Map<ProjectMemberWithTasksResponseDTO>(updatedMember);
+        //}
+
         public async Task<ProjectMemberWithTasksResponseDTO> ChangeWorkingHoursPerDay(int id, decimal workingHoursPerDay)
         {
             // Validate input
@@ -802,49 +865,114 @@ namespace IntelliPM.Services.ProjectMemberServices
             projectMember.WorkingHoursPerDay = workingHoursPerDay;
             await _projectMemberRepo.Update(projectMember);
 
-            // Get all task assignments for the member's account
+            // Get all task assignments for the member's account within the project
             var taskAssignments = await _taskAssignmentRepo.GetByAccountIdAsync(projectMember.AccountId);
             if (taskAssignments == null || !taskAssignments.Any())
-                return _mapper.Map<ProjectMemberWithTasksResponseDTO>(projectMember); // No assignments to update
-
-            // Get all tasks for the project to map taskIds to plannedHours
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectMember.ProjectId);
-            var taskDict = tasks.ToDictionary(t => t.Id, t => t.PlannedHours ?? 0m);
-
-            // Process each task assignment for the member
-            foreach (var assignment in taskAssignments)
             {
-                if (taskDict.TryGetValue(assignment.TaskId, out decimal taskPlannedHours))
+                return _mapper.Map<ProjectMemberWithTasksResponseDTO>(projectMember); // No assignments to update
+            }
+
+            // Get unique task IDs from assignments
+            var taskIds = taskAssignments.Select(ta => ta.TaskId).Distinct().ToList();
+
+            // Update related tasks
+            foreach (var taskId in taskIds)
+            {
+                var task = await _taskRepo.GetByIdAsync(taskId);
+                if (task != null && task.ProjectId == projectMember.ProjectId) // Ensure task is in the same project
                 {
-                    // Get all assignments for the same task to calculate total working hours per day
-                    var allTaskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(assignment.TaskId);
-                    var relatedMembers = new List<ProjectMember>();
-                    foreach (var ta in allTaskAssignments)
-                    {
-                        var member = await _projectMemberRepo.GetByAccountAndProjectAsync(ta.AccountId, projectMember.ProjectId);
-                        if (member != null && member.WorkingHoursPerDay.HasValue)
-                        {
-                            relatedMembers.Add(member);
-                        }
-                    }
-
-                    decimal totalWorkingHoursPerDay = relatedMembers.Sum(m => m.WorkingHoursPerDay.Value);
-                    if (totalWorkingHoursPerDay > 0)
-                    {
-                        // Calculate the ratio based on the updated workingHoursPerDay
-                        decimal memberRatio = (decimal)projectMember.WorkingHoursPerDay / totalWorkingHoursPerDay;
-                        decimal newPlannedHours = taskPlannedHours * memberRatio;
-
-                        // Update the task assignment's planned hours
-                        assignment.PlannedHours = newPlannedHours;
-                        await _taskAssignmentRepo.Update(assignment);
-                    }
+                    // Recalculate task planned hours and related properties
+                    await RecalculateTaskPlannedHours(taskId, projectMember.AccountId);
                 }
             }
 
-            // Return response (assuming ProjectMemberWithTasksResponseDTO includes updated data)
+            // Return response with updated data
             var updatedMember = await _projectMemberRepo.GetByIdAsync(id);
             return _mapper.Map<ProjectMemberWithTasksResponseDTO>(updatedMember);
+        }
+
+        // Helper method to recalculate task planned hours
+        private async Task RecalculateTaskPlannedHours(string taskId, int account)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null) return;
+
+            var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, task.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue)
+                {
+                    decimal hourlyRate = member.HourlyRate ?? 0m;
+                    projectMembers.Add(new ProjectMember
+                    {
+                        Id = member.Id,
+                        AccountId = member.AccountId,
+                        ProjectId = member.ProjectId,
+                        WorkingHoursPerDay = member.WorkingHoursPerDay,
+                        HourlyRate = hourlyRate,
+                    });
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal? totalCost = 0m;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var memberAssignedHours = task.PlannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+
+                    var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(taskId, member.AccountId);
+                    if (taskAssignment != null)
+                    {
+                        taskAssignment.PlannedHours = memberAssignedHours;
+                        await _taskAssignmentRepo.Update(taskAssignment);
+                    }
+                }
+
+                task.PlannedResourceCost = totalCost;
+                task.PlannedCost = totalCost;
+            }
+            else
+            {
+                // Warning: No assignments or working hours, costs remain 0
+                task.PlannedResourceCost = 0m;
+                task.PlannedCost = 0m;
+            }
+
+            await _taskRepo.Update(task);
+            await UpdateTaskProgressAsync(task);
+        }
+
+        private async Task UpdateTaskProgressAsync(Tasks task)
+        {
+            if (task.Subtask?.Any() ?? false)
+            {
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+                task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
+            }
+            else
+            {
+                if (task.Status == "DONE") task.PercentComplete = 100;
+                else if (task.Status == "TO_DO") task.PercentComplete = 0;
+                else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+                {
+                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
+                    task.PercentComplete = Math.Min((int)rawProgress, 99);
+                }
+                else task.PercentComplete = 0;
+            }
+
+            task.UpdatedAt = DateTime.UtcNow;
+            await _taskRepo.Update(task);
         }
     }
 }
