@@ -54,6 +54,8 @@ namespace IntelliPM.Services.DocumentServices
 
         Task<string> GetUserPermissionLevel(int documentId, int userId);
 
+        Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId);
+
 
 
 
