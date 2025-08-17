@@ -17,7 +17,6 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         [DynamicMaxLength("title_length")]
         public string Name { get; set; } = null!;
 
-
         public int? ReporterId { get; set; }
 
         public int? AssignedBy { get; set; }
@@ -33,6 +32,7 @@ namespace IntelliPM.Data.DTOs.Epic.Request
         [DynamicCategoryValidation("epic_status", Required = false)]
         public string? Status { get; set; }
 
+        [Required(ErrorMessage = "CreatedBy is required")]
         public int CreatedBy { get; set; }
 
     }

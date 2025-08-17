@@ -1,20 +1,15 @@
-﻿using Newtonsoft.Json;
-using System.Net.Http;
-using System.Text;
-using IntelliPM.Services.GeminiServices;
+﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.ProjectMetric.Request;
-using IntelliPM.Data.Entities;
-using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using FirebaseAdmin.Messaging;
-using System.Threading.Tasks;
-using IntelliPM.Data.DTOs.Risk.Request;
-using AutoMapper;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
+using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
-using Org.BouncyCastle.Asn1.Ocsp;
 using IntelliPM.Data.DTOs.Task.Request;
+using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Services.GeminiServices;
+using Newtonsoft.Json;
+using System.Text;
 
 public class GeminiService : IGeminiService
 {
@@ -126,19 +121,19 @@ Return only valid JSON.";
 
     public async Task<List<TaskSuggestionRequestDTO>> GenerateTaskAsync(string projectDescription)
     {
-        var prompt = @$"You are given the following project or epic description:
+        var prompt = @$"You are given the following project description:
 
 ""{projectDescription}""
 
-Based on this, generate **exactly 5 to 7 distinct and actionable tasks** that are required to successfully implement the project.
+Based on this, generate **exactly 10 to 12 distinct and actionable tasks** required to successfully implement the project. The tasks should follow an alternating pattern of types (e.g., STORY, TASK, TASK, TASK, STORY, TASK, TASK, TASK, etc.) and include **exactly 2 BUGs** within the list.
 
 Each task must include:
-- A clear and realistic **title**.
+- A clear and realistic **title** (limited to 65 characters).
 - A concise but informative **description** that explains what the task involves.
 - A valid **type**, which must be one of:
-  - ""BUG"": For fixing a software/system issue or malfunction.
-  - ""STORY"": A feature or piece of functionality contributing to a larger project.
-  - ""TASK"": Technical, administrative, or other necessary work not tied to a feature or bug.
+  - ""BUG"": For fixing a software/system issue or malfunction (exactly 2 BUGs).
+  - ""STORY"": A feature or functionality from the user's perspective, written as ""As a [user role], I want [goal] so that [benefit].""
+  - ""TASK"": Technical, administrative, or other necessary work supporting a feature or bug fix.
 
 ### Output Format:
 Return a valid **JSON array** only (no markdown, no explanation). Use the exact format below for each task:
@@ -156,11 +151,16 @@ Return a valid **JSON array** only (no markdown, no explanation). Use the exact 
 ]
 
 ### Guidelines:
+- Follow an alternating pattern (e.g., STORY, TASK, TASK, TASK, STORY, TASK, TASK, TASK, etc.) with exactly 2 BUGs included.
+- Ensure **exactly 10 to 12 tasks** in total.
 - Each task must be **unique** — avoid redundancy or overlapping responsibilities.
-- Tasks must be **clear, practical, and achievable**, reflecting real-world development or project steps.
+- STORY tasks must follow the format: ""As a [user role], I want [goal] so that [benefit].""
+- TASK tasks should support STORY tasks (e.g., for a registration story, tasks like ""Create registration form"" or ""Save user data to database"").
+- BUG tasks should represent realistic issues (e.g., fixing incorrect form validation or database errors).
+- Tasks must be **clear, practical, and achievable**, reflecting real-world development steps.
+- Titles must not exceed 65 characters.
 - Do **not** include markdown formatting, comments, or any explanations — only return raw JSON.
-- Make sure the final output is a valid, parsable JSON array starting with '[' and ending with ']'.";
-
+- Ensure the final output is a valid, parsable JSON array starting with '[' and ending with ']'.";
 
         var requestData = new
         {
@@ -200,7 +200,7 @@ Return a valid **JSON array** only (no markdown, no explanation). Use the exact 
             throw new Exception("Gemini did not return any text response.");
         }
 
-        // Loại bỏ ``` nếu có
+        // Remove ``` if present
         if (replyText.StartsWith("```"))
         {
             replyText = replyText.Replace("```json", "")
@@ -225,53 +225,35 @@ Return a valid **JSON array** only (no markdown, no explanation). Use the exact 
         }
     }
 
-    public async Task<List<TaskSuggestionRequestDTO>> GenerateTaskByEpicAsync(string epicDescription)
+    public async Task<List<EpicSuggestionRequestDTO>> GenerateEpicAsync(string projectDescription)
     {
-        var prompt = @$"Given the following project description:
+        var prompt = @$"You are given the following project description:
 
-""{epicDescription}""
+""{projectDescription}""
 
-Generate a list of 5 to 7 detailed **tasks** needed to implement the project. 
-Each task must include:
-- a realistic and concise `title`,
-- a clear and actionable `description`,
-- a valid `type` from the list below.
+Based on this, generate **exactly 5 to 7 distinct and actionable epics** that represent high-level features or major components required to successfully implement the project. An epic is a large issue that can be broken down into smaller user stories or tasks, representing a significant feature or part of the project.
 
-Allowed types:
-- ""BUG"": Used to track software/system errors or issues.
-- ""STORY"": A small unit of work contributing to a larger Epic or project.
-- ""TASK"": Work that needs to be done but doesn't necessarily add a new feature or fix a bug.
+Each epic must include:
+- A clear and realistic **name**.
+- A concise but informative **description** that explains what the epic involves.
 
-Each task must follow **exactly** the following JSON format (return JSON array only, no markdown or explanation):
+### Output Format:
+Return a valid **JSON array** only (no markdown, no explanation). Use the exact format below for each epic:
 
 [
   {{
-    ""title"": ""Example title"",
-    ""description"": ""Detailed and clear explanation of what needs to be done."",
+    ""name"": ""Epic name 1"",
+    ""description"": ""A short, specific description for epic 1."",
     ""status"": ""TO_DO"",
-    ""manualInput"": false,
-    ""generationAiInput"": true,
-    ""type"": ""STORY""
-  }}
+  }},
+  ...
 ]
 
-Important rules:
-- All tasks must contain valid and non-empty title, description, and type.
-- Only return a valid raw JSON array. No markdown, no explanation, no extra characters.
-- Each task should be specific, not too general.
-
-Example:
-[
-  {{
-    ""title"": ""Design login page UI"",
-    ""description"": ""Create a responsive login page with email and password input, including validation and error handling."",
-    ""status"": ""TO_DO"",
-    ""manualInput"": false,
-    ""generationAiInput"": true,
-    ""type"": ""STORY""
-  }}
-]
-";
+### Guidelines:
+- Each epic must be **unique** — avoid redundancy or overlapping responsibilities.
+- Epics must be **clear, practical, and achievable**, reflecting high-level features or major project components.
+- Do **not** include markdown formatting, comments, or any explanations — only return raw JSON.
+- Make sure the final output is a valid, parsable JSON array starting with '[' and ending with ']'.";
 
         var requestData = new
         {
@@ -311,7 +293,112 @@ Example:
             throw new Exception("Gemini did not return any text response.");
         }
 
-        // Loại bỏ ``` nếu có
+        // Remove ``` if present
+        if (replyText.StartsWith("```"))
+        {
+            replyText = replyText.Replace("```json", "")
+                                 .Replace("```", "")
+                                 .Replace("json", "")
+                                 .Trim();
+        }
+
+        if (!replyText.StartsWith("["))
+        {
+            throw new Exception("Gemini reply is not a JSON array:\n" + replyText);
+        }
+
+        try
+        {
+            var epicItems = JsonConvert.DeserializeObject<List<EpicSuggestionRequestDTO>>(replyText);
+            return epicItems;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error deserializing epic items from Gemini reply:\n" + replyText + "\n" + ex.Message);
+        }
+    }
+
+    public async Task<List<TaskSuggestionRequestDTO>> GenerateTaskByEpicAsync(string epicDescription)
+    {
+        var prompt = @$"Given the following epic description:
+
+""{epicDescription}""
+
+Generate **exactly 10 to 12 distinct and actionable tasks** needed to implement the epic. The tasks should follow an alternating pattern of types (e.g., STORY, TASK, TASK, TASK, STORY, TASK, TASK, TASK, etc.) and include **exactly 2 BUGs** within the list.
+
+Each task must include:
+- A realistic and concise **title** (limited to 65 characters).
+- A clear and actionable **description** that explains what the task involves.
+- A valid **type** from the list below:
+  - ""BUG"": For fixing a software/system issue or malfunction (exactly 2 BUGs).
+  - ""STORY"": A feature or functionality from the user's perspective, written as ""As a [user role], I want [goal] so that [benefit].""
+  - ""TASK"": Technical, administrative, or other necessary work supporting a feature or bug fix.
+
+### Output Format:
+Return a valid **JSON array** only (no markdown, no explanation). Use the exact format below for each task:
+
+[
+  {{
+    ""title"": ""Task title 1"",
+    ""description"": ""A short, specific description for task 1."",
+    ""status"": ""TO_DO"",
+    ""manualInput"": false,
+    ""generationAiInput"": true,
+    ""type"": ""STORY""
+  }},
+  ...
+]
+
+### Guidelines:
+- Follow an alternating pattern (e.g., STORY, TASK, TASK, TASK, STORY, TASK, TASK, TASK, etc.) with exactly 2 BUGs included.
+- Ensure **exactly 10 to 12 tasks** in total.
+- Each task must be **unique** — avoid redundancy or overlapping responsibilities.
+- STORY tasks must follow the format: ""As a [user role], I want [goal] so that [benefit].""
+- TASK tasks should support STORY tasks (e.g., for a registration story, tasks like ""Create registration form"" or ""Save user data to database"").
+- BUG tasks should represent realistic issues (e.g., fixing incorrect form validation or database errors).
+- Tasks must be **clear, practical, and achievable**, reflecting real-world development steps.
+- Titles must not exceed 65 characters.
+- Only return a valid raw JSON array. No markdown, no explanation, no extra characters.";
+
+        var requestData = new
+        {
+            contents = new[]
+            {
+            new
+            {
+                parts = new[]
+                {
+                    new { text = prompt }
+                }
+            }
+        }
+        };
+
+        var requestJson = JsonConvert.SerializeObject(requestData);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync(_url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
+        }
+
+        if (string.IsNullOrWhiteSpace(responseString))
+        {
+            throw new Exception("Gemini response is empty.");
+        }
+
+        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+
+        if (string.IsNullOrEmpty(replyText))
+        {
+            throw new Exception("Gemini did not return any text response.");
+        }
+
+        // Remove ``` if present
         if (replyText.StartsWith("```"))
         {
             replyText = replyText.Replace("```json", "")
@@ -1468,121 +1555,121 @@ All output must be in English.
         }
     }
 
-//    public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
-//    {
-//        var risks = new List<AIRiskResponseDTO>();
+    //    public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
+    //    {
+    //        var risks = new List<AIRiskResponseDTO>();
 
-//        foreach (var task in tasks)
-//        {
-//            var prompt = $@"
-//You are a risk management expert specializing in software projects. Below is the information about a specific task in a software project.
+    //        foreach (var task in tasks)
+    //        {
+    //            var prompt = $@"
+    //You are a risk management expert specializing in software projects. Below is the information about a specific task in a software project.
 
-//Analyze the task and predict **1-2 task-specific risks** that could impact its completion or the project's success. Focus on risks directly related to the task's attributes (e.g., delays, cost overruns, resource issues, or quality concerns). For each risk, provide a mitigation plan and a contingency plan.
+    //Analyze the task and predict **1-2 task-specific risks** that could impact its completion or the project's success. Focus on risks directly related to the task's attributes (e.g., delays, cost overruns, resource issues, or quality concerns). For each risk, provide a mitigation plan and a contingency plan.
 
-//Return the result as a JSON array with the following structure for each risk:
+    //Return the result as a JSON array with the following structure for each risk:
 
-//[
-//  {{
-//    title: string,
-//    description: string,
-//    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
-//    probability: string, // High | Medium | Low
-//    impactLevel: string, // High | Medium | Low
-//    severityLevel: string, // High | Medium | Low
-//    mitigationPlan: string,
-//    contingencyPlan: string
-//  }}
-//]
+    //[
+    //  {{
+    //    title: string,
+    //    description: string,
+    //    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
+    //    probability: string, // High | Medium | Low
+    //    impactLevel: string, // High | Medium | Low
+    //    severityLevel: string, // High | Medium | Low
+    //    mitigationPlan: string,
+    //    contingencyPlan: string
+    //  }}
+    //]
 
-//**Requirements:**
-//- Focus on risks specific to the provided task.
-//- Use the task's attributes (e.g., dates, hours, costs, status) to infer realistic risks.
-//- Avoid generic or vague risks.
-//- Return only the JSON array, without markdown, headers, or additional explanations.
-//- Provide all text in English.
+    //**Requirements:**
+    //- Focus on risks specific to the provided task.
+    //- Use the task's attributes (e.g., dates, hours, costs, status) to infer realistic risks.
+    //- Avoid generic or vague risks.
+    //- Return only the JSON array, without markdown, headers, or additional explanations.
+    //- Provide all text in English.
 
-//**Task Information:**
-//- Title: {task.Title}
-//- Description: {task.Description}
-//- Planned Start Date: {task.PlannedStartDate}
-//- Planned End Date: {task.PlannedEndDate}
-//- Actual Start Date: {task.ActualStartDate}
-//- Actual End Date: {task.ActualEndDate}
-//- Percent Complete: {task.PercentComplete}%
-//- Planned Hours: {task.PlannedHours}
-//- Actual Hours: {task.ActualHours}
-//- Planned Cost: {task.PlannedCost}
-//- Actual Cost: {task.ActualCost}
-//- Status: {task.Status}
+    //**Task Information:**
+    //- Title: {task.Title}
+    //- Description: {task.Description}
+    //- Planned Start Date: {task.PlannedStartDate}
+    //- Planned End Date: {task.PlannedEndDate}
+    //- Actual Start Date: {task.ActualStartDate}
+    //- Actual End Date: {task.ActualEndDate}
+    //- Percent Complete: {task.PercentComplete}%
+    //- Planned Hours: {task.PlannedHours}
+    //- Actual Hours: {task.ActualHours}
+    //- Planned Cost: {task.PlannedCost}
+    //- Actual Cost: {task.ActualCost}
+    //- Status: {task.Status}
 
-//**Project Context (for reference):**
-//- Name: {project.Name}
-//- Budget: {project.Budget} USD
-//- Start Date: {project.StartDate}
-//- End Date: {project.EndDate}
-//";
+    //**Project Context (for reference):**
+    //- Name: {project.Name}
+    //- Budget: {project.Budget} USD
+    //- Start Date: {project.StartDate}
+    //- End Date: {project.EndDate}
+    //";
 
-//            var requestData = new
-//            {
-//                contents = new[]
-//                {
-//                new
-//                {
-//                    parts = new[]
-//                    {
-//                        new { text = prompt }
-//                    }
-//                }
-//            }
-//            };
+    //            var requestData = new
+    //            {
+    //                contents = new[]
+    //                {
+    //                new
+    //                {
+    //                    parts = new[]
+    //                    {
+    //                        new { text = prompt }
+    //                    }
+    //                }
+    //            }
+    //            };
 
-//            var requestJson = JsonConvert.SerializeObject(requestData);
-//            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+    //            var requestJson = JsonConvert.SerializeObject(requestData);
+    //            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
-//            var response = await _httpClient.PostAsync(_url, content);
-//            var responseString = await response.Content.ReadAsStringAsync();
+    //            var response = await _httpClient.PostAsync(_url, content);
+    //            var responseString = await response.Content.ReadAsStringAsync();
 
-//            if (!response.IsSuccessStatusCode)
-//                continue; // Skip to next task on error
+    //            if (!response.IsSuccessStatusCode)
+    //                continue; // Skip to next task on error
 
-//            if (string.IsNullOrWhiteSpace(responseString))
-//                continue;
+    //            if (string.IsNullOrWhiteSpace(responseString))
+    //                continue;
 
-//            var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
-//            var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
+    //            var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
+    //            var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
 
-//            if (string.IsNullOrEmpty(replyText))
-//                continue;
+    //            if (string.IsNullOrEmpty(replyText))
+    //                continue;
 
-//            if (replyText.StartsWith("```") && replyText.Contains("json"))
-//            {
-//                replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
-//            }
+    //            if (replyText.StartsWith("```") && replyText.Contains("json"))
+    //            {
+    //                replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
+    //            }
 
-//            if (!replyText.StartsWith("["))
-//                continue;
+    //            if (!replyText.StartsWith("["))
+    //                continue;
 
-//            try
-//            {
-//                var taskRisks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
-//                if (taskRisks != null && taskRisks.Count > 0)
-//                {
-//                    foreach (var risk in taskRisks)
-//                    {
-//                        risk.ProjectId = project.Id;
-//                        risk.TaskId = task.Id;
-//                        risk.RiskScope = "Task";
-//                    }
-//                }
-//            }
-//            catch
-//            {
-//                continue;
-//            }
-//        }
+    //            try
+    //            {
+    //                var taskRisks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
+    //                if (taskRisks != null && taskRisks.Count > 0)
+    //                {
+    //                    foreach (var risk in taskRisks)
+    //                    {
+    //                        risk.ProjectId = project.Id;
+    //                        risk.TaskId = task.Id;
+    //                        risk.RiskScope = "Task";
+    //                    }
+    //                }
+    //            }
+    //            catch
+    //            {
+    //                continue;
+    //            }
+    //        }
 
-//        return risks;
-//    }
+    //        return risks;
+    //    }
 
     public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
     {
