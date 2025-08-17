@@ -7,6 +7,8 @@ using IntelliPM.Data.DTOs.AiResponseEvaluation.Request;
 using IntelliPM.Data.DTOs.AiResponseEvaluation.Response;
 using IntelliPM.Data.DTOs.AiResponseHistory.Request;
 using IntelliPM.Data.DTOs.AiResponseHistory.Response;
+using IntelliPM.Data.DTOs.Document.Request;
+using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
 using IntelliPM.Data.DTOs.Epic.Request;

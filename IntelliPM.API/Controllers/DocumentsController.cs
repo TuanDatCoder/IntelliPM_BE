@@ -485,6 +485,53 @@ namespace IntelliPM.API.Controllers
             return Ok(new { permission = permission ?? "none" });
         }
 
+        [HttpPatch("{id:int}/visibility")]
+        public async Task<IActionResult> ChangeVisibility([FromRoute] int id, [FromBody] ChangeVisibilityRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid payload." });
+
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            if (!int.TryParse(userIdClaim, out var userId)) return BadRequest("Invalid account ID");
+
+            try
+            {
+                var dto = await _documentService.ChangeVisibilityAsync(id, request, userId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Visibility changed successfully.",
+                    Data = dto
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(); // 403
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // TODO: log ex.ToString()
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = ex.Message  // t?m th?i ?? debug
+                });
+            }
+
+        }
+
 
 
 
