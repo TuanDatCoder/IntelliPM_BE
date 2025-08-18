@@ -48,13 +48,16 @@ namespace IntelliPM.API.Controllers
 
 
         [HttpPost("create")]
-        //public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
-        //{
-     public async Task<IActionResult> CreateDocument([FromBody] DocumentRequestDTO request)
+        public async Task<IActionResult> CreateDocument([FromBody] DocumentRequestDTO request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid data", Data = ModelState });
+
             var accountIdClaim = User.FindFirst("accountId")?.Value;
-            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized("Missing accountId in token.");
-            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID format.");
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized("Missing accountId in token.");
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format.");
 
             try
             {
@@ -83,37 +86,32 @@ namespace IntelliPM.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
         {
-            var accountIdClaim = User.FindFirst("accountId")?.Value;
-            if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized("Missing accountId in token.");
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid data", Data = ModelState });
 
-            if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format.");
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized("Missing accountId in token.");
+            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID format.");
 
             try
             {
                 var dto = await _documentService.UpdateDocument(id, request, userId);
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Updated",
-                    Data = dto
-                });
+                return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Updated", Data = dto });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
             catch (ArgumentException ax)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ax.Message });
-            }
-            catch (KeyNotFoundException kx)
-            {
-                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = kx.Message });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = ex.Message });
             }
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

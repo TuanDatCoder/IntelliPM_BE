@@ -915,7 +915,7 @@ namespace IntelliPM.Services.RiskServices
                     Probability = defaultProbability,
                     ImpactLevel = defaultImpactLevel,
                     SeverityLevel = CalculateSeverityLevel(defaultImpactLevel, defaultProbability),
-                    CreatedBy = 4,
+                    CreatedBy = null,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     DueDate = null,
