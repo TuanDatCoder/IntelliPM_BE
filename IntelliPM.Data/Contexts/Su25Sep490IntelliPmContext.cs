@@ -1,9 +1,9 @@
-﻿using IntelliPM.Data.Entities;
+﻿using System;
+using System.Collections.Generic;
+using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using System;
-using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -1518,7 +1518,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_created_by_fkey");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)

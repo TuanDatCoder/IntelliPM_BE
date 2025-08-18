@@ -499,6 +499,18 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
+        [HttpPost("check-overdue-tasks")]
+        public async Task<IActionResult> CheckAndCreateAllOverdueTaskRisksAsync()
+        {
+            try
+            {
+                await _riskService.CheckAndCreateAllOverdueTaskRisksAsync();
+                return Ok(new { message = "Overdue task risks processed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
