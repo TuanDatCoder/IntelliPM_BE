@@ -1273,7 +1273,10 @@ VALUES
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
 
-
+INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
+VALUES
+    ('ahead_threshold', '5', 'Threshold for determining Ahead status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('behind_threshold', '-5', 'Threshold for determining Behind status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 
 -- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
@@ -1289,8 +1292,6 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
-    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
-    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
     ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
@@ -1462,7 +1463,12 @@ VALUES
     ('risk_probability_level', 'HIGH', 'High', 'High probability level', 3, NULL, 'red-100,red-700'),
     ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
     ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
-    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
+    ('health_status', 'NOT_STARTED', 'Not Started', 'Project or task has not yet started', 1, NULL, '#9CA3AF'), -- Gray
+    ('health_status', 'NO_PROGRESS', 'No Progress', 'Project has started but no progress recorded', 2, NULL, '#F87171'), -- Red
+    ('health_status', 'ON_TIME', 'On Time', 'Project or task is on schedule', 3, NULL, '#10B981'), -- Green
+    ('health_status', 'AHEAD', 'Ahead', 'Project or task is ahead of schedule', 4, NULL, '#34D399'), -- Light Green
+    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'); -- Dark Red
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 

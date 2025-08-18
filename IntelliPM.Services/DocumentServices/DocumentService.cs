@@ -1,4 +1,5 @@
-﻿using IntelliPM.Data.DTOs.Document.Request;
+﻿using AutoMapper;
+using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
@@ -40,9 +41,10 @@ namespace IntelliPM.Services.DocumentServices
         private readonly ILogger<DocumentService> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHubContext<DocumentHub> _hubContext;
+        private readonly IMapper _mapper;
 
         public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext)
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper)
         {
             _repo = repo;
             _httpClient = httpClient;
@@ -56,6 +58,7 @@ namespace IntelliPM.Services.DocumentServices
             _logger = logger;
             _configuration = configuration;
             _hubContext = hubContext;
+            _mapper = mapper;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -97,6 +100,12 @@ namespace IntelliPM.Services.DocumentServices
                 CreatedAt = d.CreatedAt,
                 UpdatedAt = d.UpdatedAt
             }).ToList();
+        }
+
+        public async Task<DocumentResponseDTO> GetByIdAsync(int id)
+        {
+            var entity = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
+            return _mapper.Map<DocumentResponseDTO>(entity);
         }
 
 
@@ -1263,6 +1272,49 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
             return permission?.ToLower() ?? "none";
         }
 
+
+        //public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
+        //{
+
+        //    var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
+        //    if (!updated) throw new KeyNotFoundException($"Document {documentId} not found.");
+
+        //    var latest = await _repo.GetByIdAsync(documentId)
+        //                 ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
+
+        //    return _mapper.Map<DocumentResponseDTO>(latest);
+        //}
+
+        public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
+        {
+            var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
+            if (!updated)
+                throw new KeyNotFoundException($"Document {documentId} not found.");
+
+            var latest = await _repo.GetByIdAsync(documentId)
+                         ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
+
+            var dto = new DocumentResponseDTO
+            {
+                Id = latest.Id,
+                ProjectId = latest.ProjectId,
+                TaskId = latest.TaskId,
+                Title = latest.Title,
+                //Type = latest.Type,
+                //Template = latest.Template,
+                Content = latest.Content,
+                //FileUrl = latest.FileUrl,
+                IsActive = latest.IsActive,
+                CreatedBy = latest.CreatedBy,
+                UpdatedBy = latest.UpdatedBy,
+                CreatedAt = latest.CreatedAt,
+                UpdatedAt = latest.UpdatedAt,
+                Visibility = latest.Visibility,
+
+            };
+
+            return dto;
+        }
 
 
 
