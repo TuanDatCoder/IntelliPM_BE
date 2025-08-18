@@ -61,6 +61,7 @@ using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.GenerateEpicsServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
+using IntelliPM.Services.AiServices.StoryTaskServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
@@ -260,6 +261,7 @@ builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
 builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
 builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
 builder.Services.AddScoped<IGenerateEpicService, GenerateEpicService>();
+builder.Services.AddScoped<IGenerateStoryTaskService, GenerateStoryTaskService>();
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>

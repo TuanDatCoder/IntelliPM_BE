@@ -184,6 +184,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                     Data = new
                     {
                         EpicId = $"{projectKey}-{result.Count + 1}",
+                        Type = "EPIC", // Added Type property for Epic
                         Title = epic.Title,
                         Description = epic.Description,
                         StartDate = epic.StartDate,
@@ -191,6 +192,7 @@ namespace IntelliPM.Services.AiServices.TaskPlanningServices
                         Tasks = epic.Tasks.Select((t, taskIndex) => new
                         {
                             TaskId = $"{projectKey}-{result.Count + 1}-{taskIndex + 1}",
+                            Type = t.Type, // Include Task Type (e.g., STORY)
                             Title = t.Title,
                             Description = t.Description,
                             StartDate = t.StartDate,
@@ -524,12 +526,13 @@ USER STORY FORMAT EXAMPLES:
 
 INSTRUCTIONS:
 1. Create {requirements.Count} Epics based on the requirements
-2. For each Epic, generate a unique 'title' (under 100 chars) and 'description' that represents a major feature
+2. For each Epic, generate a unique 'title' (under 100 chars), 'description' that represents a major feature, and 'type' set to 'EPIC'
 3. For each Epic, generate 5 tasks with:
    - UNIQUE 'title' (under 100 chars) in User Story format using lowercase readable role names (e.g., 'project manager', 'frontend developer', 'business analyst')
    - Detailed 'description' explaining acceptance criteria and implementation requirements
    - 'startDate' and 'endDate' (YYYY-MM-DD format) within project duration
    - 'suggestedRole' using EXACT role names from the database (e.g., 'BUSINESS_ANALYST', 'FRONTEND_DEVELOPER', etc.)
+   - 'type' set to 'STORY'
 
 TASK WRITING GUIDELINES:
 - Title: Use lowercase readable role names in User Story format (""As a frontend developer, I want...""), keep under 100 characters, Always start with capital ""A"" in ""As""
@@ -544,12 +547,14 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
     ""epicId"": ""<unique_id>"",
     ""title"": ""<epic_title>"",
     ""description"": ""<epic_description>"",
+    ""type"": ""EPIC"",
     ""startDate"": ""<YYYY-MM-DD>"",
     ""endDate"": ""<YYYY-MM-DD>"",
     ""tasks"": [
       {{
         ""title"": ""As a [lowercase_readable_role] I want [functionality] so that [benefit]"",
         ""description"": ""<detailed_acceptance_criteria_and_implementation_details>"",
+        ""type"": ""STORY"",
         ""startDate"": ""<YYYY-MM-DD>"",
         ""endDate"": ""<YYYY-MM-DD>"",
         ""suggestedRole"": ""<EXACT_DATABASE_ROLE_NAME>""
@@ -689,6 +694,7 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
         public string EpicId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
+        public string Type { get; set; } = "EPIC"; // Added Type property for Epic
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool AIGenerated { get; set; }
@@ -700,6 +706,7 @@ IMPORTANT: Return ONLY a valid JSON array with this exact structure:
         public string TaskId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
+        public string Type { get; set; } = "STORY";
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string SuggestedRole { get; set; }
