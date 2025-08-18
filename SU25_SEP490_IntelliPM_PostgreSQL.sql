@@ -1225,7 +1225,22 @@ INSERT INTO project_metric (
     (4, 'user4', TRUE, 30000.00, 28000.00, 29000.00, 0.95, 0.97, 31000.00, 60.00, -1000.00, -2000.00, 31000.00, 3000.00, -1000.00, 62.00),
     (5, 'user5', FALSE, 40000.00, 35000.00, 36000.00, 0.90, 0.92, 42000.00, 75.00, -1000.00, -5000.00, 42000.00, 6000.00, -2000.00, 78.00);
 
-	-- Insert sample data into system_configuration
+
+
+
+-- Insert sample data into meeting_reschedule_request
+INSERT INTO meeting_reschedule_request (meeting_id, requester_id, requested_date, reason, status, pm_id, pm_proposed_date, pm_note)
+VALUES 
+    (1, 2, '2025-06-26 14:00:00+07', 'Conflict with another meeting', 'PENDING', 1, NULL, NULL),
+    (2, 3, '2025-07-11 15:00:00+07', 'Need more preparation time', 'APPROVED', 2, '2025-07-11 15:00:00+07', 'Approved with new time'),
+    (3, 4, '2025-08-16 10:00:00+07', 'Team unavailable', 'REJECTED', 3, NULL, 'Reschedule not needed'),
+    (4, 5, '2025-09-13 14:00:00+07', 'Client requested delay', 'PENDING', 4, NULL, NULL),
+    (5, 1, '2025-10-21 12:00:00+07', 'Technical issues', 'APPROVED', 5, '2025-10-21 12:00:00+07', 'Adjusted for technical setup');
+
+
+
+
+		-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
     ('max_sprint_duration', '30', '7', '60', '14', 'Maximum duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
@@ -1239,15 +1254,20 @@ VALUES
     ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
     ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 
-
--- Insert sample data into meeting_reschedule_request
-INSERT INTO meeting_reschedule_request (meeting_id, requester_id, requested_date, reason, status, pm_id, pm_proposed_date, pm_note)
+INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
-    (1, 2, '2025-06-26 14:00:00+07', 'Conflict with another meeting', 'PENDING', 1, NULL, NULL),
-    (2, 3, '2025-07-11 15:00:00+07', 'Need more preparation time', 'APPROVED', 2, '2025-07-11 15:00:00+07', 'Approved with new time'),
-    (3, 4, '2025-08-16 10:00:00+07', 'Team unavailable', 'REJECTED', 3, NULL, 'Reschedule not needed'),
-    (4, 5, '2025-09-13 14:00:00+07', 'Client requested delay', 'PENDING', 4, NULL, NULL),
-    (5, 1, '2025-10-21 12:00:00+07', 'Technical issues', 'APPROVED', 5, '2025-10-21 12:00:00+07', 'Adjusted for technical setup');
+    ('project_duration_days', '365', '30', '1095', '365', 'Duration of a project in days', 'Adjust based on project scope', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_budget', '5000000000', '1', '100000000000', '5000000000', 'Budget for a project in VND', 'Supports VND; adjust for other currencies if needed', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_members', '20', '5', '100', '20', 'Number of members in a project', 'Ensure sufficient team size', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00')
+	 ('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
+INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
+VALUES
+    ('ahead_threshold', '5', 'Threshold for determining Ahead status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('behind_threshold', '-5', 'Threshold for determining Behind status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
 
 -- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
@@ -1262,8 +1282,6 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
-    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
-    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
     ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
@@ -1435,7 +1453,12 @@ VALUES
     ('risk_probability_level', 'HIGH', 'High', 'High probability level', 3, NULL, 'red-100,red-700'),
     ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
     ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
-    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
+    ('health_status', 'NOT_STARTED', 'Not Started', 'Project or task has not yet started', 1, NULL, '#9CA3AF'), -- Gray
+    ('health_status', 'NO_PROGRESS', 'No Progress', 'Project has started but no progress recorded', 2, NULL, '#F87171'), -- Red
+    ('health_status', 'ON_TIME', 'On Time', 'Project or task is on schedule', 3, NULL, '#10B981'), -- Green
+    ('health_status', 'AHEAD', 'Ahead', 'Project or task is ahead of schedule', 4, NULL, '#34D399'), -- Light Green
+    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'); -- Dark Red
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 

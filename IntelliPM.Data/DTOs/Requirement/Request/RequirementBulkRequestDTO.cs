@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -11,15 +12,19 @@ namespace IntelliPM.Data.DTOs.Requirement.Request
     {
 
         [Required(ErrorMessage = "Requirement title is required")]
-        [MaxLength(255, ErrorMessage = "Requirement title cannot exceed 255 characters")]
+        [DynamicMaxLength("title_length")]
         public string Title { get; set; } = null!;
 
-        [MaxLength(100, ErrorMessage = "Type cannot exceed 100 characters")]
+
+        [DynamicMaxLength("type_length")]
+        [DynamicCategoryValidation("requirement_type", Required = false)]
         public string? Type { get; set; }
 
         public string? Description { get; set; }
 
-        [MaxLength(50, ErrorMessage = "Priority cannot exceed 50 characters")]
+
+        [DynamicMaxLength("priority_length")]
+        [DynamicCategoryValidation("requirement_priority", Required = false)]
         public string? Priority { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Ai.SprintTaskPlanning.Request;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
+using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +19,17 @@ namespace IntelliPM.API.Controllers
         private readonly ITaskPlanningService _taskPlanningService;
         private readonly ISubtaskService _subtaskService;
         private readonly ITaskService _taskService;
+        private readonly IEpicService _epicService;
         private readonly ISprintPlanningService _sprintPlanningService;
         private readonly ISprintTaskPlanningService _sprintTaskPlanningService;
 
-        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService, ITaskService taskService, ISprintTaskPlanningService sprintTaskPlanningService )
+        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService, ITaskService taskService, ISprintTaskPlanningService sprintTaskPlanningService, IEpicService epicService )
         {
             _taskPlanningService = taskPlanningService ?? throw new ArgumentNullException(nameof(taskPlanningService));
             _subtaskService = subtaskService ?? throw new ArgumentNullException( nameof(subtaskService));
             _sprintPlanningService = sprintPlanningService ?? throw new ArgumentNullException(nameof(sprintPlanningService));
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+            _epicService = epicService ?? throw new ArgumentNullException(nameof(epicService));
             _sprintTaskPlanningService = sprintTaskPlanningService ?? throw new ArgumentNullException(nameof(sprintTaskPlanningService));
         }
 
@@ -122,6 +125,31 @@ namespace IntelliPM.API.Controllers
                     IsSuccess = false,
                     Code = 500,
                     Message = $"Error generating Task: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("{projectId}/generate-epic")]
+        public async Task<IActionResult> GenerateEpicFromProjectDescription(int projectId)
+        {
+            try
+            {
+                var task = await _epicService.GenerateEpicPreviewAsync(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Epic generated successfully (not saved)",
+                    Data = task
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating Epic: {ex.Message}"
                 });
             }
         }

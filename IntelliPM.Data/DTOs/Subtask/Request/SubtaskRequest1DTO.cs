@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,8 +13,9 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
 
         public int? AssignedBy { get; set; }
 
+        [Required(ErrorMessage = "Task title is required")]
+        [MaxLength(65, ErrorMessage = "Task title cannot exceed 65 characters")]
         public string Title { get; set; } = null!;
-
         public string? Description { get; set; }
     }
 }

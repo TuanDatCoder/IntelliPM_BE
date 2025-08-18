@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Epic.Request;
 using IntelliPM.Data.DTOs.Epic.Response;
+using IntelliPM.Data.DTOs.Task.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace IntelliPM.Services.EpicServices
         Task<List<EpicResponseDTO>> GetEpicByAccountId(int accountId);
         Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests, string type);
 
-
+        Task<List<EpicResponseDTO>> GenerateEpicPreviewAsync(int projectId);
 
     }
 }

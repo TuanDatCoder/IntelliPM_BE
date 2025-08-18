@@ -142,9 +142,23 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToDictionaryAsync(a => a.Email.ToLower(), a => a.Id);
         }
 
+        public async Task<bool> UpdateVisibilityAsync(int documentId, string newVisibility, int updatedBy)
+        {
+            var doc = await _context.Document.FirstOrDefaultAsync(d => d.Id == documentId);
+            if (doc == null) return false;
+
+            doc.Visibility = newVisibility;
+            doc.UpdatedBy = updatedBy;
+            doc.UpdatedAt = DateTime.UtcNow;
+
+            _context.Document.Update(doc);
+            await _context.SaveChangesAsync();
+            return true;
 
 
 
+
+        }
 
     }
 }

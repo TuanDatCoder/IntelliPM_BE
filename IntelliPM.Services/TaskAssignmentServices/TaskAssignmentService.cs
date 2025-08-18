@@ -16,6 +16,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using IntelliPM.Services.ActivityLogServices;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace IntelliPM.Services.TaskAssignmentServices
 {
@@ -135,6 +137,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
                         taskTitle: task.Title
                     );
                 }
+                // Recalculate task planned hours after adding the new assignment
+                await RecalculateTaskPlannedHours(taskId);
             }
             catch (DbUpdateException ex)
             {
@@ -146,6 +150,66 @@ namespace IntelliPM.Services.TaskAssignmentServices
             }
 
             return _mapper.Map<TaskAssignmentResponseDTO>(entity);
+        }
+
+        private async Task RecalculateTaskPlannedHours(string taskId)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null) return;
+
+            var taskAssignments = await _repo.GetByTaskIdAsync(taskId);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, task.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue)
+                {
+                    decimal hourlyRate = member.HourlyRate ?? 0m;
+                    projectMembers.Add(new ProjectMember
+                    {
+                        Id = member.Id,
+                        AccountId = member.AccountId,
+                        ProjectId = member.ProjectId,
+                        WorkingHoursPerDay = member.WorkingHoursPerDay,
+                        HourlyRate = hourlyRate,
+                    });
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal? totalCost = 0m;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var memberAssignedHours = task.PlannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+
+                    var taskAssignment = await _repo.GetByTaskAndAccountAsync(taskId, member.AccountId);
+                    if (taskAssignment != null)
+                    {
+                        taskAssignment.PlannedHours = memberAssignedHours;
+                        await _repo.Update(taskAssignment);
+                    }
+                }
+
+                task.PlannedResourceCost = totalCost;
+                task.PlannedCost = totalCost;
+            }
+            else
+            {
+                // Warning: No assignments or working hours, costs remain 0
+                task.PlannedResourceCost = 0m;
+                task.PlannedCost = 0m;
+            }
+
+            await _taskRepo.Update(task);
+            await UpdateTaskProgressAsync(task);
         }
 
 
@@ -639,7 +703,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             return _mapper.Map<TaskAssignmentResponseDTO>(assignment);
         }
 
-        public async Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<(int AssignmentId, decimal PlannedHours)> updates, int createdBy)
+        public async Task<List<TaskAssignmentResponseDTO>> UpdateAssignmentPlannedHoursBulk(string taskId, List<TaskAssignmentUpdateDTO> updates, int createdBy)
         {
             var task = await _taskRepo.GetByIdAsync(taskId);
             if (task == null)
@@ -648,6 +712,15 @@ namespace IntelliPM.Services.TaskAssignmentServices
             var allAssignments = await _repo.GetByTaskIdAsync(taskId);
             if (allAssignments == null || !allAssignments.Any())
                 throw new KeyNotFoundException($"No assignments found for task with ID {taskId}.");
+
+            // Log allAssignments and updates
+            Console.WriteLine($"allAssignments for task {taskId}: {System.Text.Json.JsonSerializer.Serialize(allAssignments, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles })}");
+            Console.WriteLine($"Received updates: {System.Text.Json.JsonSerializer.Serialize(updates)}");
+
+            // Filter out invalid assignments
+            allAssignments = allAssignments.Where(a => a.Id > 0).ToList();
+            if (!allAssignments.Any())
+                throw new KeyNotFoundException($"No valid assignments (Id > 0) found for task with ID {taskId}.");
 
             // Validate and update each assignment
             var updatedAssignments = new List<TaskAssignment>();
@@ -661,8 +734,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 if (member == null || !member.WorkingHoursPerDay.HasValue)
                     throw new InvalidOperationException($"Member for account {assignment.AccountId} not found or working hours not set.");
 
-                if (update.PlannedHours > member.WorkingHoursPerDay.Value)
-                    throw new ArgumentException($"Planned hours for assignment {update.AssignmentId} cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
+                //if (update.PlannedHours > member.WorkingHoursPerDay.Value)
+                //    throw new ArgumentException($"Planned hours for assignment {update.AssignmentId} cannot exceed member's working hours per day ({member.WorkingHoursPerDay.Value}).");
 
                 assignment.PlannedHours = update.PlannedHours;
                 updatedAssignments.Add(assignment);
@@ -707,7 +780,10 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 CreatedAt = DateTime.UtcNow
             });
 
-            return _mapper.Map<List<TaskAssignmentResponseDTO>>(updatedAssignments);
+            // Map to DTO without cycles
+            var result = _mapper.Map<List<TaskAssignmentResponseDTO>>(updatedAssignments);
+            Console.WriteLine($"Returning response: {System.Text.Json.JsonSerializer.Serialize(result)}");
+            return result;
         }
     }
 }
