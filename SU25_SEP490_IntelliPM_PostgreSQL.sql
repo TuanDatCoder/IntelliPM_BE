@@ -335,7 +335,6 @@ CREATE TABLE document (
     subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     content TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_by INTEGER NOT NULL,
     updated_by INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -359,8 +358,6 @@ CREATE TABLE document (
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-
-
 );
 
 CREATE TABLE  document_comment (
@@ -383,15 +380,15 @@ CREATE TABLE document_export_file (
     document_id INTEGER NOT NULL,
     exported_file_url VARCHAR(1000) NOT NULL,
     exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    exported_by INTEGER NOT NULL,
+    exported_by INTEGER,  
 
-    
     CONSTRAINT fk_document_export FOREIGN KEY (document_id)
         REFERENCES document(id) ON DELETE CASCADE,
 
     CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
         REFERENCES account(id) ON DELETE SET NULL
 );
+
 
 
 
