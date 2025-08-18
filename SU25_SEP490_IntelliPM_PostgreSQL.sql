@@ -1240,7 +1240,7 @@ VALUES
 
 
 
-		-- Insert sample data into system_configuration
+-- Insert sample data into system_configuration
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
     ('max_sprint_duration', '30', '7', '60', '14', 'Maximum duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
@@ -1248,20 +1248,30 @@ VALUES
     ('max_tasks_per_user', '10', '1', '50', '15', 'Maximum tasks assigned per user', 'Monitor workload', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('priority_threshold', 'HIGH', 'LOW', 'HIGHEST', 'MEDIUM', 'Threshold for priority alerts', 'Trigger notifications', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('overtime_hours', '2', '0', '4', '2', 'Maximum overtime hours per day', 'Ensure compliance', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
 INSERT INTO system_configuration (config_key, value_config, description, effected_from)
 VALUES
     ('time_status_threshold', '5', 'Percentage threshold for determining ahead/behind status', CURRENT_TIMESTAMP),
     ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
     ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
-
+	-- Project
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
     ('project_duration_days', '365', '30', '1095', '365', 'Duration of a project in days', 'Adjust based on project scope', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_budget', '5000000000', '1', '100000000000', '5000000000', 'Budget for a project in VND', 'Supports VND; adjust for other currencies if needed', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_members', '20', '5', '100', '20', 'Number of members in a project', 'Ensure sufficient team size', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00')
-	 ('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+	('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('epic_duration_days', '180', '15', '365', '180', 'Duration of an epic in days', 'Shorter than project duration', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('type_length', '100', '0', '100', '50', 'Max length of requirement type', 'Ensure valid type length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('status_length', '50', '0', '50', '20', 'Max length of status type', 'Ensure valid type length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('priority_length', '50', '0', '50', '20', 'Max length of requirement priority', 'Ensure valid priority length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('description_length', '500', '0', '2000', '300', 'Max length of description fields', 'Allow long descriptions but keep reasonable limit', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('sprint_name_length', '255', '1', '255', '100', 'Max length of sprint name', 'Ensure readable sprint names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
 
 INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
 VALUES

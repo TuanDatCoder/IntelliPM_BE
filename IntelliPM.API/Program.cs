@@ -58,6 +58,7 @@ using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.AdminServices;
 using IntelliPM.Services.AiResponseEvaluationServices;
 using IntelliPM.Services.AiResponseHistoryServices;
+using IntelliPM.Services.AiServices.GenerateEpicsServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
@@ -258,7 +259,7 @@ builder.Services.AddScoped<ISprintTaskPlanningService, SprintTaskPlanningService
 builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
 builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
 builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
-
+builder.Services.AddScoped<IGenerateEpicService, GenerateEpicService>();
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
@@ -392,7 +393,7 @@ app.MapHub<DocumentHub>("/hubs/document");
 
 
 app.UseHangfireDashboard();
-app.UseHangfireServer();
+//app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),

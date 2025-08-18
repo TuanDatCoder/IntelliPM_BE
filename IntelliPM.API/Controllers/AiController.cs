@@ -1,6 +1,8 @@
 ﻿using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Ai.GenerateEpics.Request;
 using IntelliPM.Data.DTOs.Ai.ProjectTaskPlanning.Request;
 using IntelliPM.Data.DTOs.Ai.SprintTaskPlanning.Request;
+using IntelliPM.Services.AiServices.GenerateEpicsServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
@@ -22,8 +24,9 @@ namespace IntelliPM.API.Controllers
         private readonly IEpicService _epicService;
         private readonly ISprintPlanningService _sprintPlanningService;
         private readonly ISprintTaskPlanningService _sprintTaskPlanningService;
+        private readonly IGenerateEpicService _generateEpicService;
 
-        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService, ITaskService taskService, ISprintTaskPlanningService sprintTaskPlanningService, IEpicService epicService )
+        public AiController(ITaskPlanningService taskPlanningService, ISubtaskService subtaskService, ISprintPlanningService sprintPlanningService, ITaskService taskService, ISprintTaskPlanningService sprintTaskPlanningService, IEpicService epicService, IGenerateEpicService generateEpicService)
         {
             _taskPlanningService = taskPlanningService ?? throw new ArgumentNullException(nameof(taskPlanningService));
             _subtaskService = subtaskService ?? throw new ArgumentNullException( nameof(subtaskService));
@@ -31,6 +34,7 @@ namespace IntelliPM.API.Controllers
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
             _epicService = epicService ?? throw new ArgumentNullException(nameof(epicService));
             _sprintTaskPlanningService = sprintTaskPlanningService ?? throw new ArgumentNullException(nameof(sprintTaskPlanningService));
+            _generateEpicService = generateEpicService ?? throw new ArgumentNullException(nameof(generateEpicService));
         }
 
         // Đạt: AI tạo gợi ý tạo các task cho project
@@ -287,6 +291,52 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+        [HttpPost("project/{id}/generate-epics")]
+        public async Task<IActionResult> GenerateEpics(int id, [FromBody] GenerateEpicsRequestDTO request)
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 400,
+                    Message = "Project ID must be greater than 0"
+                });
+            }
+
+            try
+            {
+                var epics = await _generateEpicService.GenerateEpics(id, request.ExistingEpicTitles);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Epics generated successfully (not saved)",
+                    Data = epics
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error generating epics: {ex.Message}"
+                });
+            }
+        }
+
 
     }
 

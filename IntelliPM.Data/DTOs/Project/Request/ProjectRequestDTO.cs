@@ -19,6 +19,8 @@ namespace IntelliPM.Data.DTOs.Project.Request
         [DynamicMaxLength("project_key_length")]
         [DynamicMinLength("project_key_length")]
         public string ProjectKey { get; set; } = null!;
+
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [DynamicRange("project_budget")]
