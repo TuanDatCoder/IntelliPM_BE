@@ -9,6 +9,7 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
 {
     public class SubtaskRequest3DTO
     {
+        [Required(ErrorMessage = "Status is required")]
         public string? Status { get; set; }
 
         [Required(ErrorMessage = "CreatedBy is required")]

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -10,6 +11,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
     public class ChangeTaskDescriptionRequestDTO
     {
         [Required(ErrorMessage = "Description is required")]
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "CreatedBy is required")]
