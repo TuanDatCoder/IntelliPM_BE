@@ -335,7 +335,6 @@ CREATE TABLE document (
     subtask_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     content TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_by INTEGER NOT NULL,
     updated_by INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -359,8 +358,6 @@ CREATE TABLE document (
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-
-
 );
 
 CREATE TABLE  document_comment (
@@ -383,15 +380,15 @@ CREATE TABLE document_export_file (
     document_id INTEGER NOT NULL,
     exported_file_url VARCHAR(1000) NOT NULL,
     exported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    exported_by INTEGER NOT NULL,
+    exported_by INTEGER,  
 
-    
     CONSTRAINT fk_document_export FOREIGN KEY (document_id)
         REFERENCES document(id) ON DELETE CASCADE,
 
     CONSTRAINT fk_exported_by FOREIGN KEY (exported_by)
         REFERENCES account(id) ON DELETE SET NULL
 );
+
 
 
 
@@ -530,7 +527,7 @@ CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     risk_key VARCHAR(20) NOT NULL UNIQUE,
     responsible_id INT NULL,
-    created_by INT NOT NULL,
+    created_by INT NULL,
     project_id INT NOT NULL,
     task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
@@ -1260,7 +1257,7 @@ VALUES
     ('project_duration_days', '365', '30', '1095', '365', 'Duration of a project in days', 'Adjust based on project scope', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_budget', '5000000000', '1', '100000000000', '5000000000', 'Budget for a project in VND', 'Supports VND; adjust for other currencies if needed', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_members', '20', '5', '100', '20', 'Number of members in a project', 'Ensure sufficient team size', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00')
+    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('epic_duration_days', '180', '15', '365', '180', 'Duration of an epic in days', 'Shorter than project duration', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
@@ -1273,7 +1270,21 @@ VALUES
 	('sprint_name_length', '255', '1', '255', '100', 'Max length of sprint name', 'Ensure readable sprint names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('risk_title_length', '255', '1', '255', '255', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
+
+INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
+VALUES
+    ('ahead_threshold', '5', 'Threshold for determining Ahead status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('behind_threshold', '-5', 'Threshold for determining Behind status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('default_risk_status', 'OPEN', 'Default status for new risks', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('default_risk_generated_by', 'MANUAL', 'Default generated_by value for new risks', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT INTO system_configuration (config_key, value_config, description)
+VALUES 
+    ('overdue_task_risk_check_time', '0 17 * * *', 'Cron expression for daily overdue task risk check (runs at 00:00 +07)'),
+    ('default_risk_scope', 'PROJECT', 'Default risk scope');
 
 
 
@@ -1466,7 +1477,16 @@ VALUES
     ('risk_probability_level', 'HIGH', 'High', 'High probability level', 3, NULL, 'red-100,red-700'),
     ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
     ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
+    ('health_status', 'NOT_STARTED', 'Not Started', 'Project or task has not yet started', 1, NULL, '#9CA3AF'), -- Gray
+    ('health_status', 'NO_PROGRESS', 'No Progress', 'Project has started but no progress recorded', 2, NULL, '#F87171'), -- Red
+    ('health_status', 'ON_TIME', 'On Time', 'Project or task is on schedule', 3, NULL, '#10B981'), -- Green
+    ('health_status', 'AHEAD', 'Ahead', 'Project or task is ahead of schedule', 4, NULL, '#34D399'), -- Light Green
+    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'), -- Dark Red
+    ('risk_generated_by', 'MANUAL', 'Manual', 'Risk created manually by a user', 1, NULL, '#4B5563'), -- Gray
+    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6'); -- Blue
     ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
+
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 

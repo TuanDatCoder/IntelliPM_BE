@@ -7,6 +7,7 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.GeminiServices;
 using Newtonsoft.Json;
 using System.Text;
@@ -18,12 +19,14 @@ public class GeminiService : IGeminiService
     private readonly string _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
     private readonly IMapper _mapper;
     private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+    private readonly ISystemConfigurationRepository _systemConfigRepo;
 
-    public GeminiService(HttpClient httpClient, IMapper mapper, IDynamicCategoryRepository dynamicCategoryRepo)
+    public GeminiService(HttpClient httpClient, IMapper mapper, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationRepository systemConfigRepo)
     {
         _httpClient = httpClient;
         _mapper = mapper;
         _dynamicCategoryRepo = dynamicCategoryRepo;
+        _systemConfigRepo = systemConfigRepo;
     }
 
     public async Task<List<string>> GenerateSubtaskAsync(string taskTitle)
@@ -423,124 +426,6 @@ Return a valid **JSON array** only (no markdown, no explanation). Use the exact 
         }
     }
 
-    //public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks)
-    //{
-    //    var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
-    //    {
-    //        t.Title,
-    //        t.Description,
-    //        t.PlannedStartDate,
-    //        t.PlannedEndDate,
-    //        t.ActualStartDate,
-    //        t.ActualEndDate,
-    //        t.PercentComplete,
-    //        t.PlannedHours,
-    //        t.ActualHours,
-    //        t.PlannedCost,
-    //        t.ActualCost,
-    //        t.Status
-    //    }), Formatting.Indented);
-
-    //    var prompt = $@"
-    //    Bạn là một chuyên gia quản lý dự án. Dưới đây là thông tin dự án và danh sách các task. 
-
-    //    Hãy thực hiện:
-    //    1. Hãy trả về kết quả dưới dạng một JSON object, bao gồm đầy đủ tất cả các trường sau (không được thiếu bất kỳ trường nào, và đúng định dạng):
-
-    //        - plannedValue: Tổng giá trị kế hoạch của các công việc đã lên lịch tính đến hiện tại.
-    //        - earnedValue: Tổng giá trị kiếm được theo % hoàn thành của từng task.
-    //        - actualCost: Tổng chi phí thực tế.
-    //        - spi: Schedule Performance Index = EV / PV
-    //        - cpi: Cost Performance Index = EV / AC
-    //        - delayDays: Số ngày dự án đang trễ so với kế hoạch (nếu có).
-    //        - budgetOverrun: Chi phí vượt ngân sách = AC - PV
-    //        - projectedFinishDate: Ngày kết thúc dự kiến nếu giữ nguyên tốc độ hiện tại (định dạng: yyyy-MM-ddTHH:mm:ssZ), tính bằng Project.StartDate + EDAC  (EDAC = DAC/SPI là Ước lượng tổng thời gian thực tế để hoàn thành)
-    //        - projectedTotalCost: Tổng chi phí ước tính để hoàn thành toàn bộ dự án (EAC = BAC / CPI nếu CPI hiện tại giữ nguyên)
-
-    //    **Yêu cầu:** chỉ trả về đúng JSON, không giải thích, không thêm chữ, không định dạng Markdown.
-
-    //    2. Nếu phát hiện:
-    //    - SPI < 1 → dự án đang chậm tiến độ
-    //    - CPI < 1 → dự án vượt chi phí
-
-    //    Hãy thêm vào JSON một trường 'suggestions' là mảng các giải pháp cải thiện. Mỗi phần tử trong 'suggestions' cần gồm:
-    //    - message: gợi ý hành động cụ thể
-    //    - reason: lý do đưa ra gợi ý này
-    //    - label: Từ khóa ngắn gọn mô tả loại gợi ý (ví dụ: “Tiến độ”, “Chi phí”)
-    //     - relatedTasks: nếu có, là mảng task liên quan — mỗi task chỉ xuất hiện **một lần duy nhất** trong toàn bộ danh sách suggestions.
-    //    Cấu trúc mỗi phần tử trong relatedTasks:
-    //    - taskTitle
-    //    - currentPlannedEndDate
-    //    - currentPercentComplete
-    //    - suggestedAction: hành động cụ thể cần thực hiện (VD: tăng nhân lực, kéo dài thời hạn như thế nào ...)
-
-    //    **Ràng buộc nghiêm ngặt:**
-    //    - Mỗi task chỉ được xuất hiện **một lần** trong toàn bộ suggestions. Nếu có nhiều đề xuất áp dụng cho một task, hãy gộp lại thành một entry.
-    //    - Nếu không có task liên quan, **bỏ qua trường relatedTasks**.
-    //    - Trả về đúng JSON thuần, không markdown, không giải thích.
-
-    //    Thông tin dự án:
-    //    - Tên: {project.Name}
-    //    - Ngân sách: {project.Budget}
-    //    - Thời gian bắt đầu: {project.StartDate}
-    //    - Thời gian kết thúc: {project.EndDate}
-
-    //    Danh sách task:
-    //    {taskList}
-    //    ";
-
-    //    var requestData = new
-    //{
-    //    contents = new[]
-    //    {
-    //        new
-    //        {
-    //            parts = new[]
-    //            {
-    //                new { text = prompt }
-    //            }
-    //        }
-    //    }
-    //};
-
-    //    var requestJson = JsonConvert.SerializeObject(requestData);
-    //    var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
-
-    //    var response = await _httpClient.PostAsync(_url, content);
-    //    var responseString = await response.Content.ReadAsStringAsync();
-
-    //    if (!response.IsSuccessStatusCode)
-    //        throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
-
-    //    if (string.IsNullOrWhiteSpace(responseString))
-    //        throw new Exception("Gemini response is empty.");
-
-    //    var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
-    //    var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
-
-    //    if (string.IsNullOrEmpty(replyText))
-    //        throw new Exception("Gemini did not return any text response.");
-
-    //    if (replyText.StartsWith("```") && replyText.Contains("json"))
-    //    {
-    //        replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
-    //    }
-
-    //    if (!replyText.StartsWith("{"))
-    //        throw new Exception("Gemini reply is not a valid JSON object:\n" + replyText);
-
-    //    try
-    //    {
-    //        var result = JsonConvert.DeserializeObject<ProjectMetricRequestDTO>(replyText);
-    //        result.ProjectId = project.Id;
-    //        result.CalculatedBy = "AI";
-    //        return result;
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        throw new Exception("Error parsing ProjectMetricRequestDTO from Gemini reply:\n" + replyText + "\n" + ex.Message);
-    //    }
-    //}
     public async Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks)
     {
         var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
@@ -753,6 +638,15 @@ Summary:";
             t.Priority
         }), Formatting.Indented);
 
+        var riskTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_type");
+        var probabilities = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_probability_level");
+        var impactLevels = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_impact_level");
+        //var validRiskTypes = riskTypes.Select(r => r.Name).ToList();
+        var validTypes = string.Join(", ", riskTypes.Select(t => $"'{t.Name}'"));
+        var validProbabilities = string.Join(", ", probabilities.Select(p => $"'{p.Name}'"));
+        var validImpactLevels = string.Join(", ", impactLevels.Select(i => $"'{i.Name}'"));
+
+
         var prompt = $@"
 You are a risk management expert specializing in software projects. Below is the information about a software project and its tasks.
 
@@ -764,9 +658,9 @@ Return the result as a JSON array with the following structure for each risk:
   {{
     title: string, // Short, descriptive title of the risk
     description: string, // Detailed explanation of the risk and its potential impact
-    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY, EXTERNAL
-    probability: string, // High | Medium | Low
-    impactLevel: string, // High | Medium | Low
+    type: string, // Use only the following values: {validTypes}
+    probability: string, // Use only the following values: {validProbabilities}
+    impactLevel: string, // Use only the following values: {validImpactLevels}
     severityLevel: string, // High | Medium | Low
     mitigationPlan: string, // Plan to reduce the likelihood or impact of the risk
     contingencyPlan: string // Plan to handle the risk if it occurs
@@ -841,11 +735,11 @@ Return the result as a JSON array with the following structure for each risk:
             foreach (var risk in risks)
             {
                 risk.ProjectId = project.Id;
-                risk.ResponsibleId = 1;
+                //risk.ResponsibleId = 1;
                 risk.TaskId = null;
-                risk.GeneratedBy = "AI";
-                risk.RiskScope = "Project";
-                risk.IsApproved = false;
+                //risk.GeneratedBy = "AI";
+                //risk.RiskScope = "Project";
+                //risk.IsApproved = false;
             }
             return risks;
         }
@@ -873,6 +767,17 @@ Return the result as a JSON array with the following structure for each risk:
             t.Status
         }), Formatting.Indented);
 
+        var riskTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_type");
+        var probabilities = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_probability_level");
+        var impactLevels = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_impact_level");
+        //var validRiskTypes = riskTypes.Select(r => r.Name).ToList();
+        var validTypes = string.Join(", ", riskTypes.Select(t => $"'{t.Name}'"));
+        var validProbabilities = string.Join(", ", probabilities.Select(p => $"'{p.Name}'"));
+        var validImpactLevels = string.Join(", ", impactLevels.Select(i => $"'{i.Name}'"));
+
+        var defaultRiskScopeConfig = await _systemConfigRepo.GetByConfigKeyAsync("default_risk_scope");
+        var defaultRiskScope = defaultRiskScopeConfig?.ValueConfig ?? "Project";
+
         var prompt = $@"
 You are a risk management expert specializing in software projects. Below is the information about a software project and its tasks.
 
@@ -884,10 +789,9 @@ Return the result as a JSON array with the following structure for each risk:
   {{
     title: string, // Short, descriptive title of the risk
     description: string, // Detailed explanation of the risk and its potential impact
-    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY, EXTERNAL
-    probability: string, // High | Medium | Low
-    impactLevel: string, // High | Medium | Low
-    severityLevel: string, // High | Medium | Low
+    type: string, // Use only the following values: {validTypes}
+    probability: string, // Use only the following values: {validProbabilities}
+    impactLevel: string, // Use only the following values: {validImpactLevels}
     mitigationPlan: string, // Plan to reduce the likelihood or impact of the risk
     contingencyPlan: string // Plan to handle the risk if it occurs
   }}
@@ -961,7 +865,7 @@ Return the result as a JSON array with the following structure for each risk:
             {
                 risk.ProjectId = project.Id;
                 risk.TaskId = null;
-                risk.RiskScope = "Project";
+                risk.RiskScope = defaultRiskScope;
             }
             return risks;
         }
@@ -970,193 +874,6 @@ Return the result as a JSON array with the following structure for each risk:
             throw new Exception("Error parsing RiskDTO from Gemini reply:\n" + replyText + "\n" + ex.Message);
         }
     }
-
-    //    public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(
-    //    Project project,
-    //    ProjectMetric metric,
-    //    List<Tasks> tasks,
-    //    List<Sprint> sprints,
-    //    List<Milestone> milestones,
-    //    List<Subtask> subtasks)
-    //    {
-    //        if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
-    //            return new List<AIRecommendationDTO>();
-
-    //        var taskList = JsonConvert.SerializeObject(tasks.Select(t => new
-    //        {
-    //            t.Id,
-    //            t.Title,
-    //            t.Description,
-    //            t.PlannedStartDate,
-    //            t.PlannedEndDate,
-    //            t.ActualStartDate,
-    //            t.ActualEndDate,
-    //            t.PercentComplete,
-    //            t.PlannedHours,
-    //            t.ActualHours,
-    //            t.PlannedCost,
-    //            t.ActualCost,
-    //            t.Status,
-    //            t.Priority
-    //        }), Formatting.Indented);
-
-    //        var subtaskList = JsonConvert.SerializeObject(subtasks.Select(st => new
-    //        {
-    //            st.Id,
-    //            st.Title,
-    //            st.Description,
-    //            st.TaskId,
-    //            st.Status,
-    //            st.PlannedStartDate,
-    //            st.PlannedEndDate,
-    //            st.ActualStartDate,
-    //            st.ActualEndDate,
-    //            st.PercentComplete,
-    //            st.PlannedHours,
-    //            st.ActualHours,
-    //        }), Formatting.Indented);
-
-    //        var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
-    //        {
-    //            s.Id,
-    //            s.Name,
-    //            s.Goal,
-    //            s.StartDate,
-    //            s.EndDate,
-    //            s.Status
-    //        }), Formatting.Indented);
-
-    //        var milestoneList = JsonConvert.SerializeObject(milestones.Select(m => new
-    //        {
-    //            m.Id,
-    //            m.Name,
-    //            m.Key,
-    //            m.Description,
-    //            m.StartDate,
-    //            m.EndDate,
-    //            m.Status
-    //        }), Formatting.Indented);
-
-    //        var prompt = $@"
-    //    You are an expert in software project management with a focus on data-driven decision-making. Below is detailed information about a software project, including tasks, subtasks, sprints, milestones, and key performance metrics.
-
-    //    The project is currently underperforming:
-    //- SPI (Schedule Performance Index) = {metric.SchedulePerformanceIndex}
-    //- CPI (Cost Performance Index) = {metric.CostPerformanceIndex}
-
-    //    **Special Note**: If SPI and CPI are 0, this indicates no tasks have started or no costs have been incurred. In this case, focus on initiating critical tasks, setting realistic schedules, and establishing cost baselines.
-
-    //    **Task**: Analyze the provided data and propose some specific, actionable, and data-driven recommendations** to improve the project's performance. Each recommendation must be based on specific evidence from the tasks, subtasks, sprints, or milestones provided.
-
-    //**Requirements for Each Recommendation**:
-    //1. **Goal**: Clearly state the objective (e.g., reduce cost overrun, accelerate schedule, improve resource allocation).
-    //2. **Root Cause**: Identify a specific issue with evidence from the data (e.g., ""Task PROJA-3 has ActualHours 20% above PlannedHours"").
-    //3. **Action Steps**: Provide precise actions, such as:
-    //   - Adjust specific fields (e.g., 'Set PlannedHours of task INTELLIPM-3 to 80').
-    //   - Reassign personnel (e.g., 'Assign 1 senior developer to task INTELLIPM-5').
-    //   - Reschedule tasks or milestones (e.g., 'Move task INTELLIPM-4 to Sprint 2 starting 2025-08-22').
-    //   - Merge or split tasks/subtasks to optimize scope.
-    //   - Set realistic cost estimates based on task complexity and average resource cost (assume $100/hour unless specified).
-    //4. **Expected Impact**: Quantify the expected outcome (e.g., ""Reduce schedule delay by 3 days"", ""Cut costs by 10%"").
-    //5. **Priority**: Assign a priority level (1 = High, 2 = Medium, 3 = Low) based on urgency and impact.
-
-    //    **Output Format**:
-    //Return a JSON array with exactly 5 items, each with the following structure:
-    //[
-    //  {{{{
-    //    recommendation: string,         // Short description of the recommendation
-    //    details: string,               // Detailed explanation of root cause and actions
-    //    type: string,                  // Schedule | Cost | Scope | Resource | Performance | Design | Testing
-    //    affectedTasks: string[],       // List of affected task, subtask IDs, milestone Keys
-    //    expectedImpact: string,        // Quantified impact (e.g., ""Reduce cost by 10%"")
-    //    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of PROJA-3 to 40"")
-    //    priority: number,              // 1 (High), 2 (Medium), 3 (Low)
-    //  }}}}
-    //]
-
-    //    **Strict Constraints**:
-    //- Recommendations **must** reference specific data (e.g., task IDs, sprint names, milestone dates).
-    //- Avoid generic suggestions (e.g., ""Improve communication"")—focus on measurable actions.
-    //- Ensure actions are feasible within the project's context (budget: {{project.Budget}}, timeline: {{project.StartDate}} to {{project.EndDate}}).
-    //- Do not return markdown or additional text outside the JSON array.
-
-    //    Project Information:
-    //    - Name: {project.Name}
-    //    - Budget: {project.Budget}
-    //    - Start Date: {project.StartDate}
-    //    - End Date: {project.EndDate}
-
-    //    Metric Data:
-    //    - PV: {metric.PlannedValue}
-    //    - EV: {metric.EarnedValue}
-    //    - AC: {metric.ActualCost}
-    //    - SPI: {metric.SchedulePerformanceIndex}
-    //    - CPI: {metric.CostPerformanceIndex}
-
-    //    Task List:
-    //    {taskList}
-
-    //    Subtasks:
-    //    {subtaskList}
-
-    //    Sprint List:
-    //    {sprintList}
-
-    //    Milestone List:
-    //    {milestoneList}
-
-    //    All output must be written in English.
-    //    ";
-    //        var requestData = new
-    //        {
-    //            contents = new[]
-    //        {
-    //            new
-    //            {
-    //                parts = new[] { new { text = prompt } }
-    //            }
-    //        }
-    //        };
-
-    //        var requestJson = JsonConvert.SerializeObject(requestData);
-    //        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
-
-    //        var response = await _httpClient.PostAsync(_url, content);
-    //        var responseString = await response.Content.ReadAsStringAsync();
-
-    //        if (!response.IsSuccessStatusCode)
-    //            throw new Exception($"Gemini API Error: {response.StatusCode}\nResponse: {responseString}");
-
-    //        if (string.IsNullOrWhiteSpace(responseString))
-    //            throw new Exception("Gemini response is empty.");
-
-    //        var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
-    //        var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
-
-    //        if (string.IsNullOrEmpty(replyText))
-    //            throw new Exception("Gemini did not return any text response.");
-
-    //        if (replyText.StartsWith("```") && replyText.Contains("json"))
-    //        {
-    //            replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
-    //        }
-
-    //        if (!replyText.StartsWith("["))
-    //            throw new Exception("Gemini reply is not a valid JSON array:\n" + replyText);
-
-    //        try
-    //        {
-    //            var aiRecommendations = JsonConvert.DeserializeObject<List<AIRecommendationDTO>>(replyText);
-    //            if (aiRecommendations == null || aiRecommendations.Count == 0)
-    //                throw new Exception("No recommendations received from AI.");
-
-    //            return aiRecommendations;
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            throw new Exception("Error parsing ProjectRecommendation from Gemini reply:\n" + replyText + "\n" + ex.Message);
-    //        }
-    //    }
 
     public async Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(
     Project project,
@@ -1554,122 +1271,6 @@ All output must be in English.
             throw new Exception("Error parsing simulated metrics from Gemini reply:\n" + replyText + "\n" + ex.Message);
         }
     }
-
-    //    public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
-    //    {
-    //        var risks = new List<AIRiskResponseDTO>();
-
-    //        foreach (var task in tasks)
-    //        {
-    //            var prompt = $@"
-    //You are a risk management expert specializing in software projects. Below is the information about a specific task in a software project.
-
-    //Analyze the task and predict **1-2 task-specific risks** that could impact its completion or the project's success. Focus on risks directly related to the task's attributes (e.g., delays, cost overruns, resource issues, or quality concerns). For each risk, provide a mitigation plan and a contingency plan.
-
-    //Return the result as a JSON array with the following structure for each risk:
-
-    //[
-    //  {{
-    //    title: string,
-    //    description: string,
-    //    type: string, // SCHEDULE, FINANCIAL, RESOURCE, QUALITY, SCOPE, TECHNICAL, SECURITY
-    //    probability: string, // High | Medium | Low
-    //    impactLevel: string, // High | Medium | Low
-    //    severityLevel: string, // High | Medium | Low
-    //    mitigationPlan: string,
-    //    contingencyPlan: string
-    //  }}
-    //]
-
-    //**Requirements:**
-    //- Focus on risks specific to the provided task.
-    //- Use the task's attributes (e.g., dates, hours, costs, status) to infer realistic risks.
-    //- Avoid generic or vague risks.
-    //- Return only the JSON array, without markdown, headers, or additional explanations.
-    //- Provide all text in English.
-
-    //**Task Information:**
-    //- Title: {task.Title}
-    //- Description: {task.Description}
-    //- Planned Start Date: {task.PlannedStartDate}
-    //- Planned End Date: {task.PlannedEndDate}
-    //- Actual Start Date: {task.ActualStartDate}
-    //- Actual End Date: {task.ActualEndDate}
-    //- Percent Complete: {task.PercentComplete}%
-    //- Planned Hours: {task.PlannedHours}
-    //- Actual Hours: {task.ActualHours}
-    //- Planned Cost: {task.PlannedCost}
-    //- Actual Cost: {task.ActualCost}
-    //- Status: {task.Status}
-
-    //**Project Context (for reference):**
-    //- Name: {project.Name}
-    //- Budget: {project.Budget} USD
-    //- Start Date: {project.StartDate}
-    //- End Date: {project.EndDate}
-    //";
-
-    //            var requestData = new
-    //            {
-    //                contents = new[]
-    //                {
-    //                new
-    //                {
-    //                    parts = new[]
-    //                    {
-    //                        new { text = prompt }
-    //                    }
-    //                }
-    //            }
-    //            };
-
-    //            var requestJson = JsonConvert.SerializeObject(requestData);
-    //            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
-
-    //            var response = await _httpClient.PostAsync(_url, content);
-    //            var responseString = await response.Content.ReadAsStringAsync();
-
-    //            if (!response.IsSuccessStatusCode)
-    //                continue; // Skip to next task on error
-
-    //            if (string.IsNullOrWhiteSpace(responseString))
-    //                continue;
-
-    //            var parsedResponse = JsonConvert.DeserializeObject<GeminiResponse>(responseString);
-    //            var replyText = parsedResponse?.candidates?.FirstOrDefault()?.content?.parts?.FirstOrDefault()?.text?.Trim();
-
-    //            if (string.IsNullOrEmpty(replyText))
-    //                continue;
-
-    //            if (replyText.StartsWith("```") && replyText.Contains("json"))
-    //            {
-    //                replyText = replyText.Replace("```json", "").Replace("```", "").Trim();
-    //            }
-
-    //            if (!replyText.StartsWith("["))
-    //                continue;
-
-    //            try
-    //            {
-    //                var taskRisks = JsonConvert.DeserializeObject<List<AIRiskResponseDTO>>(replyText);
-    //                if (taskRisks != null && taskRisks.Count > 0)
-    //                {
-    //                    foreach (var risk in taskRisks)
-    //                    {
-    //                        risk.ProjectId = project.Id;
-    //                        risk.TaskId = task.Id;
-    //                        risk.RiskScope = "Task";
-    //                    }
-    //                }
-    //            }
-    //            catch
-    //            {
-    //                continue;
-    //            }
-    //        }
-
-    //        return risks;
-    //    }
 
     public async Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks)
     {

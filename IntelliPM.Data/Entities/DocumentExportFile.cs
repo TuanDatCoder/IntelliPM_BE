@@ -13,9 +13,9 @@ public partial class DocumentExportFile
 
     public DateTime ExportedAt { get; set; }
 
-    public int ExportedBy { get; set; }
+    public int? ExportedBy { get; set; }
 
     public virtual Document Document { get; set; } = null!;
 
-    public virtual Account ExportedByNavigation { get; set; } = null!;
+    public virtual Account? ExportedByNavigation { get; set; }
 }

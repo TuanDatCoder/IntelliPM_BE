@@ -394,15 +394,28 @@ app.MapHub<NotificationHub>("/hubs/notification");
 app.MapHub<DocumentHub>("/hubs/document");
 
 
+// Configure Hangfire recurring jobs
+var serviceProvider = builder.Services.BuildServiceProvider();
+var configService = serviceProvider.GetRequiredService<ISystemConfigurationService>();
+var cronExpression = configService.GetSystemConfigurationByConfigKey("overdue_task_risk_check_time").Result?.ValueConfig ?? "0 17 * * *"; // Default to 00:00 +07
+
 app.UseHangfireDashboard();
 //app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
-     "0 17 * * *"
+    cronExpression
+//"0 17 * * *"
 //"0 1 * * *"
 // "*/1 * * * *"
 );
+
+//RecurringJob.AddOrUpdate<IRiskService>(
+//    "check-overdue-task-risks",
+//    x => x.CheckAndCreateAllOverdueTaskRisksAsync(), // Handle projectKey dynamically
+//    cronExpression,
+//    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+//);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();
