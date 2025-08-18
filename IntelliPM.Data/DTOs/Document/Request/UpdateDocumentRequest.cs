@@ -11,7 +11,7 @@ namespace IntelliPM.Data.DTOs.Document.Request
     {
         [DynamicMaxLength("document_title_length")]
         [DynamicMinLength("document_title_length")]
-        public string Title { get; set; }
+        public string? Title { get; set; }
         public string? Content { get; set; }
 
         [DynamicCategoryValidation("document_visibility_type", Required = true)]
