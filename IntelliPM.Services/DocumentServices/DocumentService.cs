@@ -171,14 +171,10 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
-            if (req.ProjectId <= 0) throw new ArgumentException("ProjectId is required.");
-            if (string.IsNullOrWhiteSpace(req.Title)) throw new ArgumentException("Title is required.");
 
-            var visibility = (req.Visibility ?? "").Trim().ToUpperInvariant();
-            var validVisibilities = new[] { "MAIN", "PRIVATE" };
-            if (!validVisibilities.Contains(visibility))
-                throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
+
+            var visibility = req.Visibility.Trim().ToUpperInvariant();
+
 
             int linkCount =
                 (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
@@ -254,15 +250,8 @@ namespace IntelliPM.Services.DocumentServices
             if (req.Content != null)
                 doc.Content = req.Content;
 
-
             if (!string.IsNullOrWhiteSpace(req.Visibility))
-            {
-                var v = req.Visibility.Trim().ToUpperInvariant();
-                var valid = new[] { "MAIN", "PRIVATE" };
-                if (!valid.Contains(v))
-                    throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
-                doc.Visibility = v;
-            }
+                doc.Visibility = req.Visibility.Trim().ToUpperInvariant();
 
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -271,19 +260,17 @@ namespace IntelliPM.Services.DocumentServices
             await _repo.SaveChangesAsync();
 
             await _hubContext.Clients
-             .Group($"document-{id}")
-             .SendAsync("DocumentUpdated", new
-             {
-                 documentId = id,
-                 updatedAt = doc.UpdatedAt,
-                 updatedBy = userId
-             });
-
-
+                .Group($"document-{id}")
+                .SendAsync("DocumentUpdated", new
+                {
+                    documentId = id,
+                    updatedAt = doc.UpdatedAt,
+                    updatedBy = userId
+                });
 
             try
             {
-                var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                var mentionedUserIds = Regex.Matches(doc.Content ?? string.Empty, "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
                     .Select(m => int.Parse(m.Groups[1].Value))
                     .Distinct()
                     .ToList();
@@ -291,10 +278,13 @@ namespace IntelliPM.Services.DocumentServices
                 if (mentionedUserIds.Count > 0)
                     await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
-            catch { }
+            catch
+            {
+            }
 
             return ToResponse(doc);
         }
+
 
 
         public async Task<bool> DeleteDocument(int id, int deletedBy)
