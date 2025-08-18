@@ -11,8 +11,11 @@ namespace IntelliPM.Data.DTOs.Epic.Request
     public class EpicTaskAssignedMembersRequestDTO
     {
         [DynamicMaxLength("title_length")]
-        public string Title { get; set; } 
+        public string Title { get; set; }
+
+        [DynamicMaxLength("description_length")]
         public string Description { get; set; }
+
         [DynamicDuration("epic_duration_days")]
         public DateTime StartDate { get; set; }
 
