@@ -15,7 +15,7 @@ using System.Text;
 public class GeminiService : IGeminiService
 {
     private readonly HttpClient _httpClient;
-    private const string _apiKey = "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+    private const string _apiKey = "AIzaSyDWOB57CuXTor0WgXFCZ4cLOY6QnVtqJkc";
     private readonly string _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
     private readonly IMapper _mapper;
     private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
