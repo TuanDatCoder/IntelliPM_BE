@@ -31,7 +31,7 @@ namespace IntelliPM.Services.AiServices.GenerateEpicsServices
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
-            var apiKey = configuration["Gemini:ApiKey"] ?? "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+            var apiKey = configuration["GeminiApiDAT:ApiKey"];
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}";
         }
 
