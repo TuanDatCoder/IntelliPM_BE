@@ -11,7 +11,7 @@ public partial class Risk
 
     public int? ResponsibleId { get; set; }
 
-    public int CreatedBy { get; set; }
+    public int? CreatedBy { get; set; }
 
     public int ProjectId { get; set; }
 
@@ -45,7 +45,7 @@ public partial class Risk
 
     public virtual ICollection<ActivityLog> ActivityLog { get; set; } = new List<ActivityLog>();
 
-    public virtual Account CreatedByNavigation { get; set; } = null!;
+    public virtual Account? CreatedByNavigation { get; set; }
 
     public virtual Project Project { get; set; } = null!;
 

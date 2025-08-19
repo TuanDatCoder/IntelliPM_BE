@@ -461,6 +461,34 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPost("projects/{projectId}/batch")]
+        public async Task<IActionResult> CreateEpicsWithsAndAssignments(int projectId, [FromBody] List<EpicWithTaskTypeRequestDTO> requests, [FromHeader(Name = "Authorization")] string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token) || !token.StartsWith("Bearer "))
+                    return Unauthorized(new { isSuccess = false, code = 401, message = "Authorization token is missing or invalid." });
 
+                var tokenValue = token.Substring("Bearer ".Length).Trim();
+                var createdEpicIds = await _service.CreateEpicsWithTasksTypeAndAssignments(projectId, tokenValue, requests);
+                return Ok(new { isSuccess = true, code = 200, message = "Epics and tasks created successfully.", data = createdEpicIds });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { isSuccess = false, code = 401, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { isSuccess = false, code = 404, message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { isSuccess = false, code = 400, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { isSuccess = false, code = 500, message = $"Failed to create epics: {ex.Message}" });
+            }
+        }
     }
 }

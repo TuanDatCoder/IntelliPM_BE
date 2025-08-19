@@ -94,7 +94,6 @@ namespace IntelliPM.Services.DocumentServices
                 //Type = d.Type,
 
                 Content = d.Content,
-                IsActive = d.IsActive,
                 CreatedBy = d.CreatedBy,
                 UpdatedBy = d.UpdatedBy,
                 CreatedAt = d.CreatedAt,
@@ -147,8 +146,7 @@ namespace IntelliPM.Services.DocumentServices
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                IsActive = true,
-                Status = "PendingApproval"
+        
             };
 
             try
@@ -171,14 +169,10 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
-            if (req.ProjectId <= 0) throw new ArgumentException("ProjectId is required.");
-            if (string.IsNullOrWhiteSpace(req.Title)) throw new ArgumentException("Title is required.");
 
-            var visibility = (req.Visibility ?? "").Trim().ToUpperInvariant();
-            var validVisibilities = new[] { "MAIN", "PRIVATE" };
-            if (!validVisibilities.Contains(visibility))
-                throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
+
+            var visibility = req.Visibility.Trim().ToUpperInvariant();
+
 
             int linkCount =
                 (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
@@ -203,7 +197,7 @@ namespace IntelliPM.Services.DocumentServices
                 Visibility = visibility,
                 CreatedAt = now,
                 UpdatedAt = now,
-                IsActive = true,
+           
             };
 
             try
@@ -254,15 +248,8 @@ namespace IntelliPM.Services.DocumentServices
             if (req.Content != null)
                 doc.Content = req.Content;
 
-
             if (!string.IsNullOrWhiteSpace(req.Visibility))
-            {
-                var v = req.Visibility.Trim().ToUpperInvariant();
-                var valid = new[] { "MAIN", "PRIVATE" };
-                if (!valid.Contains(v))
-                    throw new ArgumentException("Invalid visibility. Must be MAIN, PRIVATE");
-                doc.Visibility = v;
-            }
+                doc.Visibility = req.Visibility.Trim().ToUpperInvariant();
 
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -271,19 +258,17 @@ namespace IntelliPM.Services.DocumentServices
             await _repo.SaveChangesAsync();
 
             await _hubContext.Clients
-             .Group($"document-{id}")
-             .SendAsync("DocumentUpdated", new
-             {
-                 documentId = id,
-                 updatedAt = doc.UpdatedAt,
-                 updatedBy = userId
-             });
-
-
+                .Group($"document-{id}")
+                .SendAsync("DocumentUpdated", new
+                {
+                    documentId = id,
+                    updatedAt = doc.UpdatedAt,
+                    updatedBy = userId
+                });
 
             try
             {
-                var mentionedUserIds = Regex.Matches(doc.Content ?? "", "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
+                var mentionedUserIds = Regex.Matches(doc.Content ?? string.Empty, "data-id=[\"'](\\d+)[\"']", RegexOptions.IgnoreCase)
                     .Select(m => int.Parse(m.Groups[1].Value))
                     .Distinct()
                     .ToList();
@@ -291,24 +276,27 @@ namespace IntelliPM.Services.DocumentServices
                 if (mentionedUserIds.Count > 0)
                     await _notificationService.SendMentionNotification(mentionedUserIds, doc.Id, doc.Title, userId);
             }
-            catch { }
+            catch
+            {
+            }
 
             return ToResponse(doc);
         }
+
 
 
         public async Task<bool> DeleteDocument(int id, int deletedBy)
         {
             var doc = await _repo.GetByIdAsync(id);
 
-            if (doc == null || !doc.IsActive)
+            if (doc == null )
                 throw new KeyNotFoundException($"Document {id} not found or already deleted");
 
-            doc.IsActive = false;
+     
             doc.UpdatedBy = deletedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
+            await _repo.DeleteAsync(doc);
             await _repo.SaveChangesAsync();
 
             return true;
@@ -318,11 +306,11 @@ namespace IntelliPM.Services.DocumentServices
 
 
 
-        public async Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId)
-        {
-            var docs = await _repo.GetByUserIdAsync(userId);
-            return docs.Select(ToResponse).ToList();
-        }
+        //public async Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId)
+        //{
+        //    var docs = await _repo.GetByUserIdAsync(userId);
+        //    return docs.Select(ToResponse).ToList();
+        //}
 
         private async Task<string?> GenerateContentWithGemini(string prompt)
         {
@@ -410,8 +398,6 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 //Type = doc.Type,
 
                 Content = doc.Content,
-
-                IsActive = doc.IsActive,
                 CreatedBy = doc.CreatedBy,
                 UpdatedBy = doc.UpdatedBy,
                 CreatedAt = doc.CreatedAt,
@@ -458,7 +444,7 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         {
             // 1) Tìm document
             var document = await _repo.GetByIdAsync(documentId);
-            if (document == null || !document.IsActive)
+            if (document == null)
                 throw new KeyNotFoundException($"Document {documentId} not found");
 
             // 2) Validate emails
@@ -654,51 +640,51 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
 
 
 
-        public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
-        {
-            var doc = await _repo.GetByIdAsync(documentId);
-            if (doc == null) throw new Exception("Document not found");
-            if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
+        //public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
+        //{
+        //    var doc = await _repo.GetByIdAsync(documentId);
+        //    if (doc == null) throw new Exception("Document not found");
+        //    if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
 
-            doc.Status = "PendingApproval";
-            doc.UpdatedAt = DateTime.UtcNow;
+        //    doc.Status = "PendingApproval";
+        //    doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+        //    await _repo.UpdateAsync(doc);
+        //    await _repo.SaveChangesAsync();
 
-            return ToResponse(doc);
-        }
+        //    return ToResponse(doc);
+        //}
 
-        public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
-        {
-            var doc = await _repo.GetByIdAsync(documentId);
-            if (doc == null) throw new Exception("Document not found");
+        //public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
+        //{
+        //    var doc = await _repo.GetByIdAsync(documentId);
+        //    if (doc == null) throw new Exception("Document not found");
 
-            if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
+        //    if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
 
-            if (request.Status != "Approved" && request.Status != "Rejected")
-                throw new Exception("Invalid approval status");
+        //    if (request.Status != "Approved" && request.Status != "Rejected")
+        //        throw new Exception("Invalid approval status");
 
-            doc.Status = request.Status;
-            doc.UpdatedAt = DateTime.UtcNow;
+        //    doc.Status = request.Status;
+        //    doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+        //    await _repo.UpdateAsync(doc);
+        //    await _repo.SaveChangesAsync();
 
-            return ToResponse(doc);
-        }
+        //    return ToResponse(doc);
+        //}
 
-        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
-        {
-            var docs = await _repo.GetByStatusAsync(status);
-            return docs.Select(ToResponse).ToList();
-        }
+        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
+        //{
+        //    var docs = await _repo.GetByStatusAsync(status);
+        //    return docs.Select(ToResponse).ToList();
+        //}
 
-        public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
-        {
-            var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
-            return docs.Select(ToResponse).ToList();
-        }
+        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
+        //{
+        //    var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
+        //    return docs.Select(ToResponse).ToList();
+        //}
 
         private bool IsPromptValid(string prompt)
         {
@@ -781,42 +767,42 @@ Yêu cầu:
         }
 
 
-        public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
-        {
-            var doc = await _repo.GetByKeyAsync(projectId, epicId, taskId, subTaskId);
-            if (doc == null) return null;
+        //public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
+        //{
+        //    var doc = await _repo.GetByKeyAsync(projectId, epicId, taskId, subTaskId);
+        //    if (doc == null) return null;
 
-            return new DocumentResponseDTO
-            {
-                Id = doc.Id,
-                ProjectId = doc.ProjectId,
-                TaskId = doc.TaskId,
-                Title = doc.Title,
-                //Type = doc.Type,
+        //    return new DocumentResponseDTO
+        //    {
+        //        Id = doc.Id,
+        //        ProjectId = doc.ProjectId,
+        //        TaskId = doc.TaskId,
+        //        Title = doc.Title,
+        //        //Type = doc.Type,
 
-                Content = doc.Content,
+        //        Content = doc.Content,
 
-                IsActive = doc.IsActive,
-                CreatedBy = doc.CreatedBy,
-                UpdatedBy = doc.UpdatedBy,
-                CreatedAt = doc.CreatedAt,
-                UpdatedAt = doc.UpdatedAt
-            };
-        }
+         
+        //        CreatedBy = doc.CreatedBy,
+        //        UpdatedBy = doc.UpdatedBy,
+        //        CreatedAt = doc.CreatedAt,
+        //        UpdatedAt = doc.UpdatedAt
+        //    };
+        //}
 
         public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
         {
             return await _repo.GetUserDocumentMappingAsync(projectId, userId);
         }
-        public async Task<Dictionary<string, int>> GetStatusCount()
-        {
-            return await _repo.CountByStatusAsync();
-        }
+        //public async Task<Dictionary<string, int>> GetStatusCount()
+        //{
+        //    return await _repo.CountByStatusAsync();
+        //}
 
-        public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
-        {
-            return await _repo.CountByStatusInProjectAsync(projectId);
-        }
+        //public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
+        //{
+        //    return await _repo.CountByStatusInProjectAsync(projectId);
+        //}
 
 
         public List<int> ExtractMentionedAccountIds(string content)
@@ -1071,143 +1057,6 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
             return date?.ToString("yyyy-MM-dd") ?? "Not determined";
         }
 
-        private string FormatDateTime(DateTime date)
-        {
-            return date.ToString("yyyy-MM-dd HH:mm");
-        }
-
-        private string FormatDateTime(DateTime? date)
-        {
-            return date?.ToString("yyyy-MM-dd HH:mm") ?? "Not specified";
-        }
-
-        private string FormatHours(decimal? hours)
-        {
-            return hours?.ToString("0.##") + "h" ?? "Not specified";
-        }
-
-        private string FormatHours(double? hours)
-        {
-            return hours?.ToString("0.##") + "h" ?? "Not specified";
-        }
-
-        private string FormatDelayDays(int? days)
-        {
-            if (!days.HasValue) return "On schedule ✅";
-            return days.Value > 0 ? $"{days} days behind schedule ⚠️" :
-                   days.Value < 0 ? $"{Math.Abs(days.Value)} days ahead of schedule ✅" :
-                   "On schedule ✅";
-        }
-
-        private string GetVarianceIndicator(decimal? variance)
-        {
-            if (!variance.HasValue) return "";
-            return variance.Value > 0 ? "⚠️ Over budget" :
-                   variance.Value < 0 ? "✅ Under budget" :
-                   "✅ On budget";
-        }
-
-        private string GetVarianceIndicator(double? variance)
-        {
-            if (!variance.HasValue) return "";
-            return variance.Value > 0 ? "⚠️ Over budget" :
-                   variance.Value < 0 ? "✅ Under budget" :
-                   "✅ On budget";
-        }
-
-        private string GetSPIStatus(decimal? spi)
-        {
-            if (!spi.HasValue) return "";
-            return spi.Value >= 1.0m ? "✅ On/Ahead Schedule" :
-                   spi.Value >= 0.9m ? "⚠️ Slightly Behind" :
-                   "🔴 Significantly Behind";
-        }
-
-        private string GetSPIStatus(double? spi)
-        {
-            if (!spi.HasValue) return "";
-            return spi.Value >= 1.0 ? "✅ On/Ahead Schedule" :
-                   spi.Value >= 0.9 ? "⚠️ Slightly Behind" :
-                   "🔴 Significantly Behind";
-        }
-
-        private string GetCPIStatus(decimal? cpi)
-        {
-            if (!cpi.HasValue) return "";
-            return cpi.Value >= 1.0m ? "✅ On/Under Budget" :
-                   cpi.Value >= 0.9m ? "⚠️ Slightly Over Budget" :
-                   "🔴 Significantly Over Budget";
-        }
-
-        private string GetCPIStatus(double? cpi)
-        {
-            if (!cpi.HasValue) return "";
-            return cpi.Value >= 1.0 ? "✅ On/Under Budget" :
-                   cpi.Value >= 0.9 ? "⚠️ Slightly Over Budget" :
-                   "🔴 Significantly Over Budget";
-        }
-
-        private string GetStatusWithIcon(string status)
-        {
-            if (string.IsNullOrEmpty(status)) return "❓ Unknown";
-            var upperStatus = status.ToUpper();
-            return upperStatus switch
-            {
-                "COMPLETED" or "DONE" => $"✅ {status}",
-                "IN_PROGRESS" or "ACTIVE" => $"🔄 {status}",
-                "BLOCKED" or "STOPPED" => $"🔴 {status}",
-                "PENDING" or "WAITING" => $"⏳ {status}",
-                "TODO" or "NEW" => $"📋 {status}",
-                _ => $"📋 {status}"
-            };
-        }
-
-        private string GetTaskTypeWithIcon(string type)
-        {
-            if (string.IsNullOrEmpty(type)) return "📋 Standard";
-            return type.ToUpper() switch
-            {
-                "STORY" => $"📖 {type}",
-                "BUG" => $"🐛 {type}",
-                "TASK" => $"📋 {type}",
-                "EPIC" => $"🎯 {type}",
-                "FEATURE" => $"⭐ {type}",
-                _ => $"📋 {type}"
-            };
-        }
-
-        private string GetPriorityWithIcon(string priority)
-        {
-            if (string.IsNullOrEmpty(priority)) return "📊 Normal";
-            return priority.ToUpper() switch
-            {
-                "HIGH" or "URGENT" => $"🔴 {priority}",
-                "MEDIUM" => $"🟡 {priority}",
-                "LOW" => $"🟢 {priority}",
-                "CRITICAL" => $"⚡ {priority}",
-                _ => $"📊 {priority}"
-            };
-        }
-
-        private string FormatDateRange(DateTime? start, DateTime? end)
-        {
-            if (!start.HasValue && !end.HasValue) return "Not scheduled";
-            if (!start.HasValue) return $"End: {FormatDate(end)}";
-            if (!end.HasValue) return $"Start: {FormatDate(start)}";
-            return $"{FormatDate(start)} → {FormatDate(end)}";
-        }
-
-        private string GetScheduleStatus(DateTime? plannedEnd, DateTime? actualEnd)
-        {
-            if (!plannedEnd.HasValue) return "⚪ No planned end date";
-            if (!actualEnd.HasValue)
-            {
-                return DateTime.Now > plannedEnd.Value ? "🔴 Overdue" : "🔄 In progress";
-            }
-            return actualEnd.Value <= plannedEnd.Value ? "✅ Completed on time" : "⚠️ Completed late";
-        }
-
-
         private string? GetAccessToken()
         {
             var authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
@@ -1304,7 +1153,7 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
                 //Template = latest.Template,
                 Content = latest.Content,
                 //FileUrl = latest.FileUrl,
-                IsActive = latest.IsActive,
+         
                 CreatedBy = latest.CreatedBy,
                 UpdatedBy = latest.UpdatedBy,
                 CreatedAt = latest.CreatedAt,

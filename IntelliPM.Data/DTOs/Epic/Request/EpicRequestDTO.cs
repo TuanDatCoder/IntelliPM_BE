@@ -21,6 +21,7 @@ namespace IntelliPM.Data.DTOs.Epic.Request
 
         public int? AssignedBy { get; set; }
 
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [DynamicDuration("epic_duration_days")]

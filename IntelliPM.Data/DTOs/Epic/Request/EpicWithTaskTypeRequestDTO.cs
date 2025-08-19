@@ -3,12 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace IntelliPM.Data.DTOs.Epic.Request
 {
-    public class EpicTaskAssignedMembersRequestDTO
+    public class EpicWithTaskTypeRequestDTO
     {
         [DynamicMaxLength("title_length")]
         public string Title { get; set; }
@@ -18,10 +17,10 @@ namespace IntelliPM.Data.DTOs.Epic.Request
 
         [DynamicDuration("epic_duration_days")]
         public DateTime StartDate { get; set; }
-
         [DynamicDuration("epic_duration_days")]
         public DateTime EndDate { get; set; }
-        public string SuggestedRole { get; set; } 
-        public List<TaskAssignedMembersRequestDTO> AssignedMembers { get; set; } = new List<TaskAssignedMembersRequestDTO>();
+
+        public List<EpicTaskTypeAssignedMembersRequestDTO> Tasks { get; set; } = new List<EpicTaskTypeAssignedMembersRequestDTO>();
+
     }
 }

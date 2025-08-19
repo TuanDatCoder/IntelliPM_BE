@@ -17,7 +17,7 @@ namespace IntelliPM.Data.DTOs.Document.Response
         public string Title { get; set; } = "";
         //public string? Type { get; set; }
         public string? Content { get; set; }
-        public bool IsActive { get; set; }
+        //public bool IsActive { get; set; }
         public int CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public DateTime CreatedAt { get; set; }

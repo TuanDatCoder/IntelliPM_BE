@@ -20,6 +20,7 @@ namespace IntelliPM.Data.DTOs.Requirement.Request
         [DynamicCategoryValidation("requirement_type", Required = false)]
         public string? Type { get; set; }
 
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [DynamicMaxLength("priority_length")]
