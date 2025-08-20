@@ -350,13 +350,12 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
         [HttpGet("check-project-key")]
-        public async Task<IActionResult> CheckProjectKey([FromQuery] string projectKey)
+        public async Task<IActionResult> CheckProjectKey([FromQuery] string projectKey, [FromQuery] int? projectId)
         {
             try
             {
-                var exists = await _service.CheckProjectKeyExists(projectKey);
+                var exists = await _service.CheckProjectKeyExists(projectKey, projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -381,11 +380,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("check-project-name")]
-        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName)
+        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName, [FromQuery] int? projectId)
         {
             try
             {
-                var exists = await _service.CheckProjectNameExists(projectName);
+                var exists = await _service.CheckProjectNameExists(projectName, projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -404,10 +403,11 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error checking project key: {ex.Message}"
+                    Message = $"Error checking project name: {ex.Message}"
                 });
             }
         }
+
 
 
         [HttpGet("view-by-key")]

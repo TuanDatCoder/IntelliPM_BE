@@ -17,8 +17,9 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Request
         [DynamicCategoryValidation("subtask_priority", Required = false)]
         public string? Priority { get; set; }
 
-        [Required(ErrorMessage = "Task title is required")]
-        [MaxLength(65, ErrorMessage = "Task title cannot exceed 65 characters")]
+        [Required(ErrorMessage = "Subtask title is required")]
+        [DynamicMaxLength("title_length")]
+        [DynamicMinLength("title_length")]
         public string? Title { get; set; } = null!;
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }

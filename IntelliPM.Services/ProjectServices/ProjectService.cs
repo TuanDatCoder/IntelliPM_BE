@@ -166,16 +166,6 @@ namespace IntelliPM.Services.ProjectServices
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
-
-            if (!string.IsNullOrEmpty(request.Name))
-            {
-                if (request.Name.Length > 255)
-                    throw new ArgumentException("Project name cannot exceed 255 characters.");
-                var existingProjectWithName = await _projectRepo.GetProjectByNameAsync(request.Name);
-                if (existingProjectWithName != null && existingProjectWithName.Id != id)
-                    throw new ArgumentException("Project name already exists.");
-            }
-
           
 
             // Ánh xạ dữ liệu từ request sang entity
@@ -605,22 +595,31 @@ namespace IntelliPM.Services.ProjectServices
             return _mapper.Map<ProjectResponseDTO>(project);
         }
 
-        public async Task<bool> CheckProjectKeyExists(string projectKey)
+        public async Task<bool> CheckProjectKeyExists(string projectKey, int? projectId = null)
         {
             if (string.IsNullOrEmpty(projectKey))
                 throw new ArgumentException("Project key cannot be null or empty.");
 
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
-            return project != null;
-        }
 
-        public async Task<bool> CheckProjectNameExists(string projectName)
+            if (project == null) return false;
+
+            if (projectId.HasValue && project.Id == projectId.Value) return false;
+            return true;
+        }
+        public async Task<bool> CheckProjectNameExists(string projectName, int? projectId = null)
         {
             if (string.IsNullOrEmpty(projectName))
                 throw new ArgumentException("Project name cannot be null or empty.");
 
             var project = await _projectRepo.GetProjectByNameAsync(projectName);
-            return project != null;
+
+            if (project == null) return false;
+
+            if (projectId.HasValue && project.Id == projectId.Value)
+                return false;
+
+            return true;
         }
 
         public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)

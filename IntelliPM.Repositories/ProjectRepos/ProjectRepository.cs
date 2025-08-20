@@ -248,5 +248,9 @@ namespace IntelliPM.Repositories.ProjectRepos
             return reports;
         }
 
+        public async Task<List<string>> GetAllProjectKeysAsync()
+        {
+            return await _context.Project.Select(p => p.ProjectKey).ToListAsync();
+        }
     }
 }

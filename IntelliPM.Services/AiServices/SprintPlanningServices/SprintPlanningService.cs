@@ -44,7 +44,7 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _apiKey = configuration["Gemini:ApiKey"] ?? "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+            _apiKey = configuration["GeminiApiDAT:ApiKey"];
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
             _sprintRepo = sprintRepo ?? throw new ArgumentNullException(nameof(sprintRepo));
         }
