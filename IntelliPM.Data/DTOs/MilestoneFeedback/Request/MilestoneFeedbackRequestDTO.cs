@@ -12,6 +12,8 @@ namespace IntelliPM.Data.DTOs.MilestoneFeedback.Request
         public int AccountId { get; set; }
 
         [Required(ErrorMessage = "Feedback text is required")]
+        [DynamicMaxLength("milestone_feedback_text")]
+        [DynamicMinLength("milestone_feedback_text")]
         public string FeedbackText { get; set; } = null!;
 
         [Required]

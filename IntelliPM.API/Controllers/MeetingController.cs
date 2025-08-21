@@ -222,5 +222,32 @@ public async Task<IActionResult> GetScheduleByAccount(int accountId)
                 });
             }
         }
+
+        [HttpDelete("{id}/participants/{accountId}")]
+        public async Task<IActionResult> RemoveParticipant(int id, int accountId)
+        {
+            try
+            {
+                var (removed, reason) = await _service.RemoveParticipantAsync(id, accountId);
+                if (!removed)
+                {
+                    // tuỳ lý do mà trả mã phù hợp
+                    if (reason == "Meeting not found" || reason == "Participant not in meeting")
+                        return NotFound(new { message = reason });
+                    if (reason == "Cannot remove creator" || reason == "Meeting is CANCELLED")
+                        return BadRequest(new { message = reason });
+
+                    return StatusCode(409, new { message = reason }); // conflict mặc định
+                }
+
+                return Ok(new { message = "Participant removed successfully." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in RemoveParticipant: " + ex.Message);
+                return StatusCode(500, new { message = "An error occurred while removing participant." });
+            }
+        }
+
     }
 }
