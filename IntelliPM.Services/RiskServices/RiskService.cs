@@ -472,7 +472,7 @@ namespace IntelliPM.Services.RiskServices
 
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(risk.ProjectId);
                 var recipients = members
-                    .Where(m => m.AccountId != risk.CreatedBy)
+                    .Where(m => m.AccountId != createdBy)
                     .Select(m => m.AccountId)
                     .ToList();
 
@@ -480,7 +480,7 @@ namespace IntelliPM.Services.RiskServices
                 {
                     var notification = new Notification
                     {
-                        CreatedBy = (int)risk.CreatedBy,
+                        CreatedBy = createdBy,
                         Type = "RISK_ALERT",
                         Priority = risk.SeverityLevel,
                         Message = $"Updated status in risk in project {project.ProjectKey} - risk {risk.RiskKey}: {status}",
@@ -570,7 +570,7 @@ namespace IntelliPM.Services.RiskServices
 
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(risk.ProjectId);
                 var recipients = members
-                    .Where(m => m.AccountId != risk.CreatedBy)
+                    .Where(m => m.AccountId != createdBy)
                     .Select(m => m.AccountId)
                     .ToList();
 
@@ -578,7 +578,7 @@ namespace IntelliPM.Services.RiskServices
                 {
                     var notification = new Notification
                     {
-                        CreatedBy = (int)risk.CreatedBy,
+                        CreatedBy = createdBy,
                         Type = "RISK_ALERT",
                         Priority = risk.SeverityLevel,
                         Message = $"Updated responsible person in project {project.ProjectKey} - risk {risk.RiskKey}",
