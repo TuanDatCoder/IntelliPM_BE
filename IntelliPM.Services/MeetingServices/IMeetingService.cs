@@ -27,11 +27,13 @@ namespace IntelliPM.Services.MeetingServices
         Task<MeetingResponseDTO> CreateInternalMeeting(MeetingRequestDTO dto);
 
         Task CompleteMeeting(int meetingId);
+        Task<(bool Removed, string? Reason)> RemoveParticipantAsync(int meetingId, int accountId);
 
         Task<List<int>> CheckMeetingConflictAsync(List<int> participantIds, DateTime date, DateTime startTime, DateTime endTime);
 
         Task<(List<int> Added, List<int> AlreadyIn, List<int> Conflicted, List<int> NotFound)>
     AddParticipantsAsync(int meetingId, List<int> participantIds);
+
     }
 }
 
