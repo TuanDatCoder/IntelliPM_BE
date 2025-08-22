@@ -29,7 +29,7 @@ namespace IntelliPM.Services.DocumentServices
 {
     public class DocumentService : IDocumentService
     {
-        private readonly IDocumentRepository _repo;
+        private readonly IDocumentRepository _IDocumentRepository;
         private readonly HttpClient _httpClient;
         private readonly string _geminiApiKey;
         private readonly string _geminiEndpoint;
@@ -43,10 +43,10 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IHubContext<DocumentHub> _hubContext;
         private readonly IMapper _mapper;
 
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
+        public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
             IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper)
         {
-            _repo = repo;
+            _IDocumentRepository = IDocumentRepository;
             _httpClient = httpClient;
             _geminiApiKey = configuration["GeminiApi:ApiKey"];
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
