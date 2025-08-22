@@ -69,7 +69,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId, int currentUserId)
         {
-            var docs = await _repo.GetByProjectAsync(projectId);
+            var docs = await _IDocumentRepository.GetByProjectAsync(projectId);
 
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
@@ -84,7 +84,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetAllDocuments()
         {
-            var docs = await _repo.GetAllAsync();
+            var docs = await _IDocumentRepository.GetAllAsync();
             return docs.Select(d => new DocumentResponseDTO
             {
                 Id = d.Id,
@@ -103,14 +103,14 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> GetByIdAsync(int id)
         {
-            var entity = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
+            var entity = await _IDocumentRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
             return _mapper.Map<DocumentResponseDTO>(entity);
         }
 
 
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null)
                 throw new KeyNotFoundException($"Document {id} not found");
@@ -151,8 +151,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
                 var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
                 await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
 
@@ -202,8 +202,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -239,7 +239,7 @@ namespace IntelliPM.Services.DocumentServices
         {
             if (req == null) throw new ArgumentNullException(nameof(req));
 
-            var doc = await _repo.GetByIdAsync(id)
+            var doc = await _IDocumentRepository.GetByIdAsync(id)
                       ?? throw new KeyNotFoundException("Document not found");
 
             if (!string.IsNullOrWhiteSpace(req.Title))
@@ -254,8 +254,8 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             await _hubContext.Clients
                 .Group($"document-{id}")
@@ -287,7 +287,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<bool> DeleteDocument(int id, int deletedBy)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null )
                 throw new KeyNotFoundException($"Document {id} not found or already deleted");
@@ -296,8 +296,8 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = deletedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.DeleteAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.DeleteAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return true;
         }
@@ -367,7 +367,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<string> SummarizeContent(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null || string.IsNullOrWhiteSpace(doc.Content))
                 throw new Exception("Document not found or empty content.");
 
@@ -443,7 +443,7 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
             // 1) Tìm document
-            var document = await _repo.GetByIdAsync(documentId);
+            var document = await _IDocumentRepository.GetByIdAsync(documentId);
             if (document == null)
                 throw new KeyNotFoundException($"Document {documentId} not found");
 
@@ -472,7 +472,7 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
 
 
             // 5) Lấy account map từ emails
-            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
 
             // 6) Upsert quyền cho các email có accountId
             if (accountMap.Count > 0)
@@ -720,7 +720,7 @@ Yêu cầu:
             if (!IsPromptValid(prompt))
                 throw new Exception("Prompt không hợp lệ. Vui lòng mô tả rõ hơn về nội dung bạn muốn tạo.");
 
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null) throw new Exception("Document not found");
 
             var fullPrompt = BuildProjectPlanPrompt(prompt);
@@ -732,8 +732,8 @@ Yêu cầu:
             doc.Content = content;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return content;
         }
@@ -792,7 +792,7 @@ Yêu cầu:
 
         public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
         {
-            return await _repo.GetUserDocumentMappingAsync(projectId, userId);
+            return await _IDocumentRepository.GetUserDocumentMappingAsync(projectId, userId);
         }
         //public async Task<Dictionary<string, int>> GetStatusCount()
         //{
@@ -821,7 +821,7 @@ Yêu cầu:
 
         public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null)
                 throw new Exception("Document not found");
 
@@ -865,7 +865,7 @@ Yêu cầu:
 
         public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null)
                 throw new Exception("Document not found");
 
@@ -1118,11 +1118,11 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
 
         public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
         {
-            var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
+            var updated = await _IDocumentRepository.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
             if (!updated)
                 throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            var latest = await _repo.GetByIdAsync(documentId)
+            var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
 
             var dto = new DocumentResponseDTO
