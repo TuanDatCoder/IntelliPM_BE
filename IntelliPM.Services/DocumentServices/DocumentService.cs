@@ -831,10 +831,14 @@ Yêu cầu:
             if (string.IsNullOrWhiteSpace(token))
                 throw new Exception("Access token is missing");
 
-            // Gọi API lấy metrics có gắn token
+            var beUrl = Environment.GetEnvironmentVariable("BE_URL")
+                        ?? "https://localhost:7128"; 
+
+      
             var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://localhost:7128/api/projectmetric/by-project-id?projectId={projectId}");
-            metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                $"{beUrl}/api/projectmetric/by-project-id?projectId={projectId}");
+            metricRequest.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             var metricResponse = await _httpClient.SendAsync(metricRequest);
             if (!metricResponse.IsSuccessStatusCode)
@@ -858,6 +862,7 @@ Yêu cầu:
             };
         }
 
+
         public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
         {
             var doc = await _repo.GetByIdAsync(documentId);
@@ -870,21 +875,24 @@ Yêu cầu:
             if (string.IsNullOrWhiteSpace(token))
                 throw new Exception("Access token is missing");
 
-            // Gọi API lấy metrics có gắn token
+            var beUrl = Environment.GetEnvironmentVariable("BE_URL")
+                        ?? "https://localhost:7128"; 
+
             var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"https://localhost:7128/api/task/by-project-id/{projectId}/detailed");
-            metricRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                $"{beUrl}/api/task/by-project-id/{projectId}/detailed");
+            metricRequest.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             var taskResponse = await _httpClient.SendAsync(metricRequest);
             if (!taskResponse.IsSuccessStatusCode)
-                throw new Exception($"Failed to fetch metrics: {taskResponse.StatusCode}");
+                throw new Exception($"Failed to fetch tasks: {taskResponse.StatusCode}");
 
             var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
             var tasks = taskData?.Data;
             if (tasks == null)
-                throw new Exception("No project metrics found");
+                throw new Exception("No project tasks found");
 
-            // Tạo prompt từ tasks + metrics
+            // Tạo prompt từ tasks
             var prompt = BuildTasksTablesPrompt(tasks);
             var content = await GenerateContentWithGemini(prompt);
 
@@ -896,6 +904,7 @@ Yêu cầu:
                 Content = content
             };
         }
+
 
 
         private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
