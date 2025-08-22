@@ -10,6 +10,7 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
+using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
@@ -389,7 +390,7 @@ namespace IntelliPM.Services.TaskServices
             }
 
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
         }
 
         public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
@@ -590,7 +591,7 @@ namespace IntelliPM.Services.TaskServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            await UpdateTaskProgressAsync(entity);
+            //await UpdateTaskProgressAsync(entity);
 
             try
             {
@@ -650,53 +651,26 @@ namespace IntelliPM.Services.TaskServices
 
         //private async Task UpdateTaskProgressAsync(Tasks task)
         //{
-        //    if (task.Status == "DONE")
+        //    if (task.Subtask?.Any() ?? false)
         //    {
-        //        task.PercentComplete = 100;
+        //        var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+        //        task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
         //    }
-        //    else if (task.Status == "TO_DO")
+        //    else
         //    {
-        //        task.PercentComplete = 0;
-        //    }
-        //    else if (task.Status == "IN_PROGRESS")
-        //    {
-        //        if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+        //        if (task.Status == "DONE") task.PercentComplete = 100;
+        //        else if (task.Status == "TO_DO") task.PercentComplete = 0;
+        //        else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
         //        {
         //            var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
         //            task.PercentComplete = Math.Min((int)rawProgress, 99);
         //        }
-        //        else
-        //        {
-        //            task.PercentComplete = 0;
-        //        }
+        //        else task.PercentComplete = 0;
         //    }
 
         //    task.UpdatedAt = DateTime.UtcNow;
         //    await _taskRepo.Update(task);
         //}
-
-        private async Task UpdateTaskProgressAsync(Tasks task)
-        {
-            if (task.Subtask?.Any() ?? false)
-            {
-                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
-                task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
-            }
-            else
-            {
-                if (task.Status == "DONE") task.PercentComplete = 100;
-                else if (task.Status == "TO_DO") task.PercentComplete = 0;
-                else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
-                {
-                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
-                    task.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else task.PercentComplete = 0;
-            }
-
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
 
         public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
         {
@@ -1183,7 +1157,7 @@ namespace IntelliPM.Services.TaskServices
             try
             {
                 await _taskRepo.Update(entity);
-                await UpdateTaskProgressAsync(entity);
+                //await UpdateTaskProgressAsync(entity);
 
                 await _activityLogService.LogAsync(new ActivityLog
                 {
@@ -1476,6 +1450,37 @@ namespace IntelliPM.Services.TaskServices
             task.PlannedHours = businessDays * totalWorkingHoursPerDay;
             task.UpdatedAt = DateTime.UtcNow;
             await _taskRepo.Update(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPercentComlete(string id, decimal? percentComplete, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (percentComplete.HasValue && (percentComplete < 0 || percentComplete > 100))
+                throw new ArgumentException("Percent complete must be between 0 and 100.");
+
+            var oldPercentComplete = task.PercentComplete;
+            task.PercentComplete = percentComplete;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PercentComplete",
+                OldValue = oldPercentComplete?.ToString() ?? "null",
+                NewValue = percentComplete?.ToString() ?? "null",
+                Message = $"Updated percent complete for task '{task.Id}' to {percentComplete ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
         }
 
         //public async Task<TaskResponseDTO> ChangeTaskActualHours(string id, decimal actualHours, int createdBy)
