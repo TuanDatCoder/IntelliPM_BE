@@ -24,5 +24,6 @@ namespace IntelliPM.Repositories.ProjectRepos
         Task<List<ProjectItemDTO>> GetProjectItemsAsync(int projectId);
         Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync();
         Task<List<string>> GetAllProjectKeysAsync();
+        Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync();
     }
 }
