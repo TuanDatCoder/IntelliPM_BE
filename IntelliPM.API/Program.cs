@@ -61,6 +61,7 @@ using IntelliPM.Services.AiResponseHistoryServices;
 using IntelliPM.Services.AiServices.GenerateEpicsServices;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.AiServices.SprintTaskPlanningServices;
+using IntelliPM.Services.AiServices.StoryTaskServices;
 using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.ChatGPTServices;
@@ -260,6 +261,7 @@ builder.Services.AddScoped<IDynamicCategoryHelper, DynamicCategoryHelper>();
 builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistoryService>();
 builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
 builder.Services.AddScoped<IGenerateEpicService, GenerateEpicService>();
+builder.Services.AddScoped<IGenerateStoryTaskService, GenerateStoryTaskService>();
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
@@ -392,15 +394,28 @@ app.MapHub<NotificationHub>("/hubs/notification");
 app.MapHub<DocumentHub>("/hubs/document");
 
 
+// Configure Hangfire recurring jobs
+var serviceProvider = builder.Services.BuildServiceProvider();
+var configService = serviceProvider.GetRequiredService<ISystemConfigurationService>();
+var cronExpression = configService.GetSystemConfigurationByConfigKey("overdue_task_risk_check_time").Result?.ValueConfig ?? "0 17 * * *"; // Default to 00:00 +07
+
 app.UseHangfireDashboard();
 //app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
-     "0 17 * * *"
+    cronExpression
+//"0 17 * * *"
 //"0 1 * * *"
 // "*/1 * * * *"
 );
+
+//RecurringJob.AddOrUpdate<IRiskService>(
+//    "check-overdue-task-risks",
+//    x => x.CheckAndCreateAllOverdueTaskRisksAsync(), // Handle projectKey dynamically
+//    cronExpression,
+//    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+//);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();

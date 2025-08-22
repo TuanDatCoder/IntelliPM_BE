@@ -12,5 +12,6 @@ namespace IntelliPM.Services.AdminServices
     {
         Task<List<AccountResponseDTO>> GetAllAccountsAsync();
         Task<List<ProjectStatusReportDto>> GetProjectStatusReportsAsync();
+        Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync();
     }
 }

@@ -39,5 +39,11 @@ namespace IntelliPM.Services.AdminServices
         {
             return await _projectRepository.GetAllProjectStatusReportsAsync();
         }
+
+        public async Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync()
+        {
+            var reports = await _projectRepository.GetProjectManagerReportsAsync();
+            return reports;
+        }
     }
 }

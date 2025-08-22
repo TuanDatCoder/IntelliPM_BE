@@ -27,6 +27,7 @@ namespace IntelliPM.Services.EpicServices
         Task<List<string>> CreateEpicsWithTasksAndAssignments(int projectId, string token, List<EpicWithTaskRequestDTO> requests, string type);
 
         Task<List<EpicResponseDTO>> GenerateEpicPreviewAsync(int projectId);
+         Task<List<string>> CreateEpicsWithTasksTypeAndAssignments(int projectId, string token, List<EpicWithTaskTypeRequestDTO> requests);
 
     }
 }

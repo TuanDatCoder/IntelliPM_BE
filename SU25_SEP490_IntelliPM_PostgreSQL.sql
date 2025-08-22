@@ -527,7 +527,7 @@ CREATE TABLE risk (
     id SERIAL PRIMARY KEY,
     risk_key VARCHAR(20) NOT NULL UNIQUE,
     responsible_id INT NULL,
-    created_by INT NOT NULL,
+    created_by INT NULL,
     project_id INT NOT NULL,
     task_id VARCHAR(255) NULL,
     risk_scope VARCHAR(255) NOT NULL,
@@ -1257,23 +1257,36 @@ VALUES
     ('project_duration_days', '365', '30', '1095', '365', 'Duration of a project in days', 'Adjust based on project scope', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_budget', '5000000000', '1', '100000000000', '5000000000', 'Budget for a project in VND', 'Supports VND; adjust for other currencies if needed', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('project_members', '20', '5', '100', '20', 'Number of members in a project', 'Ensure sufficient team size', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00')
+    ('project_key_length', '10', '1', '10', '10', 'Length of project key', 'Ensure unique and readable keys', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('project_name_length', '150', '1', '150', '100', 'Max length of project name', 'Avoid too long names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('title_length', '50', '0', '50', '20', 'Max length of project title', 'Short title for display', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('epic_duration_days', '180', '15', '365', '180', 'Duration of an epic in days', 'Shorter than project duration', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('task_duration_days', '180', '15', '365', '180', 'Duration of an task in days', 'Shorter than project duration', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('type_length', '100', '0', '100', '50', 'Max length of requirement type', 'Ensure valid type length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('status_length', '50', '0', '50', '20', 'Max length of status type', 'Ensure valid type length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('priority_length', '50', '0', '50', '20', 'Max length of requirement priority', 'Ensure valid priority length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('description_length', '500', '0', '2000', '300', 'Max length of description fields', 'Allow long descriptions but keep reasonable limit', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+	('reason_length', '500', '0', '2000', '300', 'Max length of reason fields', 'Allow long reason but keep reasonable limit', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_name_length', '255', '1', '255', '100', 'Max length of sprint name', 'Ensure readable sprint names', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
+    ('risk_title_length', '255', '1', '255', '255', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
 
 INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
 VALUES
     ('ahead_threshold', '5', 'Threshold for determining Ahead status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('behind_threshold', '-5', 'Threshold for determining Behind status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('behind_threshold', '-5', 'Threshold for determining Behind status in time dashboard (percentage)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('default_risk_status', 'OPEN', 'Default status for new risks', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('default_risk_generated_by', 'MANUAL', 'Default generated_by value for new risks', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT INTO system_configuration (config_key, value_config, description)
+VALUES 
+    ('overdue_task_risk_check_time', '0 17 * * *', 'Cron expression for daily overdue task risk check (runs at 00:00 +07)'),
+    ('default_risk_scope', 'PROJECT', 'Default risk scope');
+
+
 
 
 -- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
@@ -1289,6 +1302,8 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
+    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
     ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
@@ -1452,6 +1467,8 @@ VALUES
     ('ai_feature', 'RISK_PREDICTION', 'Risk Prediction', 'AI predicts potential risks for the project', 4, 'https://example.com/icons/risk-prediction.png', '#F44336'),
     ('ai_feature', 'MEETING_SUMMARY', 'Meeting Summary', 'AI summarizes meeting discussions and outcomes', 5, 'https://example.com/icons/meeting-summary.png', '#9C27B0'),
     ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'EPIC_GENERATION', 'EPIC_GENERATION Suggestion', 'AI EPIC_GENERATION recommendation suggestion', 8, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'STORY_TASK_GENERATION', 'STORY_TASK_GENERATION Suggestion', 'AI STORY_TASK_GENERATION recommendation suggestion', 9, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
     ('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
     ('risk_impact_level', 'MEDIUM', 'Medium', 'Medium impact level', 2, NULL, 'yellow-100,yellow-700'),
     ('risk_impact_level', 'HIGH', 'High', 'High impact level', 3, NULL, 'red-100,red-700'),
@@ -1465,7 +1482,11 @@ VALUES
     ('health_status', 'NO_PROGRESS', 'No Progress', 'Project has started but no progress recorded', 2, NULL, '#F87171'), -- Red
     ('health_status', 'ON_TIME', 'On Time', 'Project or task is on schedule', 3, NULL, '#10B981'), -- Green
     ('health_status', 'AHEAD', 'Ahead', 'Project or task is ahead of schedule', 4, NULL, '#34D399'), -- Light Green
-    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'); -- Dark Red
+    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'), -- Dark Red
+    ('risk_generated_by', 'MANUAL', 'Manual', 'Risk created manually by a user', 1, NULL, '#4B5563'), -- Gray
+    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6'); -- Blue
+    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
+
 
 	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 

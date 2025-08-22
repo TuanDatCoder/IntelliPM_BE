@@ -147,52 +147,6 @@ namespace IntelliPM.Repositories.ProjectRepos
                 .ToList();
         }
 
-        //public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync()
-        //{
-        //    var reports = await _context.Project
-        //        .Include(p => p.Sprint)
-        //        .Include(p => p.Milestone)
-        //        .Include(p => p.Tasks)
-        //            .ThenInclude(t => t.Subtask)
-        //        .Include(p => p.ProjectMember)
-        //            .ThenInclude(pm => pm.Account)
-        //        .Select(project => new ProjectStatusReportDto
-        //        {
-        //            ProjectId = project.Id,
-        //            ProjectName = project.Name,
-        //            ProjectKey = project.ProjectKey,
-        //            ProjectManager = project.ProjectMember
-        //                .Where(pm => pm.Account.Position == "PROJECT_MANAGER")
-        //                .Select(pm => pm.Account.FullName)
-        //                .FirstOrDefault(),
-
-        //            Budget = project.Budget,
-        //            ActualCost = project.Tasks.Sum(t => t.ActualCost) ?? 0,
-
-        //            TotalTasks = project.Tasks.Count(),
-        //            CompletedTasks = project.Tasks.Count(t => t.Status == "DONE"),
-        //            Progress = project.Tasks.Average(t => t.PercentComplete ?? 0),
-
-        //            SPI = CalculateSPI(project.Tasks),
-        //            CPI = CalculateCPI(project.Tasks),
-
-        //            OverdueTasks = project.Tasks.Count(t =>
-        //                t.PlannedEndDate < DateTime.UtcNow &&
-        //                (t.Status != "DONE")),
-
-        //            Milestones = project.Milestone.Select(m => new MilestoneDto
-        //            {
-        //                Name = m.Name,
-        //                Status = m.Status,
-        //                StartDate = m.StartDate,
-        //                EndDate = m.EndDate
-        //            }).ToList()
-        //        })
-        //        .ToListAsync();
-
-        //    return reports;
-        //}
-
         public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync()
         {
             var projects = await _context.Project
@@ -248,5 +202,124 @@ namespace IntelliPM.Repositories.ProjectRepos
             return reports;
         }
 
+        public async Task<List<string>> GetAllProjectKeysAsync()
+        {
+            return await _context.Project.Select(p => p.ProjectKey).ToListAsync();
+        }
+
+        public async Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync()
+        {
+            // Fetch project managers
+            var projectManagers = await _context.Account
+                .Join(_context.ProjectMember,
+                    a => a.Id,
+                    pm => pm.AccountId,
+                    (a, pm) => new { Account = a, ProjectMember = pm })
+                .Join(_context.ProjectPosition,
+                    pm => pm.ProjectMember.Id,
+                    pp => pp.ProjectMemberId,
+                    (pm, pp) => new { pm.Account, pp })
+                .Where(x => x.pp.Position == "PROJECT_MANAGER")
+                .Select(x => new
+                {
+                    ProjectManagerId = x.Account.Id,
+                    ProjectManagerName = x.Account.FullName ?? "Unknown"
+                })
+                .Distinct()
+                .AsNoTracking()
+                .ToListAsync();
+
+            var result = new List<ProjectManagerReportDto>();
+
+            foreach (var pm in projectManagers)
+            {
+                // Fetch projects for this project manager
+                var projects = await _context.Project
+                    .Join(_context.ProjectMember,
+                        p => p.Id,
+                        pmem => pmem.ProjectId,
+                        (p, pmem) => new { Project = p, ProjectMember = pmem })
+                    .Join(_context.ProjectPosition,
+                        pm => pm.ProjectMember.Id,
+                        pp => pp.ProjectMemberId,
+                        (pm, pp) => new { pm.Project, pm.ProjectMember, pp })
+                    .Where(x => x.pp.Position == "PROJECT_MANAGER" &&
+                                x.ProjectMember.AccountId == pm.ProjectManagerId)
+                    .GroupJoin(_context.ProjectMetric,
+                        p => p.Project.Id,
+                        pm => pm.ProjectId,
+                        (p, pm) => new { p.Project, p.ProjectMember, p.pp, ProjectMetrics = pm })
+                    .SelectMany(x => x.ProjectMetrics.DefaultIfEmpty(),
+                        (p, pm) => new ProjectSummaryDto
+                        {
+                            ProjectId = p.Project.Id,
+                            ProjectKey = p.Project.ProjectKey,
+                            ProjectName = p.Project.Name,
+                            Status = p.Project.Status ?? "UNKNOWN",
+                            Spi = pm != null ? pm.SchedulePerformanceIndex : null,
+                            Cpi = pm != null ? pm.CostPerformanceIndex : null,
+                            Progress = _context.Tasks
+                                .Where(t => t.ProjectId == p.Project.Id)
+                                .Average(t => t.PercentComplete) ?? 0,
+                            TotalTasks = _context.Tasks
+                                .Count(t => t.ProjectId == p.Project.Id),
+                            CompletedTasks = _context.Tasks
+                                .Count(t => t.ProjectId == p.Project.Id && t.Status == "DONE"),
+                            OverdueTasks = _context.Tasks
+                                .Count(t => t.ProjectId == p.Project.Id &&
+                                            t.Status != "DONE" &&
+                                            t.PlannedEndDate < DateTime.UtcNow &&
+                                            t.ActualEndDate == null),
+                            Budget = p.Project.Budget ?? 0,
+                            ActualCost = pm != null ? pm.ActualCost ?? 0 : 0,
+                            RemainingBudget = p.Project.Budget != null && pm != null
+                                ? (p.Project.Budget ?? 0) - (pm.ActualCost ?? 0)
+                                : 0
+                        })
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                // Fetch milestones for all projects
+                var projectIds = projects.Select(p => p.ProjectId).ToList();
+                var milestones = projectIds.Any()
+                    ? await _context.Milestone
+                        .Where(m => projectIds.Contains(m.ProjectId))
+                        .Select(m => new MilestoneSummaryDto
+                        {
+                            MilestoneId = m.Id,
+                            Key = m.Key,
+                            Name = m.Name,
+                            Status = m.Status ?? "UNKNOWN",
+                            StartDate = m.StartDate,
+                            EndDate = m.EndDate
+                        })
+                        .AsNoTracking()
+                        .ToListAsync()
+                    : new List<MilestoneSummaryDto>();
+
+                // Assign milestones to projects
+                foreach (var project in projects)
+                {
+                    project.Milestones = milestones
+                        .Where(m => m.ProjectId == project.ProjectId)
+                        .ToList();
+                }
+
+                var report = new ProjectManagerReportDto
+                {
+                    ProjectManagerId = pm.ProjectManagerId,
+                    ProjectManagerName = pm.ProjectManagerName,
+                    TotalProjects = projects.Count,
+                    ActiveProjects = projects.Count(p => p.Status == "ACTIVE"),
+                    OverdueTasks = projects.Sum(p => p.OverdueTasks),
+                    TotalBudget = projects.Sum(p => p.Budget),
+                    Projects = projects
+                };
+
+                result.Add(report);
+            }
+
+            return result;
+        }
     }
 }

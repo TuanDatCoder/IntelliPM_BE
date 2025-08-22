@@ -206,6 +206,10 @@ namespace IntelliPM.Services.Helper.MapperProfiles
             CreateMap<TaskAssignedMembersRequestDTO, TaskAssignment>();
 
 
+            CreateMap<EpicWithTaskTypeRequestDTO, Epic>()
+           .ForMember(dest => dest.Tasks, opt => opt.Ignore());
+
+            CreateMap<EpicTaskTypeAssignedMembersRequestDTO, Tasks>();
 
             // Sprint
             CreateMap<SprintRequestDTO, Sprint>()

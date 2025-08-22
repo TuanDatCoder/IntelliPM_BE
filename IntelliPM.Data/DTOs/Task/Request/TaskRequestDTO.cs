@@ -22,7 +22,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
         public string? Type { get; set; }
 
         [Required(ErrorMessage = "Task title is required")]
-       // [MaxLength(65, ErrorMessage = "Task title cannot exceed 65 characters")]
+        [DynamicMaxLength("title_length")]
         public string Title { get; set; } = null!;
 
         public string? Description { get; set; }

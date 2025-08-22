@@ -1,5 +1,7 @@
 ﻿
+using Google.Api;
 using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Admin;
 using IntelliPM.Services.AdminServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +40,13 @@ namespace IntelliPM.API.Controllers
         {
             var result = await _adminService.GetProjectStatusReportsAsync();
             return Ok(result);
+        }
+
+        [HttpGet("project-managers")]
+        public async Task<ActionResult<List<ProjectManagerReportDto>>> GetProjectManagerReports()
+        {
+            var reports = await _adminService.GetProjectManagerReportsAsync();
+            return Ok(reports);
         }
 
     }
