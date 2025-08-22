@@ -579,8 +579,8 @@ namespace IntelliPM.Services.SubtaskServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            await UpdateSubtaskProgressAsync(entity);
-            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
+            //await UpdateSubtaskProgressAsync(entity);
+            //await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
             var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
             var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
@@ -645,70 +645,40 @@ namespace IntelliPM.Services.SubtaskServices
 
         //private async Task UpdateSubtaskProgressAsync(Subtask subtask)
         //{
-        //    if (subtask.Status == "DONE")
-        //    {
-        //        subtask.PercentComplete = 100;
-        //    }
-        //    else if (subtask.Status == "TO_DO")
-        //    {
-        //        subtask.PercentComplete = 0;
-        //    }
+        //    if (subtask.Status == "DONE") subtask.PercentComplete = 100;
+        //    else if (subtask.Status == "TO_DO") subtask.PercentComplete = 0;
         //    else if (subtask.Status == "IN_PROGRESS")
         //    {
         //        var actual = subtask.ActualHours ?? 0;
-        //        var planned = subtask.PlannedHours ?? 0;
-
-        //        if (planned > 0)
-        //        {
-        //            var rawProgress = (actual / planned) * 100;
-        //            subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-        //        }
-        //        else
-        //        {
-        //            subtask.PercentComplete = 0;
-        //        }
+        //        var planned = subtask.PlannedHours ?? 1; 
+        //        var rawProgress = (actual / planned) * 100;
+        //        subtask.PercentComplete = Math.Min((int)rawProgress, 99);
         //    }
 
         //    subtask.UpdatedAt = DateTime.UtcNow;
         //    await _subtaskRepo.Update(subtask);
         //}
 
-        private async Task UpdateSubtaskProgressAsync(Subtask subtask)
-        {
-            if (subtask.Status == "DONE") subtask.PercentComplete = 100;
-            else if (subtask.Status == "TO_DO") subtask.PercentComplete = 0;
-            else if (subtask.Status == "IN_PROGRESS")
-            {
-                var actual = subtask.ActualHours ?? 0;
-                var planned = subtask.PlannedHours ?? 1; 
-                var rawProgress = (actual / planned) * 100;
-                subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-            }
+        //private async Task UpdateTaskProgressBySubtasksAsync(string taskId)
+        //{
+        //    var task = await _taskRepo.GetByIdAsync(taskId);
+        //    if (task == null) return;
 
-            subtask.UpdatedAt = DateTime.UtcNow;
-            await _subtaskRepo.Update(subtask);
-        }
+        //    var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
 
-        private async Task UpdateTaskProgressBySubtasksAsync(string taskId)
-        {
-            var task = await _taskRepo.GetByIdAsync(taskId);
-            if (task == null) return;
+        //    if (!subtasks.Any())
+        //    {
+        //        task.PercentComplete = 0;
+        //    }
+        //    else
+        //    {
+        //        var avg = subtasks.Average(st => st.PercentComplete ?? 0); 
+        //        task.PercentComplete = (int)Math.Round(avg);
+        //    }
 
-            var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
-
-            if (!subtasks.Any())
-            {
-                task.PercentComplete = 0;
-            }
-            else
-            {
-                var avg = subtasks.Average(st => st.PercentComplete ?? 0); 
-                task.PercentComplete = (int)Math.Round(avg);
-            }
-
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
 
 
         public async Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id)
@@ -813,8 +783,8 @@ namespace IntelliPM.Services.SubtaskServices
             }
 
             await _subtaskRepo.Update(entity);
-            await UpdateSubtaskProgressAsync(entity);
-            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
+            //await UpdateSubtaskProgressAsync(entity);
+            //await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
             try
             {
@@ -875,8 +845,8 @@ namespace IntelliPM.Services.SubtaskServices
             }
 
             await _subtaskRepo.Update(entity);
-            await UpdateSubtaskProgressAsync(entity);
-            await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
+            //await UpdateSubtaskProgressAsync(entity);
+            //await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
             try
             {
@@ -935,6 +905,46 @@ namespace IntelliPM.Services.SubtaskServices
             return _mapper.Map<SubtaskFullResponseDTO>(entity);
         }
 
+        public async Task<SubtaskFullResponseDTO> ChangePercentComplete(string id, decimal? percentComplete, int createdBy)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            if (percentComplete.HasValue && (percentComplete < 0 || percentComplete > 100))
+                throw new ArgumentException("Percent complete must be between 0 and 100.");
+
+            entity.PercentComplete = percentComplete;
+            await _subtaskRepo.Update(entity);
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+            var totalPercentComplete = subtasks.Sum(s => s.PercentComplete ?? 0);
+
+            if (task != null)
+            {
+                task.PercentComplete = totalPercentComplete;
+                await _taskRepo.Update(task);
+            }
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task?.ProjectId,
+                TaskId = task?.Id,
+                SubtaskId = entity.Id,
+                RelatedEntityType = "Subtask",
+                RelatedEntityId = entity.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PercentComplete",
+                OldValue = entity.PercentComplete?.ToString() ?? "null",
+                NewValue = percentComplete?.ToString() ?? "null",
+                Message = $"Updated percent complete for subtask '{entity.Id}' to {percentComplete ?? 0} under task '{task?.Id}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
     }
 }
 
