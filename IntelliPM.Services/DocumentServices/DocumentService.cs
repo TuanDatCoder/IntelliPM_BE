@@ -907,9 +907,9 @@ Yêu cầu:
             });
 
             return $@"
-Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích) là một bảng (<table>) dạng NGANG, trong đó:
-- Hàng đầu tiên (<thead>) chứa tên các trường (label) rõ ràng như định nghĩa.
-- Hàng thứ hai (<tbody>) chứa giá trị tương ứng lấy từ JSON.
+Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích) là một bảng (<table>) dạng DỌC, trong đó:
+- Mỗi hàng (<tr>) chứa một cặp dữ liệu.
+- Cột đầu tiên là tên trường (<th>), và cột thứ hai là giá trị tương ứng (<td>).
 - Không thêm style hay class.
 - Nếu giá trị null, để rỗng.
 - Giá trị lấy từ JSON (camelCase), riêng Project ID lấy từ tham số bên ngoài: {projectId}.
@@ -919,55 +919,28 @@ JSON:
 
 CẤU TRÚC MONG MUỐN:
 <table>
-  <thead>
-    <tr>
-      <th>Project ID</th>
-      <th>Planned Value (PV)</th>
-      <th>Earned Value (EV)</th>
-      <th>Actual Cost (AC)</th>
-      <th>Budget At Completion (BAC)</th>
-      <th>Cost Variance (CV)</th>
-      <th>Schedule Variance (SV)</th>
-      <th>Cost Performance Index (CPI)</th>
-      <th>Schedule Performance Index (SPI)</th>
-      <th>Estimate At Completion (EAC)</th>
-      <th>Estimate To Complete (ETC)</th>
-      <th>Variance At Completion (VAC)</th>
-      <th>Duration at Completion (days)</th>
-      <th>Estimate Duration at Completion (days)</th>
-      <th>Calculated By</th>
-      <th>Is Improved?</th>
-      <th>Improvement Summary</th>
-      <th>Confidence Score</th>
-      <th>Project Status</th>
-      <th>Created At (UTC)</th>
-      <th>Updated At (UTC)</th>
-    </tr>
-  </thead>
   <tbody>
-    <tr>
-      <td>{projectId}</td>
-      <td>{{metrics.plannedValue}}</td>
-      <td>{{metrics.earnedValue}}</td>
-      <td>{{metrics.actualCost}}</td>
-      <td>{{metrics.budgetAtCompletion}}</td>
-      <td>{{metrics.costVariance}}</td>
-      <td>{{metrics.scheduleVariance}}</td>
-      <td>{{metrics.costPerformanceIndex}}</td>
-      <td>{{metrics.schedulePerformanceIndex}}</td>
-      <td>{{metrics.estimateAtCompletion}}</td>
-      <td>{{metrics.estimateToComplete}}</td>
-      <td>{{metrics.varianceAtCompletion}}</td>
-      <td>{{metrics.durationAtCompletion}}</td>
-      <td>{{metrics.estimateDurationAtCompletion}}</td>
-      <td>{{metrics.calculatedBy}}</td>
-      <td>{{metrics.isImproved}}</td>
-      <td>{{metrics.improvementSummary}}</td>
-      <td>{{metrics.confidenceScore}}</td>
-      <td>{{metrics.projectStatus}}</td>
-      <td>{{metrics.createdAt}}</td>
-      <td>{{metrics.updatedAt}}</td>
-    </tr>
+    <tr><th>Project ID</th><td>{projectId}</td></tr>
+    <tr><th>Planned Value (PV)</th><td>{{metrics.plannedValue}}</td></tr>
+    <tr><th>Earned Value (EV)</th><td>{{metrics.earnedValue}}</td></tr>
+    <tr><th>Actual Cost (AC)</th><td>{{metrics.actualCost}}</td></tr>
+    <tr><th>Budget At Completion (BAC)</th><td>{{metrics.budgetAtCompletion}}</td></tr>
+    <tr><th>Cost Variance (CV)</th><td>{{metrics.costVariance}}</td></tr>
+    <tr><th>Schedule Variance (SV)</th><td>{{metrics.scheduleVariance}}</td></tr>
+    <tr><th>Cost Performance Index (CPI)</th><td>{{metrics.costPerformanceIndex}}</td></tr>
+    <tr><th>Schedule Performance Index (SPI)</th><td>{{metrics.schedulePerformanceIndex}}</td></tr>
+    <tr><th>Estimate At Completion (EAC)</th><td>{{metrics.estimateAtCompletion}}</td></tr>
+    <tr><th>Estimate To Complete (ETC)</th><td>{{metrics.estimateToComplete}}</td></tr>
+    <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
+    <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
+    <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
+    <tr><th>Calculated By</th><td>{{metrics.calculatedBy}}</td></tr>
+    <tr><th>Is Improved?</th><td>{{metrics.isImproved}}</td></tr>
+    <tr><th>Improvement Summary</th><td>{{metrics.improvementSummary}}</td></tr>
+    <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
+    <tr><th>Project Status</th><td>{{metrics.projectStatus}}</td></tr>
+    <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
+    <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
   </tbody>
 </table>";
         }
