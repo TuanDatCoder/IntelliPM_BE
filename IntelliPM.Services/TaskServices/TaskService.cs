@@ -380,13 +380,13 @@ namespace IntelliPM.Services.TaskServices
                 }
 
                 task.PlannedResourceCost = totalCost;
-                task.PlannedCost = totalCost;
+                //task.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 task.PlannedResourceCost = 0m;
-                task.PlannedCost = 0m;
+                //task.PlannedCost = 0m;
             }
 
             await _taskRepo.Update(task);
@@ -1145,13 +1145,13 @@ namespace IntelliPM.Services.TaskServices
                 }
 
                 entity.PlannedResourceCost = totalCost;
-                entity.PlannedCost = totalCost;
+                //entity.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 entity.PlannedResourceCost = 0m;
-                entity.PlannedCost = 0m;
+                //entity.PlannedCost = 0m;
             }
 
             try
@@ -1476,6 +1476,68 @@ namespace IntelliPM.Services.TaskServices
                 OldValue = oldPercentComplete?.ToString() ?? "null",
                 NewValue = percentComplete?.ToString() ?? "null",
                 Message = $"Updated percent complete for task '{task.Id}' to {percentComplete ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedCost(string id, decimal? plannedCost, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (plannedCost.HasValue && plannedCost < 0)
+                throw new ArgumentException("Planned cost cannot be negative.");
+
+            var oldPlannedCost = task.PlannedCost;
+            task.PlannedCost = plannedCost;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PlannedCost",
+                OldValue = oldPlannedCost?.ToString() ?? "null",
+                NewValue = plannedCost?.ToString() ?? "null",
+                Message = $"Updated planned cost for task '{task.Id}' to {plannedCost ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskActualCost(string id, decimal? actualCost, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (actualCost.HasValue && actualCost < 0)
+                throw new ArgumentException("Actual cost cannot be negative.");
+
+            var oldActualCost = task.ActualCost;
+            task.ActualCost = actualCost;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "ActualCost",
+                OldValue = oldActualCost?.ToString() ?? "null",
+                NewValue = actualCost?.ToString() ?? "null",
+                Message = $"Updated actual cost for task '{task.Id}' to {actualCost ?? 0}",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
             });

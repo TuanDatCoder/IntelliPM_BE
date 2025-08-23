@@ -704,9 +704,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 decimal plannedHours = subtask.PlannedHours ?? 0m;
                 decimal actualHours = subtask.ActualHours ?? 0m;
                 subtask.PlannedResourceCost = plannedHours * hourlyRate;
-                subtask.PlannedCost = subtask.PlannedResourceCost; // Only personnel costs
+                //subtask.PlannedCost = subtask.PlannedResourceCost; // Only personnel costs
                 subtask.ActualResourceCost = actualHours * hourlyRate;
-                subtask.ActualCost = subtask.ActualResourceCost;
+                //subtask.ActualCost = subtask.ActualResourceCost;
                 subtask.UpdatedAt = DateTime.UtcNow;
                 subtaskUpdates.Add(subtask);
             }
@@ -758,9 +758,9 @@ namespace IntelliPM.Services.ProjectMemberServices
 
                 // Update task costs
                 task.PlannedResourceCost = plannedResourceCost;
-                task.PlannedCost = plannedResourceCost;
+                //task.PlannedCost = plannedResourceCost;
                 task.ActualResourceCost = actualResourceCost;
-                task.ActualCost = actualResourceCost;
+                //task.ActualCost = actualResourceCost;
                 task.UpdatedAt = DateTime.UtcNow;
                 taskUpdates.Add(task);
             }

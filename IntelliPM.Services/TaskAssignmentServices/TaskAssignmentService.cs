@@ -199,13 +199,13 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 }
 
                 task.PlannedResourceCost = totalCost;
-                task.PlannedCost = totalCost;
+                //task.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 task.PlannedResourceCost = 0m;
-                task.PlannedCost = 0m;
+                //task.PlannedCost = 0m;
             }
 
             await _taskRepo.Update(task);
@@ -468,7 +468,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 }
 
                 task.ActualResourceCost = totalCost;
-                task.ActualCost = totalCost;
+                //task.ActualCost = totalCost;
                 //await UpdateTaskProgressAsync(task);
                 await _taskRepo.Update(task);
 
@@ -681,7 +681,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             task.RemainingHours = totalPlannedHours - actualHours;
             task.PlannedHours = totalPlannedHours;
             task.PlannedResourceCost = totalPlannedResourceCost;
-            task.PlannedCost = totalPlannedResourceCost;
+            //task.PlannedCost = totalPlannedResourceCost;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepo.Update(task);
@@ -760,7 +760,7 @@ namespace IntelliPM.Services.TaskAssignmentServices
             task.RemainingHours = totalPlannedHours - actualHours;
             task.PlannedHours = totalPlannedHours;
             task.PlannedResourceCost = totalPlannedResourceCost;
-            task.PlannedCost = totalPlannedResourceCost;
+            //task.PlannedCost = totalPlannedResourceCost;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepo.Update(task);

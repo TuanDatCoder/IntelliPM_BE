@@ -418,5 +418,70 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/planned-cost")]
+        public async Task<IActionResult> ChangePlannedCost(string id, [FromBody] decimal? plannedCost, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangePlannedCost(id, plannedCost, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask planned cost updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask planned cost: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/actual-cost")]
+        public async Task<IActionResult> ChangeActualCost(string id, [FromBody] decimal? actualCost, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeActualCost(id, actualCost, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Subtask actual cost updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating subtask actual cost: {ex.Message}"
+                });
+            }
+        }
     }
 }
