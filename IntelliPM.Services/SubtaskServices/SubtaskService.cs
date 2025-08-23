@@ -429,9 +429,9 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity.AssignedBy == null)
             {
                 entity.PlannedResourceCost = 0;
-                entity.PlannedCost = 0;
+                //entity.PlannedCost = 0;
                 entity.ActualResourceCost = 0;
-                entity.ActualCost = 0;
+                //entity.ActualCost = 0;
             }
             else
             {
@@ -448,9 +448,9 @@ namespace IntelliPM.Services.SubtaskServices
 
                 // Tính toán chi phí cho Subtask
                 entity.PlannedResourceCost = entity.PlannedHours * hourlyRate;
-                entity.PlannedCost = entity.PlannedHours * hourlyRate;
+                //entity.PlannedCost = entity.PlannedHours * hourlyRate;
                 entity.ActualResourceCost = entity.ActualHours * hourlyRate;
-                entity.ActualCost = entity.ActualHours * hourlyRate;
+                //entity.ActualCost = entity.ActualHours * hourlyRate;
             }
 
             // Cập nhật Subtask (chỉ cập nhật chi phí, không cần update toàn bộ nếu không muốn)
@@ -473,9 +473,9 @@ namespace IntelliPM.Services.SubtaskServices
 
             // Tính tổng chi phí
             task.PlannedResourceCost = subtasks.Sum(s => s.PlannedResourceCost);
-            task.PlannedCost = subtasks.Sum(s => s.PlannedCost);
+            //task.PlannedCost = subtasks.Sum(s => s.PlannedCost);
             task.ActualResourceCost = subtasks.Sum(s => s.ActualResourceCost);
-            task.ActualCost = subtasks.Sum(s => s.ActualCost);
+            //task.ActualCost = subtasks.Sum(s => s.ActualCost);
 
             // Cập nhật Task
             await _taskRepo.Update(task);
@@ -778,7 +778,7 @@ namespace IntelliPM.Services.SubtaskServices
                 {
                     decimal plannedResourceCost = hours * (member.HourlyRate ?? 0);
                     entity.PlannedResourceCost = plannedResourceCost;
-                    entity.PlannedCost = plannedResourceCost;
+                    //entity.PlannedCost = plannedResourceCost;
                 }
             }
 
@@ -798,7 +798,7 @@ namespace IntelliPM.Services.SubtaskServices
                     task.RemainingHours = totalPlannedHours - actualHours;
                     task.PlannedHours = totalPlannedHours;
                     task.PlannedResourceCost = totalPlannedResourceCost;
-                    task.PlannedCost = totalPlannedResourceCost;
+                    //task.PlannedCost = totalPlannedResourceCost;
                     await _taskRepo.Update(task);
                 }
 
@@ -840,7 +840,7 @@ namespace IntelliPM.Services.SubtaskServices
                 {
                     decimal actualResourceCost = hours * (member.HourlyRate ?? 0);
                     entity.ActualResourceCost = actualResourceCost;
-                    entity.ActualCost = actualResourceCost;
+                    //entity.ActualCost = actualResourceCost;
                 }
             }
 
@@ -860,7 +860,7 @@ namespace IntelliPM.Services.SubtaskServices
                     task.RemainingHours = plannedHours - totalActualHours;
                     task.ActualHours = totalActualHours;
                     task.ActualResourceCost = totalActualResourceCost;
-                    task.ActualCost = totalActualResourceCost;
+                    //task.ActualCost = totalActualResourceCost;
                     await _taskRepo.Update(task);
                 }
 
@@ -939,6 +939,88 @@ namespace IntelliPM.Services.SubtaskServices
                 OldValue = entity.PercentComplete?.ToString() ?? "null",
                 NewValue = percentComplete?.ToString() ?? "null",
                 Message = $"Updated percent complete for subtask '{entity.Id}' to {percentComplete ?? 0} under task '{task?.Id}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
+
+        public async Task<SubtaskFullResponseDTO> ChangePlannedCost(string id, decimal? plannedCost, int createdBy)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            if (plannedCost.HasValue && plannedCost < 0)
+                throw new ArgumentException("Planned cost cannot be negative.");
+
+            var oldValue = entity.PlannedCost;
+            entity.PlannedCost = plannedCost;
+            await _subtaskRepo.Update(entity);
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task != null)
+            {
+                // Optional: Cập nhật task nếu cần (ví dụ: tổng PlannedCost của các subtask)
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+                task.PlannedCost = subtasks.Sum(s => s.PlannedCost ?? 0);
+                await _taskRepo.Update(task);
+            }
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task?.ProjectId,
+                TaskId = task?.Id,
+                SubtaskId = entity.Id,
+                RelatedEntityType = "Subtask",
+                RelatedEntityId = entity.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PlannedCost",
+                OldValue = oldValue?.ToString() ?? "null",
+                NewValue = plannedCost?.ToString() ?? "null",
+                Message = $"Updated planned cost for subtask '{entity.Id}' to {plannedCost ?? 0} under task '{task?.Id}'",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<SubtaskFullResponseDTO>(entity);
+        }
+
+        public async Task<SubtaskFullResponseDTO> ChangeActualCost(string id, decimal? actualCost, int createdBy)
+        {
+            var entity = await _subtaskRepo.GetByIdAsync(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Subtask with ID {id} not found.");
+
+            if (actualCost.HasValue && actualCost < 0)
+                throw new ArgumentException("Actual cost cannot be negative.");
+
+            var oldValue = entity.ActualCost;
+            entity.ActualCost = actualCost;
+            await _subtaskRepo.Update(entity);
+
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task != null)
+            {
+                // Optional: Cập nhật task nếu cần (ví dụ: tổng ActualCost của các subtask)
+                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
+                task.ActualCost = subtasks.Sum(s => s.ActualCost ?? 0);
+                await _taskRepo.Update(task);
+            }
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task?.ProjectId,
+                TaskId = task?.Id,
+                SubtaskId = entity.Id,
+                RelatedEntityType = "Subtask",
+                RelatedEntityId = entity.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "ActualCost",
+                OldValue = oldValue?.ToString() ?? "null",
+                NewValue = actualCost?.ToString() ?? "null",
+                Message = $"Updated actual cost for subtask '{entity.Id}' to {actualCost ?? 0} under task '{task?.Id}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
             });

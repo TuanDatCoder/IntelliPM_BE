@@ -1235,8 +1235,8 @@ VALUES
 INSERT INTO system_configuration (config_key, value_config, description, effected_from)
 VALUES
     ('time_status_threshold', '5', 'Percentage threshold for determining ahead/behind status', CURRENT_TIMESTAMP),
-    ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
-    ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
+    ('cpi_warning_threshold', '1', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
+    ('spi_warning_threshold', '1', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 	-- Project
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 

@@ -89,7 +89,7 @@ namespace IntelliPM.Services.WorkLogServices
                             if (member != null && member.HourlyRate.HasValue)
                             {
                                 subtask.ActualResourceCost = subtask.ActualHours * member.HourlyRate.Value;
-                                subtask.ActualCost = subtask.ActualHours * member.HourlyRate.Value;
+                                //subtask.ActualCost = subtask.ActualHours * member.HourlyRate.Value;
                             }
                         }
                     }
@@ -110,7 +110,7 @@ namespace IntelliPM.Services.WorkLogServices
                             task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
-                            task.ActualCost = totalActualResourceCost;
+                            //task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                             //await UpdateTaskProgressBySubtasksAsync(task.Id);
@@ -221,7 +221,7 @@ namespace IntelliPM.Services.WorkLogServices
                             task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
-                            task.ActualCost = totalActualResourceCost;
+                            //task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                         }
@@ -463,7 +463,7 @@ namespace IntelliPM.Services.WorkLogServices
             task.RemainingHours = plannedHours - totalHours;
             task.ActualHours = totalHours;
             task.ActualResourceCost = totalCost;
-            task.ActualCost = totalCost;
+            //task.ActualCost = totalCost;
             await _taskRepo.Update(task);
             await UpdateTaskProgressAsync(task);
 
