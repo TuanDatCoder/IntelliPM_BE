@@ -13,7 +13,7 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public int TasksToBeCompleted { get; set; }     // Tổng task chưa hoàn thành
         public int OverdueTasks { get; set; }           // Task quá hạn
         public double ProgressPercent { get; set; }     // % tổng tiến độ
-        public decimal CostStatus { get; set; }         // So sánh EV / AC
+        public string CostStatus { get; set; }         // So sánh EV / AC
         public NewProjectMetricResponseDTO Cost { get; set; } = new();
         public bool ShowAlert { get; set; }
     }

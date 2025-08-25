@@ -209,7 +209,7 @@ namespace IntelliPM.Repositories.ProjectRepos
 
         public async Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync()
         {
-            // Fetch project managers
+            // Lấy danh sách Project Manager
             var projectManagers = await _context.Account
                 .Join(_context.ProjectMember,
                     a => a.Id,
@@ -233,54 +233,66 @@ namespace IntelliPM.Repositories.ProjectRepos
 
             foreach (var pm in projectManagers)
             {
-                // Fetch projects for this project manager
+                // Lấy danh sách project cho từng PM
                 var projects = await _context.Project
                     .Join(_context.ProjectMember,
                         p => p.Id,
                         pmem => pmem.ProjectId,
                         (p, pmem) => new { Project = p, ProjectMember = pmem })
                     .Join(_context.ProjectPosition,
-                        pm => pm.ProjectMember.Id,
+                        pm2 => pm2.ProjectMember.Id,
                         pp => pp.ProjectMemberId,
-                        (pm, pp) => new { pm.Project, pm.ProjectMember, pp })
+                        (pm2, pp) => new { pm2.Project, pm2.ProjectMember, pp })
                     .Where(x => x.pp.Position == "PROJECT_MANAGER" &&
                                 x.ProjectMember.AccountId == pm.ProjectManagerId)
                     .GroupJoin(_context.ProjectMetric,
                         p => p.Project.Id,
-                        pm => pm.ProjectId,
-                        (p, pm) => new { p.Project, p.ProjectMember, p.pp, ProjectMetrics = pm })
+                        pm3 => pm3.ProjectId,
+                        (p, pm3) => new { p.Project, p.ProjectMember, p.pp, ProjectMetrics = pm3 })
                     .SelectMany(x => x.ProjectMetrics.DefaultIfEmpty(),
-                        (p, pm) => new ProjectSummaryDto
-                        {
-                            ProjectId = p.Project.Id,
-                            ProjectKey = p.Project.ProjectKey,
-                            ProjectName = p.Project.Name,
-                            Status = p.Project.Status ?? "UNKNOWN",
-                            Spi = pm != null ? pm.SchedulePerformanceIndex : null,
-                            Cpi = pm != null ? pm.CostPerformanceIndex : null,
-                            Progress = _context.Tasks
-                                .Where(t => t.ProjectId == p.Project.Id)
-                                .Average(t => t.PercentComplete) ?? 0,
-                            TotalTasks = _context.Tasks
-                                .Count(t => t.ProjectId == p.Project.Id),
-                            CompletedTasks = _context.Tasks
-                                .Count(t => t.ProjectId == p.Project.Id && t.Status == "DONE"),
-                            OverdueTasks = _context.Tasks
-                                .Count(t => t.ProjectId == p.Project.Id &&
-                                            t.Status != "DONE" &&
-                                            t.PlannedEndDate < DateTime.UtcNow &&
-                                            t.ActualEndDate == null),
-                            Budget = p.Project.Budget ?? 0,
-                            ActualCost = pm != null ? pm.ActualCost ?? 0 : 0,
-                            RemainingBudget = p.Project.Budget != null && pm != null
-                                ? (p.Project.Budget ?? 0) - (pm.ActualCost ?? 0)
-                                : 0
-                        })
-                    .AsNoTracking()
+                        (p, pmMetric) => new { p.Project, Metric = pmMetric })
                     .ToListAsync();
 
-                // Fetch milestones for all projects
-                var projectIds = projects.Select(p => p.ProjectId).ToList();
+                var projectSummaries = new List<ProjectSummaryDto>();
+
+                foreach (var p in projects)
+                {
+                    // Tính toán task-level metrics
+                    var tasks = _context.Tasks.Where(t => t.ProjectId == p.Project.Id);
+
+                    var totalTasks = tasks.Count();
+                    var completedTasks = tasks.Count(t => t.Status == "DONE");
+                    var overdueTasks = tasks.Count(t =>
+                        t.Status != "DONE" &&
+                        t.PlannedEndDate < DateTime.UtcNow &&
+                        t.ActualEndDate == null);
+                    var avgProgress = tasks.Any() ? tasks.Average(t => t.PercentComplete) ?? 0 : 0;
+
+                    var totalActualCost = tasks.Sum(t => (t.ActualCost ?? 0) + (t.ActualResourceCost ?? 0));
+                    var budget = p.Project.Budget ?? 0;
+
+                    var summary = new ProjectSummaryDto
+                    {
+                        ProjectId = p.Project.Id,
+                        ProjectKey = p.Project.ProjectKey,
+                        ProjectName = p.Project.Name,
+                        Status = p.Project.Status ?? "UNKNOWN",
+                        Spi = p.Metric != null ? p.Metric.SchedulePerformanceIndex : null,
+                        Cpi = p.Metric != null ? p.Metric.CostPerformanceIndex : null,
+                        Progress = avgProgress,
+                        TotalTasks = totalTasks,
+                        CompletedTasks = completedTasks,
+                        OverdueTasks = overdueTasks,
+                        Budget = budget,
+                        ActualCost = totalActualCost,
+                        RemainingBudget = budget - totalActualCost
+                    };
+
+                    projectSummaries.Add(summary);
+                }
+
+                // Lấy milestone cho tất cả project
+                var projectIds = projectSummaries.Select(p => p.ProjectId).ToList();
                 var milestones = projectIds.Any()
                     ? await _context.Milestone
                         .Where(m => projectIds.Contains(m.ProjectId))
@@ -291,29 +303,31 @@ namespace IntelliPM.Repositories.ProjectRepos
                             Name = m.Name,
                             Status = m.Status ?? "UNKNOWN",
                             StartDate = m.StartDate,
-                            EndDate = m.EndDate
+                            EndDate = m.EndDate,
+                            ProjectId = m.ProjectId
                         })
                         .AsNoTracking()
                         .ToListAsync()
                     : new List<MilestoneSummaryDto>();
 
-                // Assign milestones to projects
-                foreach (var project in projects)
+                // Gán milestone cho từng project
+                foreach (var project in projectSummaries)
                 {
                     project.Milestones = milestones
                         .Where(m => m.ProjectId == project.ProjectId)
                         .ToList();
                 }
 
+                // Tạo báo cáo cho PM
                 var report = new ProjectManagerReportDto
                 {
                     ProjectManagerId = pm.ProjectManagerId,
                     ProjectManagerName = pm.ProjectManagerName,
-                    TotalProjects = projects.Count,
-                    ActiveProjects = projects.Count(p => p.Status == "ACTIVE"),
-                    OverdueTasks = projects.Sum(p => p.OverdueTasks),
-                    TotalBudget = projects.Sum(p => p.Budget),
-                    Projects = projects
+                    TotalProjects = projectSummaries.Count,
+                    ActiveProjects = projectSummaries.Count(p => p.Status == "ACTIVE"),
+                    OverdueTasks = projectSummaries.Sum(p => p.OverdueTasks),
+                    TotalBudget = projectSummaries.Sum(p => p.Budget),
+                    Projects = projectSummaries
                 };
 
                 result.Add(report);
@@ -321,5 +335,6 @@ namespace IntelliPM.Repositories.ProjectRepos
 
             return result;
         }
+
     }
 }
