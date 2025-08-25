@@ -100,6 +100,16 @@ namespace IntelliPM.API.Controllers
                     Data = result
                 });
             }
+            catch (KeyNotFoundException ex) 
+            {
+       
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 404,
+                    Message = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponseDTO
