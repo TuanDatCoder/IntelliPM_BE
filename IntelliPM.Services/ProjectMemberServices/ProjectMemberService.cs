@@ -704,9 +704,9 @@ namespace IntelliPM.Services.ProjectMemberServices
                 decimal plannedHours = subtask.PlannedHours ?? 0m;
                 decimal actualHours = subtask.ActualHours ?? 0m;
                 subtask.PlannedResourceCost = plannedHours * hourlyRate;
-                subtask.PlannedCost = subtask.PlannedResourceCost; // Only personnel costs
+                //subtask.PlannedCost = subtask.PlannedResourceCost; // Only personnel costs
                 subtask.ActualResourceCost = actualHours * hourlyRate;
-                subtask.ActualCost = subtask.ActualResourceCost;
+                //subtask.ActualCost = subtask.ActualResourceCost;
                 subtask.UpdatedAt = DateTime.UtcNow;
                 subtaskUpdates.Add(subtask);
             }
@@ -758,9 +758,9 @@ namespace IntelliPM.Services.ProjectMemberServices
 
                 // Update task costs
                 task.PlannedResourceCost = plannedResourceCost;
-                task.PlannedCost = plannedResourceCost;
+                //task.PlannedCost = plannedResourceCost;
                 task.ActualResourceCost = actualResourceCost;
-                task.ActualCost = actualResourceCost;
+                //task.ActualCost = actualResourceCost;
                 task.UpdatedAt = DateTime.UtcNow;
                 taskUpdates.Add(task);
             }
@@ -949,31 +949,31 @@ namespace IntelliPM.Services.ProjectMemberServices
             }
 
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
         }
 
-        private async Task UpdateTaskProgressAsync(Tasks task)
-        {
-            if (task.Subtask?.Any() ?? false)
-            {
-                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
-                task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
-            }
-            else
-            {
-                if (task.Status == "DONE") task.PercentComplete = 100;
-                else if (task.Status == "TO_DO") task.PercentComplete = 0;
-                else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
-                {
-                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
-                    task.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else task.PercentComplete = 0;
-            }
+        //private async Task UpdateTaskProgressAsync(Tasks task)
+        //{
+        //    if (task.Subtask?.Any() ?? false)
+        //    {
+        //        var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+        //        task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
+        //    }
+        //    else
+        //    {
+        //        if (task.Status == "DONE") task.PercentComplete = 100;
+        //        else if (task.Status == "TO_DO") task.PercentComplete = 0;
+        //        else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+        //        {
+        //            var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
+        //            task.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else task.PercentComplete = 0;
+        //    }
 
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
     }
 }
 

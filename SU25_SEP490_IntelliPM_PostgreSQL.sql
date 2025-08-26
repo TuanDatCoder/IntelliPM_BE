@@ -290,20 +290,6 @@ CREATE TABLE task_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 16. task_dependency
--- CREATE TABLE task_dependency (
---     id SERIAL PRIMARY KEY,
---     milestone_id INT NULL,
---     task_id VARCHAR(255) NULL,
---     linked_from VARCHAR(255) NOT NULL,
---     linked_to VARCHAR(255) NOT NULL,
---     type VARCHAR(50) NULL,
---     FOREIGN KEY (milestone_id) REFERENCES milestone(id),
---     FOREIGN KEY (task_id) REFERENCES tasks(id),
---     FOREIGN KEY (linked_from) REFERENCES tasks(id),
---     FOREIGN KEY (linked_to) REFERENCES tasks(id)
--- );
-
 -- 17. task_dependency
 CREATE TABLE task_dependency (
     id SERIAL PRIMARY KEY,
@@ -357,7 +343,7 @@ CREATE TABLE document (
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
-        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+        REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 CREATE TABLE  document_comment (
@@ -1006,22 +992,8 @@ VALUES
 
 
 -- Insert sample data into document
-INSERT INTO document (project_id, task_id, title, type, template, content, file_url, is_active, created_by, updated_by)
-VALUES 
-    (1, 'PROJA-3', 'Project Plan', 'PLAN', 'Template_A', 'Project plan details', 'http://example.com/plan.pdf', TRUE, 1, 1),
-    (2, 'PROJB-2', 'Campaign Brief', 'BRIEF', 'Template_B', 'Campaign details', 'http://example.com/brief.pdf', TRUE, 2, 2),
-    (3, 'PROJC-2', 'Research Report', 'REPORT', 'Template_C', 'Research findings', 'http://example.com/report.pdf', TRUE, 3, NULL),
-    (4, 'PROJD-2', 'Design Spec', 'SPEC', 'Template_D', 'Design specifications', 'http://example.com/spec.pdf', TRUE, 4, 4),
-    (5, 'PROJE-2', 'Test Strategy', 'STRATEGY', 'Template_E', 'Test strategy', 'http://example.com/strategy.pdf', TRUE, 5, 5);
 
--- Insert sample data into document_permission
-INSERT INTO document_permission (document_id, account_id, permission_type)
-VALUES 
-    (1, 1, 'READ'),
-    (2, 2, 'WRITE'),
-    (3, 3, 'READ'),
-    (4, 4, 'WRITE'),
-    (5, 5, 'READ');
+
 
 
 -- Insert sample data into project_position
@@ -1223,8 +1195,8 @@ VALUES
 INSERT INTO system_configuration (config_key, value_config, description, effected_from)
 VALUES
     ('time_status_threshold', '5', 'Percentage threshold for determining ahead/behind status', CURRENT_TIMESTAMP),
-    ('cpi_warning_threshold', '0.9', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
-    ('spi_warning_threshold', '0.9', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
+    ('cpi_warning_threshold', '1', 'CPI below this triggers a warning', CURRENT_TIMESTAMP),
+    ('spi_warning_threshold', '1', 'SPI below this triggers a warning', CURRENT_TIMESTAMP);
 	-- Project
 INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to)
 VALUES 
@@ -1245,7 +1217,8 @@ VALUES
 	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('risk_title_length', '255', '1', '255', '255', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('risk_title_length', '200', '1', '200', '200', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
 
 
 INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
@@ -1260,9 +1233,22 @@ VALUES
     ('overdue_task_risk_check_time', '0 17 * * *', 'Cron expression for daily overdue task risk check (runs at 00:00 +07)'),
     ('default_risk_scope', 'PROJECT', 'Default risk scope');
 
+INSERT INTO system_configuration (config_key, value_config, min_value, max_value, estimate_value, description, note)
+VALUES 
+    ('minimum_days_for_alert', '7', NULL, NULL, NULL, 'Minimum number of days after project start before triggering alerts', 'Used to avoid alerts in early project stages'),
+    ('minimum_progress_for_alert', '5.0', NULL, NULL, NULL, 'Minimum average progress percentage before evaluating SPI/CPI for alerts', 'Ensures alerts are meaningful');
 
 
 
+
+-- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
+INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+VALUES 
+('task_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
+    ('task_priority', 'HIGH', 'High', 'High priority requirement', 2, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517070/high_new_urjrrl.svg', '#f15c75'),
+    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority requirement', 3, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517013/medium_new_iobtik.svg', '#f79232'),
+    ('task_priority', 'LOW', 'Low', 'Low priority requirement', 4, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516829/low_new_uldiwt.svg', '#707070'),
+    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority requirement', 5, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516920/lowest_new_q8dvr8.svg', '#999');
 -- Insert sample data into dynamic_category (thêm #c97cf4 vào một số mục)
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
@@ -1276,10 +1262,10 @@ VALUES
     ('project_status', 'IN_REVIEW', 'In Review', 'Project is being reviewed', 4, NULL, NULL),
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
+
     ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
     ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
-	('processing_status', 'DONE', 'Done', TRUE, NOW(), 1),
-    ('processing_status', 'FAILED', 'Failed', TRUE, NOW(), 2), 
+
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
     ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
 	('requirement_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
@@ -1387,11 +1373,6 @@ VALUES
     ('project_member_status', 'ACTIVE', 'Active', 'Project member active in project', 3, NULL, NULL),
     ('project_member_status', 'BANNED', 'Banned', 'Project member banned, no access', 4, NULL, NULL),
     ('project_member_status', 'DELETED', 'Deleted', 'Project member deleted from project', 5, NULL, NULL),
-	('task_priority', 'HIGHEST', 'Highest', 'Highest priority requirement', 1, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517097/highest_new_ys492q.svg', '#d04437'),
-    ('task_priority', 'HIGH', 'High', 'High priority requirement', 2, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517070/high_new_urjrrl.svg', '#f15c75'),
-    ('task_priority', 'MEDIUM', 'Medium', 'Medium priority requirement', 3, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751517013/medium_new_iobtik.svg', '#f79232'),
-    ('task_priority', 'LOW', 'Low', 'Low priority requirement', 4, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516829/low_new_uldiwt.svg', '#707070'),
-    ('task_priority', 'LOWEST', 'Lowest', 'Lowest priority requirement', 5, 'https://res.cloudinary.com/didnsp4p0/image/upload/v1751516920/lowest_new_q8dvr8.svg', '#999'),
     ('subtask_priority', 'HIGHEST', 'Highest', 'Highest priority subtask', 1, NULL, NULL),
     ('subtask_priority', 'HIGH', 'High', 'High priority subtask', 2, NULL, NULL),
     ('subtask_priority', 'MEDIUM', 'Medium', 'Medium priority subtask', 3, NULL, NULL),
@@ -1425,9 +1406,8 @@ VALUES
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
-	('activity_log_action_type', 'TRANSCRIPT_FROM_URL_CREATED', 'Transcript From URL Created', TRUE, NOW(), 1),
-    ('activity_log_action_type', 'TRANSCRIPT_CREATED', 'Transcript Created', TRUE, NOW(), 2),
-    ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
+('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
+    ('activity_log_action_type', 'USER_LOGIN', 'User Login','User Login....', 6, NULL, NULL),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
 	('ai_response_evaluation_status', 'PENDING', 'Pending', 'Evaluation is pending review', 1, NULL, '#FFC107'),
     ('ai_response_evaluation_status', 'APPROVED', 'Approved', 'Evaluation has been approved', 2, NULL, '#4CAF50'),
@@ -1452,23 +1432,60 @@ VALUES
     ('risk_severity_level', 'LOW', 'Low', 'Low severity level', 1, NULL, 'green-100,green-700'),
     ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
     ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
-    ('health_status', 'NOT_STARTED', 'Not Started', 'Project or task has not yet started', 1, NULL, '#9CA3AF'), -- Gray
-    ('health_status', 'NO_PROGRESS', 'No Progress', 'Project has started but no progress recorded', 2, NULL, '#F87171'), -- Red
-    ('health_status', 'ON_TIME', 'On Time', 'Project or task is on schedule', 3, NULL, '#10B981'), -- Green
-    ('health_status', 'AHEAD', 'Ahead', 'Project or task is ahead of schedule', 4, NULL, '#34D399'), -- Light Green
-    ('health_status', 'BEHIND', 'Behind', 'Project or task is behind schedule', 5, NULL, '#EF4444'), -- Dark Red
     ('risk_generated_by', 'MANUAL', 'Manual', 'Risk created manually by a user', 1, NULL, '#4B5563'), -- Gray
-    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6'); -- Blue
-    ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700');
+    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6');
 
 
-	INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
+
+INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
-('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff')
+	('ai_feature', 'TASK_FOR_SPRINT', 'Task For Sprint', 'AI generates', 7, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', 3, NULL, 'red-100,red-700');
 
-INSERT INTO dynamic_category (category_group, name, label, description, is_active, order_index, icon_link, color)
+
+
+
+	INSERT INTO dynamic_category 
+(category_group, name, label, description, order_index, color, icon_link)
+VALUES
+('document_visibility_type', 'MAIN', 'Main', 'Document visible to all project members', 1, '#2563eb', 'https://cdn-icons-png.flaticon.com/512/1828/1828778.png'),
+('document_visibility_type', 'PRIVATE', 'Private', 'Document visible only to creator', 2, '#6b7280', 'https://cdn-icons-png.flaticon.com/512/942/942751.png');
+
+INSERT INTO dynamic_category 
+(category_group, name, label, description, order_index, color, icon_link)
+VALUES
+('document_permission_type', 'VIEW', 'View', 'User can only view the document', 1, '#f59e0b', 'https://cdn-icons-png.flaticon.com/512/709/709612.png'),
+('document_permission_type', 'EDIT', 'Edit', 'User can edit the document', 2, '#ef4444', 'https://cdn-icons-png.flaticon.com/512/1828/1828911.png');
+
+INSERT INTO system_configuration
+(config_key, value_config, min_value, max_value, estimate_value, description, note,
+ effected_from, effected_to, created_at, updated_at)
+VALUES
+(
+  'document_title_length',
+  '150',           -- giá trị đang dùng
+  '1',             -- min
+  '150',           -- max
+  '150',           -- estimate
+  'Max length for document title',
+  'Used by DynamicMinLength/DynamicMaxLength on DocumentRequestDTO.Title',
+  NOW(),           -- bắt đầu hiệu lực
+  NULL,            -- chưa có ngày hết hiệu lực
+  NOW(),
+  NOW()
+);
+
+
+
+
+INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
-    ('risk_status', 'DELETED', 'Deleted', 'Deleted risk', false, 3, NULL, 'red-100,red-700');
+    ('health_status', 'AHEAD', 'Ahead', 'Project is ahead of schedule', 1, NULL, '#008000'),
+    ('health_status', 'ON_TIME', 'On Time', 'Project is on schedule', 2, NULL, '#FFA500'),
+    ('health_status', 'BEHIND', 'Behind', 'Project is behind schedule', 3, NULL, '#FF0000'),
+    ('health_status', 'OVER_BUDGET', 'Over Budget', 'Project is exceeding budget', 4, NULL, '#FF0000'),
+    ('health_status', 'ON_BUDGET', 'On Budget', 'Project is within budget', 5, NULL, '#FFA500'),
+    ('health_status', 'UNDER_BUDGET', 'Under Budget', 'Project is under budget', 6, NULL, '#008000');
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025
