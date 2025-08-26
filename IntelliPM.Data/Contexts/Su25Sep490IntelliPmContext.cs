@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using IntelliPM.Data.Entities;
+﻿using IntelliPM.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
+using System.Collections.Generic;
 
 namespace IntelliPM.Data.Contexts;
 
@@ -2182,22 +2182,32 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasConstraintName("work_log_task_id_fkey");
         });
         modelBuilder.HasSequence("bp_id_seq");
+        modelBuilder.HasSequence("bpd_id_seq");
         modelBuilder.HasSequence("course_id_seq");
+        modelBuilder.HasSequence("crmm_id_seq");
         modelBuilder.HasSequence("dd_id_seq");
+        modelBuilder.HasSequence("ddd_id_seq");
         modelBuilder.HasSequence("dppms_id_seq");
         modelBuilder.HasSequence("ewp_id_seq");
         modelBuilder.HasSequence("flower_id_seq");
+        modelBuilder.HasSequence("hams_id_seq");
         modelBuilder.HasSequence("intellipm_id_seq");
+        modelBuilder.HasSequence("ip_id_seq");
+        modelBuilder.HasSequence("ipm_id_seq");
+        modelBuilder.HasSequence("msrs_id_seq");
         modelBuilder.HasSequence("olms_id_seq");
         modelBuilder.HasSequence("olmsd_id_seq");
         modelBuilder.HasSequence("olmsf_id_seq");
         modelBuilder.HasSequence("olmss_id_seq");
+        modelBuilder.HasSequence("pm_id_seq");
         modelBuilder.HasSequence("pmss_id_seq");
         modelBuilder.HasSequence("projc_id_seq");
         modelBuilder.HasSequence("sams_id_seq");
+        modelBuilder.HasSequence("shams_id_seq");
         modelBuilder.HasSequence("shamsdd_id_seq");
         modelBuilder.HasSequence("srmp_id_seq");
         modelBuilder.HasSequence("srmpp_id_seq");
+        modelBuilder.HasSequence("t_id_seq");
         modelBuilder.HasSequence("tiawampthu_id_seq");
         modelBuilder.HasSequence("tpbpp_id_seq");
 

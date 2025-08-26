@@ -339,7 +339,7 @@ CREATE TABLE document (
     updated_by INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    visibility VARCHAR(20),
+	visibility VARCHAR(20) NOT NULL,
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
         REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -455,19 +455,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 25. meeting_document
-CREATE TABLE meeting_document (
-    meeting_id INT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    file_url VARCHAR(1024) NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    account_id INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (meeting_id) REFERENCES meeting(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
-);
+
 
 -- 26. meeting_log
 CREATE TABLE meeting_log (
@@ -581,20 +569,6 @@ CREATE TABLE risk_comment (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (risk_id) REFERENCES risk(id),
     FOREIGN KEY (account_id) REFERENCES account(id)
-);
-
--- 35. change_request
-CREATE TABLE change_request (
-    id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL,
-    requested_by INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    status VARCHAR(50) NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (requested_by) REFERENCES account(id)
 );
 
 -- 36. project_recommendation

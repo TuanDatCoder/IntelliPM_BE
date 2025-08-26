@@ -27,7 +27,7 @@ public partial class Document
 
     public DateTime UpdatedAt { get; set; }
 
-    public string? Visibility { get; set; }
+    public string Visibility { get; set; } = null!;
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
 

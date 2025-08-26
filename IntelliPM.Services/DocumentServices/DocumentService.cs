@@ -440,6 +440,143 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         //            };
         //        }
 
+        //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
+        //{
+        //    // 1) Tìm document
+        //    var document = await _IDocumentRepository.GetByIdAsync(documentId);
+        //    if (document == null)
+        //        throw new KeyNotFoundException($"Document {documentId} not found");
+
+        //    // 2) Validate emails
+        //    var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
+        //        .Where(e => !string.IsNullOrWhiteSpace(e))
+        //        .Select(e => e.Trim().ToLowerInvariant())
+        //        .Where(IsValidEmail)
+        //        .Distinct()
+        //        .ToList();
+
+        //    if (lowerInputEmails.Count == 0)
+        //        throw new ArgumentException("No emails provided.");
+
+        //    // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+        //    var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+        //    var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+        //    //var mode = permissionType == "EDIT" ? "edit" : "view";
+
+        //    // 4) Tạo link chia sẻ (từ cấu hình)
+        //    // appsettings.json:
+        //    // "Frontend": { "BaseUrl": "http://localhost:5173" }
+        //    var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+        //    var path = $"/project/projects/form/document/{document.Id}";
+        //    //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
+        //    var link = $"{baseUrl.TrimEnd('/')}{path}";
+
+
+        //    // 5) Lấy account map từ emails
+        //    var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+
+        //    // 6) Upsert quyền cho các email có accountId
+        //    if (accountMap.Count > 0)
+        //    {
+        //        var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
+
+        //        // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+        //        var targetAccountIds = accountMap.Values.ToHashSet();
+        //        var toRemove = existingPermissions
+        //            .Where(p => targetAccountIds.Contains(p.AccountId) &&
+        //                        string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+        //            .ToList();
+
+        //        if (toRemove.Count > 0)
+        //            _permissionRepo.RemoveRange(toRemove);
+
+        //        // Thêm quyền mới
+        //        var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
+        //        {
+        //            DocumentId = documentId,
+        //            AccountId = accountId,
+        //            PermissionType = permissionType
+        //        });
+
+        //        await _permissionRepo.AddRangeAsync(newPermissions);
+        //        await _permissionRepo.SaveChangesAsync();
+        //    }
+
+        //    // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
+        //    //var failedToSend = new List<string>();
+        //    //foreach (var email in lowerInputEmails)
+        //    //{
+        //    //    try
+        //    //    {
+        //    //        await _emailService.SendShareDocumentEmail(
+        //    //            email,
+        //    //            document.Title,
+        //    //            req.Message,
+        //    //            link
+        //    //        );
+        //    //    }
+        //    //    catch (Exception ex)
+        //    //    {
+        //    //        failedToSend.Add(email);
+        //    //        _logger.LogError(ex,
+        //    //            """
+        //    //    ❌ Failed to send share document email
+        //    //    Email: {Email}
+        //    //    Title: {Title}
+        //    //    Message: {Message}
+        //    //    Link: {Link}
+        //    //    Error: {ErrorMessage}
+        //    //    """,
+        //    //            email,
+        //    //            document.Title,
+        //    //            req.Message ?? "(No message)",
+        //    //            link,
+        //    //            ex.Message
+        //    //        );
+        //    //    }
+        //    //}
+        //    var existingEmails = lowerInputEmails.Intersect(accountMap.Keys).ToList();
+
+        //    var failedToSend = new List<string>();
+        //    foreach (var email in existingEmails)
+        //    {
+        //        try
+        //        {
+        //            await _emailService.SendShareDocumentEmail(
+        //                email,
+        //                document.Title,
+        //                req.Message,
+        //                link
+        //            );
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            failedToSend.Add(email);
+        //            _logger.LogError(ex,
+        //                """
+        //    ❌ Failed to send share document email
+        //    Email: {Email}
+        //    Title: {Title}
+        //    Message: {Message}
+        //    Link: {Link}
+        //    Error: {ErrorMessage}
+        //    """,
+        //                email,
+        //                document.Title,
+        //                req.Message ?? "(No message)",
+        //                link,
+        //                ex.Message
+        //            );
+        //        }
+        //    }
+
+        //    return new ShareDocumentResponseDTO
+        //    {
+        //        Success = failedToSend.Count == 0,
+        //        FailedEmails = failedToSend
+        //    };
+        //}
+
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
             // 1) Tìm document
@@ -447,39 +584,36 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             if (document == null)
                 throw new KeyNotFoundException($"Document {documentId} not found");
 
-            // 2) Validate emails
+            // 2) Validate emails (lọc null/empty/whitespace, chuẩn hóa lowercase, kiểm tra format)
             var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
                 .Select(e => e.Trim().ToLowerInvariant())
+                .Where(IsValidEmail) // đảm bảo là email hợp lệ
                 .Distinct()
                 .ToList();
 
             if (lowerInputEmails.Count == 0)
-                throw new ArgumentException("No emails provided.");
+                throw new ArgumentException("No valid emails provided.");
 
             // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
             var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
             var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
-            var mode = permissionType == "EDIT" ? "edit" : "view";
 
             // 4) Tạo link chia sẻ (từ cấu hình)
-            // appsettings.json:
-            // "Frontend": { "BaseUrl": "http://localhost:5173" }
             var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
             var path = $"/project/projects/form/document/{document.Id}";
-            //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
             var link = $"{baseUrl.TrimEnd('/')}{path}";
 
-
-            // 5) Lấy account map từ emails
-            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+            // 5) Lấy account map từ emails (email -> accountId)
+            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
+            // accountMap.Keys: tập email có account trong hệ thống
 
             // 6) Upsert quyền cho các email có accountId
             if (accountMap.Count > 0)
             {
                 var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
 
-                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent theo loại)
                 var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
@@ -489,7 +623,7 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 if (toRemove.Count > 0)
                     _permissionRepo.RemoveRange(toRemove);
 
-                // Thêm quyền mới
+                // Thêm quyền mới (cùng loại) cho các account target
                 var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
                     DocumentId = documentId,
@@ -501,9 +635,14 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 await _permissionRepo.SaveChangesAsync();
             }
 
-            // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
-            var failedToSend = new List<string>();
-            foreach (var email in lowerInputEmails)
+            // 7) Gửi email: CHỈ gửi cho email có account.
+            //    Email không có account => coi là failed.
+            var knownEmails = accountMap.Keys.ToHashSet();                         // có account
+            var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();     // không có account => failed
+
+            var failedToSend = new List<string>(unknownEmails); // khởi tạo failed = các email ngoài hệ thống
+
+            foreach (var email in knownEmails)
             {
                 try
                 {
@@ -519,13 +658,13 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                     failedToSend.Add(email);
                     _logger.LogError(ex,
                         """
-                ❌ Failed to send share document email
-                Email: {Email}
-                Title: {Title}
-                Message: {Message}
-                Link: {Link}
-                Error: {ErrorMessage}
-                """,
+❌ Failed to send share document email
+Email: {Email}
+Title: {Title}
+Message: {Message}
+Link: {Link}
+Error: {ErrorMessage}
+""",
                         email,
                         document.Title,
                         req.Message ?? "(No message)",
@@ -535,12 +674,28 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 }
             }
 
+            // 8) Trả kết quả
             return new ShareDocumentResponseDTO
             {
                 Success = failedToSend.Count == 0,
                 FailedEmails = failedToSend
             };
         }
+
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
+            // Regex đơn giản: ký tự trước @, domain, và phần mở rộng
+            var regex = new System.Text.RegularExpressions.Regex(
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            return regex.IsMatch(email);
+        }
+
 
 
 
