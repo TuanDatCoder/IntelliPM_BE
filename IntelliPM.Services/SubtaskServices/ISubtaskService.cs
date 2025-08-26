@@ -31,6 +31,8 @@ namespace IntelliPM.Services.SubtaskServices
         Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours, int createdBy);
         Task<List<SubtaskResponseDTO>> GetSubTaskByAccountId(int accountId);
         Task<SubtaskFullResponseDTO> ChangeActualHours(string id, decimal hours, int createdBy);
-
+        Task<SubtaskFullResponseDTO> ChangePercentComplete(string id, decimal? percentComplete, int createdBy);
+        Task<SubtaskFullResponseDTO> ChangePlannedCost(string id, decimal? plannedCost, int createdBy);
+        Task<SubtaskFullResponseDTO> ChangeActualCost(string id, decimal? actualCost, int createdBy);
     }
 }

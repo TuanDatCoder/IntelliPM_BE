@@ -127,12 +127,8 @@ namespace IntelliPM.Services.ProjectServices
             if (currentAccount == null)
                 throw new ApiException(HttpStatusCode.NotFound, "User not found.");
 
-
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
-
-
-
 
             var entity = _mapper.Map<Project>(request);
             entity.CreatedBy = currentAccount.Id;

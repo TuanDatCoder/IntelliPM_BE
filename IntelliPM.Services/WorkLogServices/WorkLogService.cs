@@ -89,12 +89,12 @@ namespace IntelliPM.Services.WorkLogServices
                             if (member != null && member.HourlyRate.HasValue)
                             {
                                 subtask.ActualResourceCost = subtask.ActualHours * member.HourlyRate.Value;
-                                subtask.ActualCost = subtask.ActualHours * member.HourlyRate.Value;
+                                //subtask.ActualCost = subtask.ActualHours * member.HourlyRate.Value;
                             }
                         }
                     }
                     await _subtaskRepo.Update(subtask);
-                    await UpdateSubtaskProgressAsync(subtask);
+                    //await UpdateSubtaskProgressAsync(subtask);
 
                     // Cập nhật task nếu có
                     if (subtask.TaskId != null)
@@ -110,10 +110,10 @@ namespace IntelliPM.Services.WorkLogServices
                             task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
-                            task.ActualCost = totalActualResourceCost;
+                            //task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
-                            await UpdateTaskProgressBySubtasksAsync(task.Id);
+                            //await UpdateTaskProgressBySubtasksAsync(task.Id);
                         }
                     }
                 }
@@ -122,53 +122,53 @@ namespace IntelliPM.Services.WorkLogServices
             return results;
         }
 
-        private async Task UpdateSubtaskProgressAsync(Subtask subtask)
-        {
-            if (subtask.Status == "DONE")
-            {
-                subtask.PercentComplete = 100;
-            }
-            else if (subtask.Status == "TO_DO")
-            {
-                subtask.PercentComplete = 0;
-            }
-            else if (subtask.Status == "IN_PROGRESS")
-            {
-                if (subtask.PlannedHours > 0)
-                {
-                    var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
-                    subtask.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else
-                {
-                    subtask.PercentComplete = 0;
-                }
-            }
+        //private async Task UpdateSubtaskProgressAsync(Subtask subtask)
+        //{
+        //    if (subtask.Status == "DONE")
+        //    {
+        //        subtask.PercentComplete = 100;
+        //    }
+        //    else if (subtask.Status == "TO_DO")
+        //    {
+        //        subtask.PercentComplete = 0;
+        //    }
+        //    else if (subtask.Status == "IN_PROGRESS")
+        //    {
+        //        if (subtask.PlannedHours > 0)
+        //        {
+        //            var rawProgress = (subtask.ActualHours / subtask.PlannedHours) * 100;
+        //            subtask.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            subtask.PercentComplete = 0;
+        //        }
+        //    }
 
-            subtask.UpdatedAt = DateTime.UtcNow;
-            await _subtaskRepo.Update(subtask);
-        }
+        //    subtask.UpdatedAt = DateTime.UtcNow;
+        //    await _subtaskRepo.Update(subtask);
+        //}
 
-        private async Task UpdateTaskProgressBySubtasksAsync(string taskId)
-        {
-            var task = await _taskRepo.GetByIdAsync(taskId);
-            if (task == null) return;
+        //private async Task UpdateTaskProgressBySubtasksAsync(string taskId)
+        //{
+        //    var task = await _taskRepo.GetByIdAsync(taskId);
+        //    if (task == null) return;
 
-            var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
+        //    var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
 
-            if (!subtasks.Any())
-            {
-                task.PercentComplete = 0;
-            }
-            else
-            {
-                var avg = subtasks.Average(st => st.PercentComplete ?? 0);
-                task.PercentComplete = (int)Math.Round(avg);
-            }
+        //    if (!subtasks.Any())
+        //    {
+        //        task.PercentComplete = 0;
+        //    }
+        //    else
+        //    {
+        //        var avg = subtasks.Average(st => st.PercentComplete ?? 0);
+        //        task.PercentComplete = (int)Math.Round(avg);
+        //    }
 
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
 
         public async Task<WorkLogResponseDTO> ChangeWorkLogHoursAsync(int id, decimal hours)
         {
@@ -221,7 +221,7 @@ namespace IntelliPM.Services.WorkLogServices
                             task.RemainingHours = plannedHours - totalSubtaskHours;
                             task.ActualHours = totalSubtaskHours;
                             task.ActualResourceCost = totalActualResourceCost;
-                            task.ActualCost = totalActualResourceCost;
+                            //task.ActualCost = totalActualResourceCost;
                             task.UpdatedAt = DateTime.UtcNow;
                             await _taskRepo.Update(task);
                         }
@@ -463,7 +463,7 @@ namespace IntelliPM.Services.WorkLogServices
             task.RemainingHours = plannedHours - totalHours;
             task.ActualHours = totalHours;
             task.ActualResourceCost = totalCost;
-            task.ActualCost = totalCost;
+            //task.ActualCost = totalCost;
             await _taskRepo.Update(task);
             await UpdateTaskProgressAsync(task);
 

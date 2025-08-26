@@ -199,17 +199,17 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 }
 
                 task.PlannedResourceCost = totalCost;
-                task.PlannedCost = totalCost;
+                //task.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 task.PlannedResourceCost = 0m;
-                task.PlannedCost = 0m;
+                //task.PlannedCost = 0m;
             }
 
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
         }
 
 
@@ -468,8 +468,8 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 }
 
                 task.ActualResourceCost = totalCost;
-                task.ActualCost = totalCost;
-                await UpdateTaskProgressAsync(task);
+                //task.ActualCost = totalCost;
+                //await UpdateTaskProgressAsync(task);
                 await _taskRepo.Update(task);
 
                 await _activityLogService.LogAsync(new ActivityLog
@@ -488,32 +488,32 @@ namespace IntelliPM.Services.TaskAssignmentServices
             return true;
         }
 
-        private async Task UpdateTaskProgressAsync(Tasks task)
-        {
-            if (task.Status == "DONE")
-            {
-                task.PercentComplete = 100;
-            }
-            else if (task.Status == "TO_DO")
-            {
-                task.PercentComplete = 0;
-            }
-            else if (task.Status == "IN_PROGRESS")
-            {
-                if (task.PlannedHours > 0)
-                {
-                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
-                    task.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else
-                {
-                    task.PercentComplete = 0;
-                }
-            }
+        //private async Task UpdateTaskProgressAsync(Tasks task)
+        //{
+        //    if (task.Status == "DONE")
+        //    {
+        //        task.PercentComplete = 100;
+        //    }
+        //    else if (task.Status == "TO_DO")
+        //    {
+        //        task.PercentComplete = 0;
+        //    }
+        //    else if (task.Status == "IN_PROGRESS")
+        //    {
+        //        if (task.PlannedHours > 0)
+        //        {
+        //            var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+        //            task.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            task.PercentComplete = 0;
+        //        }
+        //    }
 
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
 
         //public async Task UpdateTaskAssignmentPlannedHoursAsync(string taskId, decimal plannedHours, int createdBy)
         //{
@@ -681,11 +681,11 @@ namespace IntelliPM.Services.TaskAssignmentServices
             task.RemainingHours = totalPlannedHours - actualHours;
             task.PlannedHours = totalPlannedHours;
             task.PlannedResourceCost = totalPlannedResourceCost;
-            task.PlannedCost = totalPlannedResourceCost;
+            //task.PlannedCost = totalPlannedResourceCost;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
 
             await _activityLogService.LogAsync(new ActivityLog
             {
@@ -760,11 +760,11 @@ namespace IntelliPM.Services.TaskAssignmentServices
             task.RemainingHours = totalPlannedHours - actualHours;
             task.PlannedHours = totalPlannedHours;
             task.PlannedResourceCost = totalPlannedResourceCost;
-            task.PlannedCost = totalPlannedResourceCost;
+            //task.PlannedCost = totalPlannedResourceCost;
             task.UpdatedAt = DateTime.UtcNow;
 
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
 
             // Log the bulk update
             await _activityLogService.LogAsync(new ActivityLog

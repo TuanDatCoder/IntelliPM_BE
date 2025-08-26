@@ -871,7 +871,104 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/percent-complete")]
+        public async Task<IActionResult> ChangeTaskPercentComlete(string id, [FromBody] decimal percentComplete, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPercentComlete(id, percentComplete, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task percent complete updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task percent complete: {ex.Message}"
+                });
+            }
+        }
 
+        [HttpPatch("{id}/planned-cost")]
+        public async Task<IActionResult> ChangeTaskPlannedCost(string id, [FromBody] decimal plannedCost, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskPlannedCost(id, plannedCost, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task planned cost updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task planned cost: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPatch("{id}/actual-cost")]
+        public async Task<IActionResult> ChangeTaskActualCost(string id, [FromBody] decimal actualCost, int createdBy)
+        {
+            try
+            {
+                var updated = await _service.ChangeTaskActualCost(id, actualCost, createdBy);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Task actual cost updated successfully",
+                    Data = updated
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error updating task actual cost: {ex.Message}"
+                });
+            }
+        }
 
 
     }

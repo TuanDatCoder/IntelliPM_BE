@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.Requirement.Request;
 using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DynamicCategoryRepos;
+using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RequirementRepos;
 using IntelliPM.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -21,13 +22,15 @@ namespace IntelliPM.Services.RequirementServices
         private readonly IRequirementRepository _repo;
         private readonly ILogger<RequirementService> _logger;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        private readonly IProjectRepository _projectRepo;
 
-        public RequirementService(IMapper mapper, IRequirementRepository repo, ILogger<RequirementService> logger, IDynamicCategoryRepository dynamicCategoryRepo)
+        public RequirementService(IMapper mapper, IRequirementRepository repo, ILogger<RequirementService> logger, IDynamicCategoryRepository dynamicCategoryRepo, IProjectRepository projectRepo)
         {
             _mapper = mapper;
             _repo = repo;
             _logger = logger;
             _dynamicCategoryRepo = dynamicCategoryRepo;
+            _projectRepo=projectRepo;
 
         }
 
@@ -62,6 +65,12 @@ namespace IntelliPM.Services.RequirementServices
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+            var existingProject = await _projectRepo.GetByIdAsync(projectId);
+            if (existingProject == null)
+            {
+                // Ném ra một exception cụ thể hơn
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+            }
 
             if (string.IsNullOrWhiteSpace(request.Title))
                 throw new ArgumentException("Requirement title is required.", nameof(request.Title));
