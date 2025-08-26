@@ -83,5 +83,30 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        // PUT /api/meeting-transcripts/{meetingId}
+        [HttpPut("{meetingId}")]
+        public async Task<IActionResult> UpdateTranscript(int meetingId, [FromBody] UpdateMeetingTranscriptRequestDTO request)
+        {
+            try { request.MeetingId = meetingId; return Ok(await _service.UpdateTranscriptAsync(request)); }
+            catch (Exception ex) { _logger.LogError(ex, "Error in UpdateTranscript"); return StatusCode(500, new { message = "Error updating transcript.", error = ex.Message }); }
+        }
+
+        // GET /api/meeting-transcripts/{meetingId}/history
+        [HttpGet("{meetingId}/history")]
+        public async Task<IActionResult> GetTranscriptHistory(int meetingId)
+        {
+            try { return Ok(await _service.GetTranscriptHistoryAsync(meetingId)); }
+            catch (Exception ex) { _logger.LogError(ex, "Error in GetTranscriptHistory"); return StatusCode(500, new { message = "Error retrieving history.", error = ex.Message }); }
+        }
+
+        // POST /api/meeting-transcripts/{meetingId}/restore
+        [HttpPost("{meetingId}/restore")]
+        public async Task<IActionResult> RestoreTranscript(int meetingId, [FromBody] RestoreTranscriptRequestDTO request)
+        {
+            try { request.MeetingId = meetingId; return Ok(await _service.RestoreTranscriptAsync(request)); }
+            catch (Exception ex) { _logger.LogError(ex, "Error in RestoreTranscript"); return StatusCode(500, new { message = "Error restoring transcript.", error = ex.Message }); }
+        }
+
     }
 }

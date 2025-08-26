@@ -14,9 +14,12 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using static Org.BouncyCastle.Math.EC.ECCurve;
+using System.Security.Cryptography;
+using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 
 namespace IntelliPM.Services.MeetingTranscriptServices
 {
@@ -33,6 +36,7 @@ namespace IntelliPM.Services.MeetingTranscriptServices
         private readonly string _openAiApiKey;
         private readonly IConfiguration _config;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        private readonly string _historyRoot;
 
 
         public MeetingTranscriptService(
@@ -45,6 +49,7 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             IHttpClientFactory httpClientFactory,
             CloudConvertService cloudConvertService,
             IDynamicCategoryRepository dynamicCategoryRepo)
+
         {
             _repo = repo;
             _summaryRepo = summaryRepo;
@@ -56,6 +61,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             _httpClientFactory = httpClientFactory;
             _cloudConvertService = cloudConvertService;
             _dynamicCategoryRepo = dynamicCategoryRepo;
+            _historyRoot = Path.Combine(_uploadPath, "transcript_history");
+            Directory.CreateDirectory(_historyRoot);
 
             //// Lấy API Key từ biến môi trường
             _openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
@@ -141,6 +148,48 @@ namespace IntelliPM.Services.MeetingTranscriptServices
                 throw;
             }
         }
+
+        // ADD helper methods
+        private string GetHistoryDir(int meetingId) => Path.Combine(_historyRoot, meetingId.ToString());
+
+        private static string Sha256(string input)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);
+            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        }
+
+        private async Task<string> SaveSnapshotAsync(MeetingTranscript current, string? reason, int? editedBy)
+        {
+            var dir = GetHistoryDir(current.MeetingId);
+            Directory.CreateDirectory(dir);
+
+            var payload = new
+            {
+                MeetingId = current.MeetingId,
+                TakenAtUtc = DateTime.UtcNow,
+                TranscriptText = current.TranscriptText,
+                Hash = Sha256(current.TranscriptText ?? string.Empty),
+                CreatedAtOriginal = current.CreatedAt,
+                EditReason = reason,
+                EditedByAccountId = editedBy
+            };
+
+            var file = $"{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}_{payload.Hash}.json";
+            var path = Path.Combine(dir, file);
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(path, json);
+            return path;
+        }
+
+        private async Task<string?> ReadSnapshotTextAsync(string path)
+        {
+            if (!File.Exists(path)) return null;
+            using var fs = File.OpenRead(path);
+            using var doc = await JsonDocument.ParseAsync(fs);
+            return doc.RootElement.GetProperty("TranscriptText").GetString();
+        }
+
         public async Task<MeetingTranscriptResponseDTO> UploadTranscriptAsync(MeetingTranscriptRequestDTO dto)
         {
             try
@@ -227,6 +276,81 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             }
         }
 
+        // ADD: update + snapshot
+        public async Task<MeetingTranscriptResponseDTO> UpdateTranscriptAsync(UpdateMeetingTranscriptRequestDTO dto)
+        {
+            var current = await _repo.GetByMeetingIdAsync(dto.MeetingId);
+            if (current == null)
+                throw new Exception($"No transcript found for meeting ID {dto.MeetingId}");
+
+            if (!string.IsNullOrWhiteSpace(dto.IfMatchHash))
+            {
+                var serverHash = Sha256(current.TranscriptText);
+                if (!serverHash.Equals(dto.IfMatchHash, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("409_CONFLICT: Transcript changed on server. Refresh and try again.");
+            }
+
+            await SaveSnapshotAsync(current, dto.EditReason, dto.EditedByAccountId); // snapshot before overwrite
+
+            current.TranscriptText = dto.TranscriptText ?? string.Empty;
+            await _repo.UpdateAsync(current);
+
+            try
+            {
+                var summary = string.IsNullOrWhiteSpace(current.TranscriptText)
+                    ? "Cannot auto-generate summary."
+                    : await _geminiService.SummarizeTextAsync(current.TranscriptText);
+
+                await _summaryRepo.AddAsync(new MeetingSummary
+                {
+                    MeetingTranscriptId = current.MeetingId,
+                    SummaryText = summary,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to regenerate summary after update.");
+            }
+
+            await LogMeetingActionAsync(dto.MeetingId, "TRANSCRIPT_UPDATED_WITH_SNAPSHOT");
+            return _mapper.Map<MeetingTranscriptResponseDTO>(current);
+        }
+
+        // ADD: list history
+        public async Task<IEnumerable<TranscriptHistoryItemDTO>> GetTranscriptHistoryAsync(int meetingId)
+        {
+            var dir = GetHistoryDir(meetingId);
+            if (!Directory.Exists(dir)) return Enumerable.Empty<TranscriptHistoryItemDTO>();
+
+            var files = Directory.EnumerateFiles(dir, "*.json", SearchOption.TopDirectoryOnly)
+                .Select(p => new TranscriptHistoryItemDTO
+                {
+                    FileName = Path.GetFileName(p),
+                    TakenAtUtc = File.GetLastWriteTimeUtc(p) // hoặc GetCreationTimeUtc
+                })
+                .OrderByDescending(x => x.TakenAtUtc)
+                .ToList();
+
+            _logger.LogInformation("History {MeetingId}: {Count} snapshots @ {Dir}", meetingId, files.Count, dir);
+            return await Task.FromResult(files);
+        }
+        // ADD: restore from a snapshot
+        public async Task<MeetingTranscriptResponseDTO> RestoreTranscriptAsync(RestoreTranscriptRequestDTO dto)
+        {
+            var dir = GetHistoryDir(dto.MeetingId);
+            var path = Path.Combine(dir, dto.FileName);
+            var text = await ReadSnapshotTextAsync(path);
+            if (text == null) throw new FileNotFoundException("Snapshot not found.");
+
+            return await UpdateTranscriptAsync(new UpdateMeetingTranscriptRequestDTO
+            {
+                MeetingId = dto.MeetingId,
+                TranscriptText = text,
+                EditReason = $"restore:{dto.FileName}" + (string.IsNullOrWhiteSpace(dto.Reason) ? "" : $" - {dto.Reason}"),
+                EditedByAccountId = dto.EditedByAccountId
+            });
+        }
 
 
         public async Task<MeetingTranscriptResponseDTO> GetTranscriptByMeetingIdAsync(int meetingId)
@@ -275,6 +399,8 @@ namespace IntelliPM.Services.MeetingTranscriptServices
             return Task.CompletedTask;
         }
     }
+
+
 
     public static class AudioConverter
     {

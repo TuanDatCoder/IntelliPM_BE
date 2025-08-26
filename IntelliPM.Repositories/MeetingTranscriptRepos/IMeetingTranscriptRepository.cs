@@ -7,9 +7,12 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.Repositories.MeetingTranscriptRepos
 {
+
     public interface IMeetingTranscriptRepository
     {
         Task<MeetingTranscript> AddAsync(MeetingTranscript transcript);
         Task<MeetingTranscript> GetByMeetingIdAsync(int meetingId);
+
+        Task UpdateAsync(MeetingTranscript entity);
     }
 }

@@ -14,4 +14,8 @@ public interface IMeetingTranscriptService
 
     Task<MeetingTranscriptResponseDTO> UploadTranscriptFromUrlAsync(MeetingTranscriptFromUrlRequestDTO dto);
 
+    Task<MeetingTranscriptResponseDTO> UpdateTranscriptAsync(UpdateMeetingTranscriptRequestDTO dto);
+    Task<IEnumerable<TranscriptHistoryItemDTO>> GetTranscriptHistoryAsync(int meetingId);
+    Task<MeetingTranscriptResponseDTO> RestoreTranscriptAsync(RestoreTranscriptRequestDTO dto);
+
 }
