@@ -1243,7 +1243,8 @@ VALUES
 	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('risk_title_length', '255', '1', '255', '255', 'Maximum length for risk title', 'Ensure risk titles remain concise', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('risk_title_length', '200', '1', '200', '200', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
 
 
 INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)

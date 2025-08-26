@@ -416,7 +416,7 @@ namespace IntelliPM.Services.RiskServices
                 RelatedEntityId = riskKey,
                 ActionType = "CREATE",
                 Message = $"Created risk '{riskKey}'",
-                CreatedBy = request.CreatedBy,
+                CreatedBy = (int)request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -430,7 +430,7 @@ namespace IntelliPM.Services.RiskServices
             {
                 var notification = new Notification
                 {
-                    CreatedBy = request.CreatedBy,
+                    CreatedBy = (int)request.CreatedBy,
                     Type = "RISK_ALERT",
                     Priority = entity.SeverityLevel,
                     Message = $"Risk identified in project {project.ProjectKey} - risk {riskKey}",
