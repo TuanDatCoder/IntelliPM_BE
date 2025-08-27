@@ -400,7 +400,7 @@ var configService = serviceProvider.GetRequiredService<ISystemConfigurationServi
 var cronExpression = configService.GetSystemConfigurationByConfigKey("overdue_task_risk_check_time").Result?.ValueConfig ?? "0 17 * * *"; // Default to 00:00 +07
 
 app.UseHangfireDashboard();
-//app.UseHangfireServer();
+app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
@@ -410,12 +410,19 @@ RecurringJob.AddOrUpdate<IWorkLogService>(
 // "*/1 * * * *"
 );
 
-//RecurringJob.AddOrUpdate<IRiskService>(
-//    "check-overdue-task-risks",
-//    x => x.CheckAndCreateAllOverdueTaskRisksAsync(), // Handle projectKey dynamically
-//    cronExpression,
-//    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-//);
+RecurringJob.AddOrUpdate<IRiskService>(
+    "check-overdue-task-risks",
+    x => x.CheckAndCreateOverdueTaskRisksForAllProjectsAsync(), 
+    cronExpression,
+    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+);
+
+RecurringJob.AddOrUpdate<IRiskService>(
+    "check-overdue-risks",
+    x => x.CheckAndNotifyOverdueRisksAsync(),
+    cronExpression,
+    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();
