@@ -13,6 +13,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicCommentServices;
 using IntelliPM.Services.GeminiServices;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
@@ -43,7 +44,8 @@ namespace IntelliPM.Services.EpicServices
         private readonly IActivityLogService _activityLogService;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
         private readonly IGeminiService _geminiService;
-        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService, IDynamicCategoryHelper dynamicCategoryHelper, IGeminiService geminiService)
+        private readonly IEmailService _emailService;
+        public EpicService(IMapper mapper, IEpicRepository epicRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<EpicService> logger, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, IEpicCommentService epicCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepo,IDecodeTokenHandler decodeToken, IActivityLogService activityLogService, IDynamicCategoryHelper dynamicCategoryHelper, IGeminiService geminiService, IEmailService emailService)
         {
             _mapper = mapper;
             _epicRepo = epicRepo;
@@ -59,6 +61,7 @@ namespace IntelliPM.Services.EpicServices
             _activityLogService = activityLogService;
             _dynamicCategoryHelper = dynamicCategoryHelper;
             _geminiService = geminiService;
+            _emailService = emailService;
         }
 
         public async Task<List<EpicResponseDTO>> GenerateEpicPreviewAsync(int projectId)
@@ -202,6 +205,10 @@ namespace IntelliPM.Services.EpicServices
             if (entity == null)
                 throw new KeyNotFoundException($"Epic with ID {id} not found.");
 
+            var oldAssignedBy = entity.AssignedBy;
+            if (request.AssignedBy == 0)
+                entity.AssignedBy = null;
+
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -211,6 +218,22 @@ namespace IntelliPM.Services.EpicServices
             try
             {
                 await _epicRepo.Update(entity);
+
+                if (oldAssignedBy != entity.AssignedBy)
+                {
+
+                    var assignee = await _accountRepo.GetAccountById(entity.AssignedBy ?? 0);
+                    if (assignee != null)
+                    {
+                        await _emailService.SendEpicAssignmentEmail(
+                            assignee.FullName,
+                            assignee.Email,
+                            entity.Id,
+                            entity.Name
+                        );
+                    }
+                }
+
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = request.ProjectId,
