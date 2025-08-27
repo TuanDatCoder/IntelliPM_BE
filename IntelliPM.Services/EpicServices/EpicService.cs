@@ -81,7 +81,7 @@ namespace IntelliPM.Services.EpicServices
                 ProjectId = projectId,
                 Name = s.Name?.Trim() ?? "Untitled Epic",
                 Description = s.Description?.Trim() ?? string.Empty,
-                Status = "TO-DO",
+                Status = "TO_DO",
                 CreatedAt = now,
                 UpdatedAt = now
             }).ToList();

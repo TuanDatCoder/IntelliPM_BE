@@ -134,5 +134,17 @@ namespace IntelliPM.Services.DynamicCategoryServices
             return _mapper.Map<DynamicCategoryResponseDTO>(entity);
         }
 
+        public async Task<List<string>> GetDistinctCategoryGroups()
+        {
+            var entities = await _repo.GetDistinctCategoryGroupsAsync();
+            if (!entities.Any())
+            {
+                throw new KeyNotFoundException("No category groups found.");
+            }
+
+            return entities;
+        }
+
+
     }
 }

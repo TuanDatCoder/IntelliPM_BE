@@ -11,6 +11,7 @@ using IntelliPM.Services.AiServices.TaskPlanningServices;
 using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -86,12 +87,18 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost("{taskId}/generate-subtask")]
         public async Task<IActionResult> GenerateSubtaskFromTaskTitle(string taskId)
         {
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = "Unauthorized" });
+            }
             try
             {
-                var subtask = await _subtaskService.GenerateSubtaskPreviewAsync(taskId);
+                var subtask = await _subtaskService.GenerateSubtaskPreviewAsync(token, taskId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
