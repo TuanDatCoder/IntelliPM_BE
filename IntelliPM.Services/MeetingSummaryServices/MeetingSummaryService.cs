@@ -9,8 +9,12 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MeetingSummaryRepos;
 using IntelliPM.Repositories.MeetingTranscriptRepos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace IntelliPM.Services.MeetingSummaryServices
 {
@@ -20,6 +24,8 @@ namespace IntelliPM.Services.MeetingSummaryServices
         private readonly IMeetingTranscriptRepository _transcriptRepo;
         private readonly IMapper _mapper;
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly ILogger<MeetingSummaryService> _logger;
+        private readonly string _historyRoot;
 
         public async Task<MeetingSummaryResponseDTO> CreateSummaryAsync(MeetingSummaryRequestDTO dto)
         {
@@ -33,12 +39,15 @@ namespace IntelliPM.Services.MeetingSummaryServices
             return _mapper.Map<MeetingSummaryResponseDTO>(saved);
         }
 
-        public MeetingSummaryService(IMeetingSummaryRepository repo, IMeetingTranscriptRepository transcriptRepo, IMapper mapper, Su25Sep490IntelliPmContext context)
+        public MeetingSummaryService(IMeetingSummaryRepository repo, IMeetingTranscriptRepository transcriptRepo, IMapper mapper, Su25Sep490IntelliPmContext context, ILogger<MeetingSummaryService> logger)
         {
             _repo = repo;
             _transcriptRepo = transcriptRepo;
             _mapper = mapper;
             _context = context;
+            _logger = logger;
+            _historyRoot = Path.Combine(AppContext.BaseDirectory, "summary_history");
+            Directory.CreateDirectory(_historyRoot);
         }
 
         public async Task<MeetingSummaryResponseDTO?> GetSummaryByTranscriptIdAsync(int meetingTranscriptId)
@@ -150,7 +159,103 @@ namespace IntelliPM.Services.MeetingSummaryServices
             await _context.SaveChangesAsync();
             return true;
         }
+        private string GetHistoryDir(int meetingTranscriptId) => Path.Combine(_historyRoot, meetingTranscriptId.ToString());
 
+        private static string Sha256(string input)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);
+            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        }
+
+        private async Task<string> SaveSnapshotAsync(MeetingSummary current, string? reason, int? editedBy)
+        {
+            var dir = GetHistoryDir(current.MeetingTranscriptId);
+            Directory.CreateDirectory(dir);
+
+            var payload = new
+            {
+                MeetingTranscriptId = current.MeetingTranscriptId,
+                TakenAtUtc = DateTime.UtcNow,
+                SummaryText = current.SummaryText,
+                Hash = Sha256(current.SummaryText ?? string.Empty),
+                CreatedAtOriginal = current.CreatedAt,
+                EditReason = reason,
+                EditedByAccountId = editedBy
+            };
+
+            var file = $"{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}_{payload.Hash}.json";
+            var path = Path.Combine(dir, file);
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(path, json);
+            return path;
+        }
+
+        private async Task<string?> ReadSnapshotTextAsync(string path)
+        {
+            if (!File.Exists(path)) return null;
+            using var fs = File.OpenRead(path);
+            using var doc = await JsonDocument.ParseAsync(fs);
+            return doc.RootElement.GetProperty("SummaryText").GetString();
+        }
+
+        // ADD: update + snapshot
+        public async Task<MeetingSummaryResponseDTO> UpdateSummaryAsync(UpdateMeetingSummaryRequestDTO dto)
+        {
+            var current = await _repo.GetByTranscriptIdAsync(dto.MeetingTranscriptId);
+            if (current == null)
+                throw new Exception($"No summary found for meeting transcript ID {dto.MeetingTranscriptId}");
+
+            if (!string.IsNullOrWhiteSpace(dto.IfMatchHash))
+            {
+                var serverHash = Sha256(current.SummaryText);
+                if (!serverHash.Equals(dto.IfMatchHash, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("409_CONFLICT: Summary changed on server. Refresh and try again.");
+            }
+
+            await SaveSnapshotAsync(current, dto.EditReason, dto.EditedByAccountId); // snapshot before overwrite
+
+            current.SummaryText = dto.SummaryText ?? string.Empty;
+            await _repo.UpdateAsync(current);
+
+            return _mapper.Map<MeetingSummaryResponseDTO>(current);
+        }
+
+        // ADD: list history
+        public async Task<IEnumerable<SummaryHistoryItemDTO>> GetSummaryHistoryAsync(int meetingTranscriptId)
+        {
+            var dir = GetHistoryDir(meetingTranscriptId);
+            if (!Directory.Exists(dir)) return Enumerable.Empty<SummaryHistoryItemDTO>();
+
+            var files = Directory.EnumerateFiles(dir, "*.json", SearchOption.TopDirectoryOnly)
+                .Select(p => new SummaryHistoryItemDTO
+                {
+                    FileName = Path.GetFileName(p),
+                    TakenAtUtc = File.GetLastWriteTimeUtc(p)
+                })
+                .OrderByDescending(x => x.TakenAtUtc)
+                .ToList();
+
+            _logger.LogInformation("History {MeetingTranscriptId}: {Count} snapshots @ {Dir}", meetingTranscriptId, files.Count, dir);
+            return await Task.FromResult(files);
+        }
+
+        // ADD: restore from a snapshot
+        public async Task<MeetingSummaryResponseDTO> RestoreSummaryAsync(RestoreSummaryRequestDTO dto)
+        {
+            var dir = GetHistoryDir(dto.MeetingTranscriptId);
+            var path = Path.Combine(dir, dto.FileName);
+            var text = await ReadSnapshotTextAsync(path);
+            if (text == null) throw new FileNotFoundException("Snapshot not found.");
+
+            return await UpdateSummaryAsync(new UpdateMeetingSummaryRequestDTO
+            {
+                MeetingTranscriptId = dto.MeetingTranscriptId,
+                SummaryText = text,
+                EditReason = $"restore:{dto.FileName}" + (string.IsNullOrWhiteSpace(dto.Reason) ? "" : $" - {dto.Reason}"),
+                EditedByAccountId = dto.EditedByAccountId
+            });
+        }
 
         public async Task<MeetingSummaryResponseDTO?> GetMeetingSummaryByMeetingIdAsync(int meetingId)
         {

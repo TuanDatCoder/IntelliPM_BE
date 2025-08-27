@@ -8,5 +8,6 @@ namespace IntelliPM.Repositories.MeetingSummaryRepos
         Task<MeetingSummary> AddAsync(MeetingSummary summary);
         Task<MeetingSummary?> GetByTranscriptIdAsync(int meetingTranscriptId);
         Task<List<MeetingSummary>> GetByAccountIdAsync(int accountId);
+        Task UpdateAsync(MeetingSummary entity);
     }
 }

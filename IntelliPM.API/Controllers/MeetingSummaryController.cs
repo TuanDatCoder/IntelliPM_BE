@@ -56,5 +56,57 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+        // PUT /api/meeting-summaries/{meetingTranscriptId}
+        [HttpPut("{meetingTranscriptId}")]
+        public async Task<IActionResult> UpdateSummary(int meetingTranscriptId, [FromBody] UpdateMeetingSummaryRequestDTO request)
+        {
+            try
+            {
+                request.MeetingTranscriptId = meetingTranscriptId;
+                return Ok(await _service.UpdateSummaryAsync(request));
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Xử lý lỗi optimistic concurrency
+                return Conflict(new { message = ex.Message, error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                
+                return StatusCode(500, new { message = "Error updating summary.", error = ex.Message });
+            }
+        }
+
+        // GET /api/meeting-summaries/{meetingTranscriptId}/history
+        [HttpGet("{meetingTranscriptId}/history")]
+        public async Task<IActionResult> GetSummaryHistory(int meetingTranscriptId)
+        {
+            try
+            {
+                return Ok(await _service.GetSummaryHistoryAsync(meetingTranscriptId));
+            }
+            catch (Exception ex)
+            {
+                
+                return StatusCode(500, new { message = "Error retrieving history.", error = ex.Message });
+            }
+        }
+
+        // POST /api/meeting-summaries/{meetingTranscriptId}/restore
+        [HttpPost("{meetingTranscriptId}/restore")]
+        public async Task<IActionResult> RestoreSummary(int meetingTranscriptId, [FromBody] RestoreSummaryRequestDTO request)
+        {
+            try
+            {
+                request.MeetingTranscriptId = meetingTranscriptId;
+                return Ok(await _service.RestoreSummaryAsync(request));
+            }
+            catch (Exception ex)
+            {
+                
+                return StatusCode(500, new { message = "Error restoring summary.", error = ex.Message });
+            }
+        }
+
     }
 }
