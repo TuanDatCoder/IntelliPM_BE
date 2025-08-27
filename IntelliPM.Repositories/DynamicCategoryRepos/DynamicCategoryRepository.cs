@@ -65,5 +65,15 @@ namespace IntelliPM.Repositories.DynamicCategoryRepos
             _context.DynamicCategory.Remove(dynamicCategory);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<string>> GetDistinctCategoryGroupsAsync()
+        {
+            return await _context.DynamicCategory
+                .Where(c => c.IsActive && c.CategoryGroup != null)
+                .Select(c => c.CategoryGroup)
+                .Distinct()
+                .ToListAsync();
+        }
+
     }
 }

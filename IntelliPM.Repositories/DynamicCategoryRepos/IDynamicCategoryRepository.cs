@@ -14,5 +14,7 @@ namespace IntelliPM.Repositories.DynamicCategoryRepos
         Task Add(DynamicCategory dynamicCategory);
         Task Update(DynamicCategory dynamicCategory);
         Task Delete(DynamicCategory dynamicCategory);
+        Task<List<string>> GetDistinctCategoryGroupsAsync();
+
     }
 }
