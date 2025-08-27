@@ -465,37 +465,37 @@ namespace IntelliPM.Services.WorkLogServices
             task.ActualResourceCost = totalCost;
             //task.ActualCost = totalCost;
             await _taskRepo.Update(task);
-            await UpdateTaskProgressAsync(task);
+            //await UpdateTaskProgressAsync(task);
 
             return true;
         }
 
-        private async Task UpdateTaskProgressAsync(Tasks task)
-        {
-            if (task.Status == "DONE")
-            {
-                task.PercentComplete = 100;
-            }
-            else if (task.Status == "TO_DO")
-            {
-                task.PercentComplete = 0;
-            }
-            else if (task.Status == "IN_PROGRESS")
-            {
-                if (task.PlannedHours.HasValue && task.PlannedHours > 0)
-                {
-                    var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
-                    task.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else
-                {
-                    task.PercentComplete = 0;
-                }
-            }
+        //private async Task UpdateTaskProgressAsync(Tasks task)
+        //{
+        //    if (task.Status == "DONE")
+        //    {
+        //        task.PercentComplete = 100;
+        //    }
+        //    else if (task.Status == "TO_DO")
+        //    {
+        //        task.PercentComplete = 0;
+        //    }
+        //    else if (task.Status == "IN_PROGRESS")
+        //    {
+        //        if (task.PlannedHours.HasValue && task.PlannedHours > 0)
+        //        {
+        //            var rawProgress = (task.ActualHours / task.PlannedHours) * 100;
+        //            task.PercentComplete = Math.Min((int)rawProgress, 99);
+        //        }
+        //        else
+        //        {
+        //            task.PercentComplete = 0;
+        //        }
+        //    }
 
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
+        //    task.UpdatedAt = DateTime.UtcNow;
+        //    await _taskRepo.Update(task);
+        //}
 
 
     }
