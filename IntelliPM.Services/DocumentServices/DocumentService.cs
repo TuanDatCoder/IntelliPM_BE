@@ -896,30 +896,30 @@ Yêu cầu:
         public async Task<string> GenerateFreeAIContent(string prompt)
         {
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
-                throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
-
+                throw new Exception("Invalid prompt. Please enter a more specific request.");
 
             var htmlPrompt = $@"
-Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+You are an AI assistant specialized in generating professional document content.
 
-Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
--  <h3> cho tiêu đề
-- <p> cho đoạn văn
-- <ul><li> cho danh sách gạch đầu dòng
-- <table><thead><tbody><tr><th><td> cho bảng
+Please respond to the following request in **complete HTML format**, using tags such as:
+- <h3> for headings
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <table><thead><tbody><tr><th><td> for tables
 
-Chỉ trả về HTML, không thêm mô tả bên ngoài.
+Return HTML only, do not include any external explanation or markdown.
 
-Yêu cầu:
+Request:
 {prompt}";
 
             var response = await GenerateContentWithGemini(htmlPrompt);
 
             if (string.IsNullOrWhiteSpace(response))
-                throw new Exception("AI không thể trả lời yêu cầu.");
+                throw new Exception("AI could not generate a response.");
 
             return response;
         }
+
 
 
         //public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
@@ -937,7 +937,7 @@ Yêu cầu:
 
         //        Content = doc.Content,
 
-         
+
         //        CreatedBy = doc.CreatedBy,
         //        UpdatedBy = doc.UpdatedBy,
         //        CreatedAt = doc.CreatedAt,
@@ -1301,6 +1301,20 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
 
             return dto;
         }
+
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUser(int userId)
+        {
+            var sharedDocs = await _permissionRepo.GetDocumentsSharedToUserAsync(userId);
+            return sharedDocs.Select(ToResponse).ToList();
+        }
+
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUserInProject(int userId, int projectId)
+        {
+            var docs = await _permissionRepo.GetDocumentsSharedToUserInProjectAsync(userId, projectId);
+            return docs.Select(ToResponse).ToList();
+        }
+
+
 
 
 

@@ -12,11 +12,13 @@ namespace IntelliPM.Data.DTOs.ShareDocument.Request
     {
         public List<string> Emails { get; set; } = new();
         public string? Message { get; set; }
-        public string ProjectKey { get; set; } = string.Empty;
+        //public string ProjectKey { get; set; } = string.Empty;
 
         [Required]
         [DynamicCategoryValidation("document_permission_type", Required = true)]
         public string PermissionType { get; set; } = null!;
+
+    
     }
 
 }

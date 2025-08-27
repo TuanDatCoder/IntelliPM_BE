@@ -325,7 +325,8 @@ CREATE TABLE document (
     updated_by INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	visibility VARCHAR(20) NOT NULL,
+    visibility VARCHAR(20) NOT NULL,
+
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
         REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -345,6 +346,7 @@ CREATE TABLE document (
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
+
 
 CREATE TABLE  document_comment (
     id SERIAL PRIMARY KEY,
@@ -387,8 +389,8 @@ CREATE TABLE document_permission (
     account_id INT NOT NULL,
     permission_type VARCHAR(50) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (document_id) REFERENCES document(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
 -- 21. project_position

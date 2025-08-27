@@ -540,8 +540,11 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Account).WithMany(p => p.DocumentPermission)
                 .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_permission_account_id_fkey");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.DocumentPermission)
+                .HasForeignKey(d => d.DocumentId)
+                .HasConstraintName("document_permission_document_id_fkey");
         });
 
         modelBuilder.Entity<DynamicCategory>(entity =>
@@ -1213,7 +1216,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.HourlyRate)
-                .HasPrecision(10, 2)
+                .HasPrecision(15, 2)
                 .HasColumnName("hourly_rate");
             entity.Property(e => e.InvitedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -2181,8 +2184,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_log_task_id_fkey");
         });
+        modelBuilder.HasSequence("ap_id_seq");
         modelBuilder.HasSequence("bp_id_seq");
         modelBuilder.HasSequence("bpd_id_seq");
+        modelBuilder.HasSequence("bpms_id_seq");
         modelBuilder.HasSequence("course_id_seq");
         modelBuilder.HasSequence("crmm_id_seq");
         modelBuilder.HasSequence("dd_id_seq");
@@ -2191,6 +2196,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
         modelBuilder.HasSequence("ewp_id_seq");
         modelBuilder.HasSequence("flower_id_seq");
         modelBuilder.HasSequence("hams_id_seq");
+        modelBuilder.HasSequence("hamss_id_seq");
         modelBuilder.HasSequence("intellipm_id_seq");
         modelBuilder.HasSequence("ip_id_seq");
         modelBuilder.HasSequence("ipm_id_seq");
@@ -2205,6 +2211,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
         modelBuilder.HasSequence("sams_id_seq");
         modelBuilder.HasSequence("shams_id_seq");
         modelBuilder.HasSequence("shamsdd_id_seq");
+        modelBuilder.HasSequence("shamss_id_seq");
         modelBuilder.HasSequence("srmp_id_seq");
         modelBuilder.HasSequence("srmpp_id_seq");
         modelBuilder.HasSequence("t_id_seq");

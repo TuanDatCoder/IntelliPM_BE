@@ -56,6 +56,10 @@ namespace IntelliPM.Services.DocumentServices
 
         Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId);
 
+        Task<List<DocumentResponseDTO>> GetDocumentsSharedToUser(int userId);
+
+        Task<List<DocumentResponseDTO>> GetDocumentsSharedToUserInProject(int userId, int projectId);
+
 
 
 

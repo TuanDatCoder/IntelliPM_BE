@@ -35,6 +35,8 @@ public partial class Document
 
     public virtual ICollection<DocumentExportFile> DocumentExportFile { get; set; } = new List<DocumentExportFile>();
 
+    public virtual ICollection<DocumentPermission> DocumentPermission { get; set; } = new List<DocumentPermission>();
+
     public virtual Epic? Epic { get; set; }
 
     public virtual Project Project { get; set; } = null!;
