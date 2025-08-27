@@ -19,5 +19,6 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
 
         [Required(ErrorMessage = "CreatedBy is required")]
         public int CreatedBy { get; set; }
+        public int? ReporterId { get; set; }
     }
 }

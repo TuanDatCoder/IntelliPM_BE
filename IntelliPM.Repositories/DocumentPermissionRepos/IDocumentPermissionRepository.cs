@@ -17,10 +17,11 @@ namespace IntelliPM.Repositories.DocumentPermissionRepos
 
         Task<string?> GetPermissionTypeByDocumentIdAsync(int documentId);
 
-
+        Task<List<Document>> GetDocumentsSharedToUserInProjectAsync(int accountId, int projectId);
 
         Task UpdateAsync(DocumentPermission permission);
 
+        Task<List<Document>> GetDocumentsSharedToUserAsync(int accountId);
 
         Task<List<SharedUserDTO>> GetSharedUsersByDocumentIdAsync(int documentId);
         Task AddRangeAsync(IEnumerable<DocumentPermission> permissions);

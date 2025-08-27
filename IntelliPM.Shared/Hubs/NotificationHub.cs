@@ -30,35 +30,35 @@ namespace IntelliPM.Shared.Hubs
             _logger.LogInformation("Test notification sent to all connected clients.");
         }
 
-        public async Task SendNotification(string userId, string message)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(message))
-                {
-                    _logger.LogWarning("SendNotification called with empty userId or message.");
-                    throw new HubException("Invalid parameters.");
-                }
+        //public async Task SendNotification(string userId, string message)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(message))
+        //        {
+        //            _logger.LogWarning("SendNotification called with empty userId or message.");
+        //            throw new HubException("Invalid parameters.");
+        //        }
 
-                _logger.LogInformation($"Preparing to send notification to user {userId} with message: {message}");
+        //        _logger.LogInformation($"Preparing to send notification to user {userId} with message: {message}");
 
-                var result = Clients.Group(userId);
-                if (result != null)
-                {
-                    await result.SendAsync("ReceiveNotification", message);
-                    _logger.LogInformation($"Notification sent successfully to user {userId}: {message}");
-                }
-                else
-                {
-                    _logger.LogWarning($"Group {userId} not found or has no connected clients.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to send notification to user {userId}");
-                throw;
-            }
-        }
+        //        var result = Clients.Group(userId);
+        //        if (result != null)
+        //        {
+        //            await result.SendAsync("ReceiveNotification", message);
+        //            _logger.LogInformation($"Notification sent successfully to user {userId}: {message}");
+        //        }
+        //        else
+        //        {
+        //            _logger.LogWarning($"Group {userId} not found or has no connected clients.");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"Failed to send notification to user {userId}");
+        //        throw;
+        //    }
+        //}
 
         public async Task JoinNotificationGroup(string userId)
         {

@@ -21,16 +21,22 @@ using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Services.Helper.CustomExceptions;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -55,7 +61,8 @@ namespace IntelliPM.Services.SubtaskServices
         private readonly IMilestoneRepository _milestoneRepo;
         private readonly IEmailService _emailService;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
-        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo, IEmailService emailService, IDynamicCategoryHelper dynamicCategoryHelper)
+        private readonly IDecodeTokenHandler _decodeToken;
+        public SubtaskService(IMapper mapper, ISubtaskRepository subtaskRepo, ILogger<SubtaskService> logger, ITaskRepository taskRepo, IGeminiService geminiService, IEpicRepository epicRepo, IProjectRepository projectRepo, IAccountRepository accountRepo, ISubtaskCommentService subtaskCommentService, IWorkItemLabelService workItemLabelService, IWorkLogService workLogService, IProjectMemberRepository projectMemberRepo, IActivityLogService activityLogService, ITaskDependencyRepository taskDependencyRepo, IMilestoneRepository milestoneRepo, IEmailService emailService, IDynamicCategoryHelper dynamicCategoryHelper, IDecodeTokenHandler decodeToken)
         {
             _mapper = mapper;
             _subtaskRepo = subtaskRepo;
@@ -74,19 +81,29 @@ namespace IntelliPM.Services.SubtaskServices
             _milestoneRepo = milestoneRepo;
             _emailService = emailService;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _decodeToken = decodeToken; 
         }
 
-        public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId)
+        public async Task<List<Subtask>> GenerateSubtaskPreviewAsync(string token, string taskId)
         {
+            if (string.IsNullOrEmpty(token))
+                throw new ArgumentException("Token is required.", nameof(token));
+
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new ApiException(HttpStatusCode.Unauthorized, "Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new ApiException(HttpStatusCode.NotFound, "User not found.");
+
             var task = await _taskRepo.GetByIdAsync(taskId);
             if (task == null)
                 throw new KeyNotFoundException($"Task with ID {taskId} not found.");
-
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
             var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
-
             var checklistTitles = await _geminiService.GenerateSubtaskAsync(task.Title);
-
+           
             var checklists = checklistTitles.Select(title => new Subtask
             {
                 TaskId = taskId,
@@ -96,9 +113,9 @@ namespace IntelliPM.Services.SubtaskServices
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                ReporterId = currentAccount.Id,
             }).ToList();
-
             return checklists;
         }
 
@@ -228,7 +245,6 @@ namespace IntelliPM.Services.SubtaskServices
                         CreatedBy = request.CreatedBy, 
                         CreatedAt = DateTime.UtcNow
                     });
-
                 }
             }
             catch (DbUpdateException ex)

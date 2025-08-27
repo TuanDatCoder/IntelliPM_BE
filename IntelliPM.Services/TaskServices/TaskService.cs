@@ -99,7 +99,6 @@ namespace IntelliPM.Services.TaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
 
-            // Gọi AI service và nhận về danh sách task đề xuất có title + description
             var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
 
             if (suggestions == null || !suggestions.Any())

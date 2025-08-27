@@ -29,7 +29,7 @@ namespace IntelliPM.Services.DocumentServices
 {
     public class DocumentService : IDocumentService
     {
-        private readonly IDocumentRepository _repo;
+        private readonly IDocumentRepository _IDocumentRepository;
         private readonly HttpClient _httpClient;
         private readonly string _geminiApiKey;
         private readonly string _geminiEndpoint;
@@ -43,10 +43,10 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IHubContext<DocumentHub> _hubContext;
         private readonly IMapper _mapper;
 
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
+        public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
             IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper)
         {
-            _repo = repo;
+            _IDocumentRepository = IDocumentRepository;
             _httpClient = httpClient;
             _geminiApiKey = configuration["GeminiApi:ApiKey"];
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
@@ -69,7 +69,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId, int currentUserId)
         {
-            var docs = await _repo.GetByProjectAsync(projectId);
+            var docs = await _IDocumentRepository.GetByProjectAsync(projectId);
 
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
@@ -84,7 +84,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetAllDocuments()
         {
-            var docs = await _repo.GetAllAsync();
+            var docs = await _IDocumentRepository.GetAllAsync();
             return docs.Select(d => new DocumentResponseDTO
             {
                 Id = d.Id,
@@ -103,14 +103,14 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> GetByIdAsync(int id)
         {
-            var entity = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
+            var entity = await _IDocumentRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
             return _mapper.Map<DocumentResponseDTO>(entity);
         }
 
 
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null)
                 throw new KeyNotFoundException($"Document {id} not found");
@@ -151,8 +151,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
                 var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
                 await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
 
@@ -202,8 +202,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -239,7 +239,7 @@ namespace IntelliPM.Services.DocumentServices
         {
             if (req == null) throw new ArgumentNullException(nameof(req));
 
-            var doc = await _repo.GetByIdAsync(id)
+            var doc = await _IDocumentRepository.GetByIdAsync(id)
                       ?? throw new KeyNotFoundException("Document not found");
 
             if (!string.IsNullOrWhiteSpace(req.Title))
@@ -254,8 +254,8 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             await _hubContext.Clients
                 .Group($"document-{id}")
@@ -287,7 +287,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<bool> DeleteDocument(int id, int deletedBy)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null )
                 throw new KeyNotFoundException($"Document {id} not found or already deleted");
@@ -296,8 +296,8 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = deletedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.DeleteAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.DeleteAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return true;
         }
@@ -367,7 +367,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<string> SummarizeContent(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null || string.IsNullOrWhiteSpace(doc.Content))
                 throw new Exception("Document not found or empty content.");
 
@@ -440,46 +440,180 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
         //            };
         //        }
 
+        //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
+        //{
+        //    // 1) Tìm document
+        //    var document = await _IDocumentRepository.GetByIdAsync(documentId);
+        //    if (document == null)
+        //        throw new KeyNotFoundException($"Document {documentId} not found");
+
+        //    // 2) Validate emails
+        //    var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
+        //        .Where(e => !string.IsNullOrWhiteSpace(e))
+        //        .Select(e => e.Trim().ToLowerInvariant())
+        //        .Where(IsValidEmail)
+        //        .Distinct()
+        //        .ToList();
+
+        //    if (lowerInputEmails.Count == 0)
+        //        throw new ArgumentException("No emails provided.");
+
+        //    // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+        //    var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+        //    var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+        //    //var mode = permissionType == "EDIT" ? "edit" : "view";
+
+        //    // 4) Tạo link chia sẻ (từ cấu hình)
+        //    // appsettings.json:
+        //    // "Frontend": { "BaseUrl": "http://localhost:5173" }
+        //    var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+        //    var path = $"/project/projects/form/document/{document.Id}";
+        //    //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
+        //    var link = $"{baseUrl.TrimEnd('/')}{path}";
+
+
+        //    // 5) Lấy account map từ emails
+        //    var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+
+        //    // 6) Upsert quyền cho các email có accountId
+        //    if (accountMap.Count > 0)
+        //    {
+        //        var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
+
+        //        // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+        //        var targetAccountIds = accountMap.Values.ToHashSet();
+        //        var toRemove = existingPermissions
+        //            .Where(p => targetAccountIds.Contains(p.AccountId) &&
+        //                        string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+        //            .ToList();
+
+        //        if (toRemove.Count > 0)
+        //            _permissionRepo.RemoveRange(toRemove);
+
+        //        // Thêm quyền mới
+        //        var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
+        //        {
+        //            DocumentId = documentId,
+        //            AccountId = accountId,
+        //            PermissionType = permissionType
+        //        });
+
+        //        await _permissionRepo.AddRangeAsync(newPermissions);
+        //        await _permissionRepo.SaveChangesAsync();
+        //    }
+
+        //    // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
+        //    //var failedToSend = new List<string>();
+        //    //foreach (var email in lowerInputEmails)
+        //    //{
+        //    //    try
+        //    //    {
+        //    //        await _emailService.SendShareDocumentEmail(
+        //    //            email,
+        //    //            document.Title,
+        //    //            req.Message,
+        //    //            link
+        //    //        );
+        //    //    }
+        //    //    catch (Exception ex)
+        //    //    {
+        //    //        failedToSend.Add(email);
+        //    //        _logger.LogError(ex,
+        //    //            """
+        //    //    ❌ Failed to send share document email
+        //    //    Email: {Email}
+        //    //    Title: {Title}
+        //    //    Message: {Message}
+        //    //    Link: {Link}
+        //    //    Error: {ErrorMessage}
+        //    //    """,
+        //    //            email,
+        //    //            document.Title,
+        //    //            req.Message ?? "(No message)",
+        //    //            link,
+        //    //            ex.Message
+        //    //        );
+        //    //    }
+        //    //}
+        //    var existingEmails = lowerInputEmails.Intersect(accountMap.Keys).ToList();
+
+        //    var failedToSend = new List<string>();
+        //    foreach (var email in existingEmails)
+        //    {
+        //        try
+        //        {
+        //            await _emailService.SendShareDocumentEmail(
+        //                email,
+        //                document.Title,
+        //                req.Message,
+        //                link
+        //            );
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            failedToSend.Add(email);
+        //            _logger.LogError(ex,
+        //                """
+        //    ❌ Failed to send share document email
+        //    Email: {Email}
+        //    Title: {Title}
+        //    Message: {Message}
+        //    Link: {Link}
+        //    Error: {ErrorMessage}
+        //    """,
+        //                email,
+        //                document.Title,
+        //                req.Message ?? "(No message)",
+        //                link,
+        //                ex.Message
+        //            );
+        //        }
+        //    }
+
+        //    return new ShareDocumentResponseDTO
+        //    {
+        //        Success = failedToSend.Count == 0,
+        //        FailedEmails = failedToSend
+        //    };
+        //}
+
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
             // 1) Tìm document
-            var document = await _repo.GetByIdAsync(documentId);
+            var document = await _IDocumentRepository.GetByIdAsync(documentId);
             if (document == null)
                 throw new KeyNotFoundException($"Document {documentId} not found");
 
-            // 2) Validate emails
+            // 2) Validate emails (lọc null/empty/whitespace, chuẩn hóa lowercase, kiểm tra format)
             var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
                 .Select(e => e.Trim().ToLowerInvariant())
+                .Where(IsValidEmail) // đảm bảo là email hợp lệ
                 .Distinct()
                 .ToList();
 
             if (lowerInputEmails.Count == 0)
-                throw new ArgumentException("No emails provided.");
+                throw new ArgumentException("No valid emails provided.");
 
             // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
             var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
             var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
-            var mode = permissionType == "EDIT" ? "edit" : "view";
 
             // 4) Tạo link chia sẻ (từ cấu hình)
-            // appsettings.json:
-            // "Frontend": { "BaseUrl": "http://localhost:5173" }
             var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
             var path = $"/project/projects/form/document/{document.Id}";
-            //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
             var link = $"{baseUrl.TrimEnd('/')}{path}";
 
-
-            // 5) Lấy account map từ emails
-            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
+            // 5) Lấy account map từ emails (email -> accountId)
+            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
+            // accountMap.Keys: tập email có account trong hệ thống
 
             // 6) Upsert quyền cho các email có accountId
             if (accountMap.Count > 0)
             {
                 var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
 
-                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
+                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent theo loại)
                 var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
@@ -489,7 +623,7 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 if (toRemove.Count > 0)
                     _permissionRepo.RemoveRange(toRemove);
 
-                // Thêm quyền mới
+                // Thêm quyền mới (cùng loại) cho các account target
                 var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
                     DocumentId = documentId,
@@ -501,9 +635,14 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 await _permissionRepo.SaveChangesAsync();
             }
 
-            // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
-            var failedToSend = new List<string>();
-            foreach (var email in lowerInputEmails)
+            // 7) Gửi email: CHỈ gửi cho email có account.
+            //    Email không có account => coi là failed.
+            var knownEmails = accountMap.Keys.ToHashSet();                         // có account
+            var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();     // không có account => failed
+
+            var failedToSend = new List<string>(unknownEmails); // khởi tạo failed = các email ngoài hệ thống
+
+            foreach (var email in knownEmails)
             {
                 try
                 {
@@ -519,13 +658,13 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                     failedToSend.Add(email);
                     _logger.LogError(ex,
                         """
-                ❌ Failed to send share document email
-                Email: {Email}
-                Title: {Title}
-                Message: {Message}
-                Link: {Link}
-                Error: {ErrorMessage}
-                """,
+❌ Failed to send share document email
+Email: {Email}
+Title: {Title}
+Message: {Message}
+Link: {Link}
+Error: {ErrorMessage}
+""",
                         email,
                         document.Title,
                         req.Message ?? "(No message)",
@@ -535,12 +674,28 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 }
             }
 
+            // 8) Trả kết quả
             return new ShareDocumentResponseDTO
             {
                 Success = failedToSend.Count == 0,
                 FailedEmails = failedToSend
             };
         }
+
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
+            // Regex đơn giản: ký tự trước @, domain, và phần mở rộng
+            var regex = new System.Text.RegularExpressions.Regex(
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            return regex.IsMatch(email);
+        }
+
 
 
 
@@ -720,7 +875,7 @@ Yêu cầu:
             if (!IsPromptValid(prompt))
                 throw new Exception("Prompt không hợp lệ. Vui lòng mô tả rõ hơn về nội dung bạn muốn tạo.");
 
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null) throw new Exception("Document not found");
 
             var fullPrompt = BuildProjectPlanPrompt(prompt);
@@ -732,8 +887,8 @@ Yêu cầu:
             doc.Content = content;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return content;
         }
@@ -741,30 +896,30 @@ Yêu cầu:
         public async Task<string> GenerateFreeAIContent(string prompt)
         {
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
-                throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
-
+                throw new Exception("Invalid prompt. Please enter a more specific request.");
 
             var htmlPrompt = $@"
-Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+You are an AI assistant specialized in generating professional document content.
 
-Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
--  <h3> cho tiêu đề
-- <p> cho đoạn văn
-- <ul><li> cho danh sách gạch đầu dòng
-- <table><thead><tbody><tr><th><td> cho bảng
+Please respond to the following request in **complete HTML format**, using tags such as:
+- <h3> for headings
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <table><thead><tbody><tr><th><td> for tables
 
-Chỉ trả về HTML, không thêm mô tả bên ngoài.
+Return HTML only, do not include any external explanation or markdown.
 
-Yêu cầu:
+Request:
 {prompt}";
 
             var response = await GenerateContentWithGemini(htmlPrompt);
 
             if (string.IsNullOrWhiteSpace(response))
-                throw new Exception("AI không thể trả lời yêu cầu.");
+                throw new Exception("AI could not generate a response.");
 
             return response;
         }
+
 
 
         //public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
@@ -782,7 +937,7 @@ Yêu cầu:
 
         //        Content = doc.Content,
 
-         
+
         //        CreatedBy = doc.CreatedBy,
         //        UpdatedBy = doc.UpdatedBy,
         //        CreatedAt = doc.CreatedAt,
@@ -792,7 +947,7 @@ Yêu cầu:
 
         public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
         {
-            return await _repo.GetUserDocumentMappingAsync(projectId, userId);
+            return await _IDocumentRepository.GetUserDocumentMappingAsync(projectId, userId);
         }
         //public async Task<Dictionary<string, int>> GetStatusCount()
         //{
@@ -821,7 +976,7 @@ Yêu cầu:
 
         public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null)
                 throw new Exception("Document not found");
 
@@ -865,7 +1020,7 @@ Yêu cầu:
 
         public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null)
                 throw new Exception("Document not found");
 
@@ -1118,11 +1273,11 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
 
         public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
         {
-            var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
+            var updated = await _IDocumentRepository.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
             if (!updated)
                 throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            var latest = await _repo.GetByIdAsync(documentId)
+            var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
 
             var dto = new DocumentResponseDTO
@@ -1146,6 +1301,20 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
 
             return dto;
         }
+
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUser(int userId)
+        {
+            var sharedDocs = await _permissionRepo.GetDocumentsSharedToUserAsync(userId);
+            return sharedDocs.Select(ToResponse).ToList();
+        }
+
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUserInProject(int userId, int projectId)
+        {
+            var docs = await _permissionRepo.GetDocumentsSharedToUserInProjectAsync(userId, projectId);
+            return docs.Select(ToResponse).ToList();
+        }
+
+
 
 
 
