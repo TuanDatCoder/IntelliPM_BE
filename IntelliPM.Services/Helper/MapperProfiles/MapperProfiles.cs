@@ -103,8 +103,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Status, opt => opt.Ignore())
-                .ForMember(dest => dest.Password, opt => opt.Ignore())
-                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
+                .ForMember(dest => dest.Password, opt => opt.Ignore());
 
 
             CreateMap<Account, ProfileResponseDTO>()

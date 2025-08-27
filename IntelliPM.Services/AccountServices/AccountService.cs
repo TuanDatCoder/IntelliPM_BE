@@ -239,7 +239,14 @@ namespace IntelliPM.Services.AccountServices
 
             return profile;
         }
+        public async Task<AccountResponseDTO> GetProfileById(int id)
+        {
+            var entity = await _accountRepo.GetAccountById(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Account with id {id} not found.");
 
+            return _mapper.Map<AccountResponseDTO>(entity);
+        }
 
     }
 }
