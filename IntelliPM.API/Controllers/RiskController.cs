@@ -4,6 +4,7 @@ using IntelliPM.Services.RiskServices;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Data.DTOs.Risk.Response;
 
 namespace IntelliPM.API.Controllers
 {
@@ -542,17 +543,59 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("check-overdue-tasks")]
-        public async Task<IActionResult> CheckAndCreateAllOverdueTaskRisksAsync()
+        [HttpPost("check-overdue-risks/{projectKey}")]
+        public async Task<IActionResult> CheckAndNotifyOverdueRisksByProject(string projectKey)
         {
             try
             {
-                await _riskService.CheckAndCreateAllOverdueTaskRisksAsync();
-                return Ok(new { message = "Overdue task risks processed successfully" });
+                await _riskService.CheckAndNotifyOverdueRisksByProjectAsync(projectKey);
+                return Ok($"Overdue risk notification check completed for project {projectKey}.");
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpGet("statistics/{projectKey}")]
+        public async Task<ActionResult<RiskStatisticsDTO>> GetRiskStatistics(string projectKey)
+        {
+            try
+            {
+                var stats = await _riskService.GetRiskStatisticsAsync(projectKey);
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("check-overdue-tasks-all-projects")]
+        public async Task<IActionResult> CheckAndCreateOverdueTaskRisksForAllProjects()
+        {
+            try
+            {
+                await _riskService.CheckAndCreateOverdueTaskRisksForAllProjectsAsync();
+                return Ok("Overdue task risk check completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpPost("check-overdue-risks")]
+        public async Task<IActionResult> CheckAndNotifyOverdueRisks()
+        {
+            try
+            {
+                await _riskService.CheckAndNotifyOverdueRisksAsync();
+                return Ok("Overdue risk notification check completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
     }

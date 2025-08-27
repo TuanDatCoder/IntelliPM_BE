@@ -35,6 +35,9 @@ namespace IntelliPM.Services.RiskServices
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(string projectKey);
         Task<List<AIRiskResponseDTO>> ViewAIDetectTaskRisksAsyncAsync(string projectKey);
         Task CheckAndCreateOverdueTaskRisksAsync(string projectKey);
-        Task CheckAndCreateAllOverdueTaskRisksAsync();
+        Task<RiskStatisticsDTO> GetRiskStatisticsAsync(string projectKey);
+        Task CheckAndCreateOverdueTaskRisksForAllProjectsAsync();
+        Task CheckAndNotifyOverdueRisksAsync();
+        Task CheckAndNotifyOverdueRisksByProjectAsync(string projectKey);
     }
 }

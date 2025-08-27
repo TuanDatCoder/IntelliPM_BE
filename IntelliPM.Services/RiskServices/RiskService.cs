@@ -361,6 +361,19 @@ namespace IntelliPM.Services.RiskServices
             var project = await _projectRepo.GetProjectByKeyAsync(request.ProjectKey)
                 ?? throw new Exception("Project not found with provided projectKey");
 
+            if (request.RiskScope == "TASK" && request.TaskId == null)
+            {
+                throw new Exception("TaskId is required when risk scope is TASK");
+            }
+            if (request.TaskId != null)
+            {
+                var task = await _taskRepo.GetByIdAsync(request.TaskId);
+                if (task == null || task.ProjectId != project.Id)
+                {
+                    throw new Exception("Invalid or non-existent TaskId for the specified project");
+                }
+            }
+
             // Fetch default values from system_configuration
             var defaultStatusConfig = await _systemConfigRepo.GetByConfigKeyAsync("default_risk_status");
             var defaultGeneratedByConfig = await _systemConfigRepo.GetByConfigKeyAsync("default_risk_generated_by");
@@ -387,6 +400,7 @@ namespace IntelliPM.Services.RiskServices
             entity.Status = request.Status ?? defaultStatus;
             entity.GeneratedBy = request.GeneratedBy ?? defaultGeneratedBy;
             entity.RiskScope = request.RiskScope ?? defaultRiskScope;
+            entity.TaskId = request.TaskId;
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -1147,51 +1161,65 @@ namespace IntelliPM.Services.RiskServices
         //    }
         //}
 
-        public async Task CheckAndCreateAllOverdueTaskRisksAsync()
+        public async Task CheckAndCreateOverdueTaskRisksForAllProjectsAsync()
         {
-            var projectKeys = await _projectRepo.GetAllProjectKeysAsync();
-            foreach (var projectKey in projectKeys)
-            {
-                var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
-                    ?? throw new Exception($"Project not found with provided projectKey: {projectKey}");
+            var today = DateTime.UtcNow.Date;
+            var projects = await _projectRepo.GetAllProjects();
 
+            foreach (var project in projects)
+            {
                 var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-                var now = DateTime.UtcNow.Date;
                 var overdueTasks = tasks
                     .Where(t => t.PlannedEndDate.HasValue &&
-                                t.PlannedEndDate.Value < now &&
+                                t.PlannedEndDate.Value < today &&
                                 !string.Equals(t.Status, "DONE", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 foreach (var task in overdueTasks)
                 {
                     Console.WriteLine($"Processing task {task.Id}: Title={task.Title}, PlannedEndDate={task.PlannedEndDate}, Status={task.Status}");
-                    var existingRisk = await _riskRepo.GetRiskByTaskIdAsync(task.Id);
-                    if (existingRisk.Any())
+                    var existingRisks = await _riskRepo.GetRiskByTaskIdAsync(task.Id);
+                    if (existingRisks.Any())
                     {
                         Console.WriteLine($"Risk already exists for task {task.Id}, skipping...");
                         continue;
                     }
 
-                    // Use a sequence or unique generation for riskKey
                     var count = await _riskRepo.CountByProjectIdAsync(project.Id);
                     var nextIndex = count + 1;
-                    var riskKey = GenerateUniqueRiskKey(project.ProjectKey, nextIndex);
+                    var riskKey = $"{project.ProjectKey}-R{nextIndex:D3}";
 
+                    var riskScopes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_scope");
+                    var riskTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_type");
+                    var probabilities = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_probability_level");
+                    var impactLevels = await _dynamicCategoryRepo.GetByCategoryGroupAsync("risk_impact_level");
+
+                    var defaultRiskScope = riskScopes.FirstOrDefault(c => c.Name == "TASK")?.Name ?? "TASK";
+                    var defaultRiskType = riskTypes.FirstOrDefault(c => c.Name == "SCHEDULE")?.Name ?? "SCHEDULE";
+                    var defaultProbability = probabilities.FirstOrDefault(c => c.Name == "HIGH")?.Name ?? "HIGH";
+                    var defaultImpactLevel = impactLevels.FirstOrDefault(c => c.Name == "MEDIUM")?.Name ?? "MEDIUM";
+
+                    var defaultStatusConfig = await _systemConfigRepo.GetByConfigKeyAsync("default_risk_status");
+                    var defaultStatus = defaultStatusConfig?.ValueConfig ?? "OPEN";
+
+                    var defaultGeneratedByConfig = await _systemConfigRepo.GetByConfigKeyAsync("default_risk_generated_by");
+                    var defaultGeneratedBy = defaultGeneratedByConfig?.ValueConfig ?? "SYSTEM";
+
+                    var dynamicRiskType = await _dynamicCategoryHelper.GetCategoryNameAsync("risk_type", "SCHEDULE");
                     var entity = new Risk
                     {
                         ProjectId = project.Id,
                         TaskId = task.Id,
                         RiskKey = riskKey,
-                        RiskScope = "TASK",
+                        RiskScope = defaultRiskScope,
                         Title = $"Overdue Task: {task.Id} - {task.Title}",
                         Description = $"Task {task.Id} is overdue. Planned end date was {task.PlannedEndDate:yyyy-MM-dd}.",
-                        Status = "OPEN",
-                        Type = "SCHEDULE",
-                        GeneratedBy = "SYSTEM",
-                        Probability = "HIGH",
-                        ImpactLevel = "MEDIUM",
-                        SeverityLevel = CalculateSeverityLevel("MEDIUM", "HIGH"),
+                        Status = defaultStatus,
+                        Type = dynamicRiskType,
+                        GeneratedBy = defaultGeneratedBy,
+                        Probability = defaultProbability,
+                        ImpactLevel = defaultImpactLevel,
+                        SeverityLevel = CalculateSeverityLevel(defaultImpactLevel, defaultProbability),
                         CreatedBy = null,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
@@ -1201,65 +1229,127 @@ namespace IntelliPM.Services.RiskServices
 
                     await _riskRepo.AddAsync(entity);
 
-                    // Construct riskDetailUrl
                     var baseUrl = _config["Environment:FE_URL"];
                     var riskDetailUrl = $"{baseUrl}/project/{project.ProjectKey}/risk/{riskKey}";
 
-                    // Async email sending
                     var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(task.Id);
-                    var emailTasks = taskAssignments
-                        .Select(async taskAssignment =>
-                        {
-                            var assignedUser = await _accountRepo.GetAccountById(taskAssignment.AccountId);
-                            if (assignedUser != null)
-                            {
-                                return _emailService.SendOverdueTaskNotificationEmailAsync(
-                                    assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
-                                    assigneeEmail: assignedUser.Email,
-                                    taskId: task.Id,
-                                    taskTitle: entity.Title,
-                                    projectKey: project.ProjectKey,
-                                    plannedEndDate: task.PlannedEndDate.Value,
-                                    taskDetailUrl: riskDetailUrl
-                                );
-                            }
-                            return Task.CompletedTask;
-                        })
-                        .ToArray();
+                    var assignedUsers = new List<Account>();
+                    foreach (var taskAssignment in taskAssignments)
+                    {
+                        var user = await _accountRepo.GetAccountById(taskAssignment.AccountId);
+                        if (user != null)
+                            assignedUsers.Add(user);
+                    }
+                    var emailTasks = assignedUsers
+                        .Select(user => _emailService.SendOverdueTaskNotificationEmailAsync(
+                            assigneeFullName: user.FullName ?? user.Username,
+                            assigneeEmail: user.Email,
+                            taskId: task.Id,
+                            taskTitle: entity.Title,
+                            projectKey: project.ProjectKey,
+                            plannedEndDate: task.PlannedEndDate.Value,
+                            taskDetailUrl: riskDetailUrl
+                    ));
 
                     await Task.WhenAll(emailTasks);
+                    //if (taskAssignments.Any())
+                    //{
+                    //    var emailTasks = taskAssignments
+                    //        .Select(async taskAssignment =>
+                    //        {
+                    //            var assignedUser = await _accountRepo.GetAccountById(taskAssignment.AccountId);
+                    //            if (assignedUser != null)
+                    //            {
+                    //                return _emailService.SendOverdueTaskNotificationEmailAsync(
+                    //                    assigneeFullName: assignedUser.FullName ?? assignedUser.Username,
+                    //                    assigneeEmail: assignedUser.Email,
+                    //                    taskId: task.Id,
+                    //                    taskTitle: entity.Title,
+                    //                    projectKey: project.ProjectKey,
+                    //                    plannedEndDate: task.PlannedEndDate.Value,
+                    //                    taskDetailUrl: riskDetailUrl
+                    //                );
+                    //            }
+                    //            return Task.CompletedTask;
+                    //        })
+                    //        .ToArray();
 
-                    // Notify project members
-                    var members = await _projectMemberRepo.GetProjectMemberbyProjectId(entity.ProjectId);
-                    var recipients = members
-                        .Where(m => m.AccountId != entity.CreatedBy)
-                        .Select(m => m.AccountId)
-                        .ToList();
+                    //    await Task.WhenAll(emailTasks);
+                    //}
+                }
+            }
+        }
 
-                    if (recipients.Count > 0)
+        public async Task CheckAndNotifyOverdueRisksAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+            var risks = await _riskRepo.GetAllRisksAsync();
+
+            var overdueRisks = risks
+                .Where(r => !string.Equals(r.Status, "CLOSED", StringComparison.OrdinalIgnoreCase) &&
+                            r.DueDate.HasValue &&
+                            r.DueDate.Value < today)
+                .ToList();
+
+            foreach (var risk in overdueRisks)
+            {
+                Console.WriteLine($"Processing risk {risk.RiskKey}: Title={risk.Title}, DueDate={risk.DueDate}, Status={risk.Status}");
+                if (risk.ResponsibleId.HasValue)
+                {
+                    var responsible = await _accountRepo.GetAccountById(risk.ResponsibleId.Value);
+                    if (responsible != null)
                     {
-                        var notification = new Notification
-                        {
-                            CreatedBy = (int)(entity.CreatedBy),
-                            Type = "RISK_ALERT",
-                            Priority = entity.SeverityLevel,
-                            Message = $"Overdue task risk identified in project {project.ProjectKey} - risk {riskKey}",
-                            RelatedEntityType = "Risk",
-                            RelatedEntityId = entity.Id,
-                            CreatedAt = DateTime.UtcNow,
-                            IsRead = false,
-                            RecipientNotification = new List<RecipientNotification>()
-                        };
+                        var baseUrl = _config["Environment:FE_URL"];
+                        var riskDetailUrl = $"{baseUrl}/project/{(await _projectRepo.GetByIdAsync(risk.ProjectId))?.ProjectKey}/risk/{risk.RiskKey}";
 
-                        foreach (var accId in recipients)
-                        {
-                            notification.RecipientNotification.Add(new RecipientNotification
-                            {
-                                AccountId = accId,
-                                IsRead = false
-                            });
-                        }
-                        await _notificationRepo.Add(notification);
+                        await _emailService.SendOverdueRiskNotificationEmailAsync(
+                            assigneeFullName: responsible.FullName ?? responsible.Username,
+                            assigneeEmail: responsible.Email,
+                            riskKey: risk.RiskKey,
+                            riskTitle: risk.Title,
+                            projectKey: (await _projectRepo.GetByIdAsync(risk.ProjectId))?.ProjectKey,
+                            dueDate: risk.DueDate.Value,
+                            riskDetailUrl: riskDetailUrl
+                        );
+                    }
+                }
+            }
+        }
+
+        public async Task CheckAndNotifyOverdueRisksByProjectAsync(string projectKey)
+        {
+            var today = DateTime.UtcNow.Date;
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+                ?? throw new Exception("Project not found with provided projectKey");
+
+            var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
+
+            var overdueRisks = risks
+                .Where(r => !string.Equals(r.Status, "CLOSED", StringComparison.OrdinalIgnoreCase) &&
+                            r.DueDate.HasValue &&
+                            r.DueDate.Value < today)
+                .ToList();
+
+            foreach (var risk in overdueRisks)
+            {
+                Console.WriteLine($"Processing risk {risk.RiskKey}: Title={risk.Title}, DueDate={risk.DueDate}, Status={risk.Status}");
+                if (risk.ResponsibleId.HasValue)
+                {
+                    var responsible = await _accountRepo.GetAccountById(risk.ResponsibleId.Value);
+                    if (responsible != null)
+                    {
+                        var baseUrl = _config["Environment:FE_URL"];
+                        var riskDetailUrl = $"{baseUrl}/project/{projectKey}/risk/{risk.RiskKey}";
+
+                        await _emailService.SendOverdueRiskNotificationEmailAsync(
+                            assigneeFullName: responsible.FullName ?? responsible.Username,
+                            assigneeEmail: responsible.Email,
+                            riskKey: risk.RiskKey,
+                            riskTitle: risk.Title,
+                            projectKey: projectKey,
+                            dueDate: risk.DueDate.Value,
+                            riskDetailUrl: riskDetailUrl
+                        );
                     }
                 }
             }
@@ -1276,6 +1366,38 @@ namespace IntelliPM.Services.RiskServices
             return baseKey;
         }
 
+        public async Task<RiskStatisticsDTO> GetRiskStatisticsAsync(string projectKey)
+        {
+            var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
+            if (project == null) throw new Exception("Project not found");
+
+            var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
+            var accounts = await _accountRepo.GetAccounts();
+
+            var stats = new RiskStatisticsDTO
+            {
+                TotalRisks = risks.Count,
+                OverdueRisks = risks.Count(r => r.DueDate < DateTime.UtcNow && !r.Status.ToUpper().Contains("CLOSED")),
+                RisksByStatus = risks.GroupBy(r => r.Status).ToDictionary(g => g.Key, g => g.Count()),
+                RisksByType = risks.GroupBy(r => r.Type).ToDictionary(g => g.Key, g => g.Count()),
+                RisksBySeverity = risks.GroupBy(r => r.SeverityLevel).ToDictionary(g => g.Key, g => g.Count()),
+                RisksByResponsible = risks
+                    .GroupJoin(
+                        accounts,
+                        risk => risk.ResponsibleId,
+                        account => account.Id,
+                        (risk, accs) => new { Risk = risk, Account = accs.FirstOrDefault() }
+                    )
+                    .GroupBy(
+                        x => x.Account?.FullName ?? x.Account?.Username ?? "Unassigned",
+                        x => x.Risk,
+                        (key, group) => new { Key = key, Count = group.Count() }
+                    )
+                    .ToDictionary(x => x.Key, x => x.Count)
+            };
+
+            return stats;
+        }
     }
 
 }
