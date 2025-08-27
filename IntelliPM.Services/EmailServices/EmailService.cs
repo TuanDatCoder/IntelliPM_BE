@@ -3,6 +3,7 @@ using MimeKit;
 using MailKit.Net.Smtp;
 using System.Threading.Tasks;
 using MailKit.Security;
+using System.Web;
 
 namespace IntelliPM.Services.EmailServices
 {
@@ -545,7 +546,6 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-
         public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -618,7 +618,7 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
-        
+       
         public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -692,7 +692,6 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
-
         public async Task SendMeetingRemovalEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -741,7 +740,6 @@ a  {{ color:#2980b9; text-decoration:none; }}
                     Console.WriteLine($"[EmailError] Inner: {ex.InnerException.Message}");
             }
         }
-
 
         public async Task SendShareDocumentEmail(string toEmail, string documentTitle, string message, string link)
         {
@@ -862,7 +860,6 @@ a  {{ color:#2980b9; text-decoration:none; }}
                     Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
             }
         }
-
 
         public async Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
@@ -1058,6 +1055,147 @@ a  {{ color:#2980b9; text-decoration:none; }}
             }
         }
 
+        public async Task SendEpicAssignmentEmail(string fullName, string userEmail, string epicId, string epicName)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned epic {epicId}: {epicName}";
+
+            // Construct the URL with the epicId
+            var epicUrl = $"https://intellipm.vercel.app/project/epic/{Uri.EscapeDataString(epicId)}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Epic Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new epic:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(epicId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(epicName)}</li>
+            </ul>
+            <p>Please review the details of your epic in the IntelliPM system.</p>
+            <a href=""{epicUrl}"" class=""button"">View Epic</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
+            };
+
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task SendTaskAssignmentEmail(string fullName, string userEmail, string taskId, string taskTitle)
         {
             var email = new MimeMessage();
@@ -1065,26 +1203,138 @@ a  {{ color:#2980b9; text-decoration:none; }}
             email.To.Add(MailboxAddress.Parse(userEmail));
             email.Subject = $"[IntelliPM] You have been assigned task {taskId}: {taskTitle}";
 
+            // Construct the URL with the taskId
+            var taskUrl = $"https://intellipm.vercel.app/project/HAMS/work-item-detail?taskId={Uri.EscapeDataString(taskId)}";
+
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
                 Text = $@"
-        <h2>Hi {fullName},</h2>
-        <p>You have been assigned a new task:</p>
-        <ul>
-          <li><b>ID:</b> {taskId}</li>
-          <li><b>Title:</b> {taskTitle}</li>
-        </ul>
-       
-        <p>Please check the system for more details.</p>
-        <br/>
-        <p>Best regards,<br/>IntelliPM Notification System</p>"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Task Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new task:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(taskId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(taskTitle)}</li>
+            </ul>
+            <p>Please review the details of your task in the IntelliPM system.</p>
+            <a href=""{taskUrl}"" class=""button"">View Task</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
             };
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task SendSubtaskAssignmentEmail(string fullName, string userEmail, string subtaskId, string subtaskTitle)
@@ -1094,29 +1344,139 @@ a  {{ color:#2980b9; text-decoration:none; }}
             email.To.Add(MailboxAddress.Parse(userEmail));
             email.Subject = $"[IntelliPM] You have been assigned subtask {subtaskId}: {subtaskTitle}";
 
+            // Construct the URL with the subtaskId
+            var subtaskUrl = $"https://intellipm.vercel.app/project/HAMS/child-work/{Uri.EscapeDataString(subtaskId)}";
+
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
                 Text = $@"
-        <h2>Hi {fullName},</h2>
-        <p>You have been assigned a new subtask:</p>
-        <ul>
-          <li><b>ID:</b> {subtaskId}</li>
-          <li><b>Title:</b> {subtaskTitle}</li>
-        </ul>
-       
-        <p>Please check the system for more details.</p>
-        <br/>
-        <p>Best regards,<br/>IntelliPM Notification System</p>"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Subtask Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new subtask:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(subtaskId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(subtaskTitle)}</li>
+            </ul>
+            <p>Please review the details of your subtask in the IntelliPM system.</p>
+            <a href=""{subtaskUrl}"" class=""button"">View Subtask</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
             };
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
         }
-
-     
 
         public async Task SendDocumentShareEmailMeeting(
     string toEmail,

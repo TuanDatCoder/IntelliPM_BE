@@ -39,6 +39,8 @@ namespace IntelliPM.Services.EmailServices
 
         Task SendSubtaskAssignmentEmail(string assigneeFullName, string assigneeEmail, string subtaskId, string subtaskTitle);
 
+        Task SendEpicAssignmentEmail(string assigneeFullName, string assigneeEmail, string epicId, string epicName);
+
         Task SendRiskAssignmentEmail(string assigneeFullName, string assigneeEmail, string riskKey, string riskTitle, string projectKey, string severityLevel, DateTime? dueDate, string riskDetailUrl);
 
         Task SendOverdueTaskNotificationEmailAsync(string assigneeFullName, string assigneeEmail, string taskId, string taskTitle, string projectKey, DateTime plannedEndDate, string taskDetailUrl);
