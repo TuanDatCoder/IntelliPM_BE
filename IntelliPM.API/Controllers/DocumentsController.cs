@@ -531,6 +531,114 @@ namespace IntelliPM.API.Controllers
         }
 
 
+        [HttpGet("shared-to-me")]
+        public async Task<IActionResult> GetDocumentsSharedToMe()
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized: missing accountId claim",
+                    Data = null
+                });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid account ID",
+                    Data = null
+                });
+            }
+
+            try
+            {
+                var docs = await _documentService.GetDocumentsSharedToUser(userId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = docs.Count > 0
+                        ? "Documents shared to you retrieved successfully."
+                        : "No documents shared to you.",
+                    Data = docs
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+        [HttpGet("shared-to-me/project/{projectId}")]
+        public async Task<IActionResult> GetDocumentsSharedToMeInProject(int projectId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized: missing accountId claim",
+                    Data = null
+                });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid account ID",
+                    Data = null
+                });
+            }
+
+            try
+            {
+                var docs = await _documentService.GetDocumentsSharedToUserInProject(userId, projectId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = docs.Count > 0
+                        ? "Documents shared to you in this project retrieved successfully."
+                        : "No documents shared to you in this project.",
+                    Data = docs
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+
+
+
+
 
 
 

@@ -9,6 +9,9 @@ namespace IntelliPM.Services.EmailServices
     public interface IEmailService
     {
         Task SendRegistrationEmail(string fullName, string userEmail, string verificationUrl);
+
+        Task SendAdminRegistrationEmail(string username, string userEmail, string password, string verificationUrl);
+
         Task SendRegistrationEmail(string fullName, string userEmail);
         Task SendAccountResetPassword(string fullName, string userEmail, string OTP);
         Task SendProjectCreationNotification(string pmFullName, string pmEmail, string creatorFullName, string creatorUsername, string projectName, string projectKey, int projectId, string projectDetailsUrl);

@@ -262,6 +262,44 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+
+        [HttpGet("{id}/profile")]
+        public async Task<IActionResult> GetProfileById(int id)
+        {
+            try
+            {
+                var profile = await _accountService.GetProfileById(id);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Profile retrieved successfully",
+                    Data = profile
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+
         [HttpGet("{accountId}/teams")]
         public async Task<IActionResult> GetProjectIdsByAccountId(int accountId)
         {

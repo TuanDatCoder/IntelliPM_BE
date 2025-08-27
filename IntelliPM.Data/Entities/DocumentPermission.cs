@@ -16,4 +16,6 @@ public partial class DocumentPermission
     public DateTime CreatedAt { get; set; }
 
     public virtual Account Account { get; set; } = null!;
+
+    public virtual Document Document { get; set; } = null!;
 }
