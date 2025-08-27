@@ -417,6 +417,77 @@ namespace IntelliPM.Services.TaskAssignmentServices
             };
         }
 
+        //public async Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates, int createdBy)
+        //{
+        //    var taskAssignmentsToUpdate = new List<TaskAssignment>();
+        //    var taskIdMap = new Dictionary<string, List<TaskAssignment>>();
+
+        //    foreach (var update in updates)
+        //    {
+        //        var assignment = await _repo.GetByIdAsync(update.Id);
+        //        if (assignment == null)
+        //            continue;
+
+        //        assignment.ActualHours = update.ActualHours;
+        //        taskAssignmentsToUpdate.Add(assignment);
+
+        //        if (!taskIdMap.ContainsKey(assignment.TaskId))
+        //            taskIdMap[assignment.TaskId] = new List<TaskAssignment>();
+
+        //        taskIdMap[assignment.TaskId].Add(assignment);
+        //    }
+
+        //    // Cập nhật các assignment
+        //    foreach (var assignment in taskAssignmentsToUpdate)
+        //    {
+        //        await _repo.Update(assignment);
+        //    }
+
+        //    // Cập nhật các Task liên quan
+        //    foreach (var kvp in taskIdMap)
+        //    {
+        //        var taskId = kvp.Key;
+
+        //        // Lấy toàn bộ assignment của task này
+        //        var allAssignments = await _repo.GetByTaskIdAsync(taskId);
+        //        var task = await _taskRepo.GetByIdAsync(taskId);
+        //        if (task == null) continue;
+
+        //        // Tổng actual hours
+        //        task.ActualHours = allAssignments.Sum(x => x.ActualHours ?? 0m);
+
+        //        // Tính actual cost
+        //        decimal totalCost = 0m;
+        //        foreach (var assign in allAssignments)
+        //        {
+        //            var hours = assign.ActualHours ?? 0;
+        //            var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assign.AccountId, task.ProjectId);
+        //            var rate = member?.HourlyRate ?? 0;
+
+        //            totalCost += hours * rate;
+        //        }
+
+        //        task.ActualResourceCost = totalCost;
+        //        //task.ActualCost = totalCost;
+        //        //await UpdateTaskProgressAsync(task);
+        //        await _taskRepo.Update(task);
+
+        //        await _activityLogService.LogAsync(new ActivityLog
+        //        {
+        //            ProjectId = task.ProjectId,
+        //            TaskId = task.Id,
+        //            SubtaskId = null,
+        //            RelatedEntityType = "Task",
+        //            RelatedEntityId = task.Id,
+        //            ActionType = "UPDATE",
+        //            Message = $"Updated actual hours for task '{task.Id}'",
+        //            CreatedBy = createdBy,
+        //            CreatedAt = DateTime.UtcNow
+        //        });
+        //    }
+        //    return true;
+        //}
+
         public async Task<bool> ChangeActualHoursAsync(List<TaskAssignmentHourRequestDTO> updates, int createdBy)
         {
             var taskAssignmentsToUpdate = new List<TaskAssignment>();
@@ -472,18 +543,26 @@ namespace IntelliPM.Services.TaskAssignmentServices
                 //await UpdateTaskProgressAsync(task);
                 await _taskRepo.Update(task);
 
-                await _activityLogService.LogAsync(new ActivityLog
+                // Ghi log chi tiết cho từng assignee
+                foreach (var updatedAssignment in kvp.Value)
                 {
-                    ProjectId = task.ProjectId,
-                    TaskId = task.Id,
-                    SubtaskId = null,
-                    RelatedEntityType = "Task",
-                    RelatedEntityId = task.Id,
-                    ActionType = "UPDATE",
-                    Message = $"Updated actual hours for task '{task.Id}'",
-                    CreatedBy = createdBy,
-                    CreatedAt = DateTime.UtcNow
-                });
+                    var member = await _projectMemberRepo.GetByAccountAndProjectAsync(updatedAssignment.AccountId, task.ProjectId);
+                    var assigneeName = member?.Account.FullName ?? member?.Account.Username ?? "Unknown Assignee"; 
+                    var logMessage = $"Updated actual hours to {updatedAssignment.ActualHours} for assignee '{assigneeName}' in task '{task.Id}'";
+
+                    await _activityLogService.LogAsync(new ActivityLog
+                    {
+                        ProjectId = task.ProjectId,
+                        TaskId = task.Id,
+                        SubtaskId = null,
+                        RelatedEntityType = "TaskAssignment",
+                        RelatedEntityId = task.Id,
+                        ActionType = "UPDATE",
+                        Message = logMessage,
+                        CreatedBy = createdBy,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
             }
             return true;
         }
