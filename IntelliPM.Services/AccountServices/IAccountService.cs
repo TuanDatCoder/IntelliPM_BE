@@ -16,5 +16,6 @@ namespace  IntelliPM.Services.AccountServices
         Task<AccountResponseDTO> GetAccountByEmail(string email);
         Task<AccountWithWorkItemDTO> GetAccountAndWorkItemById(int accountId);
         Task<ProfileResponseDTO> GetProfileByEmail(string email);
+        Task<AccountResponseDTO> GetProfileById(int id);
     }
 }

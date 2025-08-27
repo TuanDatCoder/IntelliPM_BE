@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ActivityLog.Request;
 using IntelliPM.Data.DTOs.ActivityLog.Response;
+using IntelliPM.Data.DTOs.Admin.Request;
 using IntelliPM.Data.DTOs.AiResponseEvaluation.Request;
 using IntelliPM.Data.DTOs.AiResponseEvaluation.Response;
 using IntelliPM.Data.DTOs.AiResponseHistory.Request;
@@ -102,8 +103,7 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Status, opt => opt.Ignore())
-                .ForMember(dest => dest.Password, opt => opt.Ignore())
-                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
+                .ForMember(dest => dest.Password, opt => opt.Ignore());
 
 
             CreateMap<Account, ProfileResponseDTO>()
@@ -121,6 +121,8 @@ namespace IntelliPM.Services.Helper.MapperProfiles
                 .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => src.DateOfBirth));
 
             CreateMap<Account, AccountInformationResponseDTO>();
+
+            CreateMap<AdminAccountRequestDTO, Account>();
 
             // DynamicCategory
             CreateMap<DynamicCategoryRequestDTO, DynamicCategory>();

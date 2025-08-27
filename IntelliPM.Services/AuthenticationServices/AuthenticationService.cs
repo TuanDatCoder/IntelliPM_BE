@@ -1,29 +1,33 @@
-﻿using IntelliPM.Data.Entities;
+﻿using AutoMapper;
+using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Account.Request;
+using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Admin.Request;
+using IntelliPM.Data.DTOs.Admin.Response;
+using IntelliPM.Data.DTOs.Auth.Request;
+using IntelliPM.Data.DTOs.Auth.Response;
+using IntelliPM.Data.DTOs.Password;
+using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
 using IntelliPM.Services.Security;
-using IntelliPM.Data.DTOs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using IntelliPM.Services.Helper.VerifyCode;
-using IntelliPM.Data.DTOs.Password;
-using IntelliPM.Repositories.AccountRepos;
-using AutoMapper;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
-using IntelliPM.Services.Helper.CustomExceptions;
-using IntelliPM.Data.DTOs.Account.Response;
-using IntelliPM.Data.DTOs.Account.Request;
-using IntelliPM.Data.DTOs.Auth.Request;
-using IntelliPM.Data.DTOs.Auth.Response;
 
 
 namespace IntelliPM.Services.AuthenticationServices
@@ -40,6 +44,9 @@ namespace IntelliPM.Services.AuthenticationServices
         private readonly IConfiguration _config;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _backendUrl;
+        ILogger<AuthenticationService> _logger;
+
+
         public AuthenticationService(
             IRefreshTokenRepository refreshTokenRepository,
             IDecodeTokenHandler decodeToken,
@@ -49,7 +56,8 @@ namespace IntelliPM.Services.AuthenticationServices
             IAccountRepository accountRepository,
             IMapper mapper,
              IConfiguration config,
-             IHttpContextAccessor httpContextAccessor
+             IHttpContextAccessor httpContextAccessor,
+             ILogger<AuthenticationService> logger
             )
         {
             this.verificationCodeCache = verificationCodeCache;
@@ -64,6 +72,7 @@ namespace IntelliPM.Services.AuthenticationServices
             _httpContextAccessor = httpContextAccessor;
             #pragma warning disable CS8601
             _backendUrl = config["Environment:BE_URL"];
+            _logger = logger;
 
         }
 
@@ -163,7 +172,7 @@ namespace IntelliPM.Services.AuthenticationServices
           
             if (currentAccount != null)
             {
-                if (currentAccount.Status.Equals("AccountStatusEnum")) throw new ApiException(HttpStatusCode.BadRequest, "This account has been deactivated");
+                //if (currentAccount.Status.Equals("AccountStatusEnum")) throw new ApiException(HttpStatusCode.BadRequest, "This account has been deactivated");
 
                 if (PasswordHasher.VerifyPassword(loginRequestDTO.Password, currentAccount.Password))
                 {
@@ -389,7 +398,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
             var account = _mapper.Map<Account>(accountRequestDTO);
             account.Password = PasswordHasher.HashPassword(accountRequestDTO.Password);
-            account.Role = "TEAM MEMBER"; // Đặt mặc định Role
+            account.Role = "CLIENT"; // Đặt mặc định Role
             account.Status = "UNVERIFIED";
             account.CreatedAt = DateTime.UtcNow;
             account.UpdatedAt = DateTime.UtcNow;
@@ -418,6 +427,134 @@ namespace IntelliPM.Services.AuthenticationServices
 
             await _emailService.SendRegistrationEmail(account.Username, account.Email, verificationLink);
         }
+
+
+
+        public async Task<string> AdminAccountRegister(AdminAccountRequestDTO accountRequestDTO)
+        {
+            try
+            {
+
+                // Generate username from email
+                var baseUsername = accountRequestDTO.Email.Split('@')[0];
+                var username = await GenerateUniqueUsername(baseUsername);
+
+                // Check for existing email
+                if (await checkEmailExisted(accountRequestDTO.Email))
+                {
+                    throw new ApiException(HttpStatusCode.BadRequest, "Email has already been used by another user");
+                }
+
+                // Generate random 12-character password
+                var randomPassword = GenerateRandomPassword();
+
+                // Map to Account entity
+                Account account;
+                try
+                {
+                    account = _mapper.Map<Account>(accountRequestDTO);
+                }
+                catch (AutoMapperMappingException ex)
+                {
+                    throw new ApiException(HttpStatusCode.BadRequest, "Invalid account data mapping");
+                }
+
+                account.Username = username;
+                account.Password = PasswordHasher.HashPassword(randomPassword);
+                account.Role = accountRequestDTO.Role;
+                account.Status = "UNVERIFIED";
+                account.CreatedAt = DateTime.UtcNow;
+                account.UpdatedAt = DateTime.UtcNow;
+                account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/orther.png?alt=media&token=f1f7912c-c886-4206-856a-43418e1954bc";
+
+                // Save account
+                try
+                {
+                    var accountId = await _accountRepository.AddAccount(account);
+                }
+                catch (Exception ex)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to save account to database");
+                }
+
+                var accountDone = await _accountRepository.GetAccountByUsername(account.Username);
+                if (accountDone == null)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to retrieve newly created account");
+                }
+
+                // Generate and cache verification token
+                string token;
+                try
+                {
+                    token = _jWTService.GenerateJWT(accountDone);
+                    verificationCodeCache.Put(account.Email, token, 4320); // 3 days
+                    _logger.LogInformation("Verification token cached for {Email}", account.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to generate or cache JWT for {Email}", account.Email);
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to generate verification token");
+                }
+
+                var verificationLink = $"{_backendUrl}/api/auth/verify?token={token}";
+
+                // Send email
+                try
+                {
+                    await _emailService.SendAdminRegistrationEmail(
+                        account.Username,
+                        account.Email,
+                        randomPassword,
+                        verificationLink
+                    );
+                }
+                catch (Exception ex)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to send registration email");
+                }
+
+                return account.Email;
+            }
+            catch (ApiException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException(HttpStatusCode.InternalServerError, "Failed to register account");
+            }
+        }
+
+        private async Task<string> GenerateUniqueUsername(string baseUsername)
+        {
+            var username = baseUsername;
+            var counter = 1;
+
+            while (await checkUsernameExisted(username))
+            {
+                username = $"{baseUsername}{counter}";
+                counter++;
+            }
+
+            return username;
+        }
+
+        private string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+            var bytes = new byte[12];
+            RandomNumberGenerator.Fill(bytes);
+            var password = new char[12];
+            for (int i = 0; i < 12; i++)
+            {
+                password[i] = chars[bytes[i] % chars.Length];
+            }
+            return new string(password);
+        }
+
+
+
 
         public async Task<bool> checkUsernameExisted(string username)
         {
