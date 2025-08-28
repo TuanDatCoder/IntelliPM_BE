@@ -461,6 +461,126 @@ namespace IntelliPM.Services.ProjectServices
             return _mapper.Map<ProjectResponseDTO>(entity);
         }
 
+        public async Task<WorkItemResponseDTO?> SearchWorkItemByKey(string key)
+        {
+            using var scope = _serviceProvider.CreateScope();
+
+            var epicService = scope.ServiceProvider.GetRequiredService<IEpicService>();
+            var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
+            var subtaskService = scope.ServiceProvider.GetRequiredService<ISubtaskService>();
+
+            // 1. Tìm trong Epic
+            try
+            {
+                var epic = await epicService.GetEpicById(key);
+                if (epic != null)
+                {
+                    return new WorkItemResponseDTO
+                    {
+                        ProjectId = epic.ProjectId,
+                        Type = "EPIC",
+                        Key = epic.Id,
+                        Summary = epic.Name,
+                        Status = epic.Status,
+                        SprintId = epic.SprintId,
+                        SprintName = epic.SprintName,
+                        Assignees = new List<AssigneeDTO>
+                {
+                    new AssigneeDTO
+                    {
+                        AccountId = epic.AssignedBy ?? 0,
+                        Fullname = epic.AssignedByFullname ?? "Unknown",
+                        Picture = epic.AssignedByPicture
+                    }
+                },
+                        DueDate = epic.EndDate,
+                        CreatedAt = epic.CreatedAt,
+                        UpdatedAt = epic.UpdatedAt,
+                        ReporterId = epic.ReporterId,
+                        ReporterFullname = epic.ReporterFullname ?? "Unknown",
+                        ReporterPicture = epic.ReporterPicture
+                    };
+                }
+            }
+            catch { /* ignore not found */ }
+
+            // 2. Tìm trong Task
+            try
+            {
+                var task = await taskService.GetTaskByIdDetailed(key);
+                if (task != null)
+                {
+                    return new WorkItemResponseDTO
+                    {
+                        ProjectId = task.ProjectId,
+                        Type = task.Type,
+                        Key = task.Id,
+                        Summary = task.Title,
+                        Status = task.Status,
+                        CommentCount = task.CommentCount,
+                        SprintId = task.SprintId,
+                        SprintName = task.SprintName,
+                        Priority = task.Priority,
+                        Assignees = task.TaskAssignments.Select(a => new AssigneeDTO
+                        {
+                            AccountId = a.AccountId,
+                            Fullname = a.AccountFullname ?? "Unknown",
+                            Picture = a.AccountPicture
+                        }).ToList(),
+                        DueDate = task.PlannedEndDate,
+                        Labels = task.Labels.Select(l => l.Name).ToList(),
+                        CreatedAt = task.CreatedAt,
+                        UpdatedAt = task.UpdatedAt,
+                        ReporterId = task.ReporterId,
+                        ReporterFullname = task.ReporterFullname ?? "Unknown",
+                        ReporterPicture = task.ReporterPicture
+                    };
+                }
+            }
+            catch { /* ignore not found */ }
+
+            // 3. Tìm trong Subtask
+            try
+            {
+                var subtask = await subtaskService.GetSubtaskByIdDetailed(key);
+                if (subtask != null)
+                {
+                    return new WorkItemResponseDTO
+                    {
+                        ProjectId = (await _taskRepo.GetByIdAsync(subtask.TaskId))?.ProjectId ?? 0,
+                        Type = subtask.Type,
+                        Key = subtask.Id,
+                        TaskId = subtask.TaskId,
+                        Summary = subtask.Title,
+                        Status = subtask.Status,
+                        CommentCount = subtask.CommentCount,
+                        SprintId = subtask.SprintId,
+                        SprintName = subtask.SprintName,
+                        Priority = subtask.Priority,
+                        Assignees = new List<AssigneeDTO>
+                {
+                    new AssigneeDTO
+                    {
+                        AccountId = subtask.AssignedBy ?? 0,
+                        Fullname = subtask.AssignedByFullname ?? "Unknown",
+                        Picture = subtask.AssignedByPicture
+                    }
+                },
+                        DueDate = subtask.EndDate,
+                        Labels = subtask.Labels.Select(l => l.Name).ToList(),
+                        CreatedAt = subtask.CreatedAt,
+                        UpdatedAt = subtask.UpdatedAt,
+                        ReporterId = subtask.ReporterId,
+                        ReporterFullname = subtask.ReporterFullname ?? "Unknown",
+                        ReporterPicture = subtask.ReporterPicture
+                    };
+                }
+            }
+            catch { /* ignore not found */ }
+
+            return null;
+        }
+
 
 
         public async Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId)
@@ -577,6 +697,30 @@ namespace IntelliPM.Services.ProjectServices
             return workItems.OrderBy(w => w.CreatedAt).ToList();
         }
 
+        public async Task<List<WorkItemResponseDTO>> GetAllWorkItems()
+        {
+            var projects = await GetAllProjects();
+            if (projects == null || !projects.Any())
+            {
+                return new List<WorkItemResponseDTO>();
+            }
+
+            var allWorkItems = new List<WorkItemResponseDTO>();
+
+            // chạy tuần tự
+            foreach (var project in projects)
+            {
+                var items = await GetAllWorkItemsByProjectId(project.Id);
+                allWorkItems.AddRange(items);
+            }
+
+            // hoặc chạy song song (tạo list task)
+            // var tasks = projects.Select(p => GetAllWorkItemsByProjectId(p.Id));
+            // var results = await Task.WhenAll(tasks);
+            // allWorkItems.AddRange(results.SelectMany(r => r));
+
+            return allWorkItems.OrderBy(w => w.CreatedAt).ToList();
+        }
 
 
         public async Task<ProjectResponseDTO> GetProjectByKey(string projectKey)
