@@ -18,7 +18,7 @@ namespace IntelliPM.Services.ShareServices
 
         public ShareTokenService(IConfiguration configuration)
         {
-            var secretKey = configuration["JwtSettings:JwtKey"]; // Lấy đúng key trong appsettings
+            var secretKey = configuration["JwtSettings:JwtKey"];
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             _issuer = configuration["JwtSettings:Issuer"];
         }
@@ -29,14 +29,14 @@ namespace IntelliPM.Services.ShareServices
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Issuer = _issuer,
-                Audience = _issuer, // Hoặc một audience cụ thể cho việc chia sẻ
+                Audience = _issuer,
                 Subject = new ClaimsIdentity(new[]
                 {
                 new Claim("docId", documentId.ToString()),
                 new Claim("accId", accountId.ToString()),
                 new Claim("perm", permissionType)
             }),
-                // Token chỉ có hiệu lực trong 7 ngày
+            
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256Signature)
             };
@@ -70,7 +70,7 @@ namespace IntelliPM.Services.ShareServices
             }
             catch
             {
-                // Log lỗi nếu cần
+                
                 return null;
             }
         }

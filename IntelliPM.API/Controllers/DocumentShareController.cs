@@ -1,5 +1,4 @@
 ﻿using IntelliPM.Services.ShareServices;
- // <-- Bạn cần tạo service này theo hướng dẫn trước
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -7,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace IntelliPM.API.Controllers
 {
-    [Authorize] // Bắt buộc người dùng phải đăng nhập để truy cập các endpoint trong này
+    [Authorize] 
     [ApiController]
-    [Route("api/share")] // Route riêng cho việc xác thực chia sẻ
+    [Route("api/share")] 
     public class DocumentShareController : ControllerBase
     {
         private readonly IShareTokenService _shareTokenService;
@@ -19,10 +18,7 @@ namespace IntelliPM.API.Controllers
             _shareTokenService = shareTokenService;
         }
 
-        /// <summary>
-        /// Lấy ID của người dùng đang đăng nhập từ token.
-        /// Đảm bảo claim "accountId" tồn tại trong JWT của bạn.
-        /// </summary>
+     
         private int GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("accountId")?.Value;
@@ -50,14 +46,12 @@ namespace IntelliPM.API.Controllers
 
             var (documentId, accountIdInToken, permissionType) = tokenData.Value;
 
-            // KIỂM TRA BẢO MẬT QUAN TRỌNG NHẤT:
-            // Người dùng đang đăng nhập (từ token xác thực chính) có phải là người được mời không (từ token chia sẻ)?
+          
             try
             {
                 var currentUserId = GetCurrentUserId();
                 if (currentUserId != accountIdInToken)
                 {
-                    // Trả về lỗi 403 Forbidden nếu người dùng không đúng
                     return Forbid();
                 }
             }
@@ -67,7 +61,6 @@ namespace IntelliPM.API.Controllers
             }
 
 
-            // Nếu mọi thứ hợp lệ, trả về URL để frontend chuyển hướng
             return Ok(new
             {
                 redirectUrl = $"/project/projects/form/document/{documentId}"
@@ -75,9 +68,7 @@ namespace IntelliPM.API.Controllers
         }
     }
 
-    /// <summary>
-    /// DTO cho request body của API verify-token
-    /// </summary>
+  
     public class VerifyTokenRequest
     {
         public string Token { get; set; }
