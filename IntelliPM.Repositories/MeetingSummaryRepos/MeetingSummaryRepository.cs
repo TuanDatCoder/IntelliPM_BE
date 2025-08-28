@@ -44,5 +44,10 @@ namespace IntelliPM.Repositories.MeetingSummaryRepos
                 .Where(ms => transcriptIds.Contains(ms.MeetingTranscriptId))
                 .ToListAsync();
         }
+        public async Task UpdateAsync(MeetingSummary entity)
+        {
+            _context.MeetingSummary.Update(entity);
+            await _context.SaveChangesAsync();
+        }
     }
 }
