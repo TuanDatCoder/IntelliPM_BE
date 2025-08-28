@@ -25,6 +25,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -38,6 +39,7 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
@@ -58,6 +60,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] SubtaskRequest2DTO request)
         {
@@ -87,6 +90,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost("create2")]
         public async Task<IActionResult> Create2([FromBody] SubtaskRequest2DTO request)
         {
@@ -116,6 +120,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] SubtaskRequestDTO request)
         {
@@ -145,6 +150,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("{id}/detailed")]
         public async Task<IActionResult> GetByIdDetailed(string id)
         {
@@ -165,6 +171,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-task/{taskId}/detailed")]
         public async Task<IActionResult> GetSubtaskByTaskIdDetailed(string taskId)
         {
@@ -185,6 +192,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(string id, [FromBody] SubtaskRequest3DTO dto)
         {
@@ -218,6 +226,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
@@ -246,6 +255,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-task/{taskId}")]
         public async Task<IActionResult> GetSubtaskByTaskId(string taskId)
         {
@@ -271,6 +281,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost("save-from-preview")]
         public async Task<IActionResult> SaveGeneratedSubtasks([FromBody] List<SubtaskRequest2DTO> selected)
         {
