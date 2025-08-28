@@ -105,6 +105,7 @@ using IntelliPM.Services.RiskCommentServices;
 using IntelliPM.Services.RiskFileServices;
 using IntelliPM.Services.RiskServices;
 using IntelliPM.Services.RiskSolutionServices;
+using IntelliPM.Services.ShareServices;
 using IntelliPM.Services.SprintServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.SubtaskFileServices;
@@ -262,6 +263,8 @@ builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistorySer
 builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
 builder.Services.AddScoped<IGenerateEpicService, GenerateEpicService>();
 builder.Services.AddScoped<IGenerateStoryTaskService, GenerateStoryTaskService>();
+builder.Services.AddSingleton<IShareTokenService, ShareTokenService>();
+
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
