@@ -108,24 +108,148 @@ namespace IntelliPM.Services.AuthenticationServices
             }
         }
 
+        //public async Task ForgotPassword(string email)
+        //{
+        //    var currentAccount = await _accountRepository.GetAccountByEmail(email);
+
+        //    if (currentAccount != null)
+        //    {
+
+        //        var otp = GenerateOTP();
+
+        //        verificationCodeCache.Put(currentAccount.Email, otp, 5);
+
+        //        await _emailService.SendAccountResetPassword(currentAccount.Email, currentAccount.Email, otp);
+
+        //    }
+        //    else
+        //    {
+        //        throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
+        //    }
+        //}
+
+
+        //public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
+        //{
+        //    var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
+
+
+
+        //    if (currCustomer != null)
+        //    {
+
+        //        var otp = verificationCodeCache.Get(currCustomer.Email);
+
+        //        if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP))
+        //        {
+        //            throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
+        //        }
+
+        //        currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
+
+        //        await _accountRepository.Update(currCustomer);
+
+        //    }
+
+        //    else
+        //    {
+        //        throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
+        //    }
+        //}
+
+
         public async Task ForgotPassword(string email)
         {
             var currentAccount = await _accountRepository.GetAccountByEmail(email);
-
             if (currentAccount != null)
             {
-
                 var otp = GenerateOTP();
+                _logger.LogInformation("Generated OTP for Email={Email}, Username={Username}: {Otp}",
+                    currentAccount.Email, currentAccount.Username, otp);
 
-                verificationCodeCache.Put(currentAccount.Username, otp, 5);
+                // Lưu OTP với TTL 10 phút để test
+                verificationCodeCache.Put(currentAccount.Email, otp, 10);
+                var cachedOtp = verificationCodeCache.Get(currentAccount.Email);
+                _logger.LogInformation("Cached OTP for Email={Email}: {CachedOtp}",
+                    currentAccount.Email, cachedOtp ?? "null");
+
+                if (cachedOtp == null)
+                {
+                    _logger.LogError("Failed to retrieve OTP immediately after caching for Email={Email}",
+                        currentAccount.Email);
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Cache error");
+                }
 
                 await _emailService.SendAccountResetPassword(currentAccount.Username, currentAccount.Email, otp);
-
             }
             else
             {
+                _logger.LogWarning("Account not found for email: {Email}", email);
                 throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
             }
+        }
+
+        public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
+        {
+            // Log toàn bộ request
+            _logger.LogInformation("Received ResetPassword request: {Request}",
+                JsonSerializer.Serialize(resetPasswordRequestDTO));
+
+            var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
+            if (currCustomer != null)
+            {
+                _logger.LogInformation("Account found: Username={Username}, Email={Email}",
+                    currCustomer.Username, currCustomer.Email);
+
+                // Lấy OTP từ cache
+                var otp = verificationCodeCache.Get(currCustomer.Email);
+                _logger.LogInformation("Cached OTP for Email={Email}: {CachedOtp}",
+                    currCustomer.Email, otp ?? "null");
+                _logger.LogInformation("Received OTP from request: {ReceivedOtp}",
+                    resetPasswordRequestDTO.OTP ?? "null");
+
+                if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("OTP validation failed for Email={Email}. Cached: {CachedOtp}, Received: {ReceivedOtp}",
+                        currCustomer.Email, otp ?? "null", resetPasswordRequestDTO.OTP ?? "null");
+                    throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
+                }
+
+                // Kiểm tra confirm password
+                if (!resetPasswordRequestDTO.NewPassword.Equals(resetPasswordRequestDTO.ConfirmNewPassword,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Password confirmation failed for Email={Email}", currCustomer.Email);
+                    throw new ApiException(HttpStatusCode.BadRequest, "New password and confirm password do not match");
+                }
+
+                // Kiểm tra định dạng mật khẩu
+                if (string.IsNullOrWhiteSpace(resetPasswordRequestDTO.NewPassword) ||
+                    resetPasswordRequestDTO.NewPassword.Length < 8)
+                {
+                    _logger.LogWarning("Invalid password format for Email={Email}", currCustomer.Email);
+                    throw new ApiException(HttpStatusCode.BadRequest, "New password must be at least 8 characters");
+                }
+
+                currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
+                await _accountRepository.Update(currCustomer);
+
+                _logger.LogInformation("Password reset successfully for Email={Email}", currCustomer.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Account not found for email: {Email}", resetPasswordRequestDTO.Email);
+                throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
+            }
+        }
+
+
+
+        public string GenerateOTP()
+        {
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            return otp;
         }
 
         public async Task<AccountInformationResponseDTO> GetUserInfor(string token)
@@ -231,40 +355,7 @@ namespace IntelliPM.Services.AuthenticationServices
             throw new NotImplementedException();
         }
 
-        public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
-        {
-            var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
-
-          
-
-            if (currCustomer != null)
-            {
-
-                var otp = verificationCodeCache.Get(currCustomer.Username);
-
-                if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP))
-                {
-                    throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
-                }
-
-                currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
-
-                await _accountRepository.Update(currCustomer);
-
-            }
-           
-            else
-            {
-                throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
-            }
-        }
-
-        public string GenerateOTP()
-        {
-            var otp = new Random().Next(100000, 999999).ToString();
-
-            return otp;
-        }
+      
 
         public async Task<LoginResponseDTO> LoginGoogle(LoginGoogleRequestDTO loginGoogleRequestDTO)
         {
