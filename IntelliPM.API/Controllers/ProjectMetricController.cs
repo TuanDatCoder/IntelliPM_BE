@@ -287,58 +287,5 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpPost("calculate-metrics-by-ai")]
-        public async Task<IActionResult> CalculateAndSaveMetrics([FromQuery] string projectKey)
-        {
-            try
-            {
-                var result = await _service.CalculateProjectMetricsByAIAsync(projectKey);
-                return Ok(new
-                {
-                    isSuccess = true,
-                    code = 200,
-                    message = "Project metrics calculated and saved successfully",
-                    data = result
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = $"Internal Server Error: {ex.Message}" });
-            }
-        }
-
-        [HttpGet("metric-calculate")]
-        public async Task<IActionResult> GetProjectMetricView([FromQuery] string projectKey)
-        {
-            try
-            {
-                var result = await _service.CalculateProjectMetricsViewAsync(projectKey);
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Project metric generated",
-                    Data = result
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponseDTO
-                {
-                    IsSuccess = false,
-                    Code = 500,
-                    Message = $"Error generating project metric: {ex.Message}"
-                });
-            }
-
-        }
     }
 }

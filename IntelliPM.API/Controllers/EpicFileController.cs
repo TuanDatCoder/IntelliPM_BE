@@ -4,6 +4,7 @@ using IntelliPM.Services.TaskFileServices;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Services.EpicFileServices;
 using IntelliPM.Data.DTOs.EpicFile.Request;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
@@ -18,6 +19,8 @@ namespace IntelliPM.API.Controllers
         {
             _service = service;
         }
+
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost("upload")]
         public async Task<IActionResult> Upload([FromForm] EpicFileRequestDTO request)
         {
@@ -25,6 +28,7 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-epic/{epicId}")]
         public async Task<IActionResult> GetFilesByEpicId(string epicId)
         {
@@ -50,6 +54,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id, DeleteEpicFileRequestDTO dto)
         {

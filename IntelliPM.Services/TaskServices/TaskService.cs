@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.Execution;
 using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Request;
@@ -9,6 +10,7 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
+using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.ActivityLogRepos;
@@ -24,6 +26,7 @@ using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.TaskCommentServices;
 using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
@@ -64,8 +67,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IGeminiService _geminiService;
         private readonly IServiceProvider _serviceProvider;
         private readonly object _idGenerationLock = new object();
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -85,6 +89,7 @@ namespace IntelliPM.Services.TaskServices
             _milestoneRepo = milestoneRepo;
             _geminiService = geminiService;
             _serviceProvider = serviceProvider;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
         public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
         {
@@ -92,7 +97,8 @@ namespace IntelliPM.Services.TaskServices
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
-            // Gọi AI service và nhận về danh sách task đề xuất có title + description
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
+
             var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
 
             if (suggestions == null || !suggestions.Any())
@@ -126,7 +132,7 @@ namespace IntelliPM.Services.TaskServices
 
             if (suggestions == null || !suggestions.Any())
                 return new List<TaskResponseDTO>();
-
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
             var now = DateTime.UtcNow;
 
             var tasks = suggestions.Select(s => new Tasks
@@ -135,7 +141,7 @@ namespace IntelliPM.Services.TaskServices
                 Title = s.Title?.Trim() ?? "Untitled Task",
                 Description = s.Description?.Trim() ?? string.Empty,
                 Type = s.Type?.Trim() ?? string.Empty,
-                Status = "TO-DO",
+                Status = dynamicStatus,
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = now,
@@ -272,23 +278,29 @@ namespace IntelliPM.Services.TaskServices
             if (string.IsNullOrEmpty(projectKey))
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
+            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Priority = "MEDIUM";
-            entity.Status = "TO_DO";
+            entity.Priority = dynamicPriority;
+            entity.Status = dynamicStatus;
 
             try
             {
                 await _taskRepo.Add(entity);
+                await RecalculateTaskPlannedHours(entity.Id);
 
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Created task '{entity.Id}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -320,7 +332,65 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        private async Task RecalculateTaskPlannedHours(string taskId)
+        {
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null) return;
 
+            var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+            var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+
+            var projectMembers = new List<ProjectMember>();
+
+            foreach (var accountId in assignedAccountIds)
+            {
+                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, task.ProjectId);
+                if (member != null && member.WorkingHoursPerDay.HasValue)
+                {
+                    decimal hourlyRate = member.HourlyRate ?? 0m;
+                    projectMembers.Add(new ProjectMember
+                    {
+                        Id = member.Id,
+                        AccountId = member.AccountId,
+                        ProjectId = member.ProjectId,
+                        WorkingHoursPerDay = member.WorkingHoursPerDay,
+                        HourlyRate = hourlyRate,
+                    });
+                }
+            }
+
+            decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+            decimal? totalCost = 0m;
+
+            if (totalWorkingHoursPerDay > 0)
+            {
+                foreach (var member in projectMembers)
+                {
+                    var memberAssignedHours = task.PlannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay);
+                    var memberCost = memberAssignedHours * member.HourlyRate.Value;
+                    totalCost += memberCost;
+
+                    var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(taskId, member.AccountId);
+                    if (taskAssignment != null)
+                    {
+                        taskAssignment.PlannedHours = memberAssignedHours;
+                        await _taskAssignmentRepo.Update(taskAssignment);
+                    }
+                }
+
+                task.PlannedResourceCost = totalCost;
+                //task.PlannedCost = totalCost;
+            }
+            else
+            {
+                // Warning: No assignments or working hours, costs remain 0
+                task.PlannedResourceCost = 0m;
+                //task.PlannedCost = 0m;
+            }
+
+            await _taskRepo.Update(task);
+            //await UpdateTaskProgressAsync(task);
+        }
 
         public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
         {
@@ -340,7 +410,6 @@ namespace IntelliPM.Services.TaskServices
 
             return results;
         }
-
 
         public async Task<TaskResponseDTO> UpdateTask(string id, TaskRequestDTO request)
         {
@@ -403,7 +472,6 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskUpdateResponseDTO>(entity);
         }
 
-
         public async Task DeleteTask(string id)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
@@ -428,6 +496,13 @@ namespace IntelliPM.Services.TaskServices
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            var validStatuses = await _dynamicCategoryHelper.GetTaskStatusesAsync();
+            if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
 
             var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
             var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
@@ -515,7 +590,7 @@ namespace IntelliPM.Services.TaskServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            await UpdateTaskProgressAsync(entity);
+            //await UpdateTaskProgressAsync(entity);
 
             try
             {
@@ -525,9 +600,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed status of task '{entity.Id}' to '{status}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -575,53 +650,26 @@ namespace IntelliPM.Services.TaskServices
 
         //private async Task UpdateTaskProgressAsync(Tasks task)
         //{
-        //    if (task.Status == "DONE")
+        //    if (task.Subtask?.Any() ?? false)
         //    {
-        //        task.PercentComplete = 100;
+        //        var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
+        //        task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
         //    }
-        //    else if (task.Status == "TO_DO")
+        //    else
         //    {
-        //        task.PercentComplete = 0;
-        //    }
-        //    else if (task.Status == "IN_PROGRESS")
-        //    {
-        //        if (task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
+        //        if (task.Status == "DONE") task.PercentComplete = 100;
+        //        else if (task.Status == "TO_DO") task.PercentComplete = 0;
+        //        else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
         //        {
         //            var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
         //            task.PercentComplete = Math.Min((int)rawProgress, 99);
         //        }
-        //        else
-        //        {
-        //            task.PercentComplete = 0;
-        //        }
+        //        else task.PercentComplete = 0;
         //    }
 
         //    task.UpdatedAt = DateTime.UtcNow;
         //    await _taskRepo.Update(task);
         //}
-
-        private async Task UpdateTaskProgressAsync(Tasks task)
-        {
-            if (task.Subtask?.Any() ?? false)
-            {
-                var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(task.Id);
-                task.PercentComplete = (int)Math.Round(subtasks.Average(st => st.PercentComplete ?? 0));
-            }
-            else
-            {
-                if (task.Status == "DONE") task.PercentComplete = 100;
-                else if (task.Status == "TO_DO") task.PercentComplete = 0;
-                else if (task.Status == "IN_PROGRESS" && task.PlannedHours.HasValue && task.PlannedHours.Value > 0)
-                {
-                    var rawProgress = ((task.ActualHours ?? 0) / task.PlannedHours.Value) * 100;
-                    task.PercentComplete = Math.Min((int)rawProgress, 99);
-                }
-                else task.PercentComplete = 0;
-            }
-
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.Update(task);
-        }
 
         public async Task<List<TaskResponseDTO>> GetTasksByProjectIdAsync(int projectId)
         {
@@ -657,6 +705,13 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
+            var validTypes = await _dynamicCategoryHelper.GetTaskTypesAsync();
+            if (!validTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid type: '{type}'. Must be one of: {string.Join(", ", validTypes)}");
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             entity.Type = type;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -668,9 +723,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed type of task '{entity.Id}' to '{type}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -693,6 +748,13 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
+            var validPriorities = await _dynamicCategoryHelper.GetTaskPrioritiesAsync();
+            if (!validPriorities.Contains(priority, StringComparer.OrdinalIgnoreCase))
+                throw new ArgumentException($"Invalid priority: '{priority}'. Must be one of: {string.Join(", ", validPriorities)}");
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             entity.Priority = priority;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -704,9 +766,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed priority of task '{entity.Id}' to '{priority}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -720,12 +782,14 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-
         public async Task<TaskResponseDTO> ChangeTaskReporter(string id, int reporter, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
 
             entity.ReporterId = reporter;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -738,9 +802,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed reporter of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -753,8 +817,6 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
-
-
         public async Task<TaskDetailedResponseDTO> GetTaskByIdDetailed(string id)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
@@ -781,7 +843,6 @@ namespace IntelliPM.Services.TaskServices
 
             return dtos;
         }
-
         private async Task EnrichTaskDetailedResponse(TaskDetailedResponseDTO dto)
         {
             var reporter = await _accountRepo.GetAccountById(dto.ReporterId);
@@ -831,6 +892,9 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Title with task ID {id} not found.");
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             entity.Title = title;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -842,9 +906,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed title of task '{entity.Id}' to '{title}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -861,6 +925,9 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
         {
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
@@ -888,9 +955,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed sprint of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -906,6 +973,9 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
@@ -926,9 +996,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed planned start date of task '{entity.Id}' to '{plannedStartDate}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -944,6 +1014,9 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy)
         {
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Planned EndDate with task ID {id} not found.");
@@ -960,9 +1033,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed Planned End Date of task '{entity.Id}' to '{plannedEndDate}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -982,6 +1055,9 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             entity.Description = description;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -993,9 +1069,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Changed description of task '{entity.Id}' to '{description}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1027,9 +1103,17 @@ namespace IntelliPM.Services.TaskServices
             foreach (var accountId in assignedAccountIds)
             {
                 var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
-                if (member != null && member.WorkingHoursPerDay.HasValue && member.HourlyRate.HasValue)
+                if (member != null && member.WorkingHoursPerDay.HasValue)
                 {
-                    projectMembers.Add(member);
+                    decimal hourlyRate = member.HourlyRate ?? 0m;
+                    projectMembers.Add(new ProjectMember
+                    {
+                        Id = member.Id,
+                        AccountId = member.AccountId,
+                        ProjectId = member.ProjectId,
+                        WorkingHoursPerDay = member.WorkingHoursPerDay,
+                        HourlyRate = hourlyRate,
+                    });
                 }
             }
 
@@ -1060,19 +1144,19 @@ namespace IntelliPM.Services.TaskServices
                 }
 
                 entity.PlannedResourceCost = totalCost;
-                entity.PlannedCost = totalCost;
+                //entity.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 entity.PlannedResourceCost = 0m;
-                entity.PlannedCost = 0m;
+                //entity.PlannedCost = 0m;
             }
 
             try
             {
                 await _taskRepo.Update(entity);
-                await UpdateTaskProgressAsync(entity);
+                //await UpdateTaskProgressAsync(entity);
 
                 await _activityLogService.LogAsync(new ActivityLog
                 {
@@ -1095,11 +1179,122 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
+        //public async Task<TaskResponseDTO> ChangeTaskPlannedHours(string id, decimal plannedHours, int createdBy)
+        //{
+        //    var entity = await _taskRepo.GetByIdAsync(id);
+        //    if (entity == null)
+        //        throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+        //    var actualHours = entity.ActualHours ?? 0;
+        //    entity.RemainingHours = plannedHours - actualHours;
+        //    entity.PlannedHours = plannedHours;
+        //    entity.UpdatedAt = DateTime.UtcNow;
+
+        //    var taskAssignments = await _taskAssignmentRepo.GetByTaskIdAsync(id);
+        //    if (!taskAssignments.Any())
+        //    {
+        //        Console.WriteLine("No task assignments found for task.");
+        //        entity.PlannedResourceCost = 0m;
+        //        entity.PlannedCost = 0m;
+        //        await _taskRepo.Update(entity);
+        //        await UpdateTaskProgressAsync(entity);
+        //        return _mapper.Map<TaskResponseDTO>(entity);
+        //    }
+
+        //    var assignedAccountIds = taskAssignments.Select(a => a.AccountId).Distinct().ToList();
+        //    var projectMembers = new List<ProjectMember>();
+        //    Console.WriteLine($"TaskAssignments count: {taskAssignments.Count}");
+
+        //    foreach (var accountId in assignedAccountIds)
+        //    {
+        //        var member = await _projectMemberRepo.GetByAccountAndProjectAsync(accountId, entity.ProjectId);
+        //        if (member != null && member.WorkingHoursPerDay.HasValue)
+        //        {
+        //            decimal hourlyRate = member.HourlyRate ?? 0m;
+        //            projectMembers.Add(new ProjectMember
+        //            {
+        //                Id = member.Id,
+        //                AccountId = member.AccountId,
+        //                ProjectId = member.ProjectId,
+        //                WorkingHoursPerDay = member.WorkingHoursPerDay,
+        //                HourlyRate = hourlyRate,
+        //            });
+        //        }
+        //    }
+
+        //    decimal totalWorkingHoursPerDay = projectMembers.Sum(m => m.WorkingHoursPerDay.Value);
+        //    Console.WriteLine($"TotalWorkingHoursPerDay: {totalWorkingHoursPerDay}");
+        //    decimal totalCost = 0m;
+
+        //    if (totalWorkingHoursPerDay > 0)
+        //    {
+        //        foreach (var member in projectMembers)
+        //        {
+        //            var memberAssignedHours = Math.Round(plannedHours * (member.WorkingHoursPerDay.Value / totalWorkingHoursPerDay), 2);
+        //            var memberCost = memberAssignedHours * member.HourlyRate.Value;
+        //            totalCost += memberCost;
+        //            Console.WriteLine($"Calculated memberAssignedHours for AccountId {member.AccountId}: {memberAssignedHours}");
+
+        //            var taskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
+        //            Console.WriteLine($"TaskAssignment for AccountId {member.AccountId}: {(taskAssignment != null ? "Found" : "Not Found")}");
+        //            if (taskAssignment != null)
+        //            {
+        //                taskAssignment.PlannedHours = memberAssignedHours;
+        //                await _taskAssignmentRepo.Update(taskAssignment);
+        //                Console.WriteLine($"Updated TaskAssignment for AccountId {member.AccountId} with PlannedHours: {taskAssignment.PlannedHours}");
+
+        //                // Kiểm tra lại giá trị sau khi cập nhật
+        //                var updatedTaskAssignment = await _taskAssignmentRepo.GetByTaskAndAccountAsync(id, member.AccountId);
+        //                Console.WriteLine($"Verified PlannedHours for AccountId {member.AccountId}: {updatedTaskAssignment.PlannedHours}");
+        //            }
+        //        }
+
+        //        entity.PlannedResourceCost = totalCost;
+        //        entity.PlannedCost = totalCost;
+        //    }
+        //    else
+        //    {
+        //        Console.WriteLine("TotalWorkingHoursPerDay is 0, setting costs to 0.");
+        //        entity.PlannedResourceCost = 0m;
+        //        entity.PlannedCost = 0m;
+        //    }
+
+        //    try
+        //    {
+        //        await _taskRepo.Update(entity);
+        //        await UpdateTaskProgressAsync(entity);
+
+        //        await _activityLogService.LogAsync(new ActivityLog
+        //        {
+        //            ProjectId = entity.ProjectId,
+        //            TaskId = id,
+        //            SubtaskId = null,
+        //            RelatedEntityType = "Task",
+        //            RelatedEntityId = id,
+        //            ActionType = "UPDATE",
+        //            Message = $"Updated plan hours for task '{id}' to {plannedHours}",
+        //            CreatedBy = createdBy,
+        //            CreatedAt = DateTime.UtcNow
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception($"Failed to change task PlannedHours: {ex.Message}", ex);
+        //    }
+
+        //    return _mapper.Map<TaskResponseDTO>(entity);
+        //}
+
         public async Task<TaskResponseDTO> ChangeTaskEpic(string id, string epicId, int createdBy)
         {
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
+            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
 
             var sprint = await _epicRepo.GetByIdAsync(epicId);
             if (sprint == null)
@@ -1254,6 +1449,99 @@ namespace IntelliPM.Services.TaskServices
             task.PlannedHours = businessDays * totalWorkingHoursPerDay;
             task.UpdatedAt = DateTime.UtcNow;
             await _taskRepo.Update(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPercentComlete(string id, decimal? percentComplete, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (percentComplete.HasValue && (percentComplete < 0 || percentComplete > 100))
+                throw new ArgumentException("Percent complete must be between 0 and 100.");
+
+            var oldPercentComplete = task.PercentComplete;
+            task.PercentComplete = percentComplete;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PercentComplete",
+                OldValue = oldPercentComplete?.ToString() ?? "null",
+                NewValue = percentComplete?.ToString() ?? "null",
+                Message = $"Updated percent complete for task '{task.Id}' to {percentComplete ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskPlannedCost(string id, decimal? plannedCost, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (plannedCost.HasValue && plannedCost < 0)
+                throw new ArgumentException("Planned cost cannot be negative.");
+
+            var oldPlannedCost = task.PlannedCost;
+            task.PlannedCost = plannedCost;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "PlannedCost",
+                OldValue = oldPlannedCost?.ToString() ?? "null",
+                NewValue = plannedCost?.ToString() ?? "null",
+                Message = $"Updated planned cost for task '{task.Id}' to {plannedCost ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
+        }
+
+        public async Task<TaskResponseDTO> ChangeTaskActualCost(string id, decimal? actualCost, int createdBy)
+        {
+            var task = await _taskRepo.GetByIdAsync(id);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            if (actualCost.HasValue && actualCost < 0)
+                throw new ArgumentException("Actual cost cannot be negative.");
+
+            var oldActualCost = task.ActualCost;
+            task.ActualCost = actualCost;
+            await _taskRepo.Update(task);
+
+            await _activityLogService.LogAsync(new ActivityLog
+            {
+                ProjectId = task.ProjectId,
+                TaskId = task.Id,
+                RelatedEntityType = "Task",
+                RelatedEntityId = task.Id,
+                ActionType = "UPDATE",
+                FieldChanged = "ActualCost",
+                OldValue = oldActualCost?.ToString() ?? "null",
+                NewValue = actualCost?.ToString() ?? "null",
+                Message = $"Updated actual cost for task '{task.Id}' to {actualCost ?? 0}",
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            return _mapper.Map<TaskResponseDTO>(task);
         }
 
         //public async Task<TaskResponseDTO> ChangeTaskActualHours(string id, decimal actualHours, int createdBy)

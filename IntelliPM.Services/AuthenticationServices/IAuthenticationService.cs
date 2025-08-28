@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Admin.Request;
 using IntelliPM.Data.DTOs.Auth.Request;
 using IntelliPM.Data.DTOs.Auth.Response;
 using IntelliPM.Data.DTOs.Password;
@@ -19,12 +20,14 @@ namespace IntelliPM.Services.AuthenticationServices
         Task<AccountInformationResponseDTO> GetUserInfor(string token);
         Task<Account> GetAccountByToken(string token);
         Task<LoginResponseDTO> Login(LoginRequestDTO loginRequestDTO);
-        System.Threading.Tasks.Task Logout(string refreshToken);
-        System.Threading.Tasks.Task RegisterCustomer(LoginRequestDTO loginRequestDTO);
-        System.Threading.Tasks.Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO);
+        Task Logout(string refreshToken);
+        Task RegisterCustomer(LoginRequestDTO loginRequestDTO);
+       Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO);
         string GenerateOTP();
         Task<LoginResponseDTO> LoginGoogle(LoginGoogleRequestDTO loginGoogleRequestDTO);
-        System.Threading.Tasks.Task VerifyAccount(string token);
-        System.Threading.Tasks.Task AccountRegister(AccountRequestDTO accountRequestDTO);
+        Task VerifyAccount(string token);
+        Task AccountRegister(AccountRequestDTO accountRequestDTO);
+
+        Task<string> AdminAccountRegister(AdminAccountRequestDTO accountRequestDTO);
     }
 }

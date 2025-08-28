@@ -17,12 +17,12 @@ namespace IntelliPM.Services.SubtaskServices
         Task<List<SubtaskResponseDTO>> GetAllSubtaskList();
         Task<SubtaskResponseDTO> GetSubtaskById(string id);
         Task<SubtaskFullResponseDTO> GetFullSubtaskById(string id);
-        Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest1DTO request);
+        Task<SubtaskResponseDTO> CreateSubtask(SubtaskRequest2DTO request);
         Task<SubtaskResponseDTO> Create2Subtask(SubtaskRequest2DTO request);
         Task<SubtaskResponseDTO> UpdateSubtask(string id, SubtaskRequestDTO request);
         Task DeleteSubtask(string id);
         Task<List<SubtaskResponseDTO>> GetSubtaskByTaskIdAsync(string taskId);
-        Task<List<Subtask>> GenerateSubtaskPreviewAsync(string taskId);
+        Task<List<Subtask>> GenerateSubtaskPreviewAsync(string token, string taskId);
         Task<SubtaskResponseDTO> ChangeSubtaskStatus(string id, string status, int createdBy);
         Task<SubtaskDetailedResponseDTO> GetSubtaskByIdDetailed(string id);
         Task<List<SubtaskDetailedResponseDTO>> GetSubtaskByTaskIdDetailed(string taskId);
@@ -31,6 +31,8 @@ namespace IntelliPM.Services.SubtaskServices
         Task<SubtaskFullResponseDTO> ChangePlannedHours(string id, decimal hours, int createdBy);
         Task<List<SubtaskResponseDTO>> GetSubTaskByAccountId(int accountId);
         Task<SubtaskFullResponseDTO> ChangeActualHours(string id, decimal hours, int createdBy);
-
+        Task<SubtaskFullResponseDTO> ChangePercentComplete(string id, decimal? percentComplete, int createdBy);
+        Task<SubtaskFullResponseDTO> ChangePlannedCost(string id, decimal? plannedCost, int createdBy);
+        Task<SubtaskFullResponseDTO> ChangeActualCost(string id, decimal? actualCost, int createdBy);
     }
 }

@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.ActivityLog.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.ActivityLogServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -22,6 +23,7 @@ namespace IntelliPM.API.Controllers
             _context = context;
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
@@ -35,6 +37,7 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -55,6 +58,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("project/{projectId}")]
         public async Task<IActionResult> GetByProjectId(int projectId)
         {
@@ -75,6 +79,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("task/{taskId}")]
         public async Task<IActionResult> GetByTaskId(string taskId)
         {
@@ -95,6 +100,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("subtask/{subtaskId}")]
         public async Task<IActionResult> GetBySubtaskId(string subtaskId)
         {
@@ -115,6 +121,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet("epic/{epicId}")]
         public async Task<IActionResult> GetByEpicId(string epicId)
         {
@@ -135,7 +142,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        // GET: api/ActivityLog?projectId=1&taskId=FLOWER-1&subtaskId=FLOWER-3
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
         [HttpGet]
         public IActionResult GetLogs([FromQuery] int projectId, [FromQuery] string? taskId, [FromQuery] string? subtaskId)
         {
@@ -171,7 +178,7 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
-        // POST: api/ActivityLog
+        //[Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost]
         public async Task<IActionResult> CreateLog([FromBody] ActivityLog log)
         {

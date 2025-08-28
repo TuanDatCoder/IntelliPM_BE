@@ -127,6 +127,8 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                     FullName = pm.Account.FullName,
                     Username = pm.Account.Username,
                     AccountPicture = pm.Account.Picture,
+                    Email = pm.Account.Email,
+                    Phone = pm.Account.Phone,
                     HourlyRate = pm.HourlyRate,
                     WorkingHoursPerDay = pm.WorkingHoursPerDay,
                     Tasks = pm.Account.TaskAssignment
@@ -138,12 +140,22 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                             Status = ta.Task.Status,
                             PercentComplete = ta.Task.PercentComplete
                         })
+                        .ToList(),
+                    Positions = pm.ProjectPosition
+                        .Select(pp => pp.Position)
                         .ToList()
                 })
                 .ToListAsync();
 
             return query;
-
         }
+
+        public async Task<List<ProjectMember>> GetByProjectIdAndAccountIdsAsync(int projectId, List<int> accountIds)
+        {
+            return await _context.ProjectMember
+                .Where(pm => pm.ProjectId == projectId && accountIds.Contains(pm.AccountId))
+                .ToListAsync();
+        }
+
     }
 }

@@ -19,10 +19,6 @@ public partial class Document
 
     public string? Content { get; set; }
 
-    public bool IsActive { get; set; }
-
-    public string? Status { get; set; }
-
     public int CreatedBy { get; set; }
 
     public int? UpdatedBy { get; set; }
@@ -31,7 +27,7 @@ public partial class Document
 
     public DateTime UpdatedAt { get; set; }
 
-    public string? Visibility { get; set; }
+    public string Visibility { get; set; } = null!;
 
     public virtual Account CreatedByNavigation { get; set; } = null!;
 

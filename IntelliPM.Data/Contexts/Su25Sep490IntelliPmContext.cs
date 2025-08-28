@@ -157,9 +157,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-
     //        => optionsBuilder.UseNpgsql("Host=shuttle.proxy.rlwy.net;Port=46730;Database=SU25_SEP490_IntelliPM;Username=postgres;Password=ePBNfZQAuyaFhaDvPboiVTGaPikaSUrP;");
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -426,14 +424,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.EpicId)
                 .HasMaxLength(255)
                 .HasColumnName("epic_id");
-            entity.Property(e => e.IsActive)
-                .HasDefaultValue(true)
-                .HasColumnName("is_active");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .HasDefaultValueSql("'Draft'::character varying")
-                .HasColumnName("status");
             entity.Property(e => e.SubtaskId)
                 .HasMaxLength(255)
                 .HasColumnName("subtask_id");
@@ -549,12 +540,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.Account).WithMany(p => p.DocumentPermission)
                 .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_permission_account_id_fkey");
 
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentPermission)
                 .HasForeignKey(d => d.DocumentId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("document_permission_document_id_fkey");
         });
 
@@ -1227,7 +1216,7 @@ public partial class Su25Sep490IntelliPmContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.HourlyRate)
-                .HasPrecision(10, 2)
+                .HasPrecision(15, 2)
                 .HasColumnName("hourly_rate");
             entity.Property(e => e.InvitedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -1261,10 +1250,10 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.ActualCost)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("actual_cost");
             entity.Property(e => e.BudgetAtCompletion)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("budget_at_completion");
             entity.Property(e => e.CalculatedBy)
                 .HasMaxLength(50)
@@ -1273,28 +1262,28 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasPrecision(5, 2)
                 .HasColumnName("confidence_score");
             entity.Property(e => e.CostPerformanceIndex)
-                .HasPrecision(15, 2)
+                .HasPrecision(10, 4)
                 .HasColumnName("cost_performance_index");
             entity.Property(e => e.CostVariance)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("cost_variance");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.DurationAtCompletion)
-                .HasPrecision(15, 2)
+                .HasPrecision(18, 2)
                 .HasColumnName("duration_at_completion");
             entity.Property(e => e.EarnedValue)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("earned_value");
             entity.Property(e => e.EstimateAtCompletion)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("estimate_at_completion");
             entity.Property(e => e.EstimateDurationAtCompletion)
-                .HasPrecision(15, 2)
+                .HasPrecision(18, 2)
                 .HasColumnName("estimate_duration_at_completion");
             entity.Property(e => e.EstimateToComplete)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("estimate_to_complete");
             entity.Property(e => e.ImprovementSummary)
                 .HasDefaultValueSql("''::text")
@@ -1306,20 +1295,20 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_improved");
             entity.Property(e => e.PlannedValue)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("planned_value");
             entity.Property(e => e.ProjectId).HasColumnName("project_id");
             entity.Property(e => e.SchedulePerformanceIndex)
-                .HasPrecision(15, 2)
+                .HasPrecision(10, 4)
                 .HasColumnName("schedule_performance_index");
             entity.Property(e => e.ScheduleVariance)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("schedule_variance");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
             entity.Property(e => e.VarianceAtCompletion)
-                .HasPrecision(15, 2)
+                .HasPrecision(20, 2)
                 .HasColumnName("variance_at_completion");
 
             entity.HasOne(d => d.Project).WithMany(p => p.ProjectMetric)
@@ -1532,7 +1521,6 @@ public partial class Su25Sep490IntelliPmContext : DbContext
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RiskCreatedByNavigation)
                 .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("risk_created_by_fkey");
 
             entity.HasOne(d => d.Project).WithMany(p => p.Risk)
@@ -2196,10 +2184,39 @@ public partial class Su25Sep490IntelliPmContext : DbContext
                 .HasForeignKey(d => d.TaskId)
                 .HasConstraintName("work_log_task_id_fkey");
         });
+        modelBuilder.HasSequence("ap_id_seq");
+        modelBuilder.HasSequence("bp_id_seq");
+        modelBuilder.HasSequence("bpd_id_seq");
+        modelBuilder.HasSequence("bpms_id_seq");
         modelBuilder.HasSequence("course_id_seq");
+        modelBuilder.HasSequence("crmm_id_seq");
+        modelBuilder.HasSequence("dd_id_seq");
+        modelBuilder.HasSequence("ddd_id_seq");
+        modelBuilder.HasSequence("dppms_id_seq");
+        modelBuilder.HasSequence("ewp_id_seq");
         modelBuilder.HasSequence("flower_id_seq");
+        modelBuilder.HasSequence("hams_id_seq");
+        modelBuilder.HasSequence("hamss_id_seq");
         modelBuilder.HasSequence("intellipm_id_seq");
+        modelBuilder.HasSequence("ip_id_seq");
+        modelBuilder.HasSequence("ipm_id_seq");
+        modelBuilder.HasSequence("msrs_id_seq");
+        modelBuilder.HasSequence("olms_id_seq");
+        modelBuilder.HasSequence("olmsd_id_seq");
+        modelBuilder.HasSequence("olmsf_id_seq");
+        modelBuilder.HasSequence("olmss_id_seq");
+        modelBuilder.HasSequence("pm_id_seq");
+        modelBuilder.HasSequence("pmss_id_seq");
         modelBuilder.HasSequence("projc_id_seq");
+        modelBuilder.HasSequence("sams_id_seq");
+        modelBuilder.HasSequence("shams_id_seq");
+        modelBuilder.HasSequence("shamsdd_id_seq");
+        modelBuilder.HasSequence("shamss_id_seq");
+        modelBuilder.HasSequence("srmp_id_seq");
+        modelBuilder.HasSequence("srmpp_id_seq");
+        modelBuilder.HasSequence("t_id_seq");
+        modelBuilder.HasSequence("tiawampthu_id_seq");
+        modelBuilder.HasSequence("tpbpp_id_seq");
 
         OnModelCreatingPartial(modelBuilder);
     }

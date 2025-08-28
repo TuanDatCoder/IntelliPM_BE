@@ -12,17 +12,17 @@ namespace IntelliPM.API.Controllers
     [Route("api/[controller]")]
     public class ProjectController : ControllerBase
     {
-        private readonly IProjectService _service;
+        private readonly IProjectService _projectService;
 
         public ProjectController(IProjectService service)
         {
-            _service = service;
+            _projectService = service;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllProjects();
+            var result = await _projectService.GetAllProjects();
             return Ok(new ApiResponseDTO
             {
                 IsSuccess = true,
@@ -37,7 +37,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var project = await _service.GetProjectById(id);
+                var project = await _projectService.GetProjectById(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -58,7 +58,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var projectDetails = await _service.GetProjectDetails(id);
+                var projectDetails = await _projectService.GetProjectDetails(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -92,7 +92,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var workItems = await _service.GetAllWorkItemsByProjectId(id);
+                var workItems = await _projectService.GetAllWorkItemsByProjectId(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -122,7 +122,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var projects = await _service.SearchProjects(searchTerm ?? "", projectType, status);
+                var projects = await _projectService.SearchProjects(searchTerm ?? "", projectType, status);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -159,7 +159,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.CreateProject(token,request);
+                var result = await _projectService.CreateProject(token,request);
                 return StatusCode(201, new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -185,7 +185,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var updated = await _service.UpdateProject(id, request);
+                var updated = await _projectService.UpdateProject(id, request);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -215,7 +215,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                await _service.DeleteProject(id);
+                await _projectService.DeleteProject(id);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -254,7 +254,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.SendEmailToProjectManager(projectId, token);
+                var result = await _projectService.SendEmailToProjectManager(projectId, token);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -290,7 +290,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.SendEmailToLeaderReject(projectId, token, request.Reason);
+                var result = await _projectService.SendEmailToLeaderReject(projectId, token, request.Reason);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -322,7 +322,7 @@ namespace IntelliPM.API.Controllers
 
             try
             {
-                var result = await _service.SendInvitationsToTeamMembers(projectId, token);
+                var result = await _projectService.SendInvitationsToTeamMembers(projectId, token);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -350,13 +350,12 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-
         [HttpGet("check-project-key")]
-        public async Task<IActionResult> CheckProjectKey([FromQuery] string projectKey)
+        public async Task<IActionResult> CheckProjectKey([FromQuery] string projectKey, [FromQuery] int? projectId)
         {
             try
             {
-                var exists = await _service.CheckProjectKeyExists(projectKey);
+                var exists = await _projectService.CheckProjectKeyExists(projectKey, projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -381,11 +380,11 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("check-project-name")]
-        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName)
+        public async Task<IActionResult> CheckProjectName([FromQuery] string projectName, [FromQuery] int? projectId)
         {
             try
             {
-                var exists = await _service.CheckProjectNameExists(projectName);
+                var exists = await _projectService.CheckProjectNameExists(projectName, projectId);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -404,10 +403,11 @@ namespace IntelliPM.API.Controllers
                 {
                     IsSuccess = false,
                     Code = 500,
-                    Message = $"Error checking project key: {ex.Message}"
+                    Message = $"Error checking project name: {ex.Message}"
                 });
             }
         }
+
 
 
         [HttpGet("view-by-key")]
@@ -415,7 +415,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var project = await _service.GetProjectByKey(projectKey);
+                var project = await _projectService.GetProjectByKey(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -448,7 +448,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var result = await _service.GetProjectViewByKeyAsync(projectKey);
+                var result = await _projectService.GetProjectViewByKeyAsync(projectKey);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -487,7 +487,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var updated = await _service.ChangeProjectStatus(id, status);
+                var updated = await _projectService.ChangeProjectStatus(id, status);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,
@@ -520,7 +520,7 @@ namespace IntelliPM.API.Controllers
         {
             try
             {
-                var items = await _service.GetProjectItemsAsync(projectKey);
+                var items = await _projectService.GetProjectItemsAsync(projectKey);
                 return Ok(new
                 {
                     isSuccess = true,

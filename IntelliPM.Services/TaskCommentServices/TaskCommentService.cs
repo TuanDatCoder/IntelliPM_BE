@@ -13,6 +13,7 @@ using IntelliPM.Repositories.TaskCommentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.SubtaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -37,8 +38,9 @@ namespace IntelliPM.Services.TaskCommentServices
         private readonly IAccountRepository _accountRepository;
         private readonly IEmailService _emailService;
         private readonly IProjectRepository _projectRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IEmailService emailService, IAccountRepository accountRepository, IProjectRepository projectRepo, ILogger<TaskCommentService> logger)
+        public TaskCommentService(IMapper mapper, ITaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IEmailService emailService, IAccountRepository accountRepository, IProjectRepository projectRepo, ILogger<TaskCommentService> logger, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _repo = repo;
@@ -50,6 +52,7 @@ namespace IntelliPM.Services.TaskCommentServices
             _accountRepository = accountRepository;
             _emailService = emailService;
             _projectRepo = projectRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<TaskCommentResponseDTO> CreateTaskComment(TaskCommentRequestDTO request)
@@ -59,6 +62,11 @@ namespace IntelliPM.Services.TaskCommentServices
 
             if (string.IsNullOrEmpty(request.Content))
                 throw new ArgumentException("Task comment content is required.", nameof(request.Content));
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "TASK_COMMENT_CREATE");
+            var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
 
             var entity = _mapper.Map<TaskComment>(request);
             entity.CreatedAt = DateTime.UtcNow;
@@ -82,9 +90,9 @@ namespace IntelliPM.Services.TaskCommentServices
                 {
                     ProjectId = projectId,
                     TaskId = entity.TaskId,
-                    RelatedEntityType = "TaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.TaskId,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Comment in task '{entity.TaskId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -103,10 +111,10 @@ namespace IntelliPM.Services.TaskCommentServices
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
-                        Type = "COMMENT",
-                        Priority = "NORMAL",
+                        Type = dynamicNotificationType,
+                        Priority = dynamicNotificationPriority,
                         Message = $"Comment in project {project.ProjectKey} - task {request.TaskId}: {request.Content}",
-                        RelatedEntityType = "Task",
+                        RelatedEntityType = dynamicEntityType,
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -134,7 +142,7 @@ namespace IntelliPM.Services.TaskCommentServices
             }
             catch (DbUpdateException ex)
             {
-                throw new Exception($"Failed to create task comment due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+                throw new Exception($"Failed to create task comment due to invalid reference data.");
             }
             catch (Exception ex)
             {
@@ -150,6 +158,9 @@ namespace IntelliPM.Services.TaskCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task comment with ID {id} not found.");
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             try
             {
                 await _repo.Delete(entity);
@@ -158,9 +169,9 @@ namespace IntelliPM.Services.TaskCommentServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "TaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.TaskId,
-                    ActionType = "DELETE",
+                    ActionType = dynamicActionType,
                     Message = $"Delete comment in task '{entity.TaskId}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -193,6 +204,9 @@ namespace IntelliPM.Services.TaskCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task comment with ID {id} not found.");
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             _mapper.Map(request, entity);
 
             try
@@ -203,9 +217,9 @@ namespace IntelliPM.Services.TaskCommentServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "TaskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.TaskId,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Update comment in task '{entity.TaskId}' is '{entity.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow

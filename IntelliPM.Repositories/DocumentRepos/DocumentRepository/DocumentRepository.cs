@@ -15,12 +15,11 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
 
         public async Task<List<Document>> GetByProjectAsync(int projectId)
             => await _context.Document
-                             .Where(d => d.ProjectId == projectId && d.IsActive)
+                             .Where(d => d.ProjectId == projectId)
                              .ToListAsync();
 
         public async Task<List<Document>> GetAllAsync()
             => await _context.Document
-                             .Where(d => d.IsActive)
                              .ToListAsync();
 
         public async Task<Document?> GetByIdAsync(int id)
@@ -32,69 +31,74 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
         public async Task UpdateAsync(Document doc)
             => _context.Document.Update(doc);
 
+        public async Task DeleteAsync(Document doc)    
+        =>    _context.Document.Remove(doc);
+        
+
+
         public async Task SaveChangesAsync()
             => await _context.SaveChangesAsync();
 
-        public async Task<List<Document>> GetByUserIdAsync(int userId)
-        {
-            return await _context.Document
-                .Where(d => d.CreatedBy == userId && d.IsActive)
-                .ToListAsync();
-        }
+        //public async Task<List<Document>> GetByUserIdAsync(int userId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.CreatedBy == userId && d.IsActive)
+        //        .ToListAsync();
+        //}
 
-        public async Task<List<Document>> GetByStatusAsync(string status)
-        {
-            return await _context.Document
-                .Where(d => d.Status == status && d.IsActive)
-                .ToListAsync();
-        }
+        //public async Task<List<Document>> GetByStatusAsync(string status)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.Status == status && d.IsActive)
+        //        .ToListAsync();
+        //}
 
-        public async Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId)
-        {
-            return await _context.Document
-                .Where(d => d.Status == status && d.ProjectId == projectId && d.IsActive)
-                .ToListAsync();
-        }
+        //public async Task<List<Document>> GetByStatusAndProjectAsync(string status, int projectId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.Status == status && d.ProjectId == projectId && d.IsActive)
+        //        .ToListAsync();
+        //}
 
-        public async Task<List<Document>> GetByEpicIdAsync(string epicId)
-        {
-            return await _context.Document
-                .Where(d => d.EpicId == epicId && d.IsActive)
-                .ToListAsync();
-        }
-        public async Task<List<Document>> GetByTaskIdAsync(string taskId)
-        {
-            return await _context.Document
-                .Where(d => d.TaskId == taskId && d.IsActive)
-                .ToListAsync();
-        }
-        public async Task<List<Document>> GetBySubtaskIdAsync(string subtaskId)
-        {
-            return await _context.Document
-                .Where(d => d.SubtaskId == subtaskId && d.IsActive)
-                .ToListAsync();
-        }
+        //public async Task<List<Document>> GetByEpicIdAsync(string epicId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.EpicId == epicId && d.IsActive)
+        //        .ToListAsync();
+        //}
+        //public async Task<List<Document>> GetByTaskIdAsync(string taskId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.TaskId == taskId && d.IsActive)
+        //        .ToListAsync();
+        //}
+        //public async Task<List<Document>> GetBySubtaskIdAsync(string subtaskId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.SubtaskId == subtaskId && d.IsActive)
+        //        .ToListAsync();
+        //}
 
-        public async Task<List<Document>> GetByProjectAndTaskAsync(int projectId, string taskId)
-        {
-            return await _context.Document
-                .Where(d => d.ProjectId == projectId && d.TaskId == taskId && d.IsActive)
-                .ToListAsync();
-        }
+        //public async Task<List<Document>> GetByProjectAndTaskAsync(int projectId, string taskId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.ProjectId == projectId && d.TaskId == taskId && d.IsActive)
+        //        .ToListAsync();
+        //}
 
-        public async Task<Document?> GetByKeyAsync(int projectId, string? epicId, string? taskId, string? subTaskId)
-        {
-            string? keyId = epicId ?? taskId ?? subTaskId;
+        //public async Task<Document?> GetByKeyAsync(int projectId, string? epicId, string? taskId, string? subTaskId)
+        //{
+        //    string? keyId = epicId ?? taskId ?? subTaskId;
 
-            if (keyId == null)
-                return null;
+        //    if (keyId == null)
+        //        return null;
 
-            return await _context.Document
-                .Where(d => d.ProjectId == projectId &&
-                            d.TaskId == keyId &&
-                            d.IsActive)
-                .FirstOrDefaultAsync();
-        }
+        //    return await _context.Document
+        //        .Where(d => d.ProjectId == projectId &&
+        //                    d.TaskId == keyId &&
+        //                    d.IsActive)
+        //        .FirstOrDefaultAsync();
+        //}
         public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
         {
             var docs = await _context.Document
@@ -109,23 +113,23 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 );
         }
 
-        public async Task<Dictionary<string, int>> CountByStatusAsync()
-        {
-            return await _context.Document
-                .Where(d => d.IsActive)
-                .GroupBy(d => d.Status ?? "Unknown")
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(g => g.Status, g => g.Count);
-        }
+        //public async Task<Dictionary<string, int>> CountByStatusAsync()
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.IsActive)
+        //        .GroupBy(d => d.Status ?? "Unknown")
+        //        .Select(g => new { Status = g.Key, Count = g.Count() })
+        //        .ToDictionaryAsync(g => g.Status, g => g.Count);
+        //}
 
-        public async Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId)
-        {
-            return await _context.Document
-                .Where(d => d.IsActive && d.ProjectId == projectId)
-                .GroupBy(d => d.Status ?? "Unknown")
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(g => g.Status, g => g.Count);
-        }
+        //public async Task<Dictionary<string, int>> CountByStatusInProjectAsync(int projectId)
+        //{
+        //    return await _context.Document
+        //        .Where(d => d.IsActive && d.ProjectId == projectId)
+        //        .GroupBy(d => d.Status ?? "Unknown")
+        //        .Select(g => new { Status = g.Key, Count = g.Count() })
+        //        .ToDictionaryAsync(g => g.Status, g => g.Count);
+        //}
 
         public async Task<List<int>> GetAccountIdsByEmailsAsync(List<string> emails)
         {
@@ -142,9 +146,23 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToDictionaryAsync(a => a.Email.ToLower(), a => a.Id);
         }
 
+        public async Task<bool> UpdateVisibilityAsync(int documentId, string newVisibility, int updatedBy)
+        {
+            var doc = await _context.Document.FirstOrDefaultAsync(d => d.Id == documentId);
+            if (doc == null) return false;
+
+            doc.Visibility = newVisibility;
+            doc.UpdatedBy = updatedBy;
+            doc.UpdatedAt = DateTime.UtcNow;
+
+            _context.Document.Update(doc);
+            await _context.SaveChangesAsync();
+            return true;
 
 
 
+
+        }
 
     }
 }

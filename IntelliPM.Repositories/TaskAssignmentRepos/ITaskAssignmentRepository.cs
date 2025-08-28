@@ -23,5 +23,6 @@ namespace IntelliPM.Repositories.TaskAssignmentRepos
 
         Task AddRangeAsync(List<TaskAssignment> taskAssignments);
         Task SaveChangesAsync();
+        Task UpdateRange(List<TaskAssignment> entities);
     }
 }

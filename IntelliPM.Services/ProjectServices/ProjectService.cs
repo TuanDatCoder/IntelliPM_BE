@@ -27,6 +27,7 @@ using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
 using IntelliPM.Services.ProjectMemberServices;
 using IntelliPM.Services.SubtaskServices;
+using IntelliPM.Services.SystemConfigurationServices;
 using IntelliPM.Services.TaskServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -59,8 +60,10 @@ namespace IntelliPM.Services.ProjectServices
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
+        private readonly ISystemConfigurationService _systemConfigService;
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo)
+
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationService systemConfigService)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -84,6 +87,7 @@ namespace IntelliPM.Services.ProjectServices
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _dynamicCategoryRepo = dynamicCategoryRepo ?? throw new ArgumentNullException(nameof(dynamicCategoryRepo));
+            _systemConfigService = systemConfigService ?? throw new ArgumentNullException(nameof(systemConfigService));
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -123,12 +127,8 @@ namespace IntelliPM.Services.ProjectServices
             if (currentAccount == null)
                 throw new ApiException(HttpStatusCode.NotFound, "User not found.");
 
-
             if (request == null)
                 throw new ArgumentNullException(nameof(request), "Request cannot be null.");
-
-            if (string.IsNullOrEmpty(request.Name))
-                throw new ArgumentException("Project name is required.", nameof(request.Name));
 
             var entity = _mapper.Map<Project>(request);
             entity.CreatedBy = currentAccount.Id;
@@ -153,17 +153,28 @@ namespace IntelliPM.Services.ProjectServices
 
         public async Task<ProjectResponseDTO> UpdateProject(int id, ProjectRequestDTO request)
         {
+
+            if (request == null)
+                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+
             var entity = await _projectRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
+          
 
+            // Ánh xạ dữ liệu từ request sang entity
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _projectRepo.Update(entity);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Failed to update project due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
             }
             catch (Exception ex)
             {
@@ -354,6 +365,15 @@ namespace IntelliPM.Services.ProjectServices
             var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
             if (membersWithPositions == null || !membersWithPositions.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            // Validate project members
+            var projectMembersConfig = await _systemConfigService.GetSystemConfigurationByConfigKey("project_members");
+            var memberCount = membersWithPositions.Count;
+            if (memberCount < int.Parse(projectMembersConfig.MinValue))
+                throw new ArgumentException($"Project must have at least {projectMembersConfig.MinValue} members.");
+            if (memberCount > int.Parse(projectMembersConfig.MaxValue))
+                throw new ArgumentException($"Project cannot have more than {projectMembersConfig.MaxValue} members.");
+
 
             var projectInfo = await _projectRepo.GetByIdAsync(projectId);
             if (projectInfo == null)
@@ -571,22 +591,31 @@ namespace IntelliPM.Services.ProjectServices
             return _mapper.Map<ProjectResponseDTO>(project);
         }
 
-        public async Task<bool> CheckProjectKeyExists(string projectKey)
+        public async Task<bool> CheckProjectKeyExists(string projectKey, int? projectId = null)
         {
             if (string.IsNullOrEmpty(projectKey))
                 throw new ArgumentException("Project key cannot be null or empty.");
 
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
-            return project != null;
-        }
 
-        public async Task<bool> CheckProjectNameExists(string projectName)
+            if (project == null) return false;
+
+            if (projectId.HasValue && project.Id == projectId.Value) return false;
+            return true;
+        }
+        public async Task<bool> CheckProjectNameExists(string projectName, int? projectId = null)
         {
             if (string.IsNullOrEmpty(projectName))
                 throw new ArgumentException("Project name cannot be null or empty.");
 
             var project = await _projectRepo.GetProjectByNameAsync(projectName);
-            return project != null;
+
+            if (project == null) return false;
+
+            if (projectId.HasValue && project.Id == projectId.Value)
+                return false;
+
+            return true;
         }
 
         public async Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey)

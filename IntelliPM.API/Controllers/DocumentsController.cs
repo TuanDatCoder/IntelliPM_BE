@@ -48,13 +48,16 @@ namespace IntelliPM.API.Controllers
 
 
         [HttpPost("create")]
-        //public async Task<ActionResult<DocumentResponseDTO>> CreateDocument([FromBody] DocumentRequestDTO request)
-        //{
-     public async Task<IActionResult> CreateDocument([FromBody] DocumentRequestDTO request)
+        public async Task<IActionResult> CreateDocument([FromBody] DocumentRequestDTO request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid data", Data = ModelState });
+
             var accountIdClaim = User.FindFirst("accountId")?.Value;
-            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized("Missing accountId in token.");
-            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID format.");
+            if (string.IsNullOrEmpty(accountIdClaim))
+                return Unauthorized("Missing accountId in token.");
+            if (!int.TryParse(accountIdClaim, out var userId))
+                return BadRequest("Invalid user ID format.");
 
             try
             {
@@ -83,37 +86,32 @@ namespace IntelliPM.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
         {
-            var accountIdClaim = User.FindFirst("accountId")?.Value;
-            if (string.IsNullOrEmpty(accountIdClaim))
-                return Unauthorized("Missing accountId in token.");
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid data", Data = ModelState });
 
-            if (!int.TryParse(accountIdClaim, out var userId))
-                return BadRequest("Invalid user ID format.");
+            var accountIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(accountIdClaim)) return Unauthorized("Missing accountId in token.");
+            if (!int.TryParse(accountIdClaim, out var userId)) return BadRequest("Invalid user ID format.");
 
             try
             {
                 var dto = await _documentService.UpdateDocument(id, request, userId);
-                return Ok(new ApiResponseDTO
-                {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Updated",
-                    Data = dto
-                });
+                return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Updated", Data = dto });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
             catch (ArgumentException ax)
             {
                 return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ax.Message });
-            }
-            catch (KeyNotFoundException kx)
-            {
-                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = kx.Message });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = ex.Message });
             }
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
@@ -484,6 +482,161 @@ namespace IntelliPM.API.Controllers
             var permission = await _documentService.GetUserPermissionLevel(documentId, userId);
             return Ok(new { permission = permission ?? "none" });
         }
+
+        [HttpPatch("{id:int}/visibility")]
+        public async Task<IActionResult> ChangeVisibility([FromRoute] int id, [FromBody] ChangeVisibilityRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid payload." });
+
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            if (!int.TryParse(userIdClaim, out var userId)) return BadRequest("Invalid account ID");
+
+            try
+            {
+                var dto = await _documentService.ChangeVisibilityAsync(id, request, userId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = 200,
+                    Message = "Visibility changed successfully.",
+                    Data = dto
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(); // 403
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // TODO: log ex.ToString()
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = ex.Message  // t?m th?i ?? debug
+                });
+            }
+
+        }
+
+
+        [HttpGet("shared-to-me")]
+        public async Task<IActionResult> GetDocumentsSharedToMe()
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized: missing accountId claim",
+                    Data = null
+                });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid account ID",
+                    Data = null
+                });
+            }
+
+            try
+            {
+                var docs = await _documentService.GetDocumentsSharedToUser(userId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = docs.Count > 0
+                        ? "Documents shared to you retrieved successfully."
+                        : "No documents shared to you.",
+                    Data = docs
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+        [HttpGet("shared-to-me/project/{projectId}")]
+        public async Task<IActionResult> GetDocumentsSharedToMeInProject(int projectId)
+        {
+            var userIdClaim = User.FindFirst("accountId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized: missing accountId claim",
+                    Data = null
+                });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status400BadRequest,
+                    Message = "Invalid account ID",
+                    Data = null
+                });
+            }
+
+            try
+            {
+                var docs = await _documentService.GetDocumentsSharedToUserInProject(userId, projectId);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = StatusCodes.Status200OK,
+                    Message = docs.Count > 0
+                        ? "Documents shared to you in this project retrieved successfully."
+                        : "No documents shared to you in this project.",
+                    Data = docs
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+
+
 
 
 

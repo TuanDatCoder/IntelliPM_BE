@@ -6,6 +6,7 @@ using IntelliPM.Repositories.TaskFileRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
@@ -22,26 +23,32 @@ namespace IntelliPM.Services.TaskFileServices
         private readonly IMapper _mapper;
         private readonly IActivityLogService _activityLogService;
         private readonly ITaskRepository _taskRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public TaskFileService(ITaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, ITaskRepository taskRepo)
+        public TaskFileService(ITaskFileRepository repository, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, ITaskRepository taskRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _repository = repository;
             _cloudinaryService = cloudinaryService;
             _mapper = mapper;
             _activityLogService = activityLogService;
             _taskRepo = taskRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<TaskFileResponseDTO> UploadTaskFileAsync(TaskFileRequestDTO request)
         {
             var url = await _cloudinaryService.UploadFileAsync(request.File.OpenReadStream(), request.File.FileName);
 
+            var statusFileDynamic = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_file_status");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+
             var entity = new TaskFile
             {
                 TaskId = request.TaskId,
                 Title = request.Title,
                 UrlFile = url,
-                Status = "UPLOADED"
+                Status = statusFileDynamic,
             };
 
             await _repository.AddAsync(entity);
@@ -51,9 +58,9 @@ namespace IntelliPM.Services.TaskFileServices
                 ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                 TaskId = entity.TaskId,
                 //SubtaskId = entity.Subtask,
-                RelatedEntityType = "TaskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = entity.TaskId,
-                ActionType = "CREATE",
+                ActionType = dynamicActionType,
                 Message = $"Upload file in task '{entity.TaskId}' is '{request.Title}'",
                 CreatedBy = request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
@@ -67,6 +74,9 @@ namespace IntelliPM.Services.TaskFileServices
             var taskFile = await _repository.GetByIdAsync(fileId);
             if (taskFile == null) return false;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             await _repository.DeleteAsync(taskFile);
 
             await _activityLogService.LogAsync(new ActivityLog
@@ -74,9 +84,9 @@ namespace IntelliPM.Services.TaskFileServices
                 ProjectId = (await _taskRepo.GetByIdAsync(taskFile.TaskId))?.ProjectId ?? 0,
                 TaskId = taskFile.TaskId,
                 //SubtaskId = entity.Subtask,
-                RelatedEntityType = "TaskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = taskFile.TaskId,
-                ActionType = "DELETE",
+                ActionType = dynamicActionType,
                 Message = $"Delete file in task '{taskFile.TaskId}' is '{taskFile.Title}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow

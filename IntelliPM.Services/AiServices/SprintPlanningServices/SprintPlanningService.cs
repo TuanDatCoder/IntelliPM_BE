@@ -44,7 +44,7 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _apiKey = configuration["Gemini:ApiKey"] ?? "AIzaSyD52tMVJMjE9GxHZwshWwobgQ8bI4rGabA";
+            _apiKey = configuration["GeminiApiDAT:ApiKey"];
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
             _sprintRepo = sprintRepo ?? throw new ArgumentNullException(nameof(sprintRepo));
         }
@@ -124,12 +124,13 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
 
             var tasksText = string.Join(" | ", backlogTasks.Select(t => $"{t.Id}: {t.Title} (Priority: {t.Priority}, PlannedHours: {t.PlannedHours ?? 0})"));
 
+            // Updated prompt to enforce Priority and PlannedHours
             var prompt = $@"Generate a sprint plan for a project with ID {projectId}. Project Name: '{projectName}'. Project Type: '{projectType}'.
 Backlog Tasks: {tasksText}. Project Duration: {startDateStr} to {endDateStr}.
 Group the tasks into exactly {numberOfSprints} sprints, each lasting exactly {weeksPerSprint} weeks.
 For each sprint, generate a unique 'title' and 'description', and assign tasks from the backlog based on priority and logical grouping.
 Include 'startDate' and 'endDate' (YYYY-MM-DD) strictly within the project duration ({startDateStr} to {endDateStr}) for each sprint. Ensure sprints are sequential (each starts after the previous ends) and {(occupiedDateRanges.Any() ? $"do not overlap with these existing sprint date ranges: {JsonConvert.SerializeObject(occupiedDateRanges)}" : "no existing sprints exist, so assign dates starting from the project start date")}.
-For each task, include its 'taskId', 'title', 'priority', and 'plannedHours'.
+For each task, include its 'taskId', 'title', 'priority', and 'plannedHours'. **MANDATORY**: Every task MUST have a non-null 'priority' (valid values: 'HIGH', 'MEDIUM', 'LOW') and a non-null 'plannedHours' (a positive decimal number). Do not omit these fields or provide null/empty values. Use the provided backlog task priority and plannedHours where applicable.
 Return ONLY a valid JSON array: [{{""title"": ""<title>"", ""description"": ""<desc>"", ""startDate"": ""<date>"", ""endDate"": ""<date>"", ""tasks"": [{{""taskId"": ""<id>"", ""title"": ""<title>"", ""priority"": ""<priority>"", ""plannedHours"": <hours>}}]}}].";
 
             var requestData = new
@@ -180,19 +181,43 @@ Return ONLY a valid JSON array: [{{""title"": ""<title>"", ""description"": ""<d
                     throw new Exception("No valid sprint plan from Gemini reply.");
                 }
 
-                // Validate and sanitize AI-generated dates
+                // Validate and sanitize AI-generated data
                 var projectStart = project.StartDate?.ToUniversalTime() ?? DateTime.UtcNow;
                 var projectEnd = project.EndDate?.ToUniversalTime() ?? projectStart.AddMonths(6);
                 foreach (var sprint in aiSprintPlan)
                 {
-                    sprint.Tasks = sprint.Tasks.Where(t => backlogTasks.Select(bt => bt.Id).Contains(t.TaskId)).ToList();
-                    if (!sprint.Tasks.Any())
+                    // Validate tasks and ensure Priority and PlannedHours
+                    if (sprint.Tasks == null || !sprint.Tasks.Any())
                     {
-                        _logger.LogWarning("Sprint '{SprintTitle}' has no valid tasks.", sprint.Title);
+                        _logger.LogWarning("Sprint '{SprintTitle}' has no tasks.", sprint.Title);
+                        sprint.Tasks = new List<SprintTaskDTO>();
+                        continue;
                     }
+
+                    // Filter tasks to match backlog and validate fields
+                    sprint.Tasks = sprint.Tasks
+                        .Where(t => backlogTasks.Select(bt => bt.Id).Contains(t.TaskId))
+                        .Select(t =>
+                        {
+                            var backlogTask = backlogTasks.FirstOrDefault(bt => bt.Id == t.TaskId);
+                            if (string.IsNullOrEmpty(t.Priority) || !new[] { "HIGH", "MEDIUM", "LOW" }.Contains(t.Priority.ToUpper()))
+                            {
+                                _logger.LogWarning("Task '{TaskId}' in sprint '{SprintTitle}' has invalid or missing Priority. Using backlog or default 'MEDIUM'.", t.TaskId, sprint.Title);
+                                t.Priority = backlogTask?.Priority?.ToUpper() ?? "MEDIUM";
+                            }
+                            if (t.PlannedHours <= 0)
+                            {
+                                _logger.LogWarning("Task '{TaskId}' in sprint '{SprintTitle}' has invalid or missing PlannedHours. Using backlog or default 8.", t.TaskId, sprint.Title);
+                                t.PlannedHours = backlogTask?.PlannedHours ?? 8;
+                            }
+                            return t;
+                        })
+                        .ToList();
+
                     // Ensure UTC for sprint dates
                     sprint.StartDate = sprint.StartDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(sprint.StartDate, DateTimeKind.Utc) : sprint.StartDate.ToUniversalTime();
                     sprint.EndDate = sprint.EndDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(sprint.EndDate, DateTimeKind.Utc) : sprint.EndDate.ToUniversalTime();
+
                     // Sanitize dates to project timeline
                     if (sprint.StartDate < projectStart)
                     {
@@ -211,7 +236,7 @@ Return ONLY a valid JSON array: [{{""title"": ""<title>"", ""description"": ""<d
                     }
                 }
 
-                // Adjust sprint dates, handling empty existing sprints
+                // Adjust sprint dates
                 var adjustedPlan = await AdjustSprintDates(project.ProjectKey, aiSprintPlan, numberOfSprints, weeksPerSprint, project, occupiedDateRanges);
                 if (adjustedPlan.Count != numberOfSprints)
                 {
@@ -364,8 +389,8 @@ Return ONLY a valid JSON array: [{{""title"": ""<title>"", ""description"": ""<d
                     {
                         TaskId = t.Id,
                         Title = t.Title,
-                        Priority = t.Priority,
-                        PlannedHours = t.PlannedHours ?? 0
+                        Priority = t.Priority?.ToUpper() ?? "MEDIUM",
+                        PlannedHours = t.PlannedHours ?? 8
                     }));
                     unassignedTasks.RemoveRange(0, Math.Min(tasksPerSprint, unassignedTasks.Count));
                 }
@@ -430,8 +455,28 @@ Return ONLY a valid JSON array: [{{""title"": ""<title>"", ""description"": ""<d
             if (!cleaned.EndsWith("]")) cleaned += "]";
             try
             {
-                JsonConvert.DeserializeObject<object>(cleaned);
-                return cleaned;
+                var parsed = JsonConvert.DeserializeObject<List<SprintWithTasksDTO>>(cleaned);
+                // Validate that all tasks have Priority and PlannedHours
+                foreach (var sprint in parsed)
+                {
+                    if (sprint.Tasks != null)
+                    {
+                        foreach (var task in sprint.Tasks)
+                        {
+                            if (string.IsNullOrEmpty(task.Priority) || !new[] { "HIGH", "MEDIUM", "LOW" }.Contains(task.Priority.ToUpper()))
+                            {
+                                _logger.LogWarning("Task '{TaskId}' in sprint '{SprintTitle}' missing or invalid Priority in JSON response. Assigned default 'MEDIUM'.", task.TaskId, sprint.Title);
+                                task.Priority = "MEDIUM";
+                            }
+                            if (task.PlannedHours <= 0)
+                            {
+                                _logger.LogWarning("Task '{TaskId}' in sprint '{SprintTitle}' missing or invalid PlannedHours in JSON response. Assigned default 8.", task.TaskId, sprint.Title);
+                                task.PlannedHours = 8;
+                            }
+                        }
+                    }
+                }
+                return JsonConvert.SerializeObject(parsed);
             }
             catch
             {

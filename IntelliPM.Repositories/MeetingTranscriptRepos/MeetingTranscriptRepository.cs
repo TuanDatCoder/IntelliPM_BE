@@ -14,6 +14,7 @@ namespace IntelliPM.Repositories.MeetingTranscriptRepos
     {
         private readonly Su25Sep490IntelliPmContext _context;
 
+
         public MeetingTranscriptRepository(Su25Sep490IntelliPmContext context)
         {
             _context = context;
@@ -31,5 +32,12 @@ namespace IntelliPM.Repositories.MeetingTranscriptRepos
             return await _context.MeetingTranscript
                 .FirstOrDefaultAsync(t => t.MeetingId == meetingId);
         }
+
+        public async Task UpdateAsync(MeetingTranscript entity)
+        {
+            _context.MeetingTranscript.Update(entity);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
