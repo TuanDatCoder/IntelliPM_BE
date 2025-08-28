@@ -13,6 +13,8 @@ namespace  IntelliPM.Services.AccountServices
         Task<string> UploadProfilePictureAsync(int accountId, Stream fileStream, string fileName);
         Task<string> UploadPictureAsync(string token, Stream fileStream, string fileName);
         Task<AccountResponseDTO> ChangeAccountStatus(int id, string newStatus);
+        Task<AccountResponseDTO> ChangeAccountRole(int id, string newRole);
+        Task<AccountResponseDTO> ChangeAccountPosition(int id, string newPosition);
         Task<AccountResponseDTO> GetAccountByEmail(string email);
         Task<AccountWithWorkItemDTO> GetAccountAndWorkItemById(int accountId);
         Task<ProfileResponseDTO> GetProfileByEmail(string email);
