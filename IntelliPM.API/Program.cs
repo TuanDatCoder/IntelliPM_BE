@@ -124,6 +124,7 @@ using Microsoft.Azure.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PdfSharp.Charting;
 using System.Text;
 
 
@@ -266,6 +267,8 @@ builder.Services.AddScoped<IGenerateStoryTaskService, GenerateStoryTaskService>(
 builder.Services.AddSingleton<IShareTokenService, ShareTokenService>();
 
 
+
+
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
 {
@@ -326,8 +329,9 @@ builder.Services.AddAuthorization();
 
 //------------------------------------------------------------------
 
+builder.Services.AddSingleton<VerificationCodeCache>();
 
-builder.Services.AddScoped<VerificationCodeCache>();
+//builder.Services.AddScoped<VerificationCodeCache>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
