@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Services.SubtaskServices;
 using IntelliPM.Services.TaskFileServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
@@ -17,6 +18,8 @@ namespace IntelliPM.API.Controllers
         {
             _service = service;
         }
+
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost("upload")]
         public async Task<IActionResult> Upload([FromForm] TaskFileRequestDTO request)
         {
@@ -24,6 +27,7 @@ namespace IntelliPM.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-task/{taskId}")]
         public async Task<IActionResult> GetFilesByTaskId(string taskId)
         {
@@ -49,6 +53,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id, DeleteTaskFileRequestDTO dto)
         {

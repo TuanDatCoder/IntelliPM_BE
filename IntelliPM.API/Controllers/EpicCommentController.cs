@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.EpicComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Services.EpicCommentServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -18,6 +19,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
@@ -32,6 +34,7 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -53,6 +56,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] EpicCommentRequestDTO request)
         {
@@ -83,6 +87,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] EpicCommentRequestDTO request)
         {
@@ -113,6 +118,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id, DeleteEpicCommentRequestDTO dto)
         {
@@ -141,6 +147,8 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-epic/{epicId}")]
         public async Task<IActionResult> GetSubtaskCommentBySubtaskId(string epicId)
         {
