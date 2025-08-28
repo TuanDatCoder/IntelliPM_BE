@@ -32,6 +32,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.MetricHistoryRepos;
 using System.Text.Json;
 using IntelliPM.Repositories.SystemConfigurationRepos;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -53,8 +54,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IMetricHistoryRepository _metricHistoryRepo;
         private readonly ISystemConfigurationRepository _systemConfigRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _repo = repo;
@@ -72,6 +74,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _chatGPTService = chatGPTService;
             _metricHistoryRepo = metricHistoryRepo;
             _systemConfigRepo = systemConfigurationRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         //public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey)
@@ -335,6 +338,8 @@ namespace IntelliPM.Services.ProjectMetricServices
             if (tasks == null || !tasks.Any())
                 throw new InvalidOperationException("No tasks found for the project.");
 
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+
             // Fetch configurations
             var statusCategories = await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("", "project_status");
 
@@ -427,7 +432,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             {
                 await _metricHistoryRepo.Add(metricHistory);
 
-                var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+                var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
 
                 if (existingMetric != null)
                 {
@@ -468,7 +473,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                         EstimateToComplete = Math.Round(ETC, 0),
                         VarianceAtCompletion = Math.Round(VAC, 0),
                         EstimateDurationAtCompletion = Math.Round(EDAC, 0),
-                        CalculatedBy = "System",
+                        CalculatedBy = calculationMode,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
                     };
@@ -970,7 +975,8 @@ namespace IntelliPM.Services.ProjectMetricServices
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
-            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            var entity = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
 
             return _mapper.Map<NewProjectMetricResponseDTO>(entity);
         }
@@ -1129,8 +1135,10 @@ namespace IntelliPM.Services.ProjectMetricServices
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
                 ?? throw new Exception("Project not found");
 
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
-            var metric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+            var metric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
 
             // Fetch configurations
             var healthStatusCategories = await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("", "health_status");
