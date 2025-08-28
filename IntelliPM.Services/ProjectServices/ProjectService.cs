@@ -12,6 +12,7 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Project;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -133,7 +134,8 @@ namespace IntelliPM.Services.ProjectServices
             var entity = _mapper.Map<Project>(request);
             entity.CreatedBy = currentAccount.Id;
             entity.IconUrl = "https://res.cloudinary.com/dcv4x7oen/image/upload/v1751353454/project2_abr0nj.png";
-            entity.Status = "PLANNING";
+            //entity.Status = "PLANNING";
+            entity.Status = ProjectStatusEnum.PLANNING.ToString();
 
             try
             {
