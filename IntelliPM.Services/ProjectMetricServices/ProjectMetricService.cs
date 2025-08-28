@@ -286,12 +286,12 @@ namespace IntelliPM.Services.ProjectMetricServices
         //        existingMetric.EstimateToComplete = Math.Round(ETC, 0);
         //        existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
         //        existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
-        //       // existingMetric.ProjectStatus = projectStatus; // Add new field
+        //       // existingMetric.ProjectStatusEnum = projectStatus; // Add new field
         //        existingMetric.UpdatedAt = DateTime.UtcNow;
 
         //        await _repo.Update(existingMetric);
         //        var result = _mapper.Map<NewProjectMetricResponseDTO>(existingMetric);
-        //        //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+        //        //result.ProjectStatusEnum = projectStatus; // Ensure DTO includes status
         //        return result;
         //    }
         //    else
@@ -312,7 +312,7 @@ namespace IntelliPM.Services.ProjectMetricServices
         //            EstimateToComplete = Math.Round(ETC, 0),
         //            VarianceAtCompletion = Math.Round(VAC, 0),
         //            EstimateDurationAtCompletion = Math.Round(EDAC, 0),
-        //            //ProjectStatus = projectStatus, // Add new field
+        //            //ProjectStatusEnum = projectStatus, // Add new field
         //            CalculatedBy = "System",
         //            CreatedAt = DateTime.UtcNow,
         //            UpdatedAt = DateTime.UtcNow,
@@ -320,7 +320,7 @@ namespace IntelliPM.Services.ProjectMetricServices
 
         //        await _repo.Add(newMetric);
         //        var result = _mapper.Map<NewProjectMetricResponseDTO>(newMetric);
-        //        //result.ProjectStatus = projectStatus; // Ensure DTO includes status
+        //        //result.ProjectStatusEnum = projectStatus; // Ensure DTO includes status
         //        return result;
         //    }
         //}
@@ -423,57 +423,65 @@ namespace IntelliPM.Services.ProjectMetricServices
                 Value = JsonConvert.SerializeObject(new { PV, EV, AC, CPI, SPI, EAC, ETC, VAC, EDAC }),
                 RecordedAt = DateTime.UtcNow
             };
-            await _metricHistoryRepo.Add(metricHistory);
-
-            var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
-
-            if (existingMetric != null)
+            try
             {
-                existingMetric.PlannedValue = PV;
-                existingMetric.EarnedValue = EV;
-                existingMetric.ActualCost = AC;
-                existingMetric.BudgetAtCompletion = BAC;
-                existingMetric.DurationAtCompletion = DAC;
-                existingMetric.CostVariance = CV;
-                existingMetric.ScheduleVariance = SV;
-                existingMetric.CostPerformanceIndex = Math.Round(CPI, 3);
-                existingMetric.SchedulePerformanceIndex = Math.Round(SPI, 3);
-                existingMetric.EstimateAtCompletion = Math.Round(EAC, 0);
-                existingMetric.EstimateToComplete = Math.Round(ETC, 0);
-                existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
-                existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
-                existingMetric.UpdatedAt = DateTime.UtcNow;
+                await _metricHistoryRepo.Add(metricHistory);
 
-                await _repo.Update(existingMetric);
-                var result = _mapper.Map<NewProjectMetricResponseDTO>(existingMetric);
-                return result;
-            }
-            else
-            {
-                var newMetric = new ProjectMetric
+                var existingMetric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+
+                if (existingMetric != null)
                 {
-                    ProjectId = project.Id,
-                    PlannedValue = PV,
-                    EarnedValue = EV,
-                    ActualCost = AC,
-                    BudgetAtCompletion = BAC,
-                    DurationAtCompletion = DAC,
-                    CostVariance = CV,
-                    ScheduleVariance = SV,
-                    CostPerformanceIndex = Math.Round(CPI, 3),
-                    SchedulePerformanceIndex = Math.Round(SPI, 3),
-                    EstimateAtCompletion = Math.Round(EAC, 0),
-                    EstimateToComplete = Math.Round(ETC, 0),
-                    VarianceAtCompletion = Math.Round(VAC, 0),
-                    EstimateDurationAtCompletion = Math.Round(EDAC, 0),
-                    CalculatedBy = "System",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                };
+                    existingMetric.PlannedValue = PV;
+                    existingMetric.EarnedValue = EV;
+                    existingMetric.ActualCost = AC;
+                    existingMetric.BudgetAtCompletion = BAC;
+                    existingMetric.DurationAtCompletion = DAC;
+                    existingMetric.CostVariance = CV;
+                    existingMetric.ScheduleVariance = SV;
+                    existingMetric.CostPerformanceIndex = Math.Round(CPI, 3);
+                    existingMetric.SchedulePerformanceIndex = Math.Round(SPI, 3);
+                    existingMetric.EstimateAtCompletion = Math.Round(EAC, 0);
+                    existingMetric.EstimateToComplete = Math.Round(ETC, 0);
+                    existingMetric.VarianceAtCompletion = Math.Round(VAC, 0);
+                    existingMetric.EstimateDurationAtCompletion = Math.Round(EDAC, 0);
+                    existingMetric.UpdatedAt = DateTime.UtcNow;
 
-                await _repo.Add(newMetric);
-                var result = _mapper.Map<NewProjectMetricResponseDTO>(newMetric);
-                return result;
+                    await _repo.Update(existingMetric);
+                    var result = _mapper.Map<NewProjectMetricResponseDTO>(existingMetric);
+                    return result;
+                }
+                else
+                {
+                    var newMetric = new ProjectMetric
+                    {
+                        ProjectId = project.Id,
+                        PlannedValue = PV,
+                        EarnedValue = EV,
+                        ActualCost = AC,
+                        BudgetAtCompletion = BAC,
+                        DurationAtCompletion = DAC,
+                        CostVariance = CV,
+                        ScheduleVariance = SV,
+                        CostPerformanceIndex = Math.Round(CPI, 3),
+                        SchedulePerformanceIndex = Math.Round(SPI, 3),
+                        EstimateAtCompletion = Math.Round(EAC, 0),
+                        EstimateToComplete = Math.Round(ETC, 0),
+                        VarianceAtCompletion = Math.Round(VAC, 0),
+                        EstimateDurationAtCompletion = Math.Round(EDAC, 0),
+                        CalculatedBy = "System",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    };
+
+                    await _repo.Add(newMetric);
+                    var result = _mapper.Map<NewProjectMetricResponseDTO>(newMetric);
+                    return result;
+                }
+            } catch (Exception ex)
+            {
+                // Log ex.InnerException.Message and ex.InnerException.StackTrace
+                Console.WriteLine($"Error: {ex.Message}, Inner: {ex.InnerException?.Message}");
+                throw;
             }
         }
 
@@ -1040,7 +1048,7 @@ namespace IntelliPM.Services.ProjectMetricServices
         //        costDto.EstimateAtCompletion = Math.Round(costDto.EstimateAtCompletion, 0);
         //        costDto.EstimateToComplete = Math.Round(costDto.EstimateToComplete, 0);
         //        costDto.VarianceAtCompletion = Math.Round(costDto.VarianceAtCompletion, 0);
-        //        costDto.ProjectStatus = projectStatus;
+        //        costDto.ProjectStatusEnum = projectStatus;
 
         //        costStatus = costDto.CostPerformanceIndex;
         //        showAlert = hasProjectStarted && (
@@ -1051,7 +1059,7 @@ namespace IntelliPM.Services.ProjectMetricServices
 
         //    return new ProjectHealthDTO
         //    {
-        //        ProjectStatus = projectStatus,
+        //        ProjectStatusEnum = projectStatus,
         //        TimeStatus = timeStatus,
         //        TasksToBeCompleted = tasksToBeCompleted,
         //        OverdueTasks = overdueTasks,
@@ -1207,10 +1215,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                 }
 
                 // Calculate costStatus based on CPI
-                //if (metric.CostPerformanceIndex == 0)
-                //{
-                //    costStatus = "100% over budget";
-                //}
+
                 if (metric.CostPerformanceIndex < cpiWarningThreshold)
                 {
                     costStatus = $"{Math.Round((1 - (double)metric.CostPerformanceIndex) * 100, 2)}% over budget";
@@ -1236,7 +1241,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                 costDto.EstimateAtCompletion = Math.Round(costDto.EstimateAtCompletion, 0);
                 costDto.EstimateToComplete = Math.Round(costDto.EstimateToComplete, 0);
                 costDto.VarianceAtCompletion = Math.Round(costDto.VarianceAtCompletion, 0);
-                costDto.ProjectStatus = projectStatus;
+                //costDto.ProjectStatusEnum = projectStatus;
 
                 showAlert = costDto.SchedulePerformanceIndex < spiWarningThreshold || costDto.CostPerformanceIndex < cpiWarningThreshold;
             }

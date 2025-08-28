@@ -61,7 +61,7 @@ CREATE TABLE project_member (
     joined_at TIMESTAMPTZ NULL,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    hourly_rate DECIMAL(10, 2) NULL,
+    hourly_rate DECIMAL(15, 2) NULL,
     working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
@@ -629,19 +629,19 @@ CREATE TABLE project_metric (
     project_id INT NOT NULL,
     calculated_by VARCHAR(50) NOT NULL,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
-    planned_value DECIMAL(15, 2) NULL,
-    earned_value DECIMAL(15, 2) NULL,
-    actual_cost DECIMAL(15, 2) NULL,
-    schedule_performance_index DECIMAL(15, 2) NULL,
-    cost_performance_index DECIMAL(15, 2) NULL,
-    budget_at_completion DECIMAL(15, 2) NULL,
-    duration_at_completion DECIMAL(15, 2) NULL,
-    cost_variance DECIMAL(15, 2) NULL,
-    schedule_variance DECIMAL(15, 2) NULL,
-    estimate_at_completion DECIMAL(15, 2) NULL,
-    estimate_to_complete DECIMAL(15, 2) NULL,
-    variance_at_completion DECIMAL(15, 2) NULL,
-    estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    planned_value DECIMAL(20, 2) NULL,
+    earned_value DECIMAL(20, 2) NULL,
+    actual_cost DECIMAL(20, 2) NULL,
+    schedule_performance_index DECIMAL(10, 4) NULL,
+    cost_performance_index DECIMAL(10, 4) NULL,
+    budget_at_completion DECIMAL(20, 2) NULL,
+    duration_at_completion DECIMAL(18, 2) NULL,
+    cost_variance DECIMAL(20, 2) NULL,
+    schedule_variance DECIMAL(20, 2) NULL,
+    estimate_at_completion DECIMAL(20, 2) NULL,
+    estimate_to_complete DECIMAL(20, 2) NULL,
+    variance_at_completion DECIMAL(20, 2) NULL,
+    estimate_duration_at_completion DECIMAL(18, 2) NULL,
     is_improved BOOLEAN NOT NULL DEFAULT FALSE,
     improvement_summary TEXT NULL DEFAULT '',
     confidence_score DECIMAL(5, 2) NULL,
@@ -1481,6 +1481,16 @@ VALUES
   NOW(),
   NOW()
 );
+
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+('planned_hours_limit', NULL, '0', '100000', '8', 'Maximum allowed planned hours per day for a task/subtask', 'Limit based on daily work capacity', '2025-08-27 21:35:00+07', NULL),
+('actual_hours_limit', NULL, '0', '100000', '8', 'Maximum allowed actual hours per day for a task/subtask', 'Limit based on daily work capacity', '2025-08-27 21:35:00+07', NULL),
+('hourly_rate_limit', NULL, '0', '10000000', '10000000', 'Maximum allowed hourly rate in VND for a member', 'Adjust based on project budget', '2025-08-27 21:35:00+07', NULL),
+('working_hours_per_day_limit', NULL, '0', '8', '8', 'Maximum allowed working hours per day for a member', 'Standard working hours limit', '2025-08-27 21:35:00+07', NULL),
+('planned_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other planned cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL),
+('acual_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other actual cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL);
 
 
 

@@ -12,6 +12,9 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Account;
+using IntelliPM.Data.Enum.Project;
+using IntelliPM.Data.Enum.ProjectMember;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -133,7 +136,8 @@ namespace IntelliPM.Services.ProjectServices
             var entity = _mapper.Map<Project>(request);
             entity.CreatedBy = currentAccount.Id;
             entity.IconUrl = "https://res.cloudinary.com/dcv4x7oen/image/upload/v1751353454/project2_abr0nj.png";
-            entity.Status = "PLANNING";
+            //entity.Status = "PLANNING";
+            entity.Status = ProjectStatusEnum.PLANNING.ToString();
 
             try
             {
@@ -273,20 +277,20 @@ namespace IntelliPM.Services.ProjectServices
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
             // Tìm Project Manager trong danh sách
-            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.PROJECT_MANAGER.ToString()));
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
-            if (pm.Status.Equals("ACTIVE"))
+            if (pm.Status.Equals(ProjectMemberStatusEnum.ACTIVE.ToString()))
                 throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
    
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
-            if (!projectInfo.Status.Equals("PLANNING"))
+            if (!projectInfo.Status.Equals(ProjectStatusEnum.PLANNING.ToString()))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
 
-            await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "INVITED");
+            await _projectMemberService.ChangeProjectMemberStatus(pm.Id, ProjectMemberStatusEnum.INVITED.ToString());
 
             var projectDetailsUrl = $"{_frontendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
@@ -319,7 +323,7 @@ namespace IntelliPM.Services.ProjectServices
             if (membersWithPositions == null || !membersWithPositions.Any())
                 throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
 
-            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "TEAM_LEADER") && (m.Status == "ACTIVE"));
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.TEAM_LEADER.ToString()) && (m.Status == ProjectMemberStatusEnum.ACTIVE.ToString()));
 
             if (pm == null || string.IsNullOrEmpty(pm.FullName) || string.IsNullOrEmpty(pm.Email))
                 throw new ArgumentException("No Project Manager found or email is missing.");
@@ -328,10 +332,10 @@ namespace IntelliPM.Services.ProjectServices
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
-            if (!projectInfo.Status.Equals("PLANNING"))
+            if (!projectInfo.Status.Equals(ProjectStatusEnum.PLANNING.ToString()))
                 throw new InvalidOperationException("This project is no longer in the planning phase. Notification is unnecessary.");
 
-            await ChangeProjectStatus(projectId, "CANCELLED");
+            await ChangeProjectStatus(projectId, ProjectStatusEnum.CANCELLED.ToString());
 
             var projectDetailsUrl = $"{_frontendUrl}/project/{projectInfo.ProjectKey}/overviewpm";
 
@@ -379,23 +383,23 @@ namespace IntelliPM.Services.ProjectServices
             if (projectInfo == null)
                 throw new KeyNotFoundException($"Project with ID {projectId} not found.");
 
-            await ChangeProjectStatus(projectId, "IN_PROGRESS");
+            await ChangeProjectStatus(projectId, ProjectStatusEnum.IN_PROGRESS.ToString());
 
-            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"));
+            var pm = membersWithPositions.FirstOrDefault(m => m.ProjectPositions != null && m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.PROJECT_MANAGER.ToString()));
             if (pm != null)
-                await _projectMemberService.ChangeProjectMemberStatus(pm.Id, "ACTIVE");
+                await _projectMemberService.ChangeProjectMemberStatus(pm.Id, ProjectMemberStatusEnum.ACTIVE.ToString());
 
             var eligibleMembers = membersWithPositions
-                .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == "PROJECT_MANAGER"))
-                .Where(m => m.Status == "CREATED")
+                .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.PROJECT_MANAGER.ToString()))
+                .Where(m => m.Status == ProjectMemberStatusEnum.CREATED.ToString())
                 .ToList();
-
+           
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
 
             foreach (var member in eligibleMembers)
             {
-                await _projectMemberService.ChangeProjectMemberStatus(member.Id, "INVITED");
+                await _projectMemberService.ChangeProjectMemberStatus(member.Id, ProjectMemberStatusEnum.INVITED.ToString());
             }
 
             // Giới hạn gửi 5 email một lúc
