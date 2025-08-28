@@ -375,7 +375,7 @@ namespace IntelliPM.Services.EmailServices
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
-    
+
 
 
 
@@ -384,7 +384,9 @@ namespace IntelliPM.Services.EmailServices
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
             email.To.Add(MailboxAddress.Parse(userEmail));
-            email.Subject = "[ConstructionEquipmentRental] - Password Reset Request";
+            email.Subject = "[IntelliPM] - Password Reset Request";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
 
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
@@ -394,7 +396,7 @@ namespace IntelliPM.Services.EmailServices
 <head>
   <meta charset='UTF-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>Password Reset</title>
+  <title>Password Reset - IntelliPM</title>
   <style>
     body {{
       font-family: 'Segoe UI', sans-serif;
@@ -408,39 +410,80 @@ namespace IntelliPM.Services.EmailServices
       background-color: #ffffff;
       border-radius: 12px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      overflow: hidden;
     }}
     .top-bar {{
+      background-color: #1b6fff;
       height: 4px;
-      background-color: #4caf50;
+      width: 100%;
     }}
     .content {{
       padding: 32px 24px;
       text-align: left;
     }}
+    .logo {{
+      margin-bottom: 24px;
+    }}
+    .logo img {{
+      width: 80px;
+      height: auto;
+    }}
     h1 {{
-      font-size: 22px;
-      color: #2e7d32;
+      font-size: 24px;
+      color: #1b1b1f;
       margin-bottom: 16px;
     }}
     p {{
       font-size: 15px;
       line-height: 1.6;
-      color: #333;
+      color: #333333;
       margin-bottom: 18px;
     }}
-    .otp {{
-      font-size: 24px;
-      font-weight: bold;
-      color: #4caf50;
-      letter-spacing: 4px;
+    .btn {{
+      display: inline-block;
+      background-color: #1b6fff;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 14px 26px;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-top: 8px;
+      box-shadow: 0 4px 14px rgba(27,111,255,0.3);
+    }}
+    .btn:hover {{
+      background-color: #155ed6;
+    }}
+    .credentials {{
+      background-color: #f4f4f5;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }}
+    .credentials p {{
+      margin: 8px 0;
+      font-size: 15px;
+    }}
+    .credentials strong {{
+      color: #1b1b1f;
     }}
     .footer {{
-      background-color: #f1f1f1;
+      background-color: #f4f4f5;
       text-align: center;
       padding: 20px;
       font-size: 13px;
       color: #777;
       border-top: 1px solid #ddd;
+    }}
+    .footer p {{
+      margin: 4px 0;
+    }}
+    .footer a {{
+      color: #1b6fff;
+      text-decoration: none;
+    }}
+    .footer a:hover {{
+      text-decoration: underline;
     }}
   </style>
 </head>
@@ -448,15 +491,24 @@ namespace IntelliPM.Services.EmailServices
   <div class='container'>
     <div class='top-bar'></div>
     <div class='content'>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
       <h1>Password Reset Request</h1>
       <p>Hi <strong>{fullName}</strong>,</p>
-      <p>You’ve requested to reset your password for <strong>ConstructionEquipmentRental</strong>. Please use the OTP below to proceed:</p>
-      <p class='otp'>{OTP}</p>
-      <p>This OTP is valid for a limited time. If you didn’t request this action, please ignore this email.</p>
-      <p>Thank you,<br/>The ConstructionEquipmentRental Team</p>
+      <p>You’ve requested to reset your password for <strong>IntelliPM</strong>. Please use the OTP below to proceed:</p>
+      <div class='credentials'>
+        <p><strong>OTP:</strong> {OTP}</p>
+      </div>
+      <p>This OTP is valid for a limited time. If you didn’t request this action, please contact <a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a>.</p>
+      <a href='https://intellipm.com/reset-password' class='btn'>Reset My Password</a>
+      <p style='margin-top:30px;'>For security, please ensure you use a strong password. If you need assistance, reach out to our support team.</p>
     </div>
     <div class='footer'>
-      <p>Thank you for trusting us.</p>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
     </div>
   </div>
 </body>
