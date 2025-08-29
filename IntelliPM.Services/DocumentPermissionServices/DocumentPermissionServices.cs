@@ -3,12 +3,6 @@ using IntelliPM.Data.DTOs.DocumentPermission;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Shared.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.DocumentPermissionServices
 {
@@ -22,7 +16,7 @@ namespace IntelliPM.Services.DocumentPermissionServices
             IDocumentPermissionRepository repo,
             Su25Sep490IntelliPmContext context,
            IHubContext<DocumentHub> hubContext)
-          
+
         {
             _repo = repo;
             _context = context;

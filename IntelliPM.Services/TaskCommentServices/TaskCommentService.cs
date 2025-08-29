@@ -4,6 +4,8 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskComment.Request;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -73,10 +75,8 @@ namespace IntelliPM.Services.TaskCommentServices
 
             try
             {
-                // Lưu comment
                 await _repo.Add(entity);
 
-                // Lấy task và kiểm tra
                 var task = await _taskRepo.GetByIdAsync(request.TaskId);
                 if (task == null)
                     throw new Exception($"Task with ID {request.TaskId} not found.");
@@ -85,7 +85,7 @@ namespace IntelliPM.Services.TaskCommentServices
                 var project = await _projectRepo.GetByIdAsync(projectId);
                 if (project == null)
                     throw new Exception($"Project with ID {projectId} not found");
-                // Ghi log
+              
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = projectId,
@@ -98,14 +98,12 @@ namespace IntelliPM.Services.TaskCommentServices
                     CreatedAt = DateTime.UtcNow
                 });
 
-                // Lấy danh sách thành viên dự án (trừ người tạo)
                 var members = await _projectMemberRepo.GetProjectMemberbyProjectId(projectId);
                 var recipients = members
                     .Where(m => m.AccountId != request.AccountId)
                     .Select(m => m.AccountId)
                     .ToList();
 
-                // Gửi thông báo + email
                 if (recipients.Count > 0)
                 {
                     var notification = new Notification
@@ -158,9 +156,6 @@ namespace IntelliPM.Services.TaskCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task comment with ID {id} not found.");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_COMMENT");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
-
             try
             {
                 await _repo.Delete(entity);
@@ -169,9 +164,9 @@ namespace IntelliPM.Services.TaskCommentServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK_COMMENT.ToString(),
                     RelatedEntityId = entity.TaskId,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.DELETE.ToString(),
                     Message = $"Delete comment in task '{entity.TaskId}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -204,9 +199,6 @@ namespace IntelliPM.Services.TaskCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task comment with ID {id} not found.");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK_COMMENT");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
             _mapper.Map(request, entity);
 
             try
@@ -217,9 +209,9 @@ namespace IntelliPM.Services.TaskCommentServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK_COMMENT.ToString(),
                     RelatedEntityId = entity.TaskId,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Update comment in task '{entity.TaskId}' is '{entity.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow

@@ -443,6 +443,7 @@ Respond in plain text (not HTML).
             }
 
 
+
             // 4) Lấy account map từ emails (giữ nguyên)
             var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
 
@@ -485,6 +486,7 @@ Respond in plain text (not HTML).
                      
                     // TẠO TOKEN RIÊNG cho người dùng này
                     var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
+
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
                     var link = $"{baseUrl.TrimEnd('/')}/share/verify?token={token}";
