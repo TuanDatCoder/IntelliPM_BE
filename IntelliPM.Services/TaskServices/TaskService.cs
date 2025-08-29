@@ -117,7 +117,6 @@ namespace IntelliPM.Services.TaskServices
 
             if (suggestions == null || !suggestions.Any())
                 return new List<TaskResponseDTO>();
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
             var now = DateTime.UtcNow;
 
             var tasks = suggestions.Select(s => new Tasks
@@ -126,7 +125,7 @@ namespace IntelliPM.Services.TaskServices
                 Title = s.Title?.Trim() ?? "Untitled Task",
                 Description = s.Description?.Trim() ?? string.Empty,
                 Type = s.Type?.Trim() ?? string.Empty,
-                Status = dynamicStatus,
+                Status = TaskStatusEnum.TO_DO.ToString(),
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = now,
@@ -153,7 +152,6 @@ namespace IntelliPM.Services.TaskServices
             var isInProgress = entity.Status.Equals(TaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase);
             var isDone = entity.Status.Equals(TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase);
 
-            // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
                 .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
 
@@ -263,17 +261,13 @@ namespace IntelliPM.Services.TaskServices
             if (string.IsNullOrEmpty(projectKey))
                 throw new InvalidOperationException($"Invalid project key for Project ID {request.ProjectId}.");
 
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
-           // var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
             var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
             var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
 
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Priority = dynamicPriority;
-            entity.Status = dynamicStatus;
+            entity.Priority = TaskPriorityEnum.MEDIUM.ToString();
+            entity.Status = TaskStatusEnum.TO_DO.ToString();
 
             try
             {
@@ -488,9 +482,6 @@ namespace IntelliPM.Services.TaskServices
             if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
 
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
-
             var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
             var dynamicActionType = ActivityLogActionTypeEnum.STATUS_CHANGE.ToString();
 
@@ -502,7 +493,6 @@ namespace IntelliPM.Services.TaskServices
             if (isDone)
                 entity.ActualEndDate = DateTime.UtcNow;
 
-            // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
                 .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Task");
 
