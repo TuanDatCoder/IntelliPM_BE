@@ -1196,6 +1196,16 @@ namespace IntelliPM.Services.ProjectMetricServices
             string timeStatus = healthStatusCategories.FirstOrDefault(c => string.Equals(c.Name, "BEHIND", StringComparison.OrdinalIgnoreCase))?.Label ?? "Behind";
             string costStatus = healthStatusCategories.FirstOrDefault(c => string.Equals(c.Name, "OVER_BUDGET", StringComparison.OrdinalIgnoreCase))?.Label ?? "Over Budget";
             var costDto = new NewProjectMetricResponseDTO();
+            if (metric != null)
+            {
+                costDto = _mapper.Map<NewProjectMetricResponseDTO>(metric);
+                costDto.CostPerformanceIndex = Math.Round(metric.CostPerformanceIndex ?? 0, 3);
+                costDto.SchedulePerformanceIndex = Math.Round(metric.SchedulePerformanceIndex ?? 0, 3);
+                costDto.EstimateDurationAtCompletion = Math.Round(metric.EstimateDurationAtCompletion ?? 0, 1);
+                costDto.EstimateAtCompletion = Math.Round(metric.EstimateAtCompletion ?? 0, 0);
+                costDto.EstimateToComplete = Math.Round(metric.EstimateToComplete ?? 0, 0);
+                costDto.VarianceAtCompletion = Math.Round(metric.VarianceAtCompletion ?? 0, 0);
+            }
 
             var now = DateTime.UtcNow;
             bool hasProjectStarted = project.StartDate.HasValue && project.StartDate.Value.Date <= now.Date;
@@ -1204,11 +1214,6 @@ namespace IntelliPM.Services.ProjectMetricServices
 
             if (metric != null && hasProjectStarted)
             {
-                // Calculate timeStatus based on SPI
-                //if (metric.SchedulePerformanceIndex == 0)
-                //{
-                //    timeStatus = "100% behind";
-                //}
                 if (metric.SchedulePerformanceIndex < spiWarningThreshold)
                 {
                     timeStatus = $"{Math.Round((1 - (double)metric.SchedulePerformanceIndex) * 100, 2)}% behind";
@@ -1239,18 +1244,9 @@ namespace IntelliPM.Services.ProjectMetricServices
             }
 
             bool showAlert = false;
+
             if (metric != null && hasProjectStarted && isBeyondMinDays && progress >= minProgressForAlert)
             {
-                // Map DTO and round metrics
-                costDto = _mapper.Map<NewProjectMetricResponseDTO>(metric);
-                costDto.CostPerformanceIndex = Math.Round(costDto.CostPerformanceIndex, 3);
-                costDto.SchedulePerformanceIndex = Math.Round(costDto.SchedulePerformanceIndex, 3);
-                costDto.EstimateDurationAtCompletion = Math.Round(costDto.EstimateDurationAtCompletion, 1);
-                costDto.EstimateAtCompletion = Math.Round(costDto.EstimateAtCompletion, 0);
-                costDto.EstimateToComplete = Math.Round(costDto.EstimateToComplete, 0);
-                costDto.VarianceAtCompletion = Math.Round(costDto.VarianceAtCompletion, 0);
-                //costDto.ProjectStatusEnum = projectStatus;
-
                 showAlert = costDto.SchedulePerformanceIndex < spiWarningThreshold || costDto.CostPerformanceIndex < cpiWarningThreshold;
             }
 
