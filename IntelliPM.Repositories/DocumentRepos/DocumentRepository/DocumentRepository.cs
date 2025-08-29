@@ -160,10 +160,17 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
             await _context.SaveChangesAsync();
             return true;
 
-
-
-
         }
+
+        public async Task<string?> GetProjectKeyByProjectIdAsync(int projectId)
+        {
+            return await _context.Project
+                .AsNoTracking()
+                .Where(p => p.Id == projectId)
+                .Select(p => p.ProjectKey)
+                .FirstOrDefaultAsync();
+        }
+
 
     }
 }
