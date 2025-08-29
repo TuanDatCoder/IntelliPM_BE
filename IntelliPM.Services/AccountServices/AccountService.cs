@@ -182,7 +182,7 @@ namespace IntelliPM.Services.AccountServices
                     ProjectId = subtask.Task.ProjectId, 
                     Summary = subtask.Title,
                     Status = subtask.Status, 
-                    Type = ActivityLogRelatedEntityTypeEnum.SUBSTACK.ToString(),
+                    Type = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     CreatedAt = subtask.CreatedAt, 
                     UpdatedAt = subtask.UpdatedAt 
                 });
