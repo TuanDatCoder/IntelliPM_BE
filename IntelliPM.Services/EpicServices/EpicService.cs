@@ -388,7 +388,7 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(projectKey))
                 throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
 
-            // Kiểm tra tất cả AccountId trước
+            // Kiểm tra tất cả AccountId trước\
             var allAccountIds = requests
                 .SelectMany(r => r.Tasks)
                 .SelectMany(t => t.AssignedMembers)
@@ -475,10 +475,6 @@ namespace IntelliPM.Services.EpicServices
                     }
                 }
 
-                // Log danh sách ID trước khi lưu
-                Console.WriteLine($"Epic IDs to save: {string.Join(", ", epicEntities.Select(e => e.Id))}");
-                Console.WriteLine($"Task IDs to save: {string.Join(", ", taskEntities.Select(t => t.Id))}");
-                Console.WriteLine($"Task Assignment Task IDs: {string.Join(", ", taskAssignmentEntities.Select(a => a.TaskId))}");
 
                 // Thêm tất cả bản ghi theo lô
                 await _epicRepo.AddRangeAsync(epicEntities);
@@ -593,7 +589,7 @@ namespace IntelliPM.Services.EpicServices
                         taskEntity.PlannedStartDate = task.StartDate;
                         taskEntity.PlannedEndDate = task.EndDate;
                         taskEntity.Status = TaskStatusEnum.TO_DO.ToString();
-
+                        taskEntity.Priority = TaskPriorityEnum.MEDIUM.ToString();//
                         taskEntities.Add(taskEntity);
 
                         // Tạo task assignments
