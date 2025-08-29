@@ -651,13 +651,15 @@ Request:
                       ?? throw new Exception("Document not found");
 
             var projectId = doc.ProjectId;
+            var projectKey = await _IDocumentRepository.GetProjectKeyByProjectIdAsync(projectId);
+
 
             // GỌI THẲNG service/repo thay vì HTTP
-            var metrics = await _projectMetricService.GetByProjectIdAsync(projectId);
+            var metrics = await _projectMetricService.GetProjectHealthAsync(projectKey);
             if (metrics == null)
                 throw new Exception("No project metrics found");
 
-            var prompt = BuildFullTaskPrompt(metrics, projectId);
+            var prompt = BuildSmarterTaskPrompt(metrics);
 
             var content = await GenerateContentWithGemini(prompt);
             if (string.IsNullOrWhiteSpace(content))
@@ -690,51 +692,85 @@ Request:
         }
 
 
-
-
-
-        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
+        private string BuildSmarterTaskPrompt(ProjectHealthDTO metrics)
         {
-            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
-            });
+            // Bước 1: Định nghĩa rõ ràng các cặp Nhãn và Giá trị.
+            // Dễ dàng thêm, bớt hoặc thay đổi thứ tự tại một nơi duy nhất!
+            var dataPairs = new List<KeyValuePair<string, object>>
+    {
+        new("Project Status", metrics.ProjectStatus),
+        new("Time Status", metrics.TimeStatus),
+        new("Tasks To Be Completed", metrics.TasksToBeCompleted),
+        new("Overdue Tasks", metrics.OverdueTasks),
+        new("Progress (%)", metrics.ProgressPercent),
+        new("Cost Status", metrics.CostStatus)
+    };
 
+            // Bước 2: Chuyển đổi dữ liệu thành một định dạng văn bản đơn giản, dễ hiểu cho AI.
+            var dataLines = string.Join("\n", dataPairs.Select(kvp => $"{kvp.Key}: {kvp.Value ?? "N/A"}"));
+
+            // Bước 3: Sử dụng một prompt ngắn gọn, tập trung vào nhiệm vụ chính.
             return $@"
-You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanation) as a VERTICAL table (<table>), in which:
-- Each row (<tr>) contains a pair of data.
-- The first column is the field name (<th>), and the second column is the corresponding value (<td>).
-- Do not add style or class.
-- If a value is null, leave it empty.
-- Values are taken from the JSON (camelCase), except Project ID which is taken from the external parameter: {projectId}.
+You are an expert data formatter. Your sole purpose is to convert key-value data into a clean, semantic HTML `<table>`.
 
-JSON:
-{json}
+RULES:
+- The final output must be ONLY the `<table>` element and its contents.
+- Do not include `<html>`, `<body>`, CSS, markdown, or any explanations.
+- For each line in the data, create one `<tr>`.
+- The key (before the colon) goes into a `<th>`.
+- The value (after the colon) goes into a `<td>`.
 
-EXPECTED STRUCTURE:
-<table>
-  <tbody>
-    <tr><th>Project ID</th><td>{projectId}</td></tr>
-    <tr><th>Planned Value (PV)</th><td>{{metrics.plannedValue}}</td></tr>
-    <tr><th>Earned Value (EV)</th><td>{{metrics.earnedValue}}</td></tr>
-    <tr><th>Actual Cost (AC)</th><td>{{metrics.actualCost}}</td></tr>
-    <tr><th>Budget At Completion (BAC)</th><td>{{metrics.budgetAtCompletion}}</td></tr>
-    <tr><th>Cost Variance (CV)</th><td>{{metrics.costVariance}}</td></tr>
-    <tr><th>Schedule Variance (SV)</th><td>{{metrics.scheduleVariance}}</td></tr>
-    <tr><th>Cost Performance Index (CPI)</th><td>{{metrics.costPerformanceIndex}}</td></tr>
-    <tr><th>Schedule Performance Index (SPI)</th><td>{{metrics.schedulePerformanceIndex}}</td></tr>
-    <tr><th>Estimate At Completion (EAC)</th><td>{{metrics.estimateAtCompletion}}</td></tr>
-    <tr><th>Estimate To Complete (ETC)</th><td>{{metrics.estimateToComplete}}</td></tr>
-    <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
-    <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
-    <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
-    <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
-    <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
-    <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
-  </tbody>
-</table>";
+--- DATA ---
+{dataLines}
+
+--- HTML OUTPUT ---
+";
         }
+
+
+
+        //        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
+        //        {
+        //            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
+        //            {
+        //                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        //                WriteIndented = false
+        //            });
+
+        //            return $@"
+        //You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanation) as a VERTICAL table (<table>), in which:
+        //- Each row (<tr>) contains a pair of data.
+        //- The first column is the field name (<th>), and the second column is the corresponding value (<td>).
+        //- Do not add style or class.
+        //- If a value is null, leave it empty.
+        //- Values are taken from the JSON (camelCase), except Project ID which is taken from the external parameter: {projectId}.
+
+        //JSON:
+        //{json}
+
+        //EXPECTED STRUCTURE:
+        //<table>
+        //  <tbody>
+        //    <tr><th>Project ID</th><td>{projectId}</td></tr>
+        //    <tr><th>Planned Value (PV)</th><td>{{metrics.plannedValue}}</td></tr>
+        //    <tr><th>Earned Value (EV)</th><td>{{metrics.earnedValue}}</td></tr>
+        //    <tr><th>Actual Cost (AC)</th><td>{{metrics.actualCost}}</td></tr>
+        //    <tr><th>Budget At Completion (BAC)</th><td>{{metrics.budgetAtCompletion}}</td></tr>
+        //    <tr><th>Cost Variance (CV)</th><td>{{metrics.costVariance}}</td></tr>
+        //    <tr><th>Schedule Variance (SV)</th><td>{{metrics.scheduleVariance}}</td></tr>
+        //    <tr><th>Cost Performance Index (CPI)</th><td>{{metrics.costPerformanceIndex}}</td></tr>
+        //    <tr><th>Schedule Performance Index (SPI)</th><td>{{metrics.schedulePerformanceIndex}}</td></tr>
+        //    <tr><th>Estimate At Completion (EAC)</th><td>{{metrics.estimateAtCompletion}}</td></tr>
+        //    <tr><th>Estimate To Complete (ETC)</th><td>{{metrics.estimateToComplete}}</td></tr>
+        //    <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
+        //    <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
+        //    <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
+        //    <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
+        //    <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
+        //    <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
+        //  </tbody>
+        //</table>";
+        //        }
 
 
 
@@ -774,7 +810,6 @@ For each task in the array, output exactly 1 table following the **fixed templat
   </thead>
   <tbody>
     <tr><td>ID</td><td>{{task.id}}</td></tr>
-    <tr><td>Project ID</td><td>{{task.projectId}}</td></tr>
     <tr><td>Project Name</td><td>{{task.projectName}}</td></tr>
     <tr><td>Type</td><td>{{task.type}}</td></tr>
     <tr><td>Title</td><td>{{task.title}}</td></tr>
@@ -789,23 +824,15 @@ For each task in the array, output exactly 1 table following the **fixed templat
     <tr><td>Updated At</td><td>{{task.updatedAt}}</td></tr>
     <tr><td>Status</td><td>{{task.status}}</td></tr>
     <tr><td>Priority</td><td>{{task.priority}}</td></tr>
-    <tr><td>Reporter ID</td><td>{{task.reporterId}}</td></tr>
+
     <tr><td>Reporter Fullname</td><td>{{task.reporterFullname}}</td></tr>
     <tr><td>Reporter Picture</td><td>{{task.reporterPicture}}</td></tr>
 
     <tr><td>Percent Complete</td><td>{{task.percentComplete}}</td></tr>
     <tr><td>Planned Hours</td><td>{{task.plannedHours}}</td></tr>
     <tr><td>Actual Hours</td><td>{{task.actualHours}}</td></tr>
-    <tr><td>Planned Cost</td><td>{{task.plannedCost}}</td></tr>
-    <tr><td>Planned Resource Cost</td><td>{{task.plannedResourceCost}}</td></tr>
-    <tr><td>Actual Cost</td><td>{{task.actualCost}}</td></tr>
-    <tr><td>Actual Resource Cost</td><td>{{task.actualResourceCost}}</td></tr>
     <tr><td>Remaining Hours</td><td>{{task.remainingHours}}</td></tr>
-
-    <tr><td>Sprint ID</td><td>{{task.sprintId}}</td></tr>
     <tr><td>Sprint Name</td><td>{{task.sprintName}}</td></tr>
-    <tr><td>Epic ID</td><td>{{task.epicId}}</td></tr>
-
     <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
   </tbody>
 </table>";
@@ -862,7 +889,7 @@ For each task in the array, output exactly 1 table following the **fixed templat
 
             var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
-
+            //var
             var dto = new DocumentResponseDTO
             {
                 Id = latest.Id,
