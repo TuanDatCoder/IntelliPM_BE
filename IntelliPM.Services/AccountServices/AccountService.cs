@@ -239,7 +239,41 @@ namespace IntelliPM.Services.AccountServices
 
             return profile;
         }
+        public async Task<AccountResponseDTO> GetProfileById(int id)
+        {
+            var entity = await _accountRepo.GetAccountById(id);
+            if (entity == null)
+                throw new KeyNotFoundException($"Account with id {id} not found.");
 
+            return _mapper.Map<AccountResponseDTO>(entity);
+        }
+
+
+        public async Task<AccountResponseDTO> ChangeAccountRole(int id, string newRole)
+        {
+            var existingAccount = await _accountRepo.GetAccountById(id);
+            if (existingAccount == null)
+            {
+                throw new KeyNotFoundException($"Account with ID {id} not found.");
+            }
+
+            existingAccount.Role = newRole.ToString();
+            await _accountRepo.Update(existingAccount);
+            return _mapper.Map<AccountResponseDTO>(existingAccount);
+        }
+
+        public async Task<AccountResponseDTO> ChangeAccountPosition(int id, string newPosition)
+        {
+            var existingAccount = await _accountRepo.GetAccountById(id);
+            if (existingAccount == null)
+            {
+                throw new KeyNotFoundException($"Account with ID {id} not found.");
+            }
+
+            existingAccount.Position = newPosition.ToString();
+            await _accountRepo.Update(existingAccount);
+            return _mapper.Map<AccountResponseDTO>(existingAccount);
+        }
 
     }
 }

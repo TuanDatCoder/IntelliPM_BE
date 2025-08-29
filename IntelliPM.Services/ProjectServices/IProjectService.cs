@@ -22,10 +22,12 @@ namespace IntelliPM.Services.ProjectServices
         Task<string> SendEmailToLeaderReject(int projectId, string token, string reason);
         Task<ProjectResponseDTO> ChangeProjectStatus(int id, string status);
         Task<List<WorkItemResponseDTO>> GetAllWorkItemsByProjectId(int projectId);
+        Task<List<WorkItemResponseDTO>> GetAllWorkItems();
         Task<bool> CheckProjectKeyExists(string projectKey, int? projectId = null);
         Task<bool> CheckProjectNameExists(string projectName, int? projectId = null);
         Task<ProjectResponseDTO> GetProjectByKey(string projectKey);
         Task<ProjectViewDTO?> GetProjectViewByKeyAsync(string projectKey);
         Task<List<ProjectItemDTO>> GetProjectItemsAsync(string projectKey);
+        Task<WorkItemResponseDTO?> SearchWorkItemByKey(string key);
     }
 }

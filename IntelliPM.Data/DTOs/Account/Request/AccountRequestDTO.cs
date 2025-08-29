@@ -32,7 +32,6 @@ namespace IntelliPM.Data.DTOs.Account.Request
         [DynamicCategoryValidation("account_position", Required = true)]
         public string? Position { get; set; }
 
-        [Required(ErrorMessage = "Date of birth is required")]
-        public DateOnly DateOfBirth { get; set; }
+
     }
 }

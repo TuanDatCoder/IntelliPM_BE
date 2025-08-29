@@ -5,6 +5,7 @@ using IntelliPM.Data.DTOs.ProjectMetric.Response;
 using IntelliPM.Data.DTOs.ShareDocument.Request;
 using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
+using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
@@ -13,6 +14,9 @@ using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.External.ProjectMetricApi;
 using IntelliPM.Services.External.TaskApi;
 using IntelliPM.Services.NotificationServices;
+using IntelliPM.Services.ProjectMetricServices;
+using IntelliPM.Services.ShareServices;
+using IntelliPM.Services.TaskServices;
 using IntelliPM.Shared.Hubs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -29,7 +33,7 @@ namespace IntelliPM.Services.DocumentServices
 {
     public class DocumentService : IDocumentService
     {
-        private readonly IDocumentRepository _repo;
+        private readonly IDocumentRepository _IDocumentRepository;
         private readonly HttpClient _httpClient;
         private readonly string _geminiApiKey;
         private readonly string _geminiEndpoint;
@@ -42,11 +46,14 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IConfiguration _configuration;
         private readonly IHubContext<DocumentHub> _hubContext;
         private readonly IMapper _mapper;
+        private readonly IShareTokenService _shareTokenService;
+        private readonly IProjectMetricService _projectMetricService;
+        private readonly ITaskService _taskService;
 
-        public DocumentService(IDocumentRepository repo, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper)
+        public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService)
         {
-            _repo = repo;
+            _IDocumentRepository = IDocumentRepository;
             _httpClient = httpClient;
             _geminiApiKey = configuration["GeminiApi:ApiKey"];
             _geminiEndpoint = configuration["GeminiApi:Endpoint"];
@@ -59,6 +66,9 @@ namespace IntelliPM.Services.DocumentServices
             _configuration = configuration;
             _hubContext = hubContext;
             _mapper = mapper;
+            _shareTokenService = shareTokenService;
+            _projectMetricService = projectMetricService;
+            _taskService = taskService;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -69,7 +79,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId, int currentUserId)
         {
-            var docs = await _repo.GetByProjectAsync(projectId);
+            var docs = await _IDocumentRepository.GetByProjectAsync(projectId);
 
             var visibleDocs = docs.Where(doc =>
                 doc.Visibility == "MAIN" ||
@@ -84,7 +94,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<List<DocumentResponseDTO>> GetAllDocuments()
         {
-            var docs = await _repo.GetAllAsync();
+            var docs = await _IDocumentRepository.GetAllAsync();
             return docs.Select(d => new DocumentResponseDTO
             {
                 Id = d.Id,
@@ -103,14 +113,14 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<DocumentResponseDTO> GetByIdAsync(int id)
         {
-            var entity = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
+            var entity = await _IDocumentRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Document {id} not found.");
             return _mapper.Map<DocumentResponseDTO>(entity);
         }
 
 
         public async Task<DocumentResponseDTO> GetDocumentById(int id)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null)
                 throw new KeyNotFoundException($"Document {id} not found");
@@ -151,8 +161,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
                 var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
                 await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
 
@@ -202,8 +212,8 @@ namespace IntelliPM.Services.DocumentServices
 
             try
             {
-                await _repo.AddAsync(doc);
-                await _repo.SaveChangesAsync();
+                await _IDocumentRepository.AddAsync(doc);
+                await _IDocumentRepository.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -239,7 +249,7 @@ namespace IntelliPM.Services.DocumentServices
         {
             if (req == null) throw new ArgumentNullException(nameof(req));
 
-            var doc = await _repo.GetByIdAsync(id)
+            var doc = await _IDocumentRepository.GetByIdAsync(id)
                       ?? throw new KeyNotFoundException("Document not found");
 
             if (!string.IsNullOrWhiteSpace(req.Title))
@@ -254,8 +264,8 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             await _hubContext.Clients
                 .Group($"document-{id}")
@@ -287,7 +297,7 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<bool> DeleteDocument(int id, int deletedBy)
         {
-            var doc = await _repo.GetByIdAsync(id);
+            var doc = await _IDocumentRepository.GetByIdAsync(id);
 
             if (doc == null )
                 throw new KeyNotFoundException($"Document {id} not found or already deleted");
@@ -296,21 +306,11 @@ namespace IntelliPM.Services.DocumentServices
             doc.UpdatedBy = deletedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.DeleteAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.DeleteAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return true;
         }
-
-
-
-
-
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsCreatedByUser(int userId)
-        //{
-        //    var docs = await _repo.GetByUserIdAsync(userId);
-        //    return docs.Select(ToResponse).ToList();
-        //}
 
         private async Task<string?> GenerateContentWithGemini(string prompt)
         {
@@ -367,21 +367,23 @@ namespace IntelliPM.Services.DocumentServices
 
         public async Task<string> SummarizeContent(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null || string.IsNullOrWhiteSpace(doc.Content))
                 throw new Exception("Document not found or empty content.");
 
             var prompt = $@"
-Bạn là một trợ lý AI. Dưới đây là một nội dung tài liệu HTML:
+You are an AI assistant. Below is an HTML document content:
 
 {doc.Content}
 
-Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, cấu trúc dự án, và mục tiêu. Trả lời bằng văn bản thường (không phải HTML).
+Please read and summarize this document, keeping the key points, project structure, and objectives. 
+Respond in plain text (not HTML).
 ";
 
             var summary = await GenerateContentWithGemini(prompt);
-            return summary ?? "Không thể tóm tắt nội dung.";
+            return summary ?? "Unable to summarize the content.";
         }
+
 
 
 
@@ -406,80 +408,37 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
 
             };
         }
-        //        public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
-        //        {
-        //            var document = await _repo.GetByIdAsync(documentId);
-        //            if (document == null || !document.IsActive)
-        //                throw new Exception("Document not found");
 
-        //            var failed = new List<string>();
-        //            var link = $"https://yourdomain.com/documents/{document.Id}";
-
-        //            foreach (var email in req.Emails)
-        //            {
-        //                try
-        //                {
-        //                    await _emailService.SendShareDocumentEmail(
-        //    email,
-        //    document.Title,
-        //    req.Message,
-        //    $"http://localhost:5173/project/projects/form/SHAREABLE/{document.Id}?projectKey=PROJC"
-        //);
-
-        //                }
-        //                catch
-        //                {
-        //                    failed.Add(email);
-        //                }
-        //            }
-
-        //            return new ShareDocumentResponseDTO
-        //            {
-        //                Success = failed.Count == 0,
-        //                FailedEmails = failed
-        //            };
-        //        }
 
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
             // 1) Tìm document
-            var document = await _repo.GetByIdAsync(documentId);
+            var document = await _IDocumentRepository.GetByIdAsync(documentId);
             if (document == null)
                 throw new KeyNotFoundException($"Document {documentId} not found");
 
-            // 2) Validate emails
+            // 2) Validate emails (giữ nguyên)
             var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
                 .Select(e => e.Trim().ToLowerInvariant())
+                .Where(IsValidEmail)
                 .Distinct()
                 .ToList();
 
             if (lowerInputEmails.Count == 0)
-                throw new ArgumentException("No emails provided.");
+                throw new ArgumentException("No valid emails provided.");
 
-            // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+            // 3) Chuẩn hoá permission (giữ nguyên)
             var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
             var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
-            var mode = permissionType == "EDIT" ? "edit" : "view";
 
-            // 4) Tạo link chia sẻ (từ cấu hình)
-            // appsettings.json:
-            // "Frontend": { "BaseUrl": "http://localhost:5173" }
-            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-            var path = $"/project/projects/form/document/{document.Id}";
-            //var link = $"{baseUrl.TrimEnd('/')}{path}?mode={mode}";
-            var link = $"{baseUrl.TrimEnd('/')}{path}";
+            // 4) Lấy account map từ emails (giữ nguyên)
+            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
 
-
-            // 5) Lấy account map từ emails
-            var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<string email, int accountId>
-
-            // 6) Upsert quyền cho các email có accountId
+            // 5) Upsert quyền cho các email có accountId (giữ nguyên)
             if (accountMap.Count > 0)
             {
                 var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
-
-                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
                 var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
@@ -489,7 +448,6 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 if (toRemove.Count > 0)
                     _permissionRepo.RemoveRange(toRemove);
 
-                // Thêm quyền mới
                 var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
                     DocumentId = documentId,
@@ -501,40 +459,40 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
                 await _permissionRepo.SaveChangesAsync();
             }
 
-            // 7) Gửi email đến TẤT CẢ email nhập vào (kể cả chưa có account)
-            var failedToSend = new List<string>();
-            foreach (var email in lowerInputEmails)
+            // 6) Gửi email VỚI LINK CHỨA TOKEN CÁ NHÂN HÓA
+            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            var knownEmails = accountMap.Keys;
+            var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
+            var failedToSend = new List<string>(unknownEmails);
+
+            foreach (var email in knownEmails)
             {
                 try
                 {
+                    // Lấy AccountId tương ứng với email
+                    var accountId = accountMap[email];
+
+                    // TẠO TOKEN RIÊNG cho người dùng này
+                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType);
+
+                    // TẠO LINK CHIA SẺ MỚI chứa token
+                    var link = $"{baseUrl.TrimEnd('/')}/share/verify?token={token}";
+
                     await _emailService.SendShareDocumentEmail(
                         email,
                         document.Title,
                         req.Message,
-                        link
+                        link // <-- Sử dụng link mới đã được cá nhân hóa
                     );
                 }
                 catch (Exception ex)
                 {
                     failedToSend.Add(email);
-                    _logger.LogError(ex,
-                        """
-                ❌ Failed to send share document email
-                Email: {Email}
-                Title: {Title}
-                Message: {Message}
-                Link: {Link}
-                Error: {ErrorMessage}
-                """,
-                        email,
-                        document.Title,
-                        req.Message ?? "(No message)",
-                        link,
-                        ex.Message
-                    );
+                    _logger.LogError(ex, "Failed to send share document email to {Email}", email);
                 }
             }
 
+            // 7) Trả kết quả (giữ nguyên)
             return new ShareDocumentResponseDTO
             {
                 Success = failedToSend.Count == 0,
@@ -542,149 +500,19 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             };
         }
 
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
 
+            // Regex đơn giản: ký tự trước @, domain, và phần mở rộng
+            var regex = new System.Text.RegularExpressions.Regex(
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
 
-        //public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
-        //{
-        //    var document = await _repo.GetByIdAsync(documentId);
-        //    if (document == null || !document.IsActive)
-        //        throw new Exception("Document not found");
-
-        //    var failedToSend = new List<string>();
-        //    var failedToFind = new List<string>();
-
-        //    var lowerInputEmails = req.Emails?
-        //        .Where(e => !string.IsNullOrWhiteSpace(e))
-        //        .Select(e => e.Trim().ToLower())
-        //        .Distinct()
-        //        .ToList() ?? new List<string>();
-
-        //    if (lowerInputEmails.Count == 0)
-        //    {
-        //        return new ShareDocumentResponseDTO
-        //        {
-        //            Success = false,
-        //            FailedEmails = new List<string>()
-        //        };
-        //    }
-
-        //    var projectKey = string.IsNullOrWhiteSpace(req.ProjectKey) ? "DEFAULTKEY" : req.ProjectKey;
-
-        //    // ✅ Lấy danh sách tài khoản nội bộ
-        //    var accountMap = await _repo.GetAccountMapByEmailsAsync(lowerInputEmails); // Dictionary<email, accountId>
-        //    var matchedEmails = accountMap.Keys;
-        //    failedToFind = lowerInputEmails.Except(matchedEmails).ToList();
-
-        //    // ➕ Thêm quyền mới (chỉ cho nội bộ)
-        //    if (accountMap.Count > 0)
-        //    {
-        //        var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
-        //        var toRemove = existingPermissions
-        //            .Where(p => accountMap.Values.Contains(p.AccountId) && p.PermissionType == req.PermissionType)
-        //            .ToList();
-
-        //        _permissionRepo.RemoveRange(toRemove);
-
-        //        var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
-        //        {
-        //            DocumentId = documentId,
-        //            AccountId = accountId,
-        //            PermissionType = req.PermissionType
-        //        });
-
-        //        await _permissionRepo.AddRangeAsync(newPermissions);
-        //        await _permissionRepo.SaveChangesAsync();
-        //    }
-
-        //    // 📧 Gửi email cho tất cả
-        //    foreach (var email in lowerInputEmails)
-        //    {
-        //        try
-        //        {
-        //            string link;
-        //            if (accountMap.TryGetValue(email, out var accountId))
-        //            {
-        //                // 👉 Nội bộ
-        //                var routeType = req.PermissionType?.ToLower() == "view" ? "view" : "SHAREABLE";
-        //                var modeParam = req.PermissionType?.ToLower() == "view" ? "&mode=view" : "";
-        //                link = $"http://localhost:5173/project/projects/form/{routeType}/{document.Id}?projectKey={projectKey}{modeParam}";
-        //            }
-        //            else
-        //            {
-
-        //                link = $"http://localhost:5173/shared-doc/{document.Visibility}/{document.Id}?projectKey={projectKey}&mode=view";
-
-        //            }
-
-        //            await _emailService.SendShareDocumentEmail(
-        //                email,
-        //                document.Title,
-        //                req.Message,
-        //                link
-        //            );
-        //        }
-        //        catch
-        //        {
-        //            failedToSend.Add(email);
-        //        }
-        //    }
-
-        //    return new ShareDocumentResponseDTO
-        //    {
-        //        Success = failedToFind.Count == 0 && failedToSend.Count == 0,
-        //        FailedEmails = failedToFind.Concat(failedToSend).Distinct().ToList()
-        //    };
-        //}
-
-
-
-
-
-        //public async Task<DocumentResponseDTO> SubmitForApproval(int documentId)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
-        //    if (doc.Status != "Draft") throw new Exception("Only Draft documents can be submitted");
-
-        //    doc.Status = "PendingApproval";
-        //    doc.UpdatedAt = DateTime.UtcNow;
-
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
-
-        //    return ToResponse(doc);
-        //}
-
-        //public async Task<DocumentResponseDTO> UpdateApprovalStatus(int documentId, UpdateDocumentStatusRequest request)
-        //{
-        //    var doc = await _repo.GetByIdAsync(documentId);
-        //    if (doc == null) throw new Exception("Document not found");
-
-        //    if (doc.Status != "PendingApproval") throw new Exception("Document is not waiting for approval");
-
-        //    if (request.Status != "Approved" && request.Status != "Rejected")
-        //        throw new Exception("Invalid approval status");
-
-        //    doc.Status = request.Status;
-        //    doc.UpdatedAt = DateTime.UtcNow;
-
-        //    await _repo.UpdateAsync(doc);
-        //    await _repo.SaveChangesAsync();
-
-        //    return ToResponse(doc);
-        //}
-
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatus(string status)
-        //{
-        //    var docs = await _repo.GetByStatusAsync(status);
-        //    return docs.Select(ToResponse).ToList();
-        //}
-
-        //public async Task<List<DocumentResponseDTO>> GetDocumentsByStatusAndProject(string status, int projectId)
-        //{
-        //    var docs = await _repo.GetByStatusAndProjectAsync(status, projectId);
-        //    return docs.Select(ToResponse).ToList();
-        //}
+            return regex.IsMatch(email);
+        }
 
         private bool IsPromptValid(string prompt)
         {
@@ -693,34 +521,29 @@ Hãy đọc và tóm tắt nội dung tài liệu này, giữ lại ý chính, c
             return Regex.IsMatch(prompt, @"[a-zA-ZÀ-ỹ0-9]");
         }
 
-        private bool IsValidProjectPlanHtml(string content)
-        {
-            return content.Contains("<h1>📊 Project Plan") && content.Contains("<table");
-        }
-
         private string BuildProjectPlanPrompt(string userPrompt)
         {
             return $@"
-Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+You are a professional AI assistant for generating document content.
 
-Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
--  <h3> cho tiêu đề
-- <p> cho đoạn văn
-- <ul><li> cho danh sách gạch đầu dòng
-- <table><thead><tbody><tr><th><td> cho bảng
+Please respond to the following request in **complete HTML** format, using tags such as:
+- <h3> for headings
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <table><thead><tbody><tr><th><td> for tables
 
-Chỉ trả về HTML, không thêm mô tả bên ngoài.
+Return only HTML, without any additional descriptions outside.
 
-Yêu cầu:
+Request:
 {userPrompt}";
-
         }
+
         public async Task<string> GenerateAIContent(int documentId, string prompt)
         {
             if (!IsPromptValid(prompt))
                 throw new Exception("Prompt không hợp lệ. Vui lòng mô tả rõ hơn về nội dung bạn muốn tạo.");
 
-            var doc = await _repo.GetByIdAsync(documentId);
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId);
             if (doc == null) throw new Exception("Document not found");
 
             var fullPrompt = BuildProjectPlanPrompt(prompt);
@@ -732,8 +555,8 @@ Yêu cầu:
             doc.Content = content;
             doc.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.UpdateAsync(doc);
-            await _repo.SaveChangesAsync();
+            await _IDocumentRepository.UpdateAsync(doc);
+            await _IDocumentRepository.SaveChangesAsync();
 
             return content;
         }
@@ -741,30 +564,30 @@ Yêu cầu:
         public async Task<string> GenerateFreeAIContent(string prompt)
         {
             if (string.IsNullOrWhiteSpace(prompt) || prompt.Length < 5)
-                throw new Exception("Prompt không hợp lệ. Vui lòng nhập nội dung rõ ràng hơn.");
-
+                throw new Exception("Invalid prompt. Please enter a more specific request.");
 
             var htmlPrompt = $@"
-Bạn là một trợ lý AI tạo nội dung tài liệu chuyên nghiệp.
+You are an AI assistant specialized in generating professional document content.
 
-Hãy trả lời yêu cầu sau dưới dạng **HTML hoàn chỉnh**, sử dụng các thẻ như:
--  <h3> cho tiêu đề
-- <p> cho đoạn văn
-- <ul><li> cho danh sách gạch đầu dòng
-- <table><thead><tbody><tr><th><td> cho bảng
+Please respond to the following request in **complete HTML format**, using tags such as:
+- <h3> for headings
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <table><thead><tbody><tr><th><td> for tables
 
-Chỉ trả về HTML, không thêm mô tả bên ngoài.
+Return HTML only, do not include any external explanation or markdown.
 
-Yêu cầu:
+Request:
 {prompt}";
 
             var response = await GenerateContentWithGemini(htmlPrompt);
 
             if (string.IsNullOrWhiteSpace(response))
-                throw new Exception("AI không thể trả lời yêu cầu.");
+                throw new Exception("AI could not generate a response.");
 
             return response;
         }
+
 
 
         //public async Task<DocumentResponseDTO?> GetByKey(int projectId, string? epicId, string? taskId, string? subTaskId)
@@ -782,7 +605,7 @@ Yêu cầu:
 
         //        Content = doc.Content,
 
-         
+
         //        CreatedBy = doc.CreatedBy,
         //        UpdatedBy = doc.UpdatedBy,
         //        CreatedAt = doc.CreatedAt,
@@ -792,7 +615,7 @@ Yêu cầu:
 
         public async Task<Dictionary<string, int>> GetUserDocumentMappingAsync(int projectId, int userId)
         {
-            return await _repo.GetUserDocumentMappingAsync(projectId, userId);
+            return await _IDocumentRepository.GetUserDocumentMappingAsync(projectId, userId);
         }
         //public async Task<Dictionary<string, int>> GetStatusCount()
         //{
@@ -819,91 +642,94 @@ Yêu cầu:
             return mentionedIds.Distinct().ToList();
         }
 
+        //public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
+        //{
+        //    var doc = await _IDocumentRepository.GetByIdAsync(documentId);
+        //    if (doc == null)
+        //        throw new Exception("Document not found");
+
+        //    var projectId = doc.ProjectId;
+        //    Console.WriteLine(projectId);
+        //    var token = GetAccessToken();
+        //    if (string.IsNullOrWhiteSpace(token))
+        //        throw new Exception("Access token is missing");
+
+        //    var beUrl = Environment.GetEnvironmentVariable("BE_URL")
+        //                ?? "https://localhost:7128"; 
+
+
+        //    var metricRequest = new HttpRequestMessage(HttpMethod.Get,
+        //        $"{beUrl}/api/projectmetric/by-project-id?projectId={projectId}");
+        //    metricRequest.Headers.Authorization =
+        //        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        //    var metricResponse = await _httpClient.SendAsync(metricRequest);
+        //    if (!metricResponse.IsSuccessStatusCode)
+        //        throw new Exception($"Failed to fetch metrics: {metricResponse.StatusCode}");
+
+        //    var metricData = await metricResponse.Content.ReadFromJsonAsync<ProjectMetricApiResponse>();
+        //    var metrics = metricData?.Data;
+        //    if (metrics == null)
+        //        throw new Exception("No project metrics found");
+
+        //    // Tạo prompt từ tasks + metrics
+        //    var prompt = BuildFullTaskPrompt(metrics, projectId);
+        //    var content = await GenerateContentWithGemini(prompt);
+
+        //    if (string.IsNullOrWhiteSpace(content))
+        //        throw new Exception("AI did not generate content");
+
+        //    return new GenerateDocumentResponse
+        //    {
+        //        Content = content
+        //    };
+        //}
+
         public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
-            if (doc == null)
-                throw new Exception("Document not found");
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId)
+                      ?? throw new Exception("Document not found");
 
             var projectId = doc.ProjectId;
-            Console.WriteLine(projectId);
-            var token = GetAccessToken();
-            if (string.IsNullOrWhiteSpace(token))
-                throw new Exception("Access token is missing");
 
-            var beUrl = Environment.GetEnvironmentVariable("BE_URL")
-                        ?? "https://localhost:7128"; 
-
-      
-            var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"{beUrl}/api/projectmetric/by-project-id?projectId={projectId}");
-            metricRequest.Headers.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            var metricResponse = await _httpClient.SendAsync(metricRequest);
-            if (!metricResponse.IsSuccessStatusCode)
-                throw new Exception($"Failed to fetch metrics: {metricResponse.StatusCode}");
-
-            var metricData = await metricResponse.Content.ReadFromJsonAsync<ProjectMetricApiResponse>();
-            var metrics = metricData?.Data;
+            // GỌI THẲNG service/repo thay vì HTTP
+            var metrics = await _projectMetricService.GetByProjectIdAsync(projectId);
             if (metrics == null)
                 throw new Exception("No project metrics found");
 
-            // Tạo prompt từ tasks + metrics
             var prompt = BuildFullTaskPrompt(metrics, projectId);
-            var content = await GenerateContentWithGemini(prompt);
 
+            var content = await GenerateContentWithGemini(prompt);
             if (string.IsNullOrWhiteSpace(content))
                 throw new Exception("AI did not generate content");
 
-            return new GenerateDocumentResponse
-            {
-                Content = content
-            };
+            return new GenerateDocumentResponse { Content = content };
         }
+
 
 
         public async Task<GenerateDocumentResponse> GenerateFromTask(int documentId)
         {
-            var doc = await _repo.GetByIdAsync(documentId);
-            if (doc == null)
-                throw new Exception("Document not found");
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId)
+                      ?? throw new Exception("Document not found");
 
             var projectId = doc.ProjectId;
-            Console.WriteLine(projectId);
-            var token = GetAccessToken();
-            if (string.IsNullOrWhiteSpace(token))
-                throw new Exception("Access token is missing");
 
-            var beUrl = Environment.GetEnvironmentVariable("BE_URL")
-                        ?? "https://localhost:7128"; 
-
-            var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-                $"{beUrl}/api/task/by-project-id/{projectId}/detailed");
-            metricRequest.Headers.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            var taskResponse = await _httpClient.SendAsync(metricRequest);
-            if (!taskResponse.IsSuccessStatusCode)
-                throw new Exception($"Failed to fetch tasks: {taskResponse.StatusCode}");
-
-            var taskData = await taskResponse.Content.ReadFromJsonAsync<TaskApiResponse>();
-            var tasks = taskData?.Data;
-            if (tasks == null)
+            // ✅ gọi đúng hàm: GetTasksByProjectIdDetailed(int projectId)
+            var tasks = await _taskService.GetTasksByProjectIdDetailed(projectId);
+            if (tasks == null || tasks.Count == 0)
                 throw new Exception("No project tasks found");
 
-            // Tạo prompt từ tasks
             var prompt = BuildTasksTablesPrompt(tasks);
             var content = await GenerateContentWithGemini(prompt);
 
             if (string.IsNullOrWhiteSpace(content))
                 throw new Exception("AI did not generate content");
 
-            return new GenerateDocumentResponse
-            {
-                Content = content
-            };
+            return new GenerateDocumentResponse { Content = content };
         }
+
+
 
 
 
@@ -916,17 +742,17 @@ Yêu cầu:
             });
 
             return $@"
-Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích) là một bảng (<table>) dạng DỌC, trong đó:
-- Mỗi hàng (<tr>) chứa một cặp dữ liệu.
-- Cột đầu tiên là tên trường (<th>), và cột thứ hai là giá trị tương ứng (<td>).
-- Không thêm style hay class.
-- Nếu giá trị null, để rỗng.
-- Giá trị lấy từ JSON (camelCase), riêng Project ID lấy từ tham số bên ngoài: {projectId}.
+You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanation) as a VERTICAL table (<table>), in which:
+- Each row (<tr>) contains a pair of data.
+- The first column is the field name (<th>), and the second column is the corresponding value (<td>).
+- Do not add style or class.
+- If a value is null, leave it empty.
+- Values are taken from the JSON (camelCase), except Project ID which is taken from the external parameter: {projectId}.
 
 JSON:
 {json}
 
-CẤU TRÚC MONG MUỐN:
+EXPECTED STRUCTURE:
 <table>
   <tbody>
     <tr><th>Project ID</th><td>{projectId}</td></tr>
@@ -944,10 +770,7 @@ CẤU TRÚC MONG MUỐN:
     <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
     <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
     <tr><th>Calculated By</th><td>{{metrics.calculatedBy}}</td></tr>
-    <tr><th>Is Improved?</th><td>{{metrics.isImproved}}</td></tr>
-    <tr><th>Improvement Summary</th><td>{{metrics.improvementSummary}}</td></tr>
     <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
-    <tr><th>Project Status</th><td>{{metrics.projectStatus}}</td></tr>
     <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
     <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
   </tbody>
@@ -956,9 +779,10 @@ CẤU TRÚC MONG MUỐN:
 
 
 
-        private string BuildTasksTablesPrompt(List<TaskDto> tasks)
+
+        private string BuildTasksTablesPrompt(List<TaskDetailedResponseDTO> tasks)
         {
-            // JSON camelCase cho AI đọc đúng key
+            // Serialize to camelCase JSON so AI can read correct keys
             var json = JsonSerializer.Serialize(tasks, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -966,21 +790,21 @@ CẤU TRÚC MONG MUỐN:
             });
 
             return $@"
-Bạn là một trợ lý AI. Hãy CHỈ TRẢ VỀ HTML THUẦN (không CSS, không markdown, không giải thích).
+You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanations).
 
-Yêu cầu:
-- Đầu ra là NHIỀU bảng <table>, mỗi task trong JSON phải được in ra thành đúng 1 bảng.
-- Mỗi bảng có cấu trúc dọc (Name/Information) như bên dưới.
-- Không thêm style hay class.
-- Không format lại giá trị, in đúng giá trị từ JSON (nếu null để rỗng).
-- TUYỆT ĐỐI KHÔNG hiển thị các field: taskAssignments, commentCount, comments, labels.
-- Chỉ dùng các thẻ: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
-- Không thêm text ngoài các <table>.
+Requirements:
+- The output must be MULTIPLE <table> elements, each task in the JSON must be printed as exactly 1 table.
+- Each table should follow a vertical structure (Name/Information) as shown below.
+- Do not add style or class.
+- Do not reformat values, print them exactly as in JSON (if null, leave empty).
+- STRICTLY DO NOT display the fields: taskAssignments, commentCount, comments, labels.
+- Only use the following tags: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+- Do not add any text outside of the <table> elements.
 
-Dữ liệu JSON (mảng các task):
+JSON data (array of tasks):
 {json}
 
-Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố định** này, map label → key JSON tương ứng:
+For each task in the array, output exactly 1 table following the **fixed template** below, mapping label → JSON key accordingly:
 
 <table>
   <thead>
@@ -1028,43 +852,11 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
 </table>";
         }
 
-
-
-
-
-
-
-        private string FormatDate(DateTime? date)
-        {
-            return date?.ToString("yyyy-MM-dd") ?? "Not determined";
-        }
-
         private string? GetAccessToken()
         {
             var authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
             return authHeader?.Replace("Bearer ", "");
         }
-
-        //public async Task ShareDocumentViaEmail(ShareDocumentViaEmailRequest req)
-        //{
-        //    var document = await _repo.GetByIdAsync(req.DocumentId);
-        //    if (document == null) throw new Exception("Document not found");
-
-        //    var users = await _projectMemberRepository.GetAccountsByIdsAsync(req.UserIds);
-        //    foreach (var user in users)
-        //    {
-        //        if (string.IsNullOrWhiteSpace(user.Email)) continue;
-
-        //        var subject = $"📄 Bạn nhận được tài liệu: {document.Title}";
-        //        var body = req.CustomMessage ?? $"Tài liệu \"{document.Title}\" đã được chia sẻ với bạn.";
-
-        //        // Đính kèm link file trong nội dung
-        //        body += $"\n\n📎 File: {req.FileUrl}";
-
-        //        await _emailService.SendDocumentShareEmailMeeting(user.Email, document.Title, req.CustomMessage ?? "", req.FileUrl);
-
-        //    }
-        //}
 
         public async Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest req)
         {
@@ -1103,26 +895,13 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
             return permission?.ToLower() ?? "none";
         }
 
-
-        //public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
-        //{
-
-        //    var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
-        //    if (!updated) throw new KeyNotFoundException($"Document {documentId} not found.");
-
-        //    var latest = await _repo.GetByIdAsync(documentId)
-        //                 ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
-
-        //    return _mapper.Map<DocumentResponseDTO>(latest);
-        //}
-
         public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
         {
-            var updated = await _repo.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
+            var updated = await _IDocumentRepository.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
             if (!updated)
                 throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            var latest = await _repo.GetByIdAsync(documentId)
+            var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
 
             var dto = new DocumentResponseDTO
@@ -1147,17 +926,17 @@ Với mỗi task trong mảng, hãy xuất đúng 1 bảng theo **mẫu cố đ�
             return dto;
         }
 
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUser(int userId)
+        {
+            var sharedDocs = await _permissionRepo.GetDocumentsSharedToUserAsync(userId);
+            return sharedDocs.Select(ToResponse).ToList();
+        }
 
-
-
-
-
-
-
-
-
-
-
+        public async Task<List<DocumentResponseDTO>> GetDocumentsSharedToUserInProject(int userId, int projectId)
+        {
+            var docs = await _permissionRepo.GetDocumentsSharedToUserInProjectAsync(userId, projectId);
+            return docs.Select(ToResponse).ToList();
+        }
 
     }
 }

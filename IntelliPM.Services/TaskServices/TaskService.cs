@@ -1,19 +1,15 @@
 ﻿using AutoMapper;
-using AutoMapper.Execution;
-using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.Label.Response;
-using IntelliPM.Data.DTOs.ProjectMember.Request;
-using IntelliPM.Data.DTOs.Subtask.Response;
-using IntelliPM.Data.DTOs.Task;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
-using IntelliPM.Data.DTOs.TaskDependency.Response;
-using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Epic;
+using IntelliPM.Data.Enum.Task;
 using IntelliPM.Repositories.AccountRepos;
-using IntelliPM.Repositories.ActivityLogRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -32,17 +28,6 @@ using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Asn1.Ocsp;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.TaskServices
 {
@@ -54,7 +39,7 @@ namespace IntelliPM.Services.TaskServices
         private readonly IProjectRepository _projectRepo;
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IAccountRepository _accountRepo;
-        private readonly ITaskCommentService _taskCommentService; 
+        private readonly ITaskCommentService _taskCommentService;
         private readonly IWorkItemLabelService _workItemLabelService;
         private readonly ITaskAssignmentRepository _taskAssignmentRepo;
         private readonly ITaskDependencyRepository _taskDependencyRepo;
@@ -99,7 +84,6 @@ namespace IntelliPM.Services.TaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
 
-            // Gọi AI service và nhận về danh sách task đề xuất có title + description
             var suggestions = await _geminiService.GenerateTaskAsync(project.Description);
 
             if (suggestions == null || !suggestions.Any())
@@ -113,7 +97,7 @@ namespace IntelliPM.Services.TaskServices
                 Title = s.Title?.Trim() ?? "Untitled Task",
                 Description = s.Description?.Trim() ?? string.Empty,
                 Type = s.Type?.Trim() ?? string.Empty,
-                Status = "TO-DO",
+                Status = TaskStatusEnum.TO_DO.ToString(),
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = now,
@@ -166,8 +150,8 @@ namespace IntelliPM.Services.TaskServices
 
             var dto = _mapper.Map<TaskResponseDTO>(entity);
 
-            var isInProgress = entity.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
-            var isDone = entity.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+            var isInProgress = entity.Status.Equals(TaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase);
+            var isDone = entity.Status.Equals(TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase);
 
             // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
@@ -281,8 +265,10 @@ namespace IntelliPM.Services.TaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
             var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+           // var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
 
             var entity = _mapper.Map<Tasks>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
@@ -310,9 +296,9 @@ namespace IntelliPM.Services.TaskServices
                 if (!string.IsNullOrEmpty(entity.EpicId))
                 {
                     var epic = await _epicRepo.GetByIdAsync(entity.EpicId);
-                    if (epic != null && epic.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+                    if (epic != null && epic.Status.Equals(EpicStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
-                        epic.Status = "IN_PROGRESS";
+                        epic.Status = EpicStatusEnum.IN_PROGRESS.ToString();
                         epic.UpdatedAt = DateTime.UtcNow;
                         await _epicRepo.Update(epic);
                     }
@@ -469,7 +455,7 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
-         
+
             return _mapper.Map<TaskUpdateResponseDTO>(entity);
         }
 
@@ -502,11 +488,14 @@ namespace IntelliPM.Services.TaskServices
             if (!validStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Invalid status: '{status}'. Must be one of: {string.Join(", ", validStatuses)}");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
 
-            var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
-            var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.STATUS_CHANGE.ToString();
+
+            var isInProgress = status.Equals(TaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase);
+            var isDone = status.Equals(TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase);
 
             if (isInProgress)
                 entity.ActualStartDate = DateTime.UtcNow;
@@ -645,7 +634,7 @@ namespace IntelliPM.Services.TaskServices
 
             //return _mapper.Map<TaskResponseDTO>(entity);
             var result = _mapper.Map<TaskResponseDTO>(entity);
-            result.Warnings = warnings; 
+            result.Warnings = warnings;
             return result;
         }
 
@@ -710,8 +699,11 @@ namespace IntelliPM.Services.TaskServices
             if (!validTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Invalid type: '{type}'. Must be one of: {string.Join(", ", validTypes)}");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+           // var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             entity.Type = type;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -753,8 +745,12 @@ namespace IntelliPM.Services.TaskServices
             if (!validPriorities.Contains(priority, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Invalid priority: '{priority}'. Must be one of: {string.Join(", ", validPriorities)}");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             entity.Priority = priority;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -789,8 +785,12 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             entity.ReporterId = reporter;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -853,7 +853,7 @@ namespace IntelliPM.Services.TaskServices
                 dto.ReporterPicture = reporter.Picture;
             }
 
-            
+
             var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(dto.Id);
             var assignmentDtos = new List<TaskAssignmentResponseDTO>();
             foreach (var a in assignments)
@@ -893,8 +893,12 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Title with task ID {id} not found.");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             entity.Title = title;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -926,8 +930,12 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
         {
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -974,8 +982,11 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -1015,8 +1026,11 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy)
         {
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
@@ -1056,8 +1070,11 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             entity.Description = description;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1159,14 +1176,16 @@ namespace IntelliPM.Services.TaskServices
                 await _taskRepo.Update(entity);
                 //await UpdateTaskProgressAsync(entity);
 
+              
+
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = entity.ProjectId,
                     TaskId = id,
                     SubtaskId = null,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = id,
-                    ActionType = "UPDATE",
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Updated plan hours for task '{id}' to {plannedHours}",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1294,8 +1313,10 @@ namespace IntelliPM.Services.TaskServices
 
             var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
             var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
 
             var sprint = await _epicRepo.GetByIdAsync(epicId);
             if (sprint == null)
@@ -1312,13 +1333,13 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = "Task",
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed epic of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
-                });
+                }); 
             }
             catch (Exception ex)
             {
@@ -1371,7 +1392,7 @@ namespace IntelliPM.Services.TaskServices
             if (sprint == null)
                 throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
 
-            var entities = await _taskRepo.GetBySprintIdAndByStatusAsync(sprintId,status);
+            var entities = await _taskRepo.GetBySprintIdAndByStatusAsync(sprintId, status);
 
             var dtos = _mapper.Map<List<TaskBacklogResponseDTO>>(entities);
             await EnrichTaskBacklogResponses(dtos);
@@ -1469,16 +1490,16 @@ namespace IntelliPM.Services.TaskServices
             {
                 ProjectId = task.ProjectId,
                 TaskId = task.Id,
-                RelatedEntityType = "Task",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                 RelatedEntityId = task.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "PercentComplete",
                 OldValue = oldPercentComplete?.ToString() ?? "null",
                 NewValue = percentComplete?.ToString() ?? "null",
                 Message = $"Updated percent complete for task '{task.Id}' to {percentComplete ?? 0}",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
-            });
+            }); 
 
             return _mapper.Map<TaskResponseDTO>(task);
         }
@@ -1500,9 +1521,9 @@ namespace IntelliPM.Services.TaskServices
             {
                 ProjectId = task.ProjectId,
                 TaskId = task.Id,
-                RelatedEntityType = "Task",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                 RelatedEntityId = task.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "PlannedCost",
                 OldValue = oldPlannedCost?.ToString() ?? "null",
                 NewValue = plannedCost?.ToString() ?? "null",
@@ -1531,9 +1552,9 @@ namespace IntelliPM.Services.TaskServices
             {
                 ProjectId = task.ProjectId,
                 TaskId = task.Id,
-                RelatedEntityType = "Task",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                 RelatedEntityId = task.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "ActualCost",
                 OldValue = oldActualCost?.ToString() ?? "null",
                 NewValue = actualCost?.ToString() ?? "null",
@@ -1587,6 +1608,6 @@ namespace IntelliPM.Services.TaskServices
 
         //    return _mapper.Map<TaskResponseDTO>(entity);
         //}
-
+        //
     }
 }

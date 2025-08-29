@@ -3,6 +3,7 @@ using MimeKit;
 using MailKit.Net.Smtp;
 using System.Threading.Tasks;
 using MailKit.Security;
+using System.Web;
 
 namespace IntelliPM.Services.EmailServices
 {
@@ -14,6 +15,8 @@ namespace IntelliPM.Services.EmailServices
         {
             _config = config;
         }
+
+
         public async Task SendRegistrationEmail(string fullName, string userEmail, string verificationUrl)
         {
             var email = new MimeMessage();
@@ -228,12 +231,16 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-        public async Task SendAccountResetPassword(string fullName, string userEmail, string OTP)
+
+
+        public async Task SendAdminRegistrationEmail(string username, string userEmail, string password, string verificationUrl)
         {
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
             email.To.Add(MailboxAddress.Parse(userEmail));
-            email.Subject = "[ConstructionEquipmentRental] - Password Reset Request";
+            email.Subject = "[IntelliPM] - Your Account Has Been Created";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
 
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
@@ -243,7 +250,7 @@ namespace IntelliPM.Services.EmailServices
 <head>
   <meta charset='UTF-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>Password Reset</title>
+  <title>Account Created - IntelliPM</title>
   <style>
     body {{
       font-family: 'Segoe UI', sans-serif;
@@ -257,39 +264,80 @@ namespace IntelliPM.Services.EmailServices
       background-color: #ffffff;
       border-radius: 12px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      overflow: hidden;
     }}
     .top-bar {{
+      background-color: #1b6fff;
       height: 4px;
-      background-color: #4caf50;
+      width: 100%;
     }}
     .content {{
       padding: 32px 24px;
       text-align: left;
     }}
+    .logo {{
+      margin-bottom: 24px;
+    }}
+    .logo img {{
+      width: 80px;
+      height: auto;
+    }}
     h1 {{
-      font-size: 22px;
-      color: #2e7d32;
+      font-size: 24px;
+      color: #1b1b1f;
       margin-bottom: 16px;
     }}
     p {{
       font-size: 15px;
       line-height: 1.6;
-      color: #333;
+      color: #333333;
       margin-bottom: 18px;
     }}
-    .otp {{
-      font-size: 24px;
-      font-weight: bold;
-      color: #4caf50;
-      letter-spacing: 4px;
+    .btn {{
+      display: inline-block;
+      background-color: #1b6fff;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 14px 26px;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-top: 8px;
+      box-shadow: 0 4px 14px rgba(27,111,255,0.3);
+    }}
+    .btn:hover {{
+      background-color: #155ed6;
+    }}
+    .credentials {{
+      background-color: #f4f4f5;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }}
+    .credentials p {{
+      margin: 8px 0;
+      font-size: 15px;
+    }}
+    .credentials strong {{
+      color: #1b1b1f;
     }}
     .footer {{
-      background-color: #f1f1f1;
+      background-color: #f4f4f5;
       text-align: center;
       padding: 20px;
       font-size: 13px;
       color: #777;
       border-top: 1px solid #ddd;
+    }}
+    .footer p {{
+      margin: 4px 0;
+    }}
+    .footer a {{
+      color: #1b6fff;
+      text-decoration: none;
+    }}
+    .footer a:hover {{
+      text-decoration: underline;
     }}
   </style>
 </head>
@@ -297,20 +345,191 @@ namespace IntelliPM.Services.EmailServices
   <div class='container'>
     <div class='top-bar'></div>
     <div class='content'>
-      <h1>Password Reset Request</h1>
-      <p>Hi <strong>{fullName}</strong>,</p>
-      <p>You’ve requested to reset your password for <strong>ConstructionEquipmentRental</strong>. Please use the OTP below to proceed:</p>
-      <p class='otp'>{OTP}</p>
-      <p>This OTP is valid for a limited time. If you didn’t request this action, please ignore this email.</p>
-      <p>Thank you,<br/>The ConstructionEquipmentRental Team</p>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
+      <h1>Welcome to IntelliPM 👋</h1>
+      <p>Hi <strong>{username}</strong>,</p>
+      <p>An account has been created for you on <strong>IntelliPM</strong> – your AI assistant for smarter project management. Below are your login credentials:</p>
+      <div class='credentials'>
+        <p><strong>Username:</strong> {username}</p>
+        <p><strong>Password:</strong> {password}</p>
+      </div>
+      <p>To activate your account, please verify your email address by clicking the button below:</p>
+      <a href='{verificationUrl}' class='btn'>Verify My Email</a>
+      <p style='margin-top:30px;'>For security, please change your password after logging in. If you didn’t request this account, please contact <a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a>.</p>
     </div>
     <div class='footer'>
-      <p>Thank you for trusting us.</p>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
     </div>
   </div>
 </body>
 </html>"
             };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+
+
+
+        public async Task SendAccountResetPassword(string fullName, string userEmail, string OTP)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+
+            email.Subject = "[IntelliPM] - Password Reset Request";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+
+  <title>Password Reset - IntelliPM</title>
+
+  <style>
+    body {{
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9fafb;
+      margin: 0;
+      padding: 32px 16px;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+
+      overflow: hidden;
+    }}
+    .top-bar {{
+      background-color: #1b6fff;
+      height: 4px;
+      width: 100%;
+
+    }}
+    .content {{
+      padding: 32px 24px;
+      text-align: left;
+    }}
+
+    .logo {{
+      margin-bottom: 24px;
+    }}
+    .logo img {{
+      width: 80px;
+      height: auto;
+    }}
+    h1 {{
+      font-size: 24px;
+      color: #1b1b1f;
+
+      margin-bottom: 16px;
+    }}
+    p {{
+      font-size: 15px;
+      line-height: 1.6;
+
+      color: #333333;
+      margin-bottom: 18px;
+    }}
+    .btn {{
+      display: inline-block;
+      background-color: #1b6fff;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 14px 26px;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-top: 8px;
+      box-shadow: 0 4px 14px rgba(27,111,255,0.3);
+    }}
+    .btn:hover {{
+      background-color: #155ed6;
+    }}
+    .credentials {{
+      background-color: #f4f4f5;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }}
+    .credentials p {{
+      margin: 8px 0;
+      font-size: 15px;
+    }}
+    .credentials strong {{
+      color: #1b1b1f;
+    }}
+    .footer {{
+      background-color: #f4f4f5;
+
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+      color: #777;
+      border-top: 1px solid #ddd;
+    }}
+
+    .footer p {{
+      margin: 4px 0;
+    }}
+    .footer a {{
+      color: #1b6fff;
+      text-decoration: none;
+    }}
+    .footer a:hover {{
+      text-decoration: underline;
+    }}
+
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='top-bar'></div>
+    <div class='content'>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
+
+      <h1>Password Reset Request</h1>
+      <p>Hi <strong>{fullName}</strong>,</p>
+      <p>You’ve requested to reset your password for <strong>IntelliPM</strong>. Please use the OTP below to proceed:</p>
+      <div class='credentials'>
+        <p><strong>OTP:</strong> {OTP}</p>
+      </div>
+      <p>This OTP is valid for a limited time. If you didn’t request this action, please contact <a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a>.</p>
+      <a href='https://intellipm.com/reset-password' class='btn'>Reset My Password</a>
+      <p style='margin-top:30px;'>For security, please ensure you use a strong password. If you need assistance, reach out to our support team.</p>
+
+    </div>
+    <div class='footer'>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+            };
+
 
             using var smtp = new MailKit.Net.Smtp.SmtpClient();
             await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, MailKit.Security.SecureSocketOptions.StartTls);
@@ -386,6 +605,7 @@ namespace IntelliPM.Services.EmailServices
             await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
+
         }
 
 
@@ -545,7 +765,6 @@ namespace IntelliPM.Services.EmailServices
             await smtp.DisconnectAsync(true);
         }
 
-
         public async Task SendMeetingInvitation(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -618,7 +837,7 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
-        
+       
         public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -692,7 +911,6 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
-
         public async Task SendMeetingRemovalEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
@@ -741,7 +959,6 @@ a  {{ color:#2980b9; text-decoration:none; }}
                     Console.WriteLine($"[EmailError] Inner: {ex.InnerException.Message}");
             }
         }
-
 
         public async Task SendShareDocumentEmail(string toEmail, string documentTitle, string message, string link)
         {
@@ -862,7 +1079,6 @@ a  {{ color:#2980b9; text-decoration:none; }}
                     Console.WriteLine($"[EmailError] Inner exception: {ex.InnerException.Message}");
             }
         }
-
 
         public async Task SendMeetingReminderEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
@@ -1058,6 +1274,147 @@ a  {{ color:#2980b9; text-decoration:none; }}
             }
         }
 
+        public async Task SendEpicAssignmentEmail(string fullName, string userEmail, string epicId, string epicName)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(userEmail));
+            email.Subject = $"[IntelliPM] You have been assigned epic {epicId}: {epicName}";
+
+            // Construct the URL with the epicId
+            var epicUrl = $"https://intellipm.vercel.app/project/epic/{Uri.EscapeDataString(epicId)}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Epic Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new epic:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(epicId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(epicName)}</li>
+            </ul>
+            <p>Please review the details of your epic in the IntelliPM system.</p>
+            <a href=""{epicUrl}"" class=""button"">View Epic</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
+            };
+
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task SendTaskAssignmentEmail(string fullName, string userEmail, string taskId, string taskTitle)
         {
             var email = new MimeMessage();
@@ -1065,26 +1422,138 @@ a  {{ color:#2980b9; text-decoration:none; }}
             email.To.Add(MailboxAddress.Parse(userEmail));
             email.Subject = $"[IntelliPM] You have been assigned task {taskId}: {taskTitle}";
 
+            // Construct the URL with the taskId
+            var taskUrl = $"https://intellipm.vercel.app/project/HAMS/work-item-detail?taskId={Uri.EscapeDataString(taskId)}";
+
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
                 Text = $@"
-        <h2>Hi {fullName},</h2>
-        <p>You have been assigned a new task:</p>
-        <ul>
-          <li><b>ID:</b> {taskId}</li>
-          <li><b>Title:</b> {taskTitle}</li>
-        </ul>
-       
-        <p>Please check the system for more details.</p>
-        <br/>
-        <p>Best regards,<br/>IntelliPM Notification System</p>"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Task Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new task:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(taskId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(taskTitle)}</li>
+            </ul>
+            <p>Please review the details of your task in the IntelliPM system.</p>
+            <a href=""{taskUrl}"" class=""button"">View Task</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
             };
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task SendSubtaskAssignmentEmail(string fullName, string userEmail, string subtaskId, string subtaskTitle)
@@ -1094,29 +1563,139 @@ a  {{ color:#2980b9; text-decoration:none; }}
             email.To.Add(MailboxAddress.Parse(userEmail));
             email.Subject = $"[IntelliPM] You have been assigned subtask {subtaskId}: {subtaskTitle}";
 
+            // Construct the URL with the subtaskId
+            var subtaskUrl = $"https://intellipm.vercel.app/project/HAMS/child-work/{Uri.EscapeDataString(subtaskId)}";
+
             email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {
                 Text = $@"
-        <h2>Hi {fullName},</h2>
-        <p>You have been assigned a new subtask:</p>
-        <ul>
-          <li><b>ID:</b> {subtaskId}</li>
-          <li><b>Title:</b> {subtaskTitle}</li>
-        </ul>
-       
-        <p>Please check the system for more details.</p>
-        <br/>
-        <p>Best regards,<br/>IntelliPM Notification System</p>"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+        }}
+        .content h2 {{
+            color: #4a90e2;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .content ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .content ul li {{
+            margin-bottom: 10px;
+            font-size: 16px;
+        }}
+        .content ul li b {{
+            color: #333333;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .button:hover {{
+            background-color: #357abd;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #777777;
+            border-top: 1px solid #eeeeee;
+        }}
+        @media only screen and (max-width: 600px) {{
+            .container {{
+                width: 100%;
+                padding: 10px;
+            }}
+            .header h1 {{
+                font-size: 20px;
+            }}
+            .content h2 {{
+                font-size: 18px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>IntelliPM Subtask Assignment</h1>
+        </div>
+        <div class=""content"">
+            <h2>Hi {HttpUtility.HtmlEncode(fullName)},</h2>
+            <p>You have been assigned a new subtask:</p>
+            <ul>
+                <li><b>ID:</b> {HttpUtility.HtmlEncode(subtaskId)}</li>
+                <li><b>Title:</b> {HttpUtility.HtmlEncode(subtaskTitle)}</li>
+            </ul>
+            <p>Please review the details of your subtask in the IntelliPM system.</p>
+            <a href=""{subtaskUrl}"" class=""button"">View Subtask</a>
+        </div>
+        <div class=""footer"">
+            <p>Best regards,<br>IntelliPM Notification System</p>
+        </div>
+    </div>
+</body>
+</html>"
             };
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+            try
+            {
+                using var smtp = new SmtpClient();
+                if (!int.TryParse(_config["SmtpSettings:Port"], out var port))
+                {
+                    throw new InvalidOperationException("Invalid SMTP port configuration.");
+                }
+                await smtp.ConnectAsync(_config["SmtpSettings:Host"], port, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
+                throw;
+            }
         }
-
-     
 
         public async Task SendDocumentShareEmailMeeting(
     string toEmail,
@@ -1401,7 +1980,134 @@ a  {{ color:#2980b9; text-decoration:none; }}
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
-    
+
+        public async Task SendOverdueRiskNotificationEmailAsync(string assigneeFullName, string assigneeEmail, string riskKey, string riskTitle, string projectKey, DateTime dueDate, string riskDetailUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("IntelliPM Team", _config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(assigneeEmail));
+            email.Subject = $"[IntelliPM] Risk Overdue: {riskKey} - {riskTitle}";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }}
+        .header {{
+            background-color: #dc3545; /* Red for urgency */
+            padding: 20px;
+            text-align: center;
+        }}
+        .header img {{
+            max-width: 150px;
+        }}
+        .content {{
+            padding: 20px;
+            color: #333333;
+        }}
+        .content h2 {{
+            color: #dc3545; /* Red to match header */
+            font-size: 24px;
+            margin-bottom: 10px;
+        }}
+        .content p {{
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }}
+        .details {{
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }}
+        .details ul {{
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }}
+        .details ul li {{
+            margin-bottom: 8px;
+        }}
+        .details ul li strong {{
+            display: inline-block;
+            width: 120px;
+            color: #555555;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #dc3545; /* Red for urgency */
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }}
+        .footer {{
+            background-color: #f4f4f4;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{logoUrl}' alt='IntelliPM Logo'>
+        </div>
+        <div class='content'>
+            <h2>Hi {assigneeFullName},</h2>
+            <p>A risk assigned to you in the IntelliPM system is overdue. Please review the details below and take immediate action to address the delay.</p>
+            <div class='details'>
+                <ul>
+                    <li><strong>Risk Key:</strong> {riskKey}</li>
+                    <li><strong>Title:</strong> {riskTitle}</li>
+                    <li><strong>Project:</strong> {projectKey}</li>
+                    <li><strong>Due Date:</strong> {dueDate:MMM dd, yyyy}</li>
+                </ul>
+            </div>
+            <p>Please log in to the IntelliPM system to review the risk and update its status.</p>
+            <a href='{riskDetailUrl}' class='button'>View Risk Details</a>
+        </div>
+        <div class='footer'>
+            <p>Best regards,<br>IntelliPM Notification System</p>
+            <p>&copy; {DateTime.UtcNow.Year} IntelliPM. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], int.Parse(_config["SmtpSettings:Port"]), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
     }
 
 }

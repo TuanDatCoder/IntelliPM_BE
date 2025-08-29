@@ -1,29 +1,33 @@
-﻿using IntelliPM.Data.Entities;
+﻿using AutoMapper;
+using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Account.Request;
+using IntelliPM.Data.DTOs.Account.Response;
+using IntelliPM.Data.DTOs.Admin.Request;
+using IntelliPM.Data.DTOs.Admin.Response;
+using IntelliPM.Data.DTOs.Auth.Request;
+using IntelliPM.Data.DTOs.Auth.Response;
+using IntelliPM.Data.DTOs.Password;
+using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.VerifyCode;
 using IntelliPM.Services.JWTServices;
 using IntelliPM.Services.Security;
-using IntelliPM.Data.DTOs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using IntelliPM.Services.Helper.VerifyCode;
-using IntelliPM.Data.DTOs.Password;
-using IntelliPM.Repositories.AccountRepos;
-using AutoMapper;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
-using IntelliPM.Services.Helper.CustomExceptions;
-using IntelliPM.Data.DTOs.Account.Response;
-using IntelliPM.Data.DTOs.Account.Request;
-using IntelliPM.Data.DTOs.Auth.Request;
-using IntelliPM.Data.DTOs.Auth.Response;
 
 
 namespace IntelliPM.Services.AuthenticationServices
@@ -40,6 +44,9 @@ namespace IntelliPM.Services.AuthenticationServices
         private readonly IConfiguration _config;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _backendUrl;
+        ILogger<AuthenticationService> _logger;
+
+
         public AuthenticationService(
             IRefreshTokenRepository refreshTokenRepository,
             IDecodeTokenHandler decodeToken,
@@ -49,7 +56,8 @@ namespace IntelliPM.Services.AuthenticationServices
             IAccountRepository accountRepository,
             IMapper mapper,
              IConfiguration config,
-             IHttpContextAccessor httpContextAccessor
+             IHttpContextAccessor httpContextAccessor,
+             ILogger<AuthenticationService> logger
             )
         {
             this.verificationCodeCache = verificationCodeCache;
@@ -64,6 +72,7 @@ namespace IntelliPM.Services.AuthenticationServices
             _httpContextAccessor = httpContextAccessor;
             #pragma warning disable CS8601
             _backendUrl = config["Environment:BE_URL"];
+            _logger = logger;
 
         }
 
@@ -99,24 +108,148 @@ namespace IntelliPM.Services.AuthenticationServices
             }
         }
 
+        //public async Task ForgotPassword(string email)
+        //{
+        //    var currentAccount = await _accountRepository.GetAccountByEmail(email);
+
+        //    if (currentAccount != null)
+        //    {
+
+        //        var otp = GenerateOTP();
+
+        //        verificationCodeCache.Put(currentAccount.Email, otp, 5);
+
+        //        await _emailService.SendAccountResetPassword(currentAccount.Email, currentAccount.Email, otp);
+
+        //    }
+        //    else
+        //    {
+        //        throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
+        //    }
+        //}
+
+
+        //public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
+        //{
+        //    var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
+
+
+
+        //    if (currCustomer != null)
+        //    {
+
+        //        var otp = verificationCodeCache.Get(currCustomer.Email);
+
+        //        if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP))
+        //        {
+        //            throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
+        //        }
+
+        //        currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
+
+        //        await _accountRepository.Update(currCustomer);
+
+        //    }
+
+        //    else
+        //    {
+        //        throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
+        //    }
+        //}
+
+
         public async Task ForgotPassword(string email)
         {
             var currentAccount = await _accountRepository.GetAccountByEmail(email);
-
             if (currentAccount != null)
             {
-
                 var otp = GenerateOTP();
+                _logger.LogInformation("Generated OTP for Email={Email}, Username={Username}: {Otp}",
+                    currentAccount.Email, currentAccount.Username, otp);
 
-                verificationCodeCache.Put(currentAccount.Username, otp, 5);
+                // Lưu OTP với TTL 10 phút để test
+                verificationCodeCache.Put(currentAccount.Email, otp, 10);
+                var cachedOtp = verificationCodeCache.Get(currentAccount.Email);
+                _logger.LogInformation("Cached OTP for Email={Email}: {CachedOtp}",
+                    currentAccount.Email, cachedOtp ?? "null");
+
+                if (cachedOtp == null)
+                {
+                    _logger.LogError("Failed to retrieve OTP immediately after caching for Email={Email}",
+                        currentAccount.Email);
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Cache error");
+                }
 
                 await _emailService.SendAccountResetPassword(currentAccount.Username, currentAccount.Email, otp);
-
             }
             else
             {
+                _logger.LogWarning("Account not found for email: {Email}", email);
                 throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
             }
+        }
+
+        public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
+        {
+            // Log toàn bộ request
+            _logger.LogInformation("Received ResetPassword request: {Request}",
+                JsonSerializer.Serialize(resetPasswordRequestDTO));
+
+            var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
+            if (currCustomer != null)
+            {
+                _logger.LogInformation("Account found: Username={Username}, Email={Email}",
+                    currCustomer.Username, currCustomer.Email);
+
+                // Lấy OTP từ cache
+                var otp = verificationCodeCache.Get(currCustomer.Email);
+                _logger.LogInformation("Cached OTP for Email={Email}: {CachedOtp}",
+                    currCustomer.Email, otp ?? "null");
+                _logger.LogInformation("Received OTP from request: {ReceivedOtp}",
+                    resetPasswordRequestDTO.OTP ?? "null");
+
+                if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("OTP validation failed for Email={Email}. Cached: {CachedOtp}, Received: {ReceivedOtp}",
+                        currCustomer.Email, otp ?? "null", resetPasswordRequestDTO.OTP ?? "null");
+                    throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
+                }
+
+                // Kiểm tra confirm password
+                if (!resetPasswordRequestDTO.NewPassword.Equals(resetPasswordRequestDTO.ConfirmNewPassword,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Password confirmation failed for Email={Email}", currCustomer.Email);
+                    throw new ApiException(HttpStatusCode.BadRequest, "New password and confirm password do not match");
+                }
+
+                // Kiểm tra định dạng mật khẩu
+                if (string.IsNullOrWhiteSpace(resetPasswordRequestDTO.NewPassword) ||
+                    resetPasswordRequestDTO.NewPassword.Length < 8)
+                {
+                    _logger.LogWarning("Invalid password format for Email={Email}", currCustomer.Email);
+                    throw new ApiException(HttpStatusCode.BadRequest, "New password must be at least 8 characters");
+                }
+
+                currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
+                await _accountRepository.Update(currCustomer);
+
+                _logger.LogInformation("Password reset successfully for Email={Email}", currCustomer.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Account not found for email: {Email}", resetPasswordRequestDTO.Email);
+                throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
+            }
+        }
+
+
+
+        public string GenerateOTP()
+        {
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            return otp;
         }
 
         public async Task<AccountInformationResponseDTO> GetUserInfor(string token)
@@ -163,7 +296,7 @@ namespace IntelliPM.Services.AuthenticationServices
           
             if (currentAccount != null)
             {
-                if (currentAccount.Status.Equals("AccountStatusEnum")) throw new ApiException(HttpStatusCode.BadRequest, "This account has been deactivated");
+                //if (currentAccount.Status.Equals("AccountStatusEnum")) throw new ApiException(HttpStatusCode.BadRequest, "This account has been deactivated");
 
                 if (PasswordHasher.VerifyPassword(loginRequestDTO.Password, currentAccount.Password))
                 {
@@ -222,40 +355,7 @@ namespace IntelliPM.Services.AuthenticationServices
             throw new NotImplementedException();
         }
 
-        public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
-        {
-            var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
-
-          
-
-            if (currCustomer != null)
-            {
-
-                var otp = verificationCodeCache.Get(currCustomer.Username);
-
-                if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP))
-                {
-                    throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
-                }
-
-                currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
-
-                await _accountRepository.Update(currCustomer);
-
-            }
-           
-            else
-            {
-                throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
-            }
-        }
-
-        public string GenerateOTP()
-        {
-            var otp = new Random().Next(100000, 999999).ToString();
-
-            return otp;
-        }
+      
 
         public async Task<LoginResponseDTO> LoginGoogle(LoginGoogleRequestDTO loginGoogleRequestDTO)
         {
@@ -389,7 +489,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
             var account = _mapper.Map<Account>(accountRequestDTO);
             account.Password = PasswordHasher.HashPassword(accountRequestDTO.Password);
-            account.Role = "TEAM MEMBER"; // Đặt mặc định Role
+            account.Role = "CLIENT"; // Đặt mặc định Role
             account.Status = "UNVERIFIED";
             account.CreatedAt = DateTime.UtcNow;
             account.UpdatedAt = DateTime.UtcNow;
@@ -418,6 +518,134 @@ namespace IntelliPM.Services.AuthenticationServices
 
             await _emailService.SendRegistrationEmail(account.Username, account.Email, verificationLink);
         }
+
+
+
+        public async Task<string> AdminAccountRegister(AdminAccountRequestDTO accountRequestDTO)
+        {
+            try
+            {
+
+                // Generate username from email
+                var baseUsername = accountRequestDTO.Email.Split('@')[0];
+                var username = await GenerateUniqueUsername(baseUsername);
+
+                // Check for existing email
+                if (await checkEmailExisted(accountRequestDTO.Email))
+                {
+                    throw new ApiException(HttpStatusCode.BadRequest, "Email has already been used by another user");
+                }
+
+                // Generate random 12-character password
+                var randomPassword = GenerateRandomPassword();
+
+                // Map to Account entity
+                Account account;
+                try
+                {
+                    account = _mapper.Map<Account>(accountRequestDTO);
+                }
+                catch (AutoMapperMappingException ex)
+                {
+                    throw new ApiException(HttpStatusCode.BadRequest, "Invalid account data mapping");
+                }
+
+                account.Username = username;
+                account.Password = PasswordHasher.HashPassword(randomPassword);
+                account.Role = accountRequestDTO.Role;
+                account.Status = "UNVERIFIED";
+                account.CreatedAt = DateTime.UtcNow;
+                account.UpdatedAt = DateTime.UtcNow;
+                account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/orther.png?alt=media&token=f1f7912c-c886-4206-856a-43418e1954bc";
+
+                // Save account
+                try
+                {
+                    var accountId = await _accountRepository.AddAccount(account);
+                }
+                catch (Exception ex)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to save account to database");
+                }
+
+                var accountDone = await _accountRepository.GetAccountByUsername(account.Username);
+                if (accountDone == null)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to retrieve newly created account");
+                }
+
+                // Generate and cache verification token
+                string token;
+                try
+                {
+                    token = _jWTService.GenerateJWT(accountDone);
+                    verificationCodeCache.Put(account.Email, token, 4320); // 3 days
+                    _logger.LogInformation("Verification token cached for {Email}", account.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to generate or cache JWT for {Email}", account.Email);
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to generate verification token");
+                }
+
+                var verificationLink = $"{_backendUrl}/api/auth/verify?token={token}";
+
+                // Send email
+                try
+                {
+                    await _emailService.SendAdminRegistrationEmail(
+                        account.Username,
+                        account.Email,
+                        randomPassword,
+                        verificationLink
+                    );
+                }
+                catch (Exception ex)
+                {
+                    throw new ApiException(HttpStatusCode.InternalServerError, "Failed to send registration email");
+                }
+
+                return account.Email;
+            }
+            catch (ApiException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException(HttpStatusCode.InternalServerError, "Failed to register account");
+            }
+        }
+
+        private async Task<string> GenerateUniqueUsername(string baseUsername)
+        {
+            var username = baseUsername;
+            var counter = 1;
+
+            while (await checkUsernameExisted(username))
+            {
+                username = $"{baseUsername}{counter}";
+                counter++;
+            }
+
+            return username;
+        }
+
+        private string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+            var bytes = new byte[12];
+            RandomNumberGenerator.Fill(bytes);
+            var password = new char[12];
+            for (int i = 0; i < 12; i++)
+            {
+                password[i] = chars[bytes[i] % chars.Length];
+            }
+            return new string(password);
+        }
+
+
+
 
         public async Task<bool> checkUsernameExisted(string username)
         {

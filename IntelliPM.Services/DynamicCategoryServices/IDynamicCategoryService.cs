@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Data.DTOs.DynamicCategory.Response;
+using IntelliPM.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace IntelliPM.Services.DynamicCategoryServices
         Task<DynamicCategoryResponseDTO> UpdateDynamicCategory(int id, DynamicCategoryRequestDTO request);
         Task DeleteDynamicCategory(int id);
         Task<DynamicCategoryResponseDTO> ChangeDynamicCategoryStatus(int id, bool isActive);
-       
+        Task<List<string>> GetDistinctCategoryGroups();
+
     }
 }

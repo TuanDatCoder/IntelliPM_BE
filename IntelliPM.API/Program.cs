@@ -105,6 +105,7 @@ using IntelliPM.Services.RiskCommentServices;
 using IntelliPM.Services.RiskFileServices;
 using IntelliPM.Services.RiskServices;
 using IntelliPM.Services.RiskSolutionServices;
+using IntelliPM.Services.ShareServices;
 using IntelliPM.Services.SprintServices;
 using IntelliPM.Services.SubtaskCommentServices;
 using IntelliPM.Services.SubtaskFileServices;
@@ -123,6 +124,7 @@ using Microsoft.Azure.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PdfSharp.Charting;
 using System.Text;
 
 
@@ -262,6 +264,10 @@ builder.Services.AddScoped<IProjectMetricHistoryService, ProjectMetricHistorySer
 builder.Services.AddScoped<IDocumentPermissionService, DocumentPermissionServices>();
 builder.Services.AddScoped<IGenerateEpicService, GenerateEpicService>();
 builder.Services.AddScoped<IGenerateStoryTaskService, GenerateStoryTaskService>();
+builder.Services.AddSingleton<IShareTokenService, ShareTokenService>();
+
+
+
 
 // ------------------------- HttpClient -----------------------------
 builder.Services.AddHttpClient<ITaskPlanningService, TaskPlanningService>(client =>
@@ -323,8 +329,9 @@ builder.Services.AddAuthorization();
 
 //------------------------------------------------------------------
 
+builder.Services.AddSingleton<VerificationCodeCache>();
 
-builder.Services.AddScoped<VerificationCodeCache>();
+//builder.Services.AddScoped<VerificationCodeCache>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
@@ -400,7 +407,7 @@ var configService = serviceProvider.GetRequiredService<ISystemConfigurationServi
 var cronExpression = configService.GetSystemConfigurationByConfigKey("overdue_task_risk_check_time").Result?.ValueConfig ?? "0 17 * * *"; // Default to 00:00 +07
 
 app.UseHangfireDashboard();
-//app.UseHangfireServer();
+app.UseHangfireServer();
 RecurringJob.AddOrUpdate<IWorkLogService>(
     "generate-daily-worklog",
     x => x.GenerateDailyWorkLogsAsync(),
@@ -410,12 +417,19 @@ RecurringJob.AddOrUpdate<IWorkLogService>(
 // "*/1 * * * *"
 );
 
-//RecurringJob.AddOrUpdate<IRiskService>(
-//    "check-overdue-task-risks",
-//    x => x.CheckAndCreateAllOverdueTaskRisksAsync(), // Handle projectKey dynamically
-//    cronExpression,
-//    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-//);
+RecurringJob.AddOrUpdate<IRiskService>(
+    "check-overdue-task-risks",
+    x => x.CheckAndCreateOverdueTaskRisksForAllProjectsAsync(), 
+    cronExpression,
+    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+);
+
+RecurringJob.AddOrUpdate<IRiskService>(
+    "check-overdue-risks",
+    x => x.CheckAndNotifyOverdueRisksAsync(),
+    cronExpression,
+    TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+);
 
 app.UseDefaultFiles();   
 app.UseStaticFiles();

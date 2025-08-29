@@ -18,7 +18,7 @@ namespace IntelliPM.Data.DTOs.Risk.Request
         public int? ResponsibleId { get; set; }
 
         [Required(ErrorMessage = "Created by is required")]
-        public int CreatedBy { get; set; }
+        public int? CreatedBy { get; set; }
 
         public string? TaskId { get; set; }
 

@@ -88,6 +88,26 @@ namespace IntelliPM.Repositories.DocumentPermissionRepos
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Document>> GetDocumentsSharedToUserAsync(int accountId)
+        {
+            return await _context.DocumentPermission
+                .Where(dp => dp.AccountId == accountId)
+                .Include(dp => dp.Document)
+                .Select(dp => dp.Document)
+                .ToListAsync();
+        }
+
+        public async Task<List<Document>> GetDocumentsSharedToUserInProjectAsync(int accountId, int projectId)
+        {
+            return await _context.DocumentPermission
+                .Where(dp => dp.AccountId == accountId && dp.Document.ProjectId == projectId)
+                .Include(dp => dp.Document)
+                .Select(dp => dp.Document)
+                .ToListAsync();
+        }
+
+
     }
 
 }

@@ -61,7 +61,7 @@ CREATE TABLE project_member (
     joined_at TIMESTAMPTZ NULL,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NULL,
-    hourly_rate DECIMAL(10, 2) NULL,
+    hourly_rate DECIMAL(15, 2) NULL,
     working_hours_per_day DECIMAL(5, 2) NULL DEFAULT 8, 
     FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (project_id) REFERENCES project(id),
@@ -325,7 +325,8 @@ CREATE TABLE document (
     updated_by INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    visibility VARCHAR(20),
+    visibility VARCHAR(20) NOT NULL,
+
 
     CONSTRAINT fk_document_project FOREIGN KEY (project_id)
         REFERENCES project(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -345,6 +346,7 @@ CREATE TABLE document (
     CONSTRAINT fk_document_updated_by FOREIGN KEY (updated_by)
         REFERENCES account(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
+
 
 CREATE TABLE  document_comment (
     id SERIAL PRIMARY KEY,
@@ -387,8 +389,8 @@ CREATE TABLE document_permission (
     account_id INT NOT NULL,
     permission_type VARCHAR(50) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (document_id) REFERENCES document(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
 -- 21. project_position
@@ -441,19 +443,7 @@ CREATE TABLE meeting (
     FOREIGN KEY (project_id) REFERENCES project(id)
 );
 
--- 25. meeting_document
-CREATE TABLE meeting_document (
-    meeting_id INT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    file_url VARCHAR(1024) NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    account_id INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (meeting_id) REFERENCES meeting(id),
-    FOREIGN KEY (account_id) REFERENCES account(id)
-);
+
 
 -- 26. meeting_log
 CREATE TABLE meeting_log (
@@ -569,20 +559,6 @@ CREATE TABLE risk_comment (
     FOREIGN KEY (account_id) REFERENCES account(id)
 );
 
--- 35. change_request
-CREATE TABLE change_request (
-    id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL,
-    requested_by INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    status VARCHAR(50) NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES project(id),
-    FOREIGN KEY (requested_by) REFERENCES account(id)
-);
-
 -- 36. project_recommendation
 CREATE TABLE project_recommendation (
     id SERIAL PRIMARY KEY,
@@ -653,19 +629,19 @@ CREATE TABLE project_metric (
     project_id INT NOT NULL,
     calculated_by VARCHAR(50) NOT NULL,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
-    planned_value DECIMAL(15, 2) NULL,
-    earned_value DECIMAL(15, 2) NULL,
-    actual_cost DECIMAL(15, 2) NULL,
-    schedule_performance_index DECIMAL(15, 2) NULL,
-    cost_performance_index DECIMAL(15, 2) NULL,
-    budget_at_completion DECIMAL(15, 2) NULL,
-    duration_at_completion DECIMAL(15, 2) NULL,
-    cost_variance DECIMAL(15, 2) NULL,
-    schedule_variance DECIMAL(15, 2) NULL,
-    estimate_at_completion DECIMAL(15, 2) NULL,
-    estimate_to_complete DECIMAL(15, 2) NULL,
-    variance_at_completion DECIMAL(15, 2) NULL,
-    estimate_duration_at_completion DECIMAL(15, 2) NULL,
+    planned_value DECIMAL(20, 2) NULL,
+    earned_value DECIMAL(20, 2) NULL,
+    actual_cost DECIMAL(20, 2) NULL,
+    schedule_performance_index DECIMAL(10, 4) NULL,
+    cost_performance_index DECIMAL(10, 4) NULL,
+    budget_at_completion DECIMAL(20, 2) NULL,
+    duration_at_completion DECIMAL(18, 2) NULL,
+    cost_variance DECIMAL(20, 2) NULL,
+    schedule_variance DECIMAL(20, 2) NULL,
+    estimate_at_completion DECIMAL(20, 2) NULL,
+    estimate_to_complete DECIMAL(20, 2) NULL,
+    variance_at_completion DECIMAL(20, 2) NULL,
+    estimate_duration_at_completion DECIMAL(18, 2) NULL,
     is_improved BOOLEAN NOT NULL DEFAULT FALSE,
     improvement_summary TEXT NULL DEFAULT '',
     confidence_score DECIMAL(5, 2) NULL,
@@ -1059,15 +1035,6 @@ VALUES
     (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'COMPLETED', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
     (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'COMPLETED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
 
--- Insert sample data into meeting_document
-INSERT INTO meeting_document (meeting_id, title, description, file_url, is_active, account_id)
-VALUES 
-    (1, 'Meeting Agenda', 'Agenda for planning', 'http://example.com/agenda1.pdf', TRUE, 1),
-    (2, 'Review Notes', 'Notes from campaign review', 'http://example.com/notes2.pdf', TRUE, 2),
-    (3, 'Sync Notes', 'Notes from research sync', 'http://example.com/notes3.pdf', TRUE, 3),
-    (4, 'Design Feedback', 'Feedback on design', 'http://example.com/feedback4.pdf', TRUE, 4),
-    (5, 'Test Plan', 'Plan for testing', 'http://example.com/plan5.pdf', TRUE, 5);
-
 -- Insert sample data into meeting_log
 INSERT INTO meeting_log (meeting_id, account_id, action)
 VALUES 
@@ -1243,7 +1210,8 @@ VALUES
 	('sprint_duration_days', '30', '7', '60', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
 	('sprint_planned_duration_days', '30', '7', '90', '14', 'Duration of a sprint in days', 'Adjust based on team capacity', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
     ('sprint_status_length', '50', '0', '50', '20', 'Max length of sprint status', 'Ensure valid status length', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00'),
-    ('risk_title_length', '255', '1', '255', '255', 'Maximum length for risk title', 'Ensure risk titles remain concise', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+    ('risk_title_length', '200', '1', '200', '200', 'Maximum length for risk title', '2025-01-01 00:00:00+00', '2025-12-31 00:00:00+00');
+
 
 
 INSERT INTO system_configuration (config_key, value_config, description, created_at, updated_at)
@@ -1288,8 +1256,8 @@ VALUES
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
 
-    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
-    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
+    --('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
+    --('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
     ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
@@ -1431,6 +1399,7 @@ VALUES
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
+	('activity_log_related_entity_type', 'EPIC', 'epic', 'Epic related entity', 7, NULL, NULL),
 ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('activity_log_action_type', 'USER_LOGIN', 'User Login','User Login....', 6, NULL, NULL),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
@@ -1458,7 +1427,11 @@ VALUES
     ('risk_severity_level', 'MEDIUM', 'Medium', 'Medium severity level', 2, NULL, 'yellow-100,yellow-700'),
     ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
     ('risk_generated_by', 'MANUAL', 'Manual', 'Risk created manually by a user', 1, NULL, '#4B5563'), -- Gray
-    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6');
+    ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6'),
+    ('related_entity_type', 'RISK', 'Risk', 'Risk related entity', 14, NULL, NULL),
+    ('related_entity_type', 'RISK_FILE', 'Risk File', 'Record log file in risk', 15, NULL, NULL),
+	('related_entity_type', 'RISK_COMMENT', 'Risk Comment', 'Record log comment in risk', 16, NULL, NULL),
+    ('notification_type', 'RISK_COMMENT_CREATE', 'Risk Comment Create', 'Create comment in risk', 0, NULL, NULL);
 
 
 
@@ -1500,6 +1473,16 @@ VALUES
   NOW()
 );
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+('planned_hours_limit', NULL, '0', '100000', '8', 'Maximum allowed planned hours per day for a task/subtask', 'Limit based on daily work capacity', '2025-08-27 21:35:00+07', NULL),
+('actual_hours_limit', NULL, '0', '100000', '8', 'Maximum allowed actual hours per day for a task/subtask', 'Limit based on daily work capacity', '2025-08-27 21:35:00+07', NULL),
+('hourly_rate_limit', NULL, '0', '10000000', '10000000', 'Maximum allowed hourly rate in VND for a member', 'Adjust based on project budget', '2025-08-27 21:35:00+07', NULL),
+('working_hours_per_day_limit', NULL, '0', '8', '8', 'Maximum allowed working hours per day for a member', 'Standard working hours limit', '2025-08-27 21:35:00+07', NULL),
+('planned_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other planned cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL),
+('acual_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other actual cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL);
+
 
 
 
@@ -1511,6 +1494,17 @@ VALUES
     ('health_status', 'OVER_BUDGET', 'Over Budget', 'Project is exceeding budget', 4, NULL, '#FF0000'),
     ('health_status', 'ON_BUDGET', 'On Budget', 'Project is within budget', 5, NULL, '#FFA500'),
     ('health_status', 'UNDER_BUDGET', 'Under Budget', 'Project is under budget', 6, NULL, '#008000');
+
+INSERT INTO dynamic_category (category_group, name, label, description, order_index)
+VALUES 
+('calculation_mode', 'SYSTEM', 'System', 'Calculation mode using system rules', 1),
+('calculation_mode', 'AI', 'AI', 'Calculation mode using AI model', 2);
+
+INSERT INTO system_configuration 
+(config_key, value_config, description, effected_from, effected_to) 
+VALUES
+('calculation_mode_system', 'enabled', 'System-based calculation mode', NOW(), NULL),
+('calculation_mode_ai', 'enabled', 'AI-based calculation mode', NOW(), NULL);
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

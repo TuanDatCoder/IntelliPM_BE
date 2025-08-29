@@ -142,7 +142,7 @@ namespace IntelliPM.Services.TaskCommentServices
             }
             catch (DbUpdateException ex)
             {
-                throw new Exception($"Failed to create task comment due to database error: {ex.InnerException?.Message ?? ex.Message}", ex);
+                throw new Exception($"Failed to create task comment due to invalid reference data.");
             }
             catch (Exception ex)
             {

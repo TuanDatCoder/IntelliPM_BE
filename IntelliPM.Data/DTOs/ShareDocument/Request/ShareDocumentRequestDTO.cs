@@ -1,5 +1,7 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,9 +12,13 @@ namespace IntelliPM.Data.DTOs.ShareDocument.Request
     {
         public List<string> Emails { get; set; } = new();
         public string? Message { get; set; }
-        public string ProjectKey { get; set; } = string.Empty;
+        //public string ProjectKey { get; set; } = string.Empty;
 
-        public string PermissionType { get; set; }
+        [Required]
+        [DynamicCategoryValidation("document_permission_type", Required = true)]
+        public string PermissionType { get; set; } = null!;
+
+    
     }
 
 }

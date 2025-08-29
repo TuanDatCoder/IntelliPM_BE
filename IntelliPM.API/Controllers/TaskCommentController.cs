@@ -5,6 +5,7 @@ using IntelliPM.Services.TaskCommentServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using IntelliPM.Data.DTOs.TaskComment.Request;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
@@ -20,6 +21,7 @@ namespace IntelliPM.API.Controllers
             _service = service;
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -33,6 +35,7 @@ namespace IntelliPM.API.Controllers
             });
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -53,6 +56,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaskCommentRequestDTO request)
         {
@@ -83,6 +87,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TaskCommentRequestDTO request)
         {
@@ -112,6 +117,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id, DeleteTaskCommentRequestDTO dto)
         {
@@ -140,6 +146,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER")]
         [HttpGet("by-task/{taskId}")]
         public async Task<IActionResult> GetTaskCommentByTaskId(string taskId)
         {
