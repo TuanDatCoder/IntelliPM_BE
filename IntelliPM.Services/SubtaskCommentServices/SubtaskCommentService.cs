@@ -152,9 +152,6 @@ namespace IntelliPM.Services.SubtaskCommentServices
             var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
-
             try
             {
                 await _repo.Delete(entity);
@@ -163,9 +160,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK_COMMENT.ToString(),
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.DELETE.ToString(),
                     Message = $"Delete comment in subtask '{entity.SubtaskId}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -202,9 +199,6 @@ namespace IntelliPM.Services.SubtaskCommentServices
             var subtask = await _subtaskRepo.GetByIdAsync(request.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
             try
             {
                 await _repo.Update(entity);
@@ -213,9 +207,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK_COMMENT.ToString(),
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Update comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow

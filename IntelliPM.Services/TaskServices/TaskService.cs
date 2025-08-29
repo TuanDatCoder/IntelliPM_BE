@@ -189,41 +189,79 @@ namespace IntelliPM.Services.TaskServices
                         continue;
                 }
 
-                switch (dep.Type.ToUpper())
+                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
                 {
-                    case "FINISH_START":
-                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
-                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
-                        }
-                        break;
-
-                    case "START_START":
-                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
-                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
-                        }
-                        break;
-
-
-                    case "FINISH_FINISH":
-                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
-                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
-                        }
-                        break;
-
-                    case "START_FINISH":
-                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
-                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
-                        }
-                        break;
+                    switch (dependencyType)
+                    {
+                        case TaskDependencyEnum.FINISH_START:
+                            // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
+                            if ((isInProgress || isDone) && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_START:
+                            // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if ((isInProgress || isDone) && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.FINISH_FINISH:
+                            // Task has just been done (DONE) if LinkedFrom has done (DONE)
+                            if (isDone && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_FINISH:
+                            // Task has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if (isDone && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                            }
+                            break;
+                    }
                 }
+                else
+                {
+                    warnings.Add($"Invalid dependency type '{dep.Type}' for task '{id}'.");
+                }
+
+                //switch (dep.Type.ToUpper())
+                //{
+                //    case "FINISH_START":
+                //        // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
+                //        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                //        }
+                //        break;
+
+                //    case "START_START":
+                //        // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                //        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                //        }
+                //        break;
+
+                //    case "FINISH_FINISH":
+                //        // Task has just been done (DONE) if LinkedFrom has done (DONE)
+                //        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                //        }
+                //        break;
+
+                //    case "START_FINISH":
+                //        // Task has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                //        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                //        }
+                //        break;
+                //}
             }
 
             dto.Warnings = warnings;
@@ -298,7 +336,7 @@ namespace IntelliPM.Services.TaskServices
                     }
                 }
 
-                //await CalculatePlannedHoursAsync(entity.Id);
+                await CalculatePlannedHoursAsync(entity.Id);
             }
             catch (DbUpdateException ex)
             {
@@ -411,23 +449,6 @@ namespace IntelliPM.Services.TaskServices
                 throw new Exception($"Failed to update task: {ex.Message}", ex);
             }
 
-            //if (request.Dependencies != null)
-            //{
-            //    await _taskDependencyRepo.DeleteByTaskIdAsync(id);
-
-            //    var newDeps = request.Dependencies.Select(d => new TaskDependency
-            //    {
-            //        FromType = d.FromType,
-            //        LinkedFrom = d.LinkedFrom,
-            //        ToType = d.ToType,
-            //        LinkedTo = d.LinkedTo,
-            //        Type = d.Type
-            //    }).ToList();
-
-            //    // Lưu lại
-            //    await _taskDependencyRepo.AddRangeAsync(newDeps);
-            //}
-
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
@@ -530,41 +551,80 @@ namespace IntelliPM.Services.TaskServices
                         continue;
                 }
 
-                switch (dep.Type.ToUpper())
+                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
                 {
-                    case "FINISH_START":
-                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
-                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
-                        }
-                        break;
-
-                    case "START_START":
-                        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
-                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
-                        }
-                        break;
-
-
-                    case "FINISH_FINISH":
-                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
-                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
-                        }
-                        break;
-
-                    case "START_FINISH":
-                        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
-                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
-                        }
-                        break;
+                    switch (dependencyType)
+                    {
+                        case TaskDependencyEnum.FINISH_START:
+                            // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
+                            if ((isInProgress || isDone) && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_START:
+                            // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if ((isInProgress || isDone) && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.FINISH_FINISH:
+                            // Task has just been done (DONE) if LinkedFrom has done (DONE)
+                            if (isDone && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_FINISH:
+                            // Task has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if (isDone && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                            }
+                            break;
+                    }
                 }
+                else
+                {
+                    warnings.Add($"Invalid dependency type '{dep.Type}' for task '{id}'.");
+                }
+
+                //switch (dep.Type.ToUpper())
+                //{
+                //    case "FINISH_START":
+                //        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                //        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                //        }
+                //        break;
+
+                //    case "START_START":
+                //        // Task chỉ có thể bắt đầu (IN_PROGRESS hoặc DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                //        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                //        }
+                //        break;
+
+
+                //    case "FINISH_FINISH":
+                //        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã hoàn thành (DONE)
+                //        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                //        }
+                //        break;
+
+                //    case "START_FINISH":
+                //        // Task chỉ có thể hoàn thành (DONE) nếu LinkedFrom đã bắt đầu (IN_PROGRESS hoặc DONE)
+                //        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
+                //        {
+                //            warnings.Add($"Task '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                //        }
+                //        break;
+                //}
             }
 
             entity.Status = status;

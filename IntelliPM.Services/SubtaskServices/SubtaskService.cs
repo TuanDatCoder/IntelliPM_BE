@@ -308,36 +308,43 @@ namespace IntelliPM.Services.SubtaskServices
                         continue;
                 }
 
-                switch (dep.Type.ToUpper())
+                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
                 {
-                    case "FINISH_START":
-                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
-                        }
-                        break;
-
-                    case "START_START":
-                        if ((isInProgress || isDone) && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
-                        }
-                        break;
-
-
-                    case "FINISH_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
-                        }
-                        break;
-
-                    case "START_FINISH":
-                        if (isDone && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
-                        }
-                        break;
+                    switch (dependencyType)
+                    {
+                        case TaskDependencyEnum.FINISH_START:
+                            // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
+                            if ((isInProgress || isDone) && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_START:
+                            // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if ((isInProgress || isDone) && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.FINISH_FINISH:
+                            // Subtask has just been done (DONE) if LinkedFrom has done (DONE)
+                            if (isDone && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_FINISH:
+                            // Subtask has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if (isDone && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                            }
+                            break;
+                    }
+                }
+                else
+                {
+                    warnings.Add($"Invalid dependency type '{dep.Type}' for subtask '{id}'.");
                 }
             }
 
@@ -517,37 +524,43 @@ namespace IntelliPM.Services.SubtaskServices
                         continue;
                 }
 
-                switch (dep.Type.ToUpper())
+                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
                 {
-                    case "FINISH_START":
-                        if ((isInProgress || isDone) && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
-                        }
-                        break;
-
-                    case "START_START":
-                       
-                        if ((isInProgress || isDone) && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
-                        }
-                        break;
-
-
-                    case "FINISH_FINISH":
-                        if (isDone && !string.Equals(sourceStatus, "DONE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
-                        }
-                        break;
-
-                    case "START_FINISH":
-                        if (isDone && string.Equals(sourceStatus, "TO_DO", StringComparison.OrdinalIgnoreCase))
-                        {
-                            warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
-                        }
-                        break;
+                    switch (dependencyType)
+                    {
+                        case TaskDependencyEnum.FINISH_START:
+                            // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
+                            if ((isInProgress || isDone) && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_START:
+                            // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if ((isInProgress || isDone) && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
+                            }
+                            break;
+                        case TaskDependencyEnum.FINISH_FINISH:
+                            // Subtask has just been done (DONE) if LinkedFrom has done (DONE)
+                            if (isDone && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
+                            }
+                            break;
+                        case TaskDependencyEnum.START_FINISH:
+                            // Subtask has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
+                            if (isDone && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                warnings.Add($"Subtask '{id}' can only be completed after {dep.FromType.ToLower()} '{dep.LinkedFrom}' has started (IN_PROGRESS or DONE).");
+                            }
+                            break;
+                    }
+                }
+                else
+                {
+                    warnings.Add($"Invalid dependency type '{dep.Type}' for subtask '{id}'.");
                 }
             }
 
