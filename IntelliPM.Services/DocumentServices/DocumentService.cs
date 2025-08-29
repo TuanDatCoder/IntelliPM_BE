@@ -265,8 +265,8 @@ namespace IntelliPM.Services.DocumentServices
             if (req.Content != null)
                 doc.Content = req.Content;
 
-            if (!string.IsNullOrWhiteSpace(req.Visibility))
-                doc.Visibility = req.Visibility.Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(req.Visibility.ToString()))
+                doc.Visibility = req.Visibility.ToString().Trim().ToUpperInvariant();
 
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -630,16 +630,6 @@ Request:
         {
             return await _IDocumentRepository.GetUserDocumentMappingAsync(projectId, userId);
         }
-        //public async Task<Dictionary<string, int>> GetStatusCount()
-        //{
-        //    return await _repo.CountByStatusAsync();
-        //}
-
-        //public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
-        //{
-        //    return await _repo.CountByStatusInProjectAsync(projectId);
-        //}
-
 
         public List<int> ExtractMentionedAccountIds(string content)
         {
@@ -654,49 +644,6 @@ Request:
             }
             return mentionedIds.Distinct().ToList();
         }
-
-        //public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
-        //{
-        //    var doc = await _IDocumentRepository.GetByIdAsync(documentId);
-        //    if (doc == null)
-        //        throw new Exception("Document not found");
-
-        //    var projectId = doc.ProjectId;
-        //    Console.WriteLine(projectId);
-        //    var token = GetAccessToken();
-        //    if (string.IsNullOrWhiteSpace(token))
-        //        throw new Exception("Access token is missing");
-
-        //    var beUrl = Environment.GetEnvironmentVariable("BE_URL")
-        //                ?? "https://localhost:7128"; 
-
-
-        //    var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-        //        $"{beUrl}/api/projectmetric/by-project-id?projectId={projectId}");
-        //    metricRequest.Headers.Authorization =
-        //        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-        //    var metricResponse = await _httpClient.SendAsync(metricRequest);
-        //    if (!metricResponse.IsSuccessStatusCode)
-        //        throw new Exception($"Failed to fetch metrics: {metricResponse.StatusCode}");
-
-        //    var metricData = await metricResponse.Content.ReadFromJsonAsync<ProjectMetricApiResponse>();
-        //    var metrics = metricData?.Data;
-        //    if (metrics == null)
-        //        throw new Exception("No project metrics found");
-
-        //    // Tạo prompt từ tasks + metrics
-        //    var prompt = BuildFullTaskPrompt(metrics, projectId);
-        //    var content = await GenerateContentWithGemini(prompt);
-
-        //    if (string.IsNullOrWhiteSpace(content))
-        //        throw new Exception("AI did not generate content");
-
-        //    return new GenerateDocumentResponse
-        //    {
-        //        Content = content
-        //    };
-        //}
 
         public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
@@ -782,7 +729,6 @@ EXPECTED STRUCTURE:
     <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
     <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
     <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
-    <tr><th>Calculated By</th><td>{{metrics.calculatedBy}}</td></tr>
     <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
     <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
     <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
@@ -923,11 +869,7 @@ For each task in the array, output exactly 1 table following the **fixed templat
                 ProjectId = latest.ProjectId,
                 TaskId = latest.TaskId,
                 Title = latest.Title,
-                //Type = latest.Type,
-                //Template = latest.Template,
                 Content = latest.Content,
-                //FileUrl = latest.FileUrl,
-         
                 CreatedBy = latest.CreatedBy,
                 UpdatedBy = latest.UpdatedBy,
                 CreatedAt = latest.CreatedAt,
