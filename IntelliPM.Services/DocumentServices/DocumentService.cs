@@ -7,6 +7,7 @@ using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Document;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -129,59 +130,65 @@ namespace IntelliPM.Services.DocumentServices
         }
 
 
-        public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
-        {
-            int count =
-          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+        //public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
+        //{
+        //    int count =
+        //  (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+        //  (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+        //  (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-            if (count > 1)
-            {
-                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
-            }
+        //    if (count > 1)
+        //    {
+        //        throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
+        //    }
 
 
-            var doc = new Document
-            {
-                ProjectId = req.ProjectId,
-                EpicId = req.EpicId,
-                TaskId = req.TaskId,
-                SubtaskId = req.SubTaskId,
-                Title = req.Title,
-                //Type = req.Type,
+        //    var doc = new Document
+        //    {
+        //        ProjectId = req.ProjectId,
+        //        EpicId = req.EpicId,
+        //        TaskId = req.TaskId,
+        //        SubtaskId = req.SubTaskId,
+        //        Title = req.Title,
+        //        //Type = req.Type,
 
-                Content = req.Content,
+        //        Content = req.Content,
 
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+        //        CreatedBy = userId,
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow,
         
-            };
+        //    };
 
-            try
-            {
-                await _IDocumentRepository.AddAsync(doc);
-                await _IDocumentRepository.SaveChangesAsync();
-                var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
-                await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
+        //    try
+        //    {
+        //        await _IDocumentRepository.AddAsync(doc);
+        //        await _IDocumentRepository.SaveChangesAsync();
+        //        var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
+        //        await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
 
 
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
-                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
-            }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
+        //        throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+        //    }
 
-            return ToResponse(doc);
-        }
+        //    return ToResponse(doc);
+        //}
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
 
 
-            var visibility = req.Visibility.Trim().ToUpperInvariant();
+            DocumentVisibilityEnum visibility;
+
+            if (!Enum.TryParse<DocumentVisibilityEnum>(req.Visibility, true, out visibility))
+            {
+                visibility = DocumentVisibilityEnum.MAIN; 
+            }
+
 
 
             int linkCount =
@@ -204,7 +211,7 @@ namespace IntelliPM.Services.DocumentServices
                 Content = req.Content,
                 CreatedBy = userId,
                 UpdatedBy = userId,
-                Visibility = visibility,
+                Visibility = visibility.ToString(),
                 CreatedAt = now,
                 UpdatedAt = now,
            
@@ -429,8 +436,12 @@ Respond in plain text (not HTML).
                 throw new ArgumentException("No valid emails provided.");
 
             // 3) Chuẩn hoá permission (giữ nguyên)
-            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
-            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+            DocumentShareEnum permissionType;
+            if (!Enum.TryParse<DocumentShareEnum>(req.PermissionType, true, out permissionType))
+            {
+                permissionType = DocumentShareEnum.VIEW; 
+            }
+
 
             // 4) Lấy account map từ emails (giữ nguyên)
             var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
@@ -442,7 +453,7 @@ Respond in plain text (not HTML).
                 var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
-                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+                                string.Equals(p.PermissionType, permissionType.ToString(), StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 if (toRemove.Count > 0)
@@ -452,7 +463,7 @@ Respond in plain text (not HTML).
                 {
                     DocumentId = documentId,
                     AccountId = accountId,
-                    PermissionType = permissionType
+                    PermissionType = permissionType.ToString()
                 });
 
                 await _permissionRepo.AddRangeAsync(newPermissions);
@@ -471,9 +482,9 @@ Respond in plain text (not HTML).
                 {
                     // Lấy AccountId tương ứng với email
                     var accountId = accountMap[email];
-
+                     
                     // TẠO TOKEN RIÊNG cho người dùng này
-                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType);
+                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
                     var link = $"{baseUrl.TrimEnd('/')}/share/verify?token={token}";
