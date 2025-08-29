@@ -9,6 +9,8 @@ using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskCheckList.Request;
 using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Subtask;
 using IntelliPM.Data.Enum.Task;
 using IntelliPM.Repositories.AccountRepos;
@@ -34,6 +36,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -102,16 +105,14 @@ namespace IntelliPM.Services.SubtaskServices
             var task = await _taskRepo.GetByIdAsync(taskId);
             if (task == null)
                 throw new KeyNotFoundException($"Task with ID {taskId} not found.");
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
             var checklistTitles = await _geminiService.GenerateSubtaskAsync(task.Title);
            
             var checklists = checklistTitles.Select(title => new Subtask
             {
                 TaskId = taskId,
                 Title = title,
-                Priority = dynamicPriority,
-                Status = dynamicStatus,
+                Priority = SubtaskPriorityEnum.MEDIUM.ToString(),
+                Status = SubtaskStatusEnum.TO_DO.ToString(),
                 ManualInput = false,
                 GenerationAiInput = true,
                 CreatedAt = DateTime.UtcNow,
@@ -138,14 +139,12 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new KeyNotFoundException($"Project with ID {task.ProjectId} not found.");
 
             var projectKey = project.ProjectKey;
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
             var entity = _mapper.Map<Subtask>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Status = dynamicStatus;
+            entity.Status = SubtaskStatusEnum.TO_DO.ToString();
             entity.ManualInput = false;
             entity.GenerationAiInput = true;
-            entity.Priority = dynamicPriority;
+            entity.Priority = SubtaskPriorityEnum.MEDIUM.ToString();
 
             try
             {
@@ -195,17 +194,13 @@ namespace IntelliPM.Services.SubtaskServices
             if (project == null)
                 throw new KeyNotFoundException($"Project with ID {task.ProjectId} not found.");
 
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_priority");
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
             var projectKey = project.ProjectKey;
 
             var entity = _mapper.Map<Subtask>(request);
 
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
-            entity.Status = dynamicStatus;
-            entity.Priority = dynamicPriority;
+            entity.Status = SubtaskStatusEnum.TO_DO.ToString();
+            entity.Priority = SubtaskPriorityEnum.MEDIUM.ToString();
             entity.AssignedBy = null;
             entity.ManualInput = true;
             entity.GenerationAiInput = false;
@@ -221,33 +216,15 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = task.ProjectId,
                     TaskId = task.Id,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.CREATE.ToString(),
                     Message = $"Created subtask '{entity.Id}' under task '{task.Id}'",
                     CreatedBy = request.CreatedBy, 
                     CreatedAt = DateTime.UtcNow
                 });
 
-                if (task.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase))
-                {
-                    task.Status = "IN_PROGRESS";
-                    task.UpdatedAt = DateTime.UtcNow;
-                    task.ActualEndDate = null;
-                    await _taskRepo.Update(task);
-
-                    await _activityLogService.LogAsync(new ActivityLog
-                    {
-                        ProjectId = task.ProjectId,
-                        TaskId = task.Id,
-                        RelatedEntityType = "Task",
-                        RelatedEntityId = task.Id,
-                        ActionType = "UPDATE",
-                        Message = $"Task '{task.Id}' status changed from DONE to IN_PROGRESS due to new subtask",
-                        CreatedBy = request.CreatedBy, 
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
+                
             }
             catch (DbUpdateException ex)
             {
@@ -291,10 +268,9 @@ namespace IntelliPM.Services.SubtaskServices
 
             var dto = _mapper.Map<SubtaskResponseDTO>(entity);
 
-            var isInProgress = entity.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
-            var isDone = entity.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+            var isInProgress = entity.Status.Equals(SubtaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase);
+            var isDone = entity.Status.Equals(SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase);
 
-            // Bổ sung check trước khi cập nhật trạng thái
             var dependencies = await _taskDependencyRepo
                 .FindAllAsync(d => d.LinkedTo == id && d.ToType == "Subtask");
 
@@ -394,15 +370,12 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
-            var oldAssignedBy = entity.AssignedBy; // lưu lại giá trị cũ
+            var oldAssignedBy = entity.AssignedBy; 
 
             _mapper.Map(request, entity);
 
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
-
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
 
             try
             {
@@ -429,9 +402,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.CREATE.ToString(),
                     Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -441,7 +414,6 @@ namespace IntelliPM.Services.SubtaskServices
             {
                 throw new Exception($"Failed to update Subtask: {ex.Message}", ex);
             }
-
             return _mapper.Map<SubtaskResponseDTO>(entity);
         }
 
@@ -456,7 +428,6 @@ namespace IntelliPM.Services.SubtaskServices
             }
             else
             {
-                // Lấy Task để lấy ProjectId
                 var task = await _taskRepo.GetByIdAsync(entity.TaskId);
                 if (task == null)
                 {
@@ -467,17 +438,14 @@ namespace IntelliPM.Services.SubtaskServices
                 var projectMember = await _projectMemberRepo.GetByAccountAndProjectAsync(entity.AssignedBy.Value, task.ProjectId);
                 decimal hourlyRate = projectMember?.HourlyRate ?? 0; 
 
-                // Tính toán chi phí cho Subtask
                 entity.PlannedResourceCost = entity.PlannedHours * hourlyRate;
                 //entity.PlannedCost = entity.PlannedHours * hourlyRate;
                 entity.ActualResourceCost = entity.ActualHours * hourlyRate;
                 //entity.ActualCost = entity.ActualHours * hourlyRate;
             }
 
-            // Cập nhật Subtask (chỉ cập nhật chi phí, không cần update toàn bộ nếu không muốn)
             await _subtaskRepo.Update(entity);
 
-            // Cập nhật chi phí cho Task cha bằng tổng từ tất cả Subtasks
             await UpdateTaskResourceCosts(entity.TaskId);
         }
 
@@ -489,16 +457,12 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new KeyNotFoundException($"Task with ID {taskId} not found.");
             }
 
-            // Lấy tất cả Subtasks của Task
             var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(taskId);
 
-            // Tính tổng chi phí
             task.PlannedResourceCost = subtasks.Sum(s => s.PlannedResourceCost);
-            //task.PlannedCost = subtasks.Sum(s => s.PlannedCost);
+           
             task.ActualResourceCost = subtasks.Sum(s => s.ActualResourceCost);
-            //task.ActualCost = subtasks.Sum(s => s.ActualCost);
-
-            // Cập nhật Task
+            
             await _taskRepo.Update(task);
         }
 
@@ -515,8 +479,8 @@ namespace IntelliPM.Services.SubtaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Subtask with ID {id} not found.");
 
-            var isInProgress = status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
-            var isDone = status.Equals("DONE", StringComparison.OrdinalIgnoreCase);
+            var isInProgress = status.Equals(SubtaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase);
+            var isDone = status.Equals(SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase);
 
             if (isInProgress)
                 entity.ActualStartDate = DateTime.UtcNow;
@@ -536,10 +500,10 @@ namespace IntelliPM.Services.SubtaskServices
                 switch (dep.FromType)
                 {
                     case "task":
-                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (task == null) continue;
-                        source = task;
-                        sourceStatus = task.Status;
+                        var taskk = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                        if (taskk == null) continue;
+                        source = taskk;
+                        sourceStatus = taskk.Status;
                         break;
 
                     case "subtask":
@@ -606,8 +570,10 @@ namespace IntelliPM.Services.SubtaskServices
             //await UpdateSubtaskProgressAsync(entity);
             //await UpdateTaskProgressBySubtasksAsync(entity.TaskId);
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+            var task = await _taskRepo.GetByIdAsync(entity.TaskId);
+            if (task == null)
+                throw new KeyNotFoundException($"Task with ID {entity.TaskId} not found.");
+
 
             try
             {
@@ -618,13 +584,34 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0,
                     TaskId = entity.TaskId,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.STATUS_CHANGE.ToString(),
                     Message = $"Changed status of subtask '{entity.Id}' to '{status}' under task '{entity.TaskId}",
                     CreatedBy = createdBy, 
                     CreatedAt = DateTime.UtcNow
                 });
+
+                if (task.Status.Equals(TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    task.Status = TaskStatusEnum.IN_PROGRESS.ToString();
+                    task.UpdatedAt = DateTime.UtcNow;
+                    task.ActualEndDate = null;
+                    await _taskRepo.Update(task);
+
+                    await _activityLogService.LogAsync(new ActivityLog
+                    {
+                        ProjectId = task.ProjectId,
+                        TaskId = task.Id,
+                        RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
+                        RelatedEntityId = task.Id,
+                        ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
+                        Message = $"Task '{task.Id}' status changed from DONE to IN_PROGRESS due to new subtask",
+                        CreatedBy = createdBy,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
 
                 if (isInProgress)
                 {
@@ -637,14 +624,14 @@ namespace IntelliPM.Services.SubtaskServices
                 var parentTask = await _taskRepo.GetByIdAsync(parentTaskId);
                 if (parentTask != null)
                 {
-                    if (allSubtasks.All(st => st.Status.Equals("DONE", StringComparison.OrdinalIgnoreCase)))
+                    if (allSubtasks.All(st => st.Status.Equals(SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase)))
                     {
-                        parentTask.Status = "DONE";
+                        parentTask.Status = TaskStatusEnum.DONE.ToString();
                         parentTask.ActualEndDate = DateTime.UtcNow;
                     }
-                    else if (allSubtasks.Any(st => st.Status.Equals("IN_PROGRESS", StringComparison.OrdinalIgnoreCase)))
+                    else if (allSubtasks.Any(st => st.Status.Equals(SubtaskStatusEnum.IN_PROGRESS.ToString(), StringComparison.OrdinalIgnoreCase)))
                     {
-                        parentTask.Status = "IN_PROGRESS";
+                        parentTask.Status = TaskStatusEnum.IN_PROGRESS.ToString();
                         if (parentTask.ActualStartDate == null)
                             parentTask.ActualStartDate = DateTime.UtcNow;
                     }
@@ -661,7 +648,6 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new Exception($"Failed to change subtask status: {ex.Message}", ex);
             }
 
-            // return _mapper.Map<SubtaskResponseDTO>(entity);
             var result = _mapper.Map<SubtaskResponseDTO>(entity);
             result.Warnings = warnings;
             return result;
@@ -826,15 +812,14 @@ namespace IntelliPM.Services.SubtaskServices
                     await _taskRepo.Update(task);
                 }
 
-                // Ghi log hoạt động
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = task?.ProjectId,
                     TaskId = task?.Id,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Updated planned hours for subtask '{entity.Id}' to {hours} under task '{task?.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -893,9 +878,9 @@ namespace IntelliPM.Services.SubtaskServices
                     ProjectId = task?.ProjectId,
                     TaskId = task?.Id,
                     SubtaskId = entity.Id,
-                    RelatedEntityType = "Subtask",
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = "UPDATE",
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Updated actual hours for subtask '{entity.Id}' to {hours} under task '{task?.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -956,9 +941,9 @@ namespace IntelliPM.Services.SubtaskServices
                 ProjectId = task?.ProjectId,
                 TaskId = task?.Id,
                 SubtaskId = entity.Id,
-                RelatedEntityType = "Subtask",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                 RelatedEntityId = entity.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "PercentComplete",
                 OldValue = entity.PercentComplete?.ToString() ?? "null",
                 NewValue = percentComplete?.ToString() ?? "null",
@@ -986,7 +971,6 @@ namespace IntelliPM.Services.SubtaskServices
             var task = await _taskRepo.GetByIdAsync(entity.TaskId);
             if (task != null)
             {
-                // Optional: Cập nhật task nếu cần (ví dụ: tổng PlannedCost của các subtask)
                 var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
                 task.PlannedCost = subtasks.Sum(s => s.PlannedCost ?? 0);
                 await _taskRepo.Update(task);
@@ -997,9 +981,9 @@ namespace IntelliPM.Services.SubtaskServices
                 ProjectId = task?.ProjectId,
                 TaskId = task?.Id,
                 SubtaskId = entity.Id,
-                RelatedEntityType = "Subtask",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                 RelatedEntityId = entity.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "PlannedCost",
                 OldValue = oldValue?.ToString() ?? "null",
                 NewValue = plannedCost?.ToString() ?? "null",
@@ -1027,7 +1011,6 @@ namespace IntelliPM.Services.SubtaskServices
             var task = await _taskRepo.GetByIdAsync(entity.TaskId);
             if (task != null)
             {
-                // Optional: Cập nhật task nếu cần (ví dụ: tổng ActualCost của các subtask)
                 var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(entity.TaskId);
                 task.ActualCost = subtasks.Sum(s => s.ActualCost ?? 0);
                 await _taskRepo.Update(task);
@@ -1038,9 +1021,9 @@ namespace IntelliPM.Services.SubtaskServices
                 ProjectId = task?.ProjectId,
                 TaskId = task?.Id,
                 SubtaskId = entity.Id,
-                RelatedEntityType = "Subtask",
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                 RelatedEntityId = entity.Id,
-                ActionType = "UPDATE",
+                ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                 FieldChanged = "ActualCost",
                 OldValue = oldValue?.ToString() ?? "null",
                 NewValue = actualCost?.ToString() ?? "null",
