@@ -1,4 +1,5 @@
 ﻿using IntelliPM.Common.Attributes;
+using IntelliPM.Data.Enum.Document;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -13,6 +14,6 @@ namespace IntelliPM.Data.DTOs.Document.Request
 
         [Required]
         [DynamicCategoryValidation("document_visibility_type", Required = true)]
-        public string Visibility { get; set; } = string.Empty;
+        public DocumentVisibilityEnum Visibility { get; set; }
     }
 }
