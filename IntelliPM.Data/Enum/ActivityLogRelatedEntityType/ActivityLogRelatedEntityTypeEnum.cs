@@ -14,6 +14,9 @@ namespace IntelliPM.Data.Enum.ActivityLogRelatedEntityType
         FILE = 4,
         NOTIFICATION = 5,
         RISK = 6,
-            EPIC=7
+        EPIC=7,
+        SUBTASK=8,
+        SUBTASK_FILE = 9,
+        SUBTASK_COMMENT = 10,
     }
 }
