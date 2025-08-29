@@ -3,6 +3,9 @@ using IntelliPM.Data.DTOs.SubtaskComment.Request;
 using IntelliPM.Data.DTOs.SubtaskComment.Response;
 using IntelliPM.Data.DTOs.TaskComment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Notification;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.NotificationRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -65,11 +68,6 @@ namespace IntelliPM.Services.SubtaskCommentServices
             var entity = _mapper.Map<SubtaskComment>(request);
             entity.CreatedAt = DateTime.UtcNow;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_COMMENT");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "SUBTASK_COMMENT_CREATE");
-            var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
-
             try
             {
                 await _repo.Add(entity);
@@ -89,9 +87,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     ProjectId = projectId,
                     TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                     SubtaskId = entity.SubtaskId,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK_COMMENT.ToString(),
                     RelatedEntityId = entity.SubtaskId,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.CREATE.ToString(),
                     Message = $"Comment in subtask '{entity.SubtaskId}' is '{request.Content}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
@@ -108,10 +106,10 @@ namespace IntelliPM.Services.SubtaskCommentServices
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
-                        Type = dynamicNotificationType,
-                        Priority = dynamicNotificationPriority,
+                        Type = NotificationActionTypeEnum.SUBTASK_COMMENT_CREATE.ToString(),
+                        Priority = NotificationPriorityEnum.NORMAL.ToString(),
                         Message = $"Comment in project {project.ProjectKey} - subtask {request.SubtaskId}: {request.Content}",
-                        RelatedEntityType = dynamicEntityType,
+                        RelatedEntityType = NotificationRelatedEntityTypeEnum.SUBTASK_COMMENT.ToString(),
                         RelatedEntityId = entity.Id, 
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
