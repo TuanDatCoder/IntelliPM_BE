@@ -16,7 +16,7 @@ namespace IntelliPM.Data.DTOs.Document.Request
         public string? Content { get; set; }
 
         [DynamicCategoryValidation("document_visibility_type", Required = true)]
-        public DocumentVisibilityEnum Visibility { get; set; }
+        public string Visibility { get; set; }
 
 
 

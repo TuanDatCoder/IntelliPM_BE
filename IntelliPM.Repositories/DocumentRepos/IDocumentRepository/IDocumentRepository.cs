@@ -50,6 +50,8 @@ namespace IntelliPM.Repositories.DocumentRepos
 
         Task<bool> UpdateVisibilityAsync(int documentId, DocumentVisibilityEnum newVisibility, int updatedBy);
 
+        Task<string?> GetProjectKeyByProjectIdAsync(int projectId);
+
 
 
 
