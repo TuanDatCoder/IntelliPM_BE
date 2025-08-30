@@ -11,7 +11,7 @@ namespace IntelliPM.Data.Enum.Notification
         TASK_COMMENT = 1,
         SUBTASK_COMMENT =2,
         EPIC_COMMENT=3,
-
+        RISK_ALERT = 4
 
     }
 }

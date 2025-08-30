@@ -19,6 +19,7 @@ namespace IntelliPM.Data.Enum.ActivityLogRelatedEntityType
         SUBTASK=8,
         SUBTASK_FILE = 9,
         SUBTASK_COMMENT = 10,
+        MILESTONE = 11,
 
     }
 }
