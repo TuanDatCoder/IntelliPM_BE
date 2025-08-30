@@ -1,7 +1,12 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.DTOs.Task.Response;
+using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
+using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Repositories.TaskAssignmentRepos;
+using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.SprintServices;
 using IntelliPM.Services.TaskServices;
@@ -27,6 +32,9 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly string _url;
+        private readonly ITaskRepository _taskRepo;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
+        private readonly IProjectMemberRepository _projectMemberRepo;
 
         public SprintPlanningService(
             IProjectService projectService,
@@ -36,7 +44,10 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
             ILogger<SprintPlanningService> logger,
             IConfiguration configuration,
             ISprintRepository sprintRepo,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            ITaskRepository taskRepo,
+            ITaskAssignmentRepository taskAssignmentRepo,
+            IProjectMemberRepository projectMemberRepo)
         {
             _projectService = projectService ?? throw new ArgumentNullException(nameof(projectService));
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
@@ -47,6 +58,9 @@ namespace IntelliPM.Services.AiServices.SprintPlanningServices
             _apiKey = configuration["GeminiApiDAT:ApiKey"];
             _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
             _sprintRepo = sprintRepo ?? throw new ArgumentNullException(nameof(sprintRepo));
+            _taskAssignmentRepo = taskAssignmentRepo ?? throw new ArgumentNullException(nameof(taskAssignmentRepo));
+            _taskRepo = taskRepo ?? throw new ArgumentNullException(nameof(taskRepo));
+            _projectMemberRepo = projectMemberRepo ?? throw new ArgumentNullException(nameof(projectMemberRepo));
         }
 
         public async Task<List<SprintWithTasksDTO>> GenerateSprintPlan(int projectId, int numberOfSprints, int weeksPerSprint)
