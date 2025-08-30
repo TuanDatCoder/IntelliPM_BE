@@ -1,11 +1,13 @@
 using IntelliPM.Data.DTOs.MeetingDocument;
 using IntelliPM.Services.MeetingDocumentServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/meeting-documents")]
+    [Authorize]
     public class MeetingDocumentController : ControllerBase
     {
         private readonly IMeetingDocumentService _service;

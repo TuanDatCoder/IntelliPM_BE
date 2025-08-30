@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Services.WorkItemLabelServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -8,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class WorkItemLabelController : ControllerBase
     {
         private readonly IWorkItemLabelService _service;

@@ -10,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/project-member/{projectMemberId}/[controller]")]
+    [Authorize]
     public class ProjectPositionController : ControllerBase
     {
         private readonly IProjectPositionService _service;

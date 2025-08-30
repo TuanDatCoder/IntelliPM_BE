@@ -10,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class EpicCommentController : ControllerBase
     {
         private readonly IEpicCommentService _service;

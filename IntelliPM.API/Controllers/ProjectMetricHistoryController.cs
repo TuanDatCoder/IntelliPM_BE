@@ -1,10 +1,12 @@
 ﻿using IntelliPM.Services.ProjectMetricHistoryServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProjectMetricHistoryController : ControllerBase
     {
         private readonly IProjectMetricHistoryService _historyService;

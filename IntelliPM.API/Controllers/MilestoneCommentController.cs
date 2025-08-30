@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.MilestoneComment.Request;
 using IntelliPM.Services.MilestoneCommentServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -8,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class MilestoneCommentController : ControllerBase
     {
         private readonly IMilestoneCommentService _service;

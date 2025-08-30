@@ -9,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/task/{taskId}/[controller]")]
+    [Authorize]
     public class TaskAssignmentController : ControllerBase
     {
         private readonly ITaskAssignmentService _service;
