@@ -29,6 +29,7 @@ using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Services.TaskServices
 {
@@ -54,8 +55,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IServiceProvider _serviceProvider;
         private readonly object _idGenerationLock = new object();
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        private readonly ILogger<TaskService> _logger;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider, IDynamicCategoryHelper dynamicCategoryHelper)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider, IDynamicCategoryHelper dynamicCategoryHelper, ILogger<TaskService> logger)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -76,6 +78,7 @@ namespace IntelliPM.Services.TaskServices
             _geminiService = geminiService;
             _serviceProvider = serviceProvider;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _logger = logger;
         }
         public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
         {
@@ -437,6 +440,41 @@ namespace IntelliPM.Services.TaskServices
             }
 
             await _taskRepo.Update(task);
+        }
+
+        public async Task<TaskResponseDTO> RecalculateTaskPlannedHoursAsync(string taskId)
+        {
+            if (string.IsNullOrEmpty(taskId))
+                throw new ArgumentException("Task ID cannot be null or empty.", nameof(taskId));
+
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID '{TaskId}' not found for recalculation.", taskId);
+                throw new KeyNotFoundException($"Task with ID '{taskId}' not found.");
+            }
+
+            await RecalculateTaskPlannedHours(taskId);
+
+            // Fetch updated task with assignments for response
+            var updatedTask = await _taskRepo.GetByIdAsync(taskId);
+            if (updatedTask == null)
+            {
+                _logger.LogError("Failed to retrieve updated task '{TaskId}' after recalculation.", taskId);
+                throw new Exception($"Failed to retrieve updated task '{taskId}' after recalculation.");
+            }
+
+            // Map to DTO (assuming a mapper exists, adjust based on your implementation)
+            var result = new TaskResponseDTO
+            {
+                Id = updatedTask.Id,
+                PlannedHours = updatedTask.PlannedHours,
+                PlannedResourceCost = updatedTask.PlannedResourceCost,
+                // Include other relevant fields as needed
+            };
+
+            _logger.LogInformation("Successfully recalculated planned hours for task '{TaskId}'.", taskId);
+            return result;
         }
 
         public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
@@ -1001,13 +1039,6 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Title with task ID {id} not found.");
 
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
-
             entity.Title = title;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -1019,9 +1050,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed title of task '{entity.Id}' to '{title}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1038,16 +1069,12 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
         {
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
-
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
             if (sprintId == 0)
             {
-                // Cho phép gỡ Sprint khỏi Task
                 entity.SprintId = null;
             }
             else
@@ -1081,9 +1108,9 @@ namespace IntelliPM.Services.TaskServices
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed sprint of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1097,22 +1124,24 @@ namespace IntelliPM.Services.TaskServices
             return _mapper.Map<TaskResponseDTO>(entity);
         }
 
-
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
-
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
-                throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            // Validate planned_start_date < planned_end_date if end date exists
-            //if (entity.PlannedEndDate.HasValue && plannedStartDate > entity.PlannedEndDate.Value)
-            //    throw new ArgumentException("Planned start date cannot be after planned end date.");
+            // Lấy thông tin project
+            var project = await _projectRepo.GetByIdAsync(entity.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {entity.ProjectId} not found.");
+
+            // Kiểm tra PlannedStartDate nằm trong khoảng ngày của project
+            if (plannedStartDate < project.StartDate || plannedStartDate > project.EndDate)
+                throw new ArgumentException($"Task PlannedStartDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            // Kiểm tra PlannedStartDate nhỏ hơn PlannedEndDate
+            if (entity.PlannedEndDate.HasValue && plannedStartDate >= entity.PlannedEndDate.Value)
+                throw new ArgumentException($"Task PlannedStartDate must be less than PlannedEndDate ({entity.PlannedEndDate}).");
 
             entity.PlannedStartDate = plannedStartDate;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1123,12 +1152,11 @@ namespace IntelliPM.Services.TaskServices
                 await CalculatePlannedHoursAsync(entity.Id);
                 await _activityLogService.LogAsync(new ActivityLog
                 {
-                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    ProjectId = entity.ProjectId,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed planned start date of task '{entity.Id}' to '{plannedStartDate}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1144,15 +1172,22 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedEndDate(string id, DateTime plannedEndDate, int createdBy)
         {
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
-
             var entity = await _taskRepo.GetByIdAsync(id);
             if (entity == null)
-                throw new KeyNotFoundException($"Planned EndDate with task ID {id} not found.");
+                throw new KeyNotFoundException($"Task with ID {id} not found.");
+
+            // Lấy thông tin project
+            var project = await _projectRepo.GetByIdAsync(entity.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {entity.ProjectId} not found.");
+
+            // Kiểm tra PlannedEndDate nằm trong khoảng ngày của project
+            if (plannedEndDate < project.StartDate || plannedEndDate > project.EndDate)
+                throw new ArgumentException($"Task PlannedEndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            // Kiểm tra PlannedEndDate lớn hơn PlannedStartDate
+            if (entity.PlannedStartDate.HasValue && plannedEndDate <= entity.PlannedStartDate.Value)
+                throw new ArgumentException($"Task PlannedEndDate must be greater than PlannedStartDate ({entity.PlannedStartDate}).");
 
             entity.PlannedEndDate = plannedEndDate;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1163,12 +1198,11 @@ namespace IntelliPM.Services.TaskServices
                 await CalculatePlannedHoursAsync(entity.Id);
                 await _activityLogService.LogAsync(new ActivityLog
                 {
-                    ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
+                    ProjectId = entity.ProjectId,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed Planned End Date of task '{entity.Id}' to '{plannedEndDate}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1188,12 +1222,6 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Planned StartDate with task ID {id} not found.");
 
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
-
             entity.Description = description;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -1205,9 +1233,9 @@ namespace IntelliPM.Services.TaskServices
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
                     //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed description of task '{entity.Id}' to '{description}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -1491,7 +1519,6 @@ namespace IntelliPM.Services.TaskServices
             await EnrichTaskBacklogResponses(dtos);
             return dtos;
         }
-
 
         public async Task<List<TaskBacklogResponseDTO>> GetTasksBySprintIdAsync(int sprintId)
         {

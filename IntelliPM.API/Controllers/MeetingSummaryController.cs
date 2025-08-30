@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.DTOs.MeetingSummary.Request;
 using IntelliPM.Services.MeetingSummaryServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -7,6 +8,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/meeting-summaries")]
+    [Authorize]
     public class MeetingSummaryController : ControllerBase
     {
         private readonly IMeetingSummaryService _service;

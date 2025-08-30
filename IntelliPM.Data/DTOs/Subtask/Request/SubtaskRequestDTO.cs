@@ -21,6 +21,8 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Request
         [DynamicMaxLength("title_length")]
         [DynamicMinLength("title_length")]
         public string? Title { get; set; } = null!;
+
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using IntelliPM.Common.Attributes;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -10,10 +11,15 @@ namespace IntelliPM.Data.DTOs.SubtaskFile.Request
 {
     public class SubtaskFileRequestDTO
     {
-        public string SubtaskId { get; set; } 
+        [Required(ErrorMessage = "SubtaskId is required")]
+        public string SubtaskId { get; set; }
 
+        [Required(ErrorMessage = "Title is required")]
         public string Title { get; set; } = null!;
 
+        [Required(ErrorMessage = "File is required")]
+        [DynamicMaxLength("file_size")]
+        [DynamicMinLength("file_size")]
         public IFormFile File { get; set; } = null!;
 
         [Required(ErrorMessage = "CreatedBy is required")]

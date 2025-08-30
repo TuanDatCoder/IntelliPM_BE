@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Services.RecipientNotificationServices;
 using IntelliPM.Services.SubtaskServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -9,6 +10,7 @@ namespace IntelliPM.API.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RecipientNotificationController : ControllerBase
     {
         private readonly IRecipientNotificationService _service;

@@ -1,12 +1,14 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.DocumentPermission;
 using IntelliPM.Services.DocumentPermissionServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/document-permissions")]
+    [Authorize]
     public class DocumentPermissionsController : ControllerBase
     {
         private readonly IDocumentPermissionService _service;

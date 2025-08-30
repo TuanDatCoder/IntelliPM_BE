@@ -12,6 +12,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _service;
@@ -967,6 +968,25 @@ namespace IntelliPM.API.Controllers
                     Code = 500,
                     Message = $"Error updating task actual cost: {ex.Message}"
                 });
+            }
+        }
+
+
+        [HttpPost("{id}/recalculate-planned-hours")]
+        public async Task<IActionResult> RecalculateTaskPlannedHours(string id)
+        {
+            try
+            {
+                var result = await _service.RecalculateTaskPlannedHoursAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to recalculate planned hours: {ex.Message}");
             }
         }
 

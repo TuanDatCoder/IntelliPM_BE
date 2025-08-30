@@ -10,7 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class EpicFileController : ControllerBase
     {
         private readonly IEpicFileService _service;

@@ -902,7 +902,6 @@ For each task in the array, output exactly 1 table following the **fixed templat
                 CreatedAt = latest.CreatedAt,
                 UpdatedAt = latest.UpdatedAt,
                 Visibility = latest.Visibility,
-
             };
 
             return dto;

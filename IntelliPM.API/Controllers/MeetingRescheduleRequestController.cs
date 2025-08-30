@@ -11,7 +11,8 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    
+    [Authorize]
+
     public class MeetingRescheduleRequestController : ControllerBase
     {
         private readonly IMeetingRescheduleRequestService _service;

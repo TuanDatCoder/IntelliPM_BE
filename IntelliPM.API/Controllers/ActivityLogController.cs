@@ -12,6 +12,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ActivityLogController : ControllerBase
     {
         private readonly IActivityLogService _activityLogService;
