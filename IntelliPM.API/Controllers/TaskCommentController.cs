@@ -11,7 +11,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class TaskCommentController : ControllerBase
     {
         private readonly ITaskCommentService _service;

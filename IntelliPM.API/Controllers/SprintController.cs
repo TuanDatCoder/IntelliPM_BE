@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Services.AiServices.SprintPlanningServices;
 using IntelliPM.Services.SprintServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -9,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SprintController : ControllerBase
     {
         private readonly ISprintService _service;

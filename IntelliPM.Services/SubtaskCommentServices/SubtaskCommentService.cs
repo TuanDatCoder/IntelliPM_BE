@@ -38,11 +38,9 @@ namespace IntelliPM.Services.SubtaskCommentServices
         private readonly IActivityLogService _activityLogService;
         private readonly ITaskRepository _taskRepo;
         private readonly IAccountRepository _accountRepository;
-        private readonly IEmailService _emailService;
         private readonly IProjectRepository _projectRepo;
-        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IEmailService emailService, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger, IDynamicCategoryHelper dynamicCategoryHelper)
+        public SubtaskCommentService(IMapper mapper, ISubtaskCommentRepository repo, INotificationRepository notificationRepo, IProjectMemberRepository projectMemberRepo, ISubtaskRepository subtaskRepo, ITaskRepository taskRepo, IActivityLogService activityLogService, IAccountRepository accountRepository, IProjectRepository projectRepo, ILogger<SubtaskCommentService> logger)
         {
             _mapper = mapper;
             _repo = repo;
@@ -53,9 +51,7 @@ namespace IntelliPM.Services.SubtaskCommentServices
             _activityLogService = activityLogService;
             _taskRepo = taskRepo;
             _accountRepository = accountRepository;
-            _emailService = emailService;
             _projectRepo = projectRepo;
-            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
         public async Task<SubtaskCommentResponseDTO> CreateSubtaskComment(SubtaskCommentRequestDTO request)
         {

@@ -25,6 +25,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
         [DynamicMaxLength("title_length")]
         public string Title { get; set; } = null!;
 
+        [DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [DynamicCategoryValidation("task_priority", Required = false)]

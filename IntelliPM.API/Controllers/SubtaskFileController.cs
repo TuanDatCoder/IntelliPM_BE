@@ -10,7 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class SubtaskFileController : ControllerBase
     {
         private readonly ISubtaskFileService _service;

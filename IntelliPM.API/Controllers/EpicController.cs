@@ -7,6 +7,7 @@ using System.Net;
 
 namespace IntelliPM.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class EpicController : ControllerBase
