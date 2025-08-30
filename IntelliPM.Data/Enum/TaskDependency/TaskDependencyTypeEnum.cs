@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntelliPM.Data.Enum.Task
+namespace IntelliPM.Data.Enum.TaskDependency
 {
-    public enum TaskDependencyEnum
+    public enum TaskDependencyTypeEnum
     {
         FINISH_START = 1,
         START_START = 2,
