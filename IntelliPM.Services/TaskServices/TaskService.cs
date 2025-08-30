@@ -1038,10 +1038,6 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
         {
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-
             var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
             var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
@@ -1051,6 +1047,7 @@ namespace IntelliPM.Services.TaskServices
 
             if (sprintId == 0)
             {
+                // Cho phép gỡ Sprint khỏi Task
                 entity.SprintId = null;
             }
             else
@@ -1058,9 +1055,21 @@ namespace IntelliPM.Services.TaskServices
                 var sprint = await _sprintRepo.GetByIdAsync(sprintId);
                 if (sprint == null)
                     throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+
+                if (entity.PlannedStartDate.HasValue && entity.PlannedEndDate.HasValue && sprint.StartDate.HasValue && sprint.EndDate.HasValue)
+                {
+
+                    if (entity.PlannedStartDate < sprint.StartDate || entity.PlannedEndDate > sprint.EndDate)
+                    {
+                        throw new InvalidOperationException(
+                            $"Task {entity.Id} ({entity.PlannedStartDate:yyyy-MM-dd} → {entity.PlannedEndDate:yyyy-MM-dd}) " +
+                            $"must fit within Sprint {sprint.Id} ({sprint.StartDate:yyyy-MM-dd} → {sprint.EndDate:yyyy-MM-dd})."
+                        );
+                    }
+                }  
+
                 entity.SprintId = sprintId;
             }
-
 
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -1072,7 +1081,6 @@ namespace IntelliPM.Services.TaskServices
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
                     RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
                     ActionType = dynamicActionType,
@@ -1088,6 +1096,7 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
@@ -1420,16 +1429,20 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
+            var epicEntity = await _epicRepo.GetByIdAsync(epicId);
+            if (epicEntity == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
 
-            var sprint = await _epicRepo.GetByIdAsync(epicId);
-            if (sprint == null)
-                throw new KeyNotFoundException($"Epic with ID {id} not found.");
+            if(entity.PlannedStartDate.HasValue && entity.PlannedEndDate.HasValue && epicEntity.StartDate.HasValue && epicEntity.EndDate.HasValue)
+            {
+                if (entity.PlannedStartDate < epicEntity.StartDate || entity.PlannedEndDate > epicEntity.EndDate)
+                {
+                    throw new InvalidOperationException(
+                        $"Task {entity.Id} has StartDate {entity.PlannedStartDate} - EndDate {entity.PlannedEndDate}, " +
+                        $"which must be within Epic {epicEntity.Id} period {epicEntity.StartDate} - {epicEntity.EndDate}.");
+                }
+            }
+           
 
             entity.EpicId = epicId;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1441,22 +1454,22 @@ namespace IntelliPM.Services.TaskServices
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
                     RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
                     ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed epic of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
-                }); 
+                });
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+                throw new Exception($"Failed to change task epic: {ex.Message}", ex);
             }
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
         {

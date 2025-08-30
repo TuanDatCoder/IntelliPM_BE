@@ -7,6 +7,7 @@ using IntelliPM.Data.DTOs.ShareDocument.Response;
 using IntelliPM.Data.DTOs.ShareDocumentViaEmail;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Document;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
@@ -129,59 +130,65 @@ namespace IntelliPM.Services.DocumentServices
         }
 
 
-        public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
-        {
-            int count =
-          (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
-          (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
+        //public async Task<DocumentResponseDTO> CreateDocumentRequest(DocumentRequestDTO req, int userId)
+        //{
+        //    int count =
+        //  (!string.IsNullOrWhiteSpace(req.EpicId) ? 1 : 0) +
+        //  (!string.IsNullOrWhiteSpace(req.TaskId) ? 1 : 0) +
+        //  (!string.IsNullOrWhiteSpace(req.SubTaskId) ? 1 : 0);
 
-            if (count > 1)
-            {
-                throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
-            }
+        //    if (count > 1)
+        //    {
+        //        throw new Exception("Document phải liên kết với duy nhất một trong: Epic, Task hoặc Subtask.");
+        //    }
 
 
-            var doc = new Document
-            {
-                ProjectId = req.ProjectId,
-                EpicId = req.EpicId,
-                TaskId = req.TaskId,
-                SubtaskId = req.SubTaskId,
-                Title = req.Title,
-                //Type = req.Type,
+        //    var doc = new Document
+        //    {
+        //        ProjectId = req.ProjectId,
+        //        EpicId = req.EpicId,
+        //        TaskId = req.TaskId,
+        //        SubtaskId = req.SubTaskId,
+        //        Title = req.Title,
+        //        //Type = req.Type,
 
-                Content = req.Content,
+        //        Content = req.Content,
 
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+        //        CreatedBy = userId,
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow,
         
-            };
+        //    };
 
-            try
-            {
-                await _IDocumentRepository.AddAsync(doc);
-                await _IDocumentRepository.SaveChangesAsync();
-                var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
-                await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
+        //    try
+        //    {
+        //        await _IDocumentRepository.AddAsync(doc);
+        //        await _IDocumentRepository.SaveChangesAsync();
+        //        var teamLeaders = await _projectMemberRepository.GetTeamLeaderByProjectId(doc.ProjectId);
+        //        await _emailService.SendEmailTeamLeader(teamLeaders.Select(tl => tl.Account.Email).ToList(), "hello con ga");
 
 
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
-                throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
-            }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("EF Save Error: " + ex.InnerException?.Message ?? ex.Message);
+        //        throw new Exception("Không thể lưu Document: " + (ex.InnerException?.Message ?? ex.Message));
+        //    }
 
-            return ToResponse(doc);
-        }
+        //    return ToResponse(doc);
+        //}
 
         public async Task<DocumentResponseDTO> CreateDocument(DocumentRequestDTO req, int userId)
         {
 
 
-            var visibility = req.Visibility.Trim().ToUpperInvariant();
+            DocumentVisibilityEnum visibility;
+
+            if (!Enum.TryParse<DocumentVisibilityEnum>(req.Visibility, true, out visibility))
+            {
+                visibility = DocumentVisibilityEnum.MAIN; 
+            }
+
 
 
             int linkCount =
@@ -204,7 +211,7 @@ namespace IntelliPM.Services.DocumentServices
                 Content = req.Content,
                 CreatedBy = userId,
                 UpdatedBy = userId,
-                Visibility = visibility,
+                Visibility = visibility.ToString(),
                 CreatedAt = now,
                 UpdatedAt = now,
            
@@ -258,8 +265,8 @@ namespace IntelliPM.Services.DocumentServices
             if (req.Content != null)
                 doc.Content = req.Content;
 
-            if (!string.IsNullOrWhiteSpace(req.Visibility))
-                doc.Visibility = req.Visibility.Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(req.Visibility.ToString()))
+                doc.Visibility = req.Visibility.ToString().Trim().ToUpperInvariant();
 
             doc.UpdatedBy = userId;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -429,8 +436,13 @@ Respond in plain text (not HTML).
                 throw new ArgumentException("No valid emails provided.");
 
             // 3) Chuẩn hoá permission (giữ nguyên)
-            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
-            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+            DocumentShareEnum permissionType;
+            if (!Enum.TryParse<DocumentShareEnum>(req.PermissionType, true, out permissionType))
+            {
+                permissionType = DocumentShareEnum.VIEW; 
+            }
+
+
 
             // 4) Lấy account map từ emails (giữ nguyên)
             var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
@@ -442,7 +454,7 @@ Respond in plain text (not HTML).
                 var targetAccountIds = accountMap.Values.ToHashSet();
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
-                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+                                string.Equals(p.PermissionType, permissionType.ToString(), StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 if (toRemove.Count > 0)
@@ -452,7 +464,7 @@ Respond in plain text (not HTML).
                 {
                     DocumentId = documentId,
                     AccountId = accountId,
-                    PermissionType = permissionType
+                    PermissionType = permissionType.ToString()
                 });
 
                 await _permissionRepo.AddRangeAsync(newPermissions);
@@ -471,9 +483,10 @@ Respond in plain text (not HTML).
                 {
                     // Lấy AccountId tương ứng với email
                     var accountId = accountMap[email];
-
+                     
                     // TẠO TOKEN RIÊNG cho người dùng này
-                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType);
+                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
+
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
                     var link = $"{baseUrl.TrimEnd('/')}/share/verify?token={token}";
@@ -617,16 +630,6 @@ Request:
         {
             return await _IDocumentRepository.GetUserDocumentMappingAsync(projectId, userId);
         }
-        //public async Task<Dictionary<string, int>> GetStatusCount()
-        //{
-        //    return await _repo.CountByStatusAsync();
-        //}
-
-        //public async Task<Dictionary<string, int>> GetStatusCountByProject(int projectId)
-        //{
-        //    return await _repo.CountByStatusInProjectAsync(projectId);
-        //}
-
 
         public List<int> ExtractMentionedAccountIds(string content)
         {
@@ -642,62 +645,21 @@ Request:
             return mentionedIds.Distinct().ToList();
         }
 
-        //public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
-        //{
-        //    var doc = await _IDocumentRepository.GetByIdAsync(documentId);
-        //    if (doc == null)
-        //        throw new Exception("Document not found");
-
-        //    var projectId = doc.ProjectId;
-        //    Console.WriteLine(projectId);
-        //    var token = GetAccessToken();
-        //    if (string.IsNullOrWhiteSpace(token))
-        //        throw new Exception("Access token is missing");
-
-        //    var beUrl = Environment.GetEnvironmentVariable("BE_URL")
-        //                ?? "https://localhost:7128"; 
-
-
-        //    var metricRequest = new HttpRequestMessage(HttpMethod.Get,
-        //        $"{beUrl}/api/projectmetric/by-project-id?projectId={projectId}");
-        //    metricRequest.Headers.Authorization =
-        //        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-        //    var metricResponse = await _httpClient.SendAsync(metricRequest);
-        //    if (!metricResponse.IsSuccessStatusCode)
-        //        throw new Exception($"Failed to fetch metrics: {metricResponse.StatusCode}");
-
-        //    var metricData = await metricResponse.Content.ReadFromJsonAsync<ProjectMetricApiResponse>();
-        //    var metrics = metricData?.Data;
-        //    if (metrics == null)
-        //        throw new Exception("No project metrics found");
-
-        //    // Tạo prompt từ tasks + metrics
-        //    var prompt = BuildFullTaskPrompt(metrics, projectId);
-        //    var content = await GenerateContentWithGemini(prompt);
-
-        //    if (string.IsNullOrWhiteSpace(content))
-        //        throw new Exception("AI did not generate content");
-
-        //    return new GenerateDocumentResponse
-        //    {
-        //        Content = content
-        //    };
-        //}
-
         public async Task<GenerateDocumentResponse> GenerateFromProject(int documentId)
         {
             var doc = await _IDocumentRepository.GetByIdAsync(documentId)
                       ?? throw new Exception("Document not found");
 
             var projectId = doc.ProjectId;
+            var projectKey = await _IDocumentRepository.GetProjectKeyByProjectIdAsync(projectId);
+
 
             // GỌI THẲNG service/repo thay vì HTTP
-            var metrics = await _projectMetricService.GetByProjectIdAsync(projectId);
+            var metrics = await _projectMetricService.GetProjectHealthAsync(projectKey);
             if (metrics == null)
                 throw new Exception("No project metrics found");
 
-            var prompt = BuildFullTaskPrompt(metrics, projectId);
+            var prompt = BuildSmarterTaskPrompt(metrics);
 
             var content = await GenerateContentWithGemini(prompt);
             if (string.IsNullOrWhiteSpace(content))
@@ -730,52 +692,85 @@ Request:
         }
 
 
-
-
-
-        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
+        private string BuildSmarterTaskPrompt(ProjectHealthDTO metrics)
         {
-            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
-            });
+            // Bước 1: Định nghĩa rõ ràng các cặp Nhãn và Giá trị.
+            // Dễ dàng thêm, bớt hoặc thay đổi thứ tự tại một nơi duy nhất!
+            var dataPairs = new List<KeyValuePair<string, object>>
+    {
+        new("Project Status", metrics.ProjectStatus),
+        new("Time Status", metrics.TimeStatus),
+        new("Tasks To Be Completed", metrics.TasksToBeCompleted),
+        new("Overdue Tasks", metrics.OverdueTasks),
+        new("Progress (%)", metrics.ProgressPercent),
+        new("Cost Status", metrics.CostStatus)
+    };
 
+            // Bước 2: Chuyển đổi dữ liệu thành một định dạng văn bản đơn giản, dễ hiểu cho AI.
+            var dataLines = string.Join("\n", dataPairs.Select(kvp => $"{kvp.Key}: {kvp.Value ?? "N/A"}"));
+
+            // Bước 3: Sử dụng một prompt ngắn gọn, tập trung vào nhiệm vụ chính.
             return $@"
-You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanation) as a VERTICAL table (<table>), in which:
-- Each row (<tr>) contains a pair of data.
-- The first column is the field name (<th>), and the second column is the corresponding value (<td>).
-- Do not add style or class.
-- If a value is null, leave it empty.
-- Values are taken from the JSON (camelCase), except Project ID which is taken from the external parameter: {projectId}.
+You are an expert data formatter. Your sole purpose is to convert key-value data into a clean, semantic HTML `<table>`.
 
-JSON:
-{json}
+RULES:
+- The final output must be ONLY the `<table>` element and its contents.
+- Do not include `<html>`, `<body>`, CSS, markdown, or any explanations.
+- For each line in the data, create one `<tr>`.
+- The key (before the colon) goes into a `<th>`.
+- The value (after the colon) goes into a `<td>`.
 
-EXPECTED STRUCTURE:
-<table>
-  <tbody>
-    <tr><th>Project ID</th><td>{projectId}</td></tr>
-    <tr><th>Planned Value (PV)</th><td>{{metrics.plannedValue}}</td></tr>
-    <tr><th>Earned Value (EV)</th><td>{{metrics.earnedValue}}</td></tr>
-    <tr><th>Actual Cost (AC)</th><td>{{metrics.actualCost}}</td></tr>
-    <tr><th>Budget At Completion (BAC)</th><td>{{metrics.budgetAtCompletion}}</td></tr>
-    <tr><th>Cost Variance (CV)</th><td>{{metrics.costVariance}}</td></tr>
-    <tr><th>Schedule Variance (SV)</th><td>{{metrics.scheduleVariance}}</td></tr>
-    <tr><th>Cost Performance Index (CPI)</th><td>{{metrics.costPerformanceIndex}}</td></tr>
-    <tr><th>Schedule Performance Index (SPI)</th><td>{{metrics.schedulePerformanceIndex}}</td></tr>
-    <tr><th>Estimate At Completion (EAC)</th><td>{{metrics.estimateAtCompletion}}</td></tr>
-    <tr><th>Estimate To Complete (ETC)</th><td>{{metrics.estimateToComplete}}</td></tr>
-    <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
-    <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
-    <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
-    <tr><th>Calculated By</th><td>{{metrics.calculatedBy}}</td></tr>
-    <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
-    <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
-    <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
-  </tbody>
-</table>";
+--- DATA ---
+{dataLines}
+
+--- HTML OUTPUT ---
+";
         }
+
+
+
+        //        private string BuildFullTaskPrompt(NewProjectMetricResponseDTO metrics, int projectId)
+        //        {
+        //            var json = JsonSerializer.Serialize(metrics, new JsonSerializerOptions
+        //            {
+        //                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        //                WriteIndented = false
+        //            });
+
+        //            return $@"
+        //You are an AI assistant. ONLY RETURN PURE HTML (no CSS, no markdown, no explanation) as a VERTICAL table (<table>), in which:
+        //- Each row (<tr>) contains a pair of data.
+        //- The first column is the field name (<th>), and the second column is the corresponding value (<td>).
+        //- Do not add style or class.
+        //- If a value is null, leave it empty.
+        //- Values are taken from the JSON (camelCase), except Project ID which is taken from the external parameter: {projectId}.
+
+        //JSON:
+        //{json}
+
+        //EXPECTED STRUCTURE:
+        //<table>
+        //  <tbody>
+        //    <tr><th>Project ID</th><td>{projectId}</td></tr>
+        //    <tr><th>Planned Value (PV)</th><td>{{metrics.plannedValue}}</td></tr>
+        //    <tr><th>Earned Value (EV)</th><td>{{metrics.earnedValue}}</td></tr>
+        //    <tr><th>Actual Cost (AC)</th><td>{{metrics.actualCost}}</td></tr>
+        //    <tr><th>Budget At Completion (BAC)</th><td>{{metrics.budgetAtCompletion}}</td></tr>
+        //    <tr><th>Cost Variance (CV)</th><td>{{metrics.costVariance}}</td></tr>
+        //    <tr><th>Schedule Variance (SV)</th><td>{{metrics.scheduleVariance}}</td></tr>
+        //    <tr><th>Cost Performance Index (CPI)</th><td>{{metrics.costPerformanceIndex}}</td></tr>
+        //    <tr><th>Schedule Performance Index (SPI)</th><td>{{metrics.schedulePerformanceIndex}}</td></tr>
+        //    <tr><th>Estimate At Completion (EAC)</th><td>{{metrics.estimateAtCompletion}}</td></tr>
+        //    <tr><th>Estimate To Complete (ETC)</th><td>{{metrics.estimateToComplete}}</td></tr>
+        //    <tr><th>Variance At Completion (VAC)</th><td>{{metrics.varianceAtCompletion}}</td></tr>
+        //    <tr><th>Duration at Completion (days)</th><td>{{metrics.durationAtCompletion}}</td></tr>
+        //    <tr><th>Estimate Duration at Completion (days)</th><td>{{metrics.estimateDurationAtCompletion}}</td></tr>
+        //    <tr><th>Confidence Score</th><td>{{metrics.confidenceScore}}</td></tr>
+        //    <tr><th>Created At (UTC)</th><td>{{metrics.createdAt}}</td></tr>
+        //    <tr><th>Updated At (UTC)</th><td>{{metrics.updatedAt}}</td></tr>
+        //  </tbody>
+        //</table>";
+        //        }
 
 
 
@@ -815,7 +810,6 @@ For each task in the array, output exactly 1 table following the **fixed templat
   </thead>
   <tbody>
     <tr><td>ID</td><td>{{task.id}}</td></tr>
-    <tr><td>Project ID</td><td>{{task.projectId}}</td></tr>
     <tr><td>Project Name</td><td>{{task.projectName}}</td></tr>
     <tr><td>Type</td><td>{{task.type}}</td></tr>
     <tr><td>Title</td><td>{{task.title}}</td></tr>
@@ -830,23 +824,15 @@ For each task in the array, output exactly 1 table following the **fixed templat
     <tr><td>Updated At</td><td>{{task.updatedAt}}</td></tr>
     <tr><td>Status</td><td>{{task.status}}</td></tr>
     <tr><td>Priority</td><td>{{task.priority}}</td></tr>
-    <tr><td>Reporter ID</td><td>{{task.reporterId}}</td></tr>
+
     <tr><td>Reporter Fullname</td><td>{{task.reporterFullname}}</td></tr>
     <tr><td>Reporter Picture</td><td>{{task.reporterPicture}}</td></tr>
 
     <tr><td>Percent Complete</td><td>{{task.percentComplete}}</td></tr>
     <tr><td>Planned Hours</td><td>{{task.plannedHours}}</td></tr>
     <tr><td>Actual Hours</td><td>{{task.actualHours}}</td></tr>
-    <tr><td>Planned Cost</td><td>{{task.plannedCost}}</td></tr>
-    <tr><td>Planned Resource Cost</td><td>{{task.plannedResourceCost}}</td></tr>
-    <tr><td>Actual Cost</td><td>{{task.actualCost}}</td></tr>
-    <tr><td>Actual Resource Cost</td><td>{{task.actualResourceCost}}</td></tr>
     <tr><td>Remaining Hours</td><td>{{task.remainingHours}}</td></tr>
-
-    <tr><td>Sprint ID</td><td>{{task.sprintId}}</td></tr>
     <tr><td>Sprint Name</td><td>{{task.sprintName}}</td></tr>
-    <tr><td>Epic ID</td><td>{{task.epicId}}</td></tr>
-
     <tr><td>Evaluate</td><td>{{task.evaluate}}</td></tr>
   </tbody>
 </table>";
@@ -903,18 +889,14 @@ For each task in the array, output exactly 1 table following the **fixed templat
 
             var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
-
+            //var
             var dto = new DocumentResponseDTO
             {
                 Id = latest.Id,
                 ProjectId = latest.ProjectId,
                 TaskId = latest.TaskId,
                 Title = latest.Title,
-                //Type = latest.Type,
-                //Template = latest.Template,
                 Content = latest.Content,
-                //FileUrl = latest.FileUrl,
-         
                 CreatedBy = latest.CreatedBy,
                 UpdatedBy = latest.UpdatedBy,
                 CreatedAt = latest.CreatedAt,

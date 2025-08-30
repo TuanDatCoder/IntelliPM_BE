@@ -1,5 +1,6 @@
 ﻿using IntelliPM.Data.Contexts;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Document;
 using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
@@ -146,12 +147,12 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
                 .ToDictionaryAsync(a => a.Email.ToLower(), a => a.Id);
         }
 
-        public async Task<bool> UpdateVisibilityAsync(int documentId, string newVisibility, int updatedBy)
+        public async Task<bool> UpdateVisibilityAsync(int documentId, DocumentVisibilityEnum newVisibility, int updatedBy)
         {
             var doc = await _context.Document.FirstOrDefaultAsync(d => d.Id == documentId);
             if (doc == null) return false;
 
-            doc.Visibility = newVisibility;
+            doc.Visibility = newVisibility.ToString();
             doc.UpdatedBy = updatedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
@@ -159,10 +160,17 @@ namespace IntelliPM.Repositories.DocumentRepos.DocumentRepository
             await _context.SaveChangesAsync();
             return true;
 
-
-
-
         }
+
+        public async Task<string?> GetProjectKeyByProjectIdAsync(int projectId)
+        {
+            return await _context.Project
+                .AsNoTracking()
+                .Where(p => p.Id == projectId)
+                .Select(p => p.ProjectKey)
+                .FirstOrDefaultAsync();
+        }
+
 
     }
 }
