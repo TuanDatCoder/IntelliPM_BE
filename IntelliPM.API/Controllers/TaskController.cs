@@ -971,5 +971,24 @@ namespace IntelliPM.API.Controllers
         }
 
 
+        [HttpPost("{id}/recalculate-planned-hours")]
+        public async Task<IActionResult> RecalculateTaskPlannedHours(string id)
+        {
+            try
+            {
+                var result = await _service.RecalculateTaskPlannedHoursAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to recalculate planned hours: {ex.Message}");
+            }
+        }
+
+
     }
 }
