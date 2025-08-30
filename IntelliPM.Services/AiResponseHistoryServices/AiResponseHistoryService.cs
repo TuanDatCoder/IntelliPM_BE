@@ -3,6 +3,7 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.AiResponseHistory.Request;
 using IntelliPM.Data.DTOs.AiResponseHistory.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.AiHistory;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.AiResponseHistoryRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -145,7 +146,7 @@ namespace IntelliPM.Services.AiResponseHistoryServices
             entity.CreatedBy = currentAccount.Id;
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
-            entity.Status = "ACTIVE";
+            entity.Status = AiHistoryStatusEnum.ACTIVE.ToString();
 
             try
             {

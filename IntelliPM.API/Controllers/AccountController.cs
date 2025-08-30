@@ -1,4 +1,5 @@
 ﻿ using IntelliPM.Data.DTOs;
+using IntelliPM.Data.DTOs.Account.Request;
 using IntelliPM.Services.AccountServices;
 using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.AspNetCore.Authorization;
@@ -100,11 +101,11 @@ namespace IntelliPM.API.Controllers
 
         [Authorize(Roles = "ADMIN")]
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> ChangeAccountStatus(int id, [FromBody] string newStatus)
+        public async Task<IActionResult> ChangeAccountStatus(int id, [FromBody] ChangeStatusRequestDTO request)
         {
             try
             {
-                var updatedOrder = await _accountService.ChangeAccountStatus(id, newStatus);
+                var updatedOrder = await _accountService.ChangeAccountStatus(id, request.NewStatus);
 
                 return Ok(new ApiResponseDTO
                 {
@@ -133,6 +134,81 @@ namespace IntelliPM.API.Controllers
                 });
             }
         }
+
+
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpPatch("{id}/role")]
+        public async Task<IActionResult> ChangeAccountRole(int id, [FromBody] ChangeRoleRequestDTO request)
+        {
+            try
+            {
+                var updatedOrder = await _accountService.ChangeAccountRole(id, request.NewRole);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Account role updated successfully",
+                    Data = updatedOrder
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpPatch("{id}/position")]
+        public async Task<IActionResult> ChangeAccountPosition(int id, [FromBody] ChangePositionRequestDTO request)
+        {
+            try
+            {
+                var updatedOrder = await _accountService.ChangeAccountPosition(id, request.NewPosition);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Account position updated successfully",
+                    Data = updatedOrder
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = ex.Message
+                });
+            }
+        }
+
 
 
         [HttpGet("{accountId}/projects")]

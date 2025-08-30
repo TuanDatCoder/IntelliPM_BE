@@ -9,6 +9,7 @@ using IntelliPM.Repositories.RiskFileRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Services.ActivityLogServices;
 using IntelliPM.Services.CloudinaryStorageServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
@@ -26,19 +27,24 @@ namespace IntelliPM.Services.RiskFileServices
         private readonly IMapper _mapper;
         private readonly IActivityLogService _activityLogService;
         private readonly IRiskRepository _riskRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public RiskFileService(IRiskFileRepository repo, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, IRiskRepository riskRepo)
+        public RiskFileService(IRiskFileRepository repo, ICloudinaryStorageService cloudinaryService, IMapper mapper, IActivityLogService activityLogService, IRiskRepository riskRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _repo = repo;
             _cloudinaryService = cloudinaryService;
             _mapper = mapper;
             _activityLogService = activityLogService;
             _riskRepo = riskRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<RiskFileResponseDTO> UploadRiskFileAsync(RiskFileRequestDTO request)
         {
             var url = await _cloudinaryService.UploadFileAsync(request.File.OpenReadStream(), request.File.FileName);
+
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
 
             var entity = new RiskFile
             {
@@ -46,7 +52,6 @@ namespace IntelliPM.Services.RiskFileServices
                 FileName = request.FileName,
                 FileUrl = url,
                 UploadedBy = request.UploadedBy,
-                // Status = "UPLOADED"
             };
 
             var risk = await _riskRepo.GetByIdAsync(entity.RiskId);
@@ -56,9 +61,9 @@ namespace IntelliPM.Services.RiskFileServices
             {
                 ProjectId = risk.ProjectId,
                 RiskKey = risk.RiskKey,
-                RelatedEntityType = "RiskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = risk.RiskKey,
-                ActionType = "CREATE",
+                ActionType = dynamicActionType,
                 Message = $"Upload file in risk '{risk.RiskKey}' is '{request.FileName}'",
                 CreatedBy = request.UploadedBy,
                 CreatedAt = DateTime.UtcNow
@@ -72,6 +77,9 @@ namespace IntelliPM.Services.RiskFileServices
             var riskFile = await _repo.GetByIdAsync(id);
             if (riskFile == null) return false;
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISK_FILE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             var risk = await _riskRepo.GetByIdAsync(riskFile.RiskId);
 
             await _repo.DeleteAsync(riskFile);
@@ -79,9 +87,9 @@ namespace IntelliPM.Services.RiskFileServices
             {
                 ProjectId = risk.ProjectId,
                 RiskKey = risk.RiskKey,
-                RelatedEntityType = "RiskFile",
+                RelatedEntityType = dynamicEntityType,
                 RelatedEntityId = risk.RiskKey,
-                ActionType = "DELETE",
+                ActionType = dynamicActionType,
                 Message = $"Deleted file '{riskFile.FileName}' in risk '{risk.RiskKey}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow

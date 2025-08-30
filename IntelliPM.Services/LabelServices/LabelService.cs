@@ -4,6 +4,7 @@ using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.WorkItemLabel.Request;
 using IntelliPM.Data.DTOs.WorkItemLabel.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Label;
 using IntelliPM.Repositories.LabelRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.WorkItemLabelRepos;
@@ -45,7 +46,7 @@ namespace IntelliPM.Services.LabelServices
                 throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
 
             var entity = _mapper.Map<Label>(request);
-            entity.Status = request.Status ?? "ACTIVE"; // Đặt giá trị mặc định nếu không có
+            entity.Status = LabelStatusEnum.ACTIVE.ToString(); 
 
             try
             {
@@ -78,17 +79,15 @@ namespace IntelliPM.Services.LabelServices
 
             if (existingLabel != null)
             {
-                // Sử dụng label đã tồn tại
                 labelToUse = _mapper.Map<LabelResponseDTO>(existingLabel);
             }
             else
             {
-                // Tạo mới nếu chưa có
                 var labelRequest = new LabelRequestDTO
                 {
                     ProjectId = dto.ProjectId,
                     Name = dto.Name,
-                    Status = "ACTIVE"
+                    Status = LabelStatusEnum.ACTIVE.ToString()
                 };
 
                 labelToUse = await CreateLabel(labelRequest);
@@ -99,8 +98,6 @@ namespace IntelliPM.Services.LabelServices
             if (isAlreadyAssigned)
                 throw new InvalidOperationException("This label has already been assigned to this work item.");
 
-
-            // 3. Tạo WorkItemLabel gắn vào task/epic/subtask
             var workItemLabelRequest = new WorkItemLabelRequestDTO
             {
                 LabelId = labelToUse.Id,
@@ -110,7 +107,7 @@ namespace IntelliPM.Services.LabelServices
                 IsDeleted = false,
             };
 
-            var result = await _workItemLabelService.CreateWorkItemLabel(workItemLabelRequest); // Gọi lại hàm CreateWorkItemLabel đã có
+            var result = await _workItemLabelService.CreateWorkItemLabel(workItemLabelRequest); 
             return result;
         }
 
@@ -169,7 +166,7 @@ namespace IntelliPM.Services.LabelServices
                 throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
 
             _mapper.Map(request, entity);
-            entity.Status = request.Status ?? entity.Status; // Giữ giá trị cũ nếu không có
+            entity.Status = request.Status ?? entity.Status; 
 
             try
             {

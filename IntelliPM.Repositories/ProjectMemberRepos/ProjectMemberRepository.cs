@@ -131,6 +131,7 @@ namespace IntelliPM.Repositories.ProjectMemberRepos
                     Phone = pm.Account.Phone,
                     HourlyRate = pm.HourlyRate,
                     WorkingHoursPerDay = pm.WorkingHoursPerDay,
+                    Status = pm.Status,
                     Tasks = pm.Account.TaskAssignment
                         .Where(ta => ta.Task.ProjectId == projectId)
                         .Select(ta => new TaskBasicDTO

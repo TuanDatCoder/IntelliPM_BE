@@ -76,7 +76,7 @@ namespace IntelliPM.Services.WorkItemLabelServices
         public async Task<List<WorkItemLabelResponseDTO>> GetAllWorkItemLabelAsync(int page = 1, int pageSize = 10)
         {
             if (page < 1 || pageSize < 1) throw new ArgumentException("Invalid page or page size");
-            var entities = await _repo.GetAllWorkItemLabelAsync(); // Chờ kết quả
+            var entities = await _repo.GetAllWorkItemLabelAsync(); 
             var pagedEntities = entities
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

@@ -3,6 +3,8 @@ using IntelliPM.Data.DTOs.Sprint.Request;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Sprint;
+using IntelliPM.Data.Enum.Task;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.TaskRepos;
@@ -170,7 +172,7 @@ namespace IntelliPM.Services.SprintServices
                     UpdatedAt = DateTime.UtcNow,
                     Name = await GenerateSprintNameAsync(projectEntity.Id, projectEntity.ProjectKey),
                     Goal = sprint.Title,
-                    Status = "FUTURE",
+                    Status = SprintStatusEnum.FUTURE.ToString(),
                     StartDate = startDate,
                     EndDate = endDate,
                 };
@@ -305,7 +307,7 @@ namespace IntelliPM.Services.SprintServices
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
             entity.Name = await GenerateSprintNameAsync(projectEntity.Id, projectEntity.ProjectKey);
-            entity.Status = "FUTURE";
+            entity.Status = SprintStatusEnum.FUTURE.ToString();
 
 
             try
@@ -335,7 +337,7 @@ namespace IntelliPM.Services.SprintServices
             entity.Status = request.Status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            if (request.Status.Equals("ACTIVE"))
+            if (request.Status.Equals(SprintStatusEnum.ACTIVE.ToString()))
             {
                 entity.StartDate = DateTime.UtcNow;
                 if (entity.EndDate == null && entity.PlannedEndDate != null)
@@ -344,7 +346,7 @@ namespace IntelliPM.Services.SprintServices
                 }
 
             }
-            else if (request.Status.Equals("COMPLETED"))
+            else if (request.Status.Equals(SprintStatusEnum.COMPLETED.ToString()))
             {
                 entity.EndDate = DateTime.UtcNow;
                 if (entity.StartDate == null && entity.PlannedStartDate != null)
@@ -427,7 +429,7 @@ namespace IntelliPM.Services.SprintServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            if (status.Equals("ACTIVE"))
+            if (status.Equals(SprintStatusEnum.ACTIVE.ToString()))
             {
                 entity.StartDate = DateTime.UtcNow;
                 if (entity.EndDate == null && entity.PlannedEndDate != null)
@@ -436,7 +438,7 @@ namespace IntelliPM.Services.SprintServices
                 }
 
             }
-            else if (status.Equals("COMPLETED"))
+            else if (status.Equals(SprintStatusEnum.COMPLETED.ToString()))
             {
                 entity.EndDate = DateTime.UtcNow;
                 if (entity.StartDate == null && entity.PlannedStartDate != null)
@@ -673,7 +675,7 @@ namespace IntelliPM.Services.SprintServices
             int movedCount = 0;
             foreach (var task in tasksToMove)
             {
-                if (!string.Equals(task.Status, "DONE", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(task.Status, TaskStatusEnum.DONE.ToString() , StringComparison.OrdinalIgnoreCase))
                 {
                     task.SprintId = sprintNewIdNull;
                     await _taskRepo.Update(task);

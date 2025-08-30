@@ -26,7 +26,7 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public bool IsImproved { get; set; }
         public string? ImprovementSummary { get; set; }
         public decimal? ConfidenceScore { get; set; }
-        //public string ProjectStatus { get; set; }
+        //public string ProjectStatusEnum { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }

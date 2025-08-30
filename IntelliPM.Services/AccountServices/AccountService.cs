@@ -2,6 +2,9 @@
 using IntelliPM.Data.DTOs.Account.Response;
 using IntelliPM.Data.DTOs.ProjectMember.Response;
 using IntelliPM.Data.DTOs.ProjectPosition.Response;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Project;
+using IntelliPM.Data.Enum.Task;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectPositionRepos;
@@ -151,7 +154,7 @@ namespace IntelliPM.Services.AccountServices
                     ProjectId = epic.ProjectId, 
                     Summary = epic.Name, 
                     Status = epic.Status, 
-                    Type = "EPIC",
+                    Type = ActivityLogRelatedEntityTypeEnum.EPIC.ToString(),
                     CreatedAt = epic.CreatedAt, 
                     UpdatedAt = epic.UpdatedAt 
                 });
@@ -165,7 +168,7 @@ namespace IntelliPM.Services.AccountServices
                     ProjectId = task.ProjectId, 
                     Summary = task.Title, 
                     Status = task.Status,
-                    Type = task.Type ?? "TASK",
+                    Type = task.Type ?? ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     CreatedAt = task.CreatedAt, 
                     UpdatedAt = task.UpdatedAt 
                 });
@@ -179,7 +182,7 @@ namespace IntelliPM.Services.AccountServices
                     ProjectId = subtask.Task.ProjectId, 
                     Summary = subtask.Title,
                     Status = subtask.Status, 
-                    Type = "SUBSTACK",
+                    Type = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     CreatedAt = subtask.CreatedAt, 
                     UpdatedAt = subtask.UpdatedAt 
                 });
@@ -202,11 +205,11 @@ namespace IntelliPM.Services.AccountServices
             // ====== Lấy danh sách project ======
             var projects = await _projectMemberService.GetProjectsByAccountId(entity.Id);
             profile.TotalProjects = projects.Count;
-            profile.UpcomingProjects = projects.Count(p => p.ProjectStatus == "PLANNING");
+            profile.UpcomingProjects = projects.Count(p => p.ProjectStatus == ProjectStatusEnum.PLANNING.ToString());
             profile.ActiveProjects = projects.Count(p =>
-                p.ProjectStatus == "IN_PROGRESS" || p.ProjectStatus == "ON_HOLD" || p.ProjectStatus == "IN_REVIEW");
-            profile.CompletedProjects = projects.Count(p => p.ProjectStatus == "COMPLETED");
-            profile.CancelledProjects = projects.Count(p => p.ProjectStatus == "CANCELLED");
+                p.ProjectStatus == ProjectStatusEnum.IN_PROGRESS.ToString() || p.ProjectStatus == ProjectStatusEnum.ON_HOLD.ToString() || p.ProjectStatus == ProjectStatusEnum.IN_REVIEW.ToString());
+            profile.CompletedProjects = projects.Count(p => p.ProjectStatus == ProjectStatusEnum.COMPLETED.ToString());
+            profile.CancelledProjects = projects.Count(p => p.ProjectStatus == ProjectStatusEnum.CANCELLED.ToString());
 
             profile.ProjectList = projects
                 .Select(p => _mapper.Map<ProjectByAccountResponseDTO>(p))
@@ -246,6 +249,33 @@ namespace IntelliPM.Services.AccountServices
                 throw new KeyNotFoundException($"Account with id {id} not found.");
 
             return _mapper.Map<AccountResponseDTO>(entity);
+        }
+
+
+        public async Task<AccountResponseDTO> ChangeAccountRole(int id, string newRole)
+        {
+            var existingAccount = await _accountRepo.GetAccountById(id);
+            if (existingAccount == null)
+            {
+                throw new KeyNotFoundException($"Account with ID {id} not found.");
+            }
+
+            existingAccount.Role = newRole.ToString();
+            await _accountRepo.Update(existingAccount);
+            return _mapper.Map<AccountResponseDTO>(existingAccount);
+        }
+
+        public async Task<AccountResponseDTO> ChangeAccountPosition(int id, string newPosition)
+        {
+            var existingAccount = await _accountRepo.GetAccountById(id);
+            if (existingAccount == null)
+            {
+                throw new KeyNotFoundException($"Account with ID {id} not found.");
+            }
+
+            existingAccount.Position = newPosition.ToString();
+            await _accountRepo.Update(existingAccount);
+            return _mapper.Map<AccountResponseDTO>(existingAccount);
         }
 
     }

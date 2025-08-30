@@ -18,6 +18,7 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public string Phone { get; set; }
         public decimal? HourlyRate { get; set; }
         public decimal? WorkingHoursPerDay { get; set; }
+        public string Status { get; set; }
         public List<TaskBasicDTO> Tasks { get; set; } = new();
         public List<string> Positions { get; set; } = new();
     }

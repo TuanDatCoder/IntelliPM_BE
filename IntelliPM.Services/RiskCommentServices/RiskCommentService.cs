@@ -11,6 +11,7 @@ using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.RiskCommentRepos;
 using IntelliPM.Repositories.RiskRepos;
 using IntelliPM.Services.ActivityLogServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -33,8 +34,9 @@ namespace IntelliPM.Services.RiskCommentServices
         private readonly ILogger<RiskCommentService> _logger;
         private readonly IActivityLogService _activityLogService;
         private readonly IProjectRepository _projectRepo;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public RiskCommentService(IMapper mapper, IRiskCommentRepository repo, INotificationRepository notificationRepo, IRiskRepository riskRepo, IProjectMemberRepository projectMemberRepo, ILogger<RiskCommentService> logger, IActivityLogService activityLogService, IProjectRepository projectRepo)
+        public RiskCommentService(IMapper mapper, IRiskCommentRepository repo, INotificationRepository notificationRepo, IRiskRepository riskRepo, IProjectMemberRepository projectMemberRepo, ILogger<RiskCommentService> logger, IActivityLogService activityLogService, IProjectRepository projectRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _repo = repo;
@@ -44,6 +46,7 @@ namespace IntelliPM.Services.RiskCommentServices
             _logger = logger;
             _activityLogService = activityLogService;
             _projectRepo = projectRepo;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<RiskCommentResponseDTO> CreateRiskComment(RiskCommentRequestDTO request)
@@ -54,6 +57,10 @@ namespace IntelliPM.Services.RiskCommentServices
             if (string.IsNullOrEmpty(request.Comment))
                 throw new ArgumentException("Risk comment is required.", nameof(request.Comment));
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_COMMENT_CREATE");
+            var dynamicNotificationPriority = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_priority", "NORMAL");
 
             var entity = _mapper.Map<RiskComment>(request);
             entity.CreatedAt = DateTime.UtcNow;
@@ -81,10 +88,10 @@ namespace IntelliPM.Services.RiskCommentServices
                     var notification = new Notification
                     {
                         CreatedBy = request.AccountId,
-                        Type = "COMMENT",
-                        Priority = "NORMAL",
+                        Type = dynamicNotificationType,
+                        Priority = dynamicNotificationPriority,
                         Message = $"Comment in project {project.ProjectKey} - risk {risk.RiskKey}: {request.Comment}",
-                        RelatedEntityType = "Risk",
+                        RelatedEntityType = dynamicEntityType,
                         RelatedEntityId = entity.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -106,9 +113,9 @@ namespace IntelliPM.Services.RiskCommentServices
                 {
                     ProjectId = projectId,
                     RiskKey = risk.RiskKey,
-                    RelatedEntityType = "RiskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = risk.RiskKey,
-                    ActionType = "CREATE",
+                    ActionType = dynamicActionType,
                     Message = $"Comment in risk '{risk.RiskKey}' is '{request.Comment}'",
                     CreatedBy = request.AccountId,
                     CreatedAt = DateTime.UtcNow
@@ -131,6 +138,9 @@ namespace IntelliPM.Services.RiskCommentServices
             if (entity == null)
                 throw new KeyNotFoundException($"Risk comment with ID {id} not found.");
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
+
             try
             {
                 await _repo.Delete(entity);
@@ -146,9 +156,9 @@ namespace IntelliPM.Services.RiskCommentServices
                 {
                     ProjectId = projectId,
                     RiskKey = risk.RiskKey,
-                    RelatedEntityType = "RiskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = risk.RiskKey,
-                    ActionType = "DELETE",
+                    ActionType = dynamicActionType,
                     Message = $"Delete comment in risk '{risk.RiskKey}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
@@ -183,6 +193,9 @@ namespace IntelliPM.Services.RiskCommentServices
 
             _mapper.Map(request, entity);
 
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISK_COMMENT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+
             try
             {
                 await _repo.Update(entity);
@@ -198,9 +211,9 @@ namespace IntelliPM.Services.RiskCommentServices
                 {
                     ProjectId = projectId,
                     RiskKey = risk.RiskKey,
-                    RelatedEntityType = "RiskComment",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = risk.RiskKey,
-                    ActionType = "UPDATE",
+                    ActionType = dynamicActionType,
                     Message = $"Updated in risk '{risk.RiskKey}': '{request.Comment}'",
                     CreatedBy = request.AccountId,
                     CreatedAt = DateTime.UtcNow

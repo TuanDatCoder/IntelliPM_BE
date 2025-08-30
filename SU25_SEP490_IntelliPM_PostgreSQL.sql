@@ -1035,15 +1035,6 @@ VALUES
     (4, 'Design Review', '2025-09-12 13:00:00+00', 'http://meet.example.com/4', 'COMPLETED', '2025-09-12 13:00:00+00', '2025-09-12 14:00:00+00', 4),
     (5, 'Test Planning', '2025-10-20 11:00:00+00', 'http://meet.example.com/5', 'COMPLETED', '2025-10-20 11:00:00+00', '2025-10-20 12:00:00+00', 3);
 
--- Insert sample data into meeting_document
-INSERT INTO meeting_document (meeting_id, title, description, file_url, is_active, account_id)
-VALUES 
-    (1, 'Meeting Agenda', 'Agenda for planning', 'http://example.com/agenda1.pdf', TRUE, 1),
-    (2, 'Review Notes', 'Notes from campaign review', 'http://example.com/notes2.pdf', TRUE, 2),
-    (3, 'Sync Notes', 'Notes from research sync', 'http://example.com/notes3.pdf', TRUE, 3),
-    (4, 'Design Feedback', 'Feedback on design', 'http://example.com/feedback4.pdf', TRUE, 4),
-    (5, 'Test Plan', 'Plan for testing', 'http://example.com/plan5.pdf', TRUE, 5);
-
 -- Insert sample data into meeting_log
 INSERT INTO meeting_log (meeting_id, account_id, action)
 VALUES 
@@ -1107,15 +1098,6 @@ VALUES
     (3, 'Reallocate staff', 'Outsource tasks'),
     (4, 'Increase testing', 'Rollback changes'),
     (5, 'Freeze scope', 'Prioritize core features');
-
--- Insert sample data into change_request
-INSERT INTO change_request (project_id, requested_by, title, description, status)
-VALUES 
-    (1, 1, 'Add Feature', 'Add new login feature', 'PENDING'),
-    (2, 2, 'Change Budget', 'Increase budget by 10%', 'APPROVED'),
-    (3, 3, 'Extend Deadline', 'Extend by 1 month', 'REJECTED'),
-    (4, 4, 'Update Design', 'Revise UI colors', 'PENDING'),
-    (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
 
 -- Insert sample data into project_recommendation
 INSERT INTO project_recommendation (project_id, type, recommendation)
@@ -1301,6 +1283,9 @@ VALUES
     ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7, NULL, NULL),
     ('account_position', 'CLIENT', 'Client', 'Client position', 8, NULL, NULL),
     ('account_position', 'ADMIN', 'Admin', 'Admin position', 9, NULL, NULL),
+	 ('account_gender', 'MALE', 'Male', 'Male gender for account', 1, NULL, '#00BFFF'),
+    ('account_gender', 'FEMALE', 'Female', 'Female gender for account', 2, NULL, '#FF69B4'),
+    ('account_gender', 'OTHER', 'Other', 'Other / unspecified gender for account', 3, NULL, '#808080'),
     ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1, NULL, NULL),
     ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2, NULL, NULL),
     ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3, NULL, NULL),
@@ -1362,10 +1347,6 @@ VALUES
     ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5, NULL, NULL),
     ('risk_type', 'TECHNICAL', 'Technical', 'Technical risk', 6, NULL, NULL),
     ('risk_type', 'SECURITY', 'Security', 'Security risk', 7, NULL, NULL),
-    ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1, NULL, NULL),
-    ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
-    ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
-    ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4, NULL, NULL),
     ('recommendation_type', 'COST', 'Cost', 'Cost recommendation', 1, NULL, NULL),
     ('recommendation_type', 'SCHEDULE', 'Schedule', 'Schedule recommendation', 2, NULL, NULL),
     ('label_status', 'ACTIVE', 'Active', 'Active label', 1, NULL, NULL),
@@ -1425,7 +1406,11 @@ VALUES
     ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
 	('ai_feature', 'EPIC_GENERATION', 'EPIC_GENERATION Suggestion', 'AI EPIC_GENERATION recommendation suggestion', 8, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
 	('ai_feature', 'STORY_TASK_GENERATION', 'STORY_TASK_GENERATION Suggestion', 'AI STORY_TASK_GENERATION recommendation suggestion', 9, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
-    ('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
+    ('ai_feature', 'SUBTASK_FROM_TASK_CREATION', 'Subtask From Task Creation', 'Suggest subtask from task via AI', 10, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'TASK_FROM_EPIC_CREATION', 'Task From Epic Creation', 'Suggest task from epic via AI', 11, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'TASK_FROM_PROJECT_CREATION', 'Task From Project Creation', 'Suggest task from project via AI', 12, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'EPIC_FROM_PROJECT_CREATION', 'Epic From Project Creation', 'Suggest epic from project via AI', 13, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
     ('risk_impact_level', 'MEDIUM', 'Medium', 'Medium impact level', 2, NULL, 'yellow-100,yellow-700'),
     ('risk_impact_level', 'HIGH', 'High', 'High impact level', 3, NULL, 'red-100,red-700'),
     ('risk_probability_level', 'LOW', 'Low', 'Low probability level', 1, NULL, 'green-100,green-700'),
@@ -1489,7 +1474,35 @@ INSERT INTO system_configuration (
 ('acual_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other actual cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL);
 
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'username_length_limit',
+    NULL,
+    '1',
+    '25',
+    '25',
+    'Maximum allowed length of username',
+    'Usernames should not exceed 25 characters',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'password_length_limit',
+    NULL,
+    '6',
+    '100',
+    '12',
+    'Password length must be between 6 and 100 characters',
+    'Minimum 6 characters required for security. Recommended 12+.',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 

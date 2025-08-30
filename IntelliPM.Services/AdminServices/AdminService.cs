@@ -9,6 +9,7 @@ using IntelliPM.Services.AuthenticationServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.Helper.CustomExceptions;
 using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 
 namespace IntelliPM.Services.AdminServices
 {
@@ -20,8 +21,9 @@ namespace IntelliPM.Services.AdminServices
         private readonly IDecodeTokenHandler _decodeToken;
         private readonly IAuthenticationService _authenticationService;
         private readonly IEmailService _emailService;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public AdminService(IAccountRepository accountRepository, IMapper mapper, IDecodeTokenHandler decodeToken, IProjectRepository projectRepository, IAuthenticationService authenticationService, IEmailService emailService)
+        public AdminService(IAccountRepository accountRepository, IMapper mapper, IDecodeTokenHandler decodeToken, IProjectRepository projectRepository, IAuthenticationService authenticationService, IEmailService emailService, IDynamicCategoryHelper dynamicCategoryHelper)
 
         {
             _accountRepository = accountRepository;
@@ -30,6 +32,7 @@ namespace IntelliPM.Services.AdminServices
             _decodeToken = decodeToken;
             _authenticationService = authenticationService;
             _emailService = emailService;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task<List<AccountResponseDTO>> GetAllAccountsAsync()
@@ -41,7 +44,8 @@ namespace IntelliPM.Services.AdminServices
 
         public async Task<List<ProjectStatusReportDto>> GetProjectStatusReportsAsync()
         {
-            return await _projectRepository.GetAllProjectStatusReportsAsync();
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            return await _projectRepository.GetAllProjectStatusReportsAsync(calculationMode);
         }
 
         public async Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync()

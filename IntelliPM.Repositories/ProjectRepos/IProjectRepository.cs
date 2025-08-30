@@ -22,7 +22,7 @@ namespace IntelliPM.Repositories.ProjectRepos
         Task<Project> GetProjectByNameAsync(string projectName);
         Task<Project> GetProjectWithMembersAndRequirements(int projectId);
         Task<List<ProjectItemDTO>> GetProjectItemsAsync(int projectId);
-        Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync();
+        Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync(string calculatedBy);
         Task<List<string>> GetAllProjectKeysAsync();
         Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync();
     }

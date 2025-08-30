@@ -5,6 +5,11 @@ using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.RiskSolution.Request;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Notification;
+using IntelliPM.Data.Enum.Risk;
+using IntelliPM.Data.Enum.Task;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.NotificationRepos;
@@ -96,154 +101,6 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id)
                 ?? throw new Exception("Risk not found");
             await _riskRepo.DeleteAsync(risk);
-        }
-
-        public async Task<List<RiskResponseDTO>> GetUnapprovedAIRisksAsync(int projectId)
-        {
-            var risks = await _riskRepo.GetUnapprovedAIRisksByProjectIdAsync(projectId);
-            return _mapper.Map<List<RiskResponseDTO>>(risks);
-        }
-
-        public async Task ApproveRiskAsync(RiskRequestDTO dto, RiskSolutionRequestDTO solutionDto)
-        {
-            var risk = _mapper.Map<Risk>(dto);
-            risk.IsApproved = true;
-            risk.CreatedAt = DateTime.UtcNow;
-            risk.UpdatedAt = DateTime.UtcNow;
-
-            await _riskRepo.AddAsync(risk);
-
-            var solution = _mapper.Map<RiskSolution>(solutionDto);
-            solution.RiskId = risk.Id;
-            solution.CreatedAt = DateTime.UtcNow;
-            solution.UpdatedAt = DateTime.UtcNow;
-
-            await _riskSolutionRepo.AddAsync(solution);
-        }
-
-        public async Task<List<RiskRequestDTO>> DetectAndSaveProjectRisksAsync(int projectId)
-        {
-            var project = await _projectRepo.GetByIdAsync(projectId)
-                ?? throw new Exception("Project not found");
-
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var risks = await _geminiService.DetectProjectRisksAsync(project, tasks);
-            if (risks == null || !risks.Any())
-                throw new Exception("AI did not return valid project risks");
-
-            var savedRisks = new List<RiskRequestDTO>();
-
-            foreach (var riskDto in risks)
-            {
-                var riskEntity = _mapper.Map<Risk>(riskDto);
-                riskEntity.ProjectId = project.Id;
-                riskEntity.TaskId = null;
-                riskEntity.ResponsibleId = 1; // đổi lại có thể cho null được
-                riskEntity.RiskScope = "Project";
-                riskEntity.GeneratedBy = "AI";
-                riskEntity.Status = "Pending";
-                riskEntity.IsApproved = false;
-                riskEntity.CreatedAt = DateTime.UtcNow;
-                riskEntity.UpdatedAt = DateTime.UtcNow;
-
-                await _riskRepo.AddAsync(riskEntity);
-
-                var solutionEntity = new RiskSolution
-                {
-                    RiskId = riskEntity.Id,
-                    MitigationPlan = riskDto.MitigationPlan,
-                    ContingencyPlan = riskDto.ContingencyPlan,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await _riskSolutionRepo.AddAsync(solutionEntity);
-
-                var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
-                savedDto.MitigationPlan = riskDto.MitigationPlan;
-                savedDto.ContingencyPlan = riskDto.ContingencyPlan;
-
-                savedRisks.Add(savedDto);
-            }
-
-            return savedRisks;
-        }
-
-        public async Task<List<RiskRequestDTO>> DetectProjectRisksAsync(int projectId)
-        {
-            var project = await _projectRepo.GetByIdAsync(projectId)
-                ?? throw new Exception("Project not found");
-
-            var tasks = await _taskRepo.GetByProjectIdAsync(projectId);
-            var risks = await _geminiService.DetectProjectRisksAsync(project, tasks);
-
-            return risks ?? new List<RiskRequestDTO>();
-        }
-
-        public async Task<List<RiskRequestDTO>> SaveProjectRisksAsync(List<RiskRequestDTO> risks)
-        {
-            var saved = new List<RiskRequestDTO>();
-
-            foreach (var dto in risks)
-            {
-                var riskEntity = _mapper.Map<Risk>(dto);
-                riskEntity.Id = 0; // reset nếu dùng lại dto
-                riskEntity.ProjectId = dto.ProjectId;
-                riskEntity.Status = "Approved";
-                riskEntity.GeneratedBy = "AI";
-                riskEntity.IsApproved = true;
-                riskEntity.CreatedAt = DateTime.UtcNow;
-                riskEntity.UpdatedAt = DateTime.UtcNow;
-
-                try
-                {
-                    await _riskRepo.AddAsync(riskEntity);
-
-                    var solution = new RiskSolution
-                    {
-                        RiskId = riskEntity.Id, // <-- nếu Id vẫn = 0 => lỗi
-                        MitigationPlan = dto.MitigationPlan,
-                        ContingencyPlan = dto.ContingencyPlan,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    await _riskSolutionRepo.AddAsync(solution);
-                    var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
-                    savedDto.MitigationPlan = solution.MitigationPlan;
-                    savedDto.ContingencyPlan = solution.ContingencyPlan;
-
-                    saved.Add(savedDto);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Lỗi khi lưu Risk hoặc RiskSolution:\n" + ex.InnerException?.Message ?? ex.Message);
-                }
-
-
-                //await _riskRepo.AddAsync(riskEntity);
-                //if (riskEntity.Id == 0)
-                //    throw new Exception("Risk entity ID not set after save.");
-
-                //var solution = new RiskSolution
-                //{
-                //    RiskId = riskEntity.Id,
-                //    MitigationPlan = dto.MitigationPlan,
-                //    ContingencyPlan = dto.ContingencyPlan,
-                //    CreatedAt = DateTime.UtcNow,
-                //    UpdatedAt = DateTime.UtcNow
-                //};
-
-                //await _riskSolutionRepo.AddAsync(solution);
-
-                //var savedDto = _mapper.Map<RiskRequestDTO>(riskEntity);
-                //savedDto.MitigationPlan = solution.MitigationPlan;
-                //savedDto.ContingencyPlan = solution.ContingencyPlan;
-
-                //saved.Add(savedDto);
-            }
-
-            return saved;
         }
 
         public async Task<List<RiskResponseDTO>> GetByProjectKeyAsync(string projectKey)
@@ -361,7 +218,7 @@ namespace IntelliPM.Services.RiskServices
             var project = await _projectRepo.GetProjectByKeyAsync(request.ProjectKey)
                 ?? throw new Exception("Project not found with provided projectKey");
 
-            if (request.RiskScope == "TASK" && request.TaskId == null)
+            if (request.RiskScope == RiskScopeEnum.TASK.ToString() && request.TaskId == null)
             {
                 throw new Exception("TaskId is required when risk scope is TASK");
             }
@@ -380,11 +237,11 @@ namespace IntelliPM.Services.RiskServices
 
             var defaultStatus = defaultStatusConfig?.ValueConfig ?? "OPEN";
             var defaultGeneratedBy = defaultGeneratedByConfig?.ValueConfig ?? "MANUAL";
-            var defaultRiskScope = (await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("PROJECT", "risk_scope"))
+            var defaultRiskScope = (await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync(RiskScopeEnum.PROJECT.ToString(), "risk_scope"))
                 ?.FirstOrDefault()?.Name ?? "PROJECT";
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_ALERT");
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.CREATE.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
             var count = await _riskRepo.CountByProjectIdAsync(project.Id);
             var nextIndex = count + 1;
@@ -454,7 +311,7 @@ namespace IntelliPM.Services.RiskServices
                     Type = dynamicNotificationType,
                     Priority = entity.SeverityLevel,
                     Message = $"Risk identified in project {project.ProjectKey} - risk {riskKey}",
-                    RelatedEntityType = "Risk",
+                    RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false,
@@ -483,9 +340,9 @@ namespace IntelliPM.Services.RiskServices
             var project = await _projectRepo.GetByIdAsync(risk.ProjectId)
                 ?? throw new Exception("Project not found with provided projectId");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_ALERT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
 
             risk.Status = status;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -508,7 +365,7 @@ namespace IntelliPM.Services.RiskServices
                         Type = dynamicNotificationType,
                         Priority = risk.SeverityLevel,
                         Message = $"Updated status in risk in project {project.ProjectKey} - risk {risk.RiskKey}: {status}",
-                        RelatedEntityType = "Risk",
+                        RelatedEntityType = dynamicEntityType,
                         RelatedEntityId = risk.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -550,8 +407,8 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
 
             risk.Type = type;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -592,9 +449,9 @@ namespace IntelliPM.Services.RiskServices
                     throw new ArgumentException("Responsible user not found");
             }
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_ALERT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
             risk.ResponsibleId = responsibleId;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -619,7 +476,7 @@ namespace IntelliPM.Services.RiskServices
                         Type = dynamicNotificationType,
                         Priority = risk.SeverityLevel,
                         Message = $"Updated responsible person in project {project.ProjectKey} - risk {risk.RiskKey}",
-                        RelatedEntityType = "Risk",
+                        RelatedEntityType = dynamicEntityType,
                         RelatedEntityId = risk.Id,
                         CreatedAt = DateTime.UtcNow,
                         IsRead = false,
@@ -685,9 +542,8 @@ namespace IntelliPM.Services.RiskServices
             if (project?.EndDate != null && dueDate.Date > project.EndDate.Value)
                 throw new ArgumentException("Due date cannot be after project end date");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_ALERT");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
 
             risk.DueDate = dueDate;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -728,8 +584,9 @@ namespace IntelliPM.Services.RiskServices
             if (title.Length > maxLength)
                 throw new ArgumentException($"Title exceeds maximum length of {maxLength} characters");
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
             risk.Title = title;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -762,8 +619,9 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
             risk.Description = description;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -796,8 +654,9 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+            var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
             risk.ImpactLevel = impactLevel;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -864,8 +723,8 @@ namespace IntelliPM.Services.RiskServices
             var risk = await _riskRepo.GetByIdAsync(id);
             if (risk == null) return null;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
+            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
 
             risk.Probability = probability;
             risk.UpdatedAt = DateTime.UtcNow;
@@ -935,7 +794,7 @@ namespace IntelliPM.Services.RiskServices
             var overdueTasks = tasks
                 .Where(t => t.PlannedEndDate.HasValue &&
                             t.PlannedEndDate.Value < now &&
-                            !string.Equals(t.Status, "DONE", StringComparison.OrdinalIgnoreCase))
+                            !string.Equals(t.Status, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             foreach (var task in overdueTasks)
@@ -970,9 +829,9 @@ namespace IntelliPM.Services.RiskServices
                 var defaultGeneratedBy = defaultGeneratedByConfig?.ValueConfig ?? "SYSTEM";
 
                 var dynamicRiskType = await _dynamicCategoryHelper.GetCategoryNameAsync("risk_type", "SCHEDULE");
-                var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "RISk");
-                var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-                var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", "RISK_ALERT");
+                var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", ActivityLogActionTypeEnum.UPDATE.ToString());
+                var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", ActivityLogRelatedEntityTypeEnum.RISK.ToString());
+                var dynamicNotificationType = await _dynamicCategoryHelper.GetCategoryNameAsync("notification_type", NotificationRelatedEntityTypeEnum.RISK_ALERT.ToString());
 
                 var entity = new Risk
                 {
@@ -1325,7 +1184,7 @@ namespace IntelliPM.Services.RiskServices
             var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
 
             var overdueRisks = risks
-                .Where(r => !string.Equals(r.Status, "CLOSED", StringComparison.OrdinalIgnoreCase) &&
+                .Where(r => !string.Equals(r.Status, RiskStatusEnum.CLOSED.ToString(), StringComparison.OrdinalIgnoreCase) &&
                             r.DueDate.HasValue &&
                             r.DueDate.Value < today)
                 .ToList();
@@ -1377,7 +1236,7 @@ namespace IntelliPM.Services.RiskServices
             var stats = new RiskStatisticsDTO
             {
                 TotalRisks = risks.Count,
-                OverdueRisks = risks.Count(r => r.DueDate < DateTime.UtcNow && !r.Status.ToUpper().Contains("CLOSED")),
+                OverdueRisks = risks.Count(r => r.DueDate < DateTime.UtcNow && !r.Status.ToUpper().Contains(RiskStatusEnum.CLOSED.ToString())),
                 RisksByStatus = risks.GroupBy(r => r.Status).ToDictionary(g => g.Key, g => g.Count()),
                 RisksByType = risks.GroupBy(r => r.Type).ToDictionary(g => g.Key, g => g.Count()),
                 RisksBySeverity = risks.GroupBy(r => r.SeverityLevel).ToDictionary(g => g.Key, g => g.Count()),

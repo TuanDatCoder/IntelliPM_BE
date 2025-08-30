@@ -5,6 +5,9 @@ using IntelliPM.Data.DTOs.SubtaskFile.Response;
 using IntelliPM.Data.DTOs.TaskFile.Request;
 using IntelliPM.Data.DTOs.TaskFile.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.SubtaskFile;
 using IntelliPM.Repositories.SubtaskFileRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskFileRepos;
@@ -44,16 +47,13 @@ namespace IntelliPM.Services.SubtaskFileServices
         public async Task<SubtaskFileResponseDTO> UploadSubtaskFileAsync(SubtaskFileRequestDTO request)
         {
             var url = await _cloudinaryService.UploadFileAsync(request.File.OpenReadStream(), request.File.FileName);
-            var statusFileDynamic = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("subtask_file_status");
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_FILE");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
 
             var entity = new SubtaskFile
             {
                 SubtaskId = request.SubtaskId,
                 Title = request.Title,
                 UrlFile = url,
-                Status = statusFileDynamic,
+                Status = SubtaskFileStatusEnum.UPLOADED.ToString(),
             };
 
             var subtask = await _subtaskRepo.GetByIdAsync(entity.SubtaskId);
@@ -65,9 +65,9 @@ namespace IntelliPM.Services.SubtaskFileServices
                 ProjectId = projectId,
                 TaskId = (await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId ?? null,
                 SubtaskId = entity.SubtaskId,
-                RelatedEntityType = dynamicEntityType,
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK_FILE.ToString(),
                 RelatedEntityId = entity.SubtaskId,
-                ActionType = dynamicActionType,
+                ActionType = ActivityLogActionTypeEnum.CREATE.ToString(),
                 Message = $"Upload file in subtask '{entity.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(entity.SubtaskId))?.TaskId}'",
                 CreatedBy = request.CreatedBy,
                 CreatedAt = DateTime.UtcNow
@@ -83,8 +83,6 @@ namespace IntelliPM.Services.SubtaskFileServices
 
             var subtask = await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId);
             var projectId = subtask?.Task.ProjectId;
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "SUBTASK_FILE");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "DELETE");
 
             await _repository.DeleteAsync(subtaskFile);
             await _activityLogService.LogAsync(new ActivityLog
@@ -92,9 +90,9 @@ namespace IntelliPM.Services.SubtaskFileServices
                 ProjectId = projectId,
                 TaskId = (await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId ?? null,
                 SubtaskId = subtaskFile.SubtaskId,
-                RelatedEntityType = dynamicEntityType,
+                RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK_FILE.ToString(),
                 RelatedEntityId = subtaskFile.SubtaskId,
-                ActionType = dynamicActionType,
+                ActionType = ActivityLogActionTypeEnum.DELETE.ToString(),
                 Message = $"Delete file in subtask '{subtaskFile.SubtaskId}' under task '{(await _subtaskRepo.GetByIdAsync(subtaskFile.SubtaskId))?.TaskId}'",
                 CreatedBy = createdBy,
                 CreatedAt = DateTime.UtcNow
