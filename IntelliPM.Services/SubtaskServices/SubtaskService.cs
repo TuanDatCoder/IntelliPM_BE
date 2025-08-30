@@ -13,6 +13,7 @@ using IntelliPM.Data.Enum.ActivityLogActionType;
 using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Subtask;
 using IntelliPM.Data.Enum.Task;
+using IntelliPM.Data.Enum.TaskDependency;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -281,59 +282,62 @@ namespace IntelliPM.Services.SubtaskServices
                 object? source = null;
                 string? sourceStatus = null;
 
-                switch (dep.FromType)
+                if (Enum.TryParse<TaskDependencyFromToTypeEnum>(dep.FromType, true, out var fromType))
                 {
-                    case "task":
-                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (task == null) continue;
-                        source = task;
-                        sourceStatus = task.Status;
-                        break;
+                    switch (fromType)
+                    {
+                        case TaskDependencyFromToTypeEnum.task:
+                            var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (task == null) continue;
+                            source = task;
+                            sourceStatus = task.Status;
+                            break;
 
-                    case "subtask":
-                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (subtask == null) continue;
-                        source = subtask;
-                        sourceStatus = subtask.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.subtask:
+                            var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (subtask == null) continue;
+                            source = subtask;
+                            sourceStatus = subtask.Status;
+                            break;
 
-                    case "milestone":
-                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
-                        if (milestone == null) continue;
-                        source = milestone;
-                        sourceStatus = milestone.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.milestone:
+                            var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                            if (milestone == null) continue;
+                            source = milestone;
+                            sourceStatus = milestone.Status;
+                            break;
 
-                    default:
-                        continue;
+                        default:
+                            continue;
+                    }
                 }
 
-                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
+                if (Enum.TryParse<TaskDependencyTypeEnum>(dep.Type, true, out var dependencyType))
                 {
                     switch (dependencyType)
                     {
-                        case TaskDependencyEnum.FINISH_START:
+                        case TaskDependencyTypeEnum.FINISH_START:
                             // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
                             if ((isInProgress || isDone) && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.START_START:
+                        case TaskDependencyTypeEnum.START_START:
                             // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if ((isInProgress || isDone) && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.FINISH_FINISH:
+                        case TaskDependencyTypeEnum.FINISH_FINISH:
                             // Subtask has just been done (DONE) if LinkedFrom has done (DONE)
                             if (isDone && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                             }
                             break;
-                        case TaskDependencyEnum.START_FINISH:
+                        case TaskDependencyTypeEnum.START_FINISH:
                             // Subtask has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if (isDone && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
@@ -497,59 +501,62 @@ namespace IntelliPM.Services.SubtaskServices
                 object? source = null;
                 string? sourceStatus = null;
 
-                switch (dep.FromType)
+                if (Enum.TryParse<TaskDependencyFromToTypeEnum>(dep.FromType, true, out var fromType))
                 {
-                    case "task":
-                        var taskk = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (taskk == null) continue;
-                        source = taskk;
-                        sourceStatus = taskk.Status;
-                        break;
+                    switch (fromType)
+                    {
+                        case TaskDependencyFromToTypeEnum.task:
+                            var taskk = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (taskk == null) continue;
+                            source = taskk;
+                            sourceStatus = taskk.Status;
+                            break;
 
-                    case "subtask":
-                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (subtask == null) continue;
-                        source = subtask;
-                        sourceStatus = subtask.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.subtask:
+                            var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (subtask == null) continue;
+                            source = subtask;
+                            sourceStatus = subtask.Status;
+                            break;
 
-                    case "milestone":
-                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
-                        if (milestone == null) continue;
-                        source = milestone;
-                        sourceStatus = milestone.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.milestone:
+                            var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                            if (milestone == null) continue;
+                            source = milestone;
+                            sourceStatus = milestone.Status;
+                            break;
 
-                    default:
-                        continue;
+                        default:
+                            continue;
+                    }
                 }
 
-                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
+                if (Enum.TryParse<TaskDependencyTypeEnum>(dep.Type, true, out var dependencyType))
                 {
                     switch (dependencyType)
                     {
-                        case TaskDependencyEnum.FINISH_START:
+                        case TaskDependencyTypeEnum.FINISH_START:
                             // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
                             if ((isInProgress || isDone) && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.START_START:
+                        case TaskDependencyTypeEnum.START_START:
                             // Subtask just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if ((isInProgress || isDone) && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.FINISH_FINISH:
+                        case TaskDependencyTypeEnum.FINISH_FINISH:
                             // Subtask has just been done (DONE) if LinkedFrom has done (DONE)
                             if (isDone && !string.Equals(sourceStatus, SubtaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Subtask '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                             }
                             break;
-                        case TaskDependencyEnum.START_FINISH:
+                        case TaskDependencyTypeEnum.START_FINISH:
                             // Subtask has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if (isDone && string.Equals(sourceStatus, SubtaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {

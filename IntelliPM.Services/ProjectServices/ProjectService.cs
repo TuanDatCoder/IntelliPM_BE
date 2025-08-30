@@ -13,8 +13,11 @@ using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Data.Enum.Account;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Project;
 using IntelliPM.Data.Enum.ProjectMember;
+using IntelliPM.Data.Enum.TaskDependency;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -791,10 +794,12 @@ namespace IntelliPM.Services.ProjectServices
             var taskDTOs = _mapper.Map<List<TaskSubtaskDependencyResponseDTO>>(tasks)
                 .OrderBy(t => t.PlannedStartDate ?? DateTime.MaxValue)
                 .ToList();
+
             foreach (var t in taskDTOs)
             {
                 t.Subtasks = subtasksGrouped.ContainsKey(t.Id) ? subtasksGrouped[t.Id] : new();
                 t.Dependencies = groupedDependencies.TryGetValue((t.Id, "task"), out var deps) ? deps : new();
+                //t.Dependencies = groupedDependencies.TryGetValue((t.Id, TaskDependencyFromToTypeEnum.task.ToString()), out var deps) ? deps : new();
             }
 
             foreach (var t in taskDTOs)
@@ -802,6 +807,7 @@ namespace IntelliPM.Services.ProjectServices
                 foreach (var sub in t.Subtasks)
                 {
                     sub.Dependencies = groupedDependencies.TryGetValue((sub.Id, "subtask"), out var sdeps) ? sdeps : new();
+                    //sub.Dependencies = groupedDependencies.TryGetValue((sub.Id, TaskDependencyFromToTypeEnum.subtask.ToString()), out var sdeps) ? sdeps : new();
                 }
             }
 
@@ -811,6 +817,7 @@ namespace IntelliPM.Services.ProjectServices
             foreach (var m in milestoneDTOs)
             {
                 m.Dependencies = groupedDependencies.TryGetValue((m.Key, "milestone"), out var mdeps) ? mdeps : new();
+                //m.Dependencies = groupedDependencies.TryGetValue((m.Key, TaskDependencyFromToTypeEnum.milestone.ToString()), out var mdeps) ? mdeps : new();
             }
 
             var projectDTO = _mapper.Map<ProjectViewDTO>(project);

@@ -9,6 +9,7 @@ using IntelliPM.Data.Enum.ActivityLogActionType;
 using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Epic;
 using IntelliPM.Data.Enum.Task;
+using IntelliPM.Data.Enum.TaskDependency;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.EpicRepos;
@@ -162,59 +163,89 @@ namespace IntelliPM.Services.TaskServices
                 object? source = null;
                 string? sourceStatus = null;
 
-                switch (dep.FromType)
+                if (Enum.TryParse<TaskDependencyFromToTypeEnum>(dep.FromType, true, out var fromType))
                 {
-                    case "task":
-                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (task == null) continue;
-                        source = task;
-                        sourceStatus = task.Status;
-                        break;
+                    switch (fromType)
+                    {
+                        case TaskDependencyFromToTypeEnum.task:
+                            var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (task == null) continue;
+                            source = task;
+                            sourceStatus = task.Status;
+                            break;
 
-                    case "subtask":
-                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (subtask == null) continue;
-                        source = subtask;
-                        sourceStatus = subtask.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.subtask:
+                            var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (subtask == null) continue;
+                            source = subtask;
+                            sourceStatus = subtask.Status;
+                            break;
 
-                    case "milestone":
-                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
-                        if (milestone == null) continue;
-                        source = milestone;
-                        sourceStatus = milestone.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.milestone:
+                            var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                            if (milestone == null) continue;
+                            source = milestone;
+                            sourceStatus = milestone.Status;
+                            break;
 
-                    default:
-                        continue;
+                        default:
+                            continue;
+                    }
                 }
 
-                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
+                //switch (dep.FromType)
+                //{
+                //    case "task":
+                //        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                //        if (task == null) continue;
+                //        source = task;
+                //        sourceStatus = task.Status;
+                //        break;
+
+                //    case "subtask":
+                //        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                //        if (subtask == null) continue;
+                //        source = subtask;
+                //        sourceStatus = subtask.Status;
+                //        break;
+
+                //    case "milestone":
+                //        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                //        if (milestone == null) continue;
+                //        source = milestone;
+                //        sourceStatus = milestone.Status;
+                //        break;
+
+                //    default:
+                //        continue;
+                //}
+
+                if (Enum.TryParse<TaskDependencyTypeEnum>(dep.Type, true, out var dependencyType))
                 {
                     switch (dependencyType)
                     {
-                        case TaskDependencyEnum.FINISH_START:
+                        case TaskDependencyTypeEnum.FINISH_START:
                             // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
                             if ((isInProgress || isDone) && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.START_START:
+                        case TaskDependencyTypeEnum.START_START:
                             // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if ((isInProgress || isDone) && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.FINISH_FINISH:
+                        case TaskDependencyTypeEnum.FINISH_FINISH:
                             // Task has just been done (DONE) if LinkedFrom has done (DONE)
                             if (isDone && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                             }
                             break;
-                        case TaskDependencyEnum.START_FINISH:
+                        case TaskDependencyTypeEnum.START_FINISH:
                             // Task has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if (isDone && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
@@ -398,17 +429,14 @@ namespace IntelliPM.Services.TaskServices
                 }
 
                 task.PlannedResourceCost = totalCost;
-                //task.PlannedCost = totalCost;
             }
             else
             {
                 // Warning: No assignments or working hours, costs remain 0
                 task.PlannedResourceCost = 0m;
-                //task.PlannedCost = 0m;
             }
 
             await _taskRepo.Update(task);
-            //await UpdateTaskProgressAsync(task);
         }
 
         public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
@@ -524,59 +552,89 @@ namespace IntelliPM.Services.TaskServices
                 object? source = null;
                 string? sourceStatus = null;
 
-                switch (dep.FromType)
+                if (Enum.TryParse<TaskDependencyFromToTypeEnum>(dep.FromType, true, out var fromType))
                 {
-                    case "task":
-                        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (task == null) continue;
-                        source = task;
-                        sourceStatus = task.Status;
-                        break;
+                    switch (fromType)
+                    {
+                        case TaskDependencyFromToTypeEnum.task:
+                            var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (task == null) continue;
+                            source = task;
+                            sourceStatus = task.Status;
+                            break;
 
-                    case "subtask":
-                        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
-                        if (subtask == null) continue;
-                        source = subtask;
-                        sourceStatus = subtask.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.subtask:
+                            var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                            if (subtask == null) continue;
+                            source = subtask;
+                            sourceStatus = subtask.Status;
+                            break;
 
-                    case "milestone":
-                        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
-                        if (milestone == null) continue;
-                        source = milestone;
-                        sourceStatus = milestone.Status;
-                        break;
+                        case TaskDependencyFromToTypeEnum.milestone:
+                            var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                            if (milestone == null) continue;
+                            source = milestone;
+                            sourceStatus = milestone.Status;
+                            break;
 
-                    default:
-                        continue;
+                        default:
+                            continue;
+                    }
                 }
 
-                if (Enum.TryParse<TaskDependencyEnum>(dep.Type, true, out var dependencyType))
+                //switch (dep.FromType)
+                //{
+                //    case "task":
+                //        var task = await _taskRepo.GetByIdAsync(dep.LinkedFrom);
+                //        if (task == null) continue;
+                //        source = task;
+                //        sourceStatus = task.Status;
+                //        break;
+
+                //    case "subtask":
+                //        var subtask = await _subtaskRepo.GetByIdAsync(dep.LinkedFrom);
+                //        if (subtask == null) continue;
+                //        source = subtask;
+                //        sourceStatus = subtask.Status;
+                //        break;
+
+                //    case "milestone":
+                //        var milestone = await _milestoneRepo.GetByKeyAsync(dep.LinkedFrom);
+                //        if (milestone == null) continue;
+                //        source = milestone;
+                //        sourceStatus = milestone.Status;
+                //        break;
+
+                //    default:
+                //        continue;
+                //}
+
+                if (Enum.TryParse<TaskDependencyTypeEnum>(dep.Type, true, out var dependencyType))
                 {
                     switch (dependencyType)
                     {
-                        case TaskDependencyEnum.FINISH_START:
+                        case TaskDependencyTypeEnum.FINISH_START:
                             // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has done (DONE)
                             if ((isInProgress || isDone) && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.START_START:
+                        case TaskDependencyTypeEnum.START_START:
                             // Task just can start (IN_PROGRESS or DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if ((isInProgress || isDone) && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be started (IN_PROGRESS or DONE) before starting.");
                             }
                             break;
-                        case TaskDependencyEnum.FINISH_FINISH:
+                        case TaskDependencyTypeEnum.FINISH_FINISH:
                             // Task has just been done (DONE) if LinkedFrom has done (DONE)
                             if (isDone && !string.Equals(sourceStatus, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
                                 warnings.Add($"Task '{id}' depends on {dep.FromType.ToLower()} '{dep.LinkedFrom}' to be completed (DONE) before it can be completed.");
                             }
                             break;
-                        case TaskDependencyEnum.START_FINISH:
+                        case TaskDependencyTypeEnum.START_FINISH:
                             // Task has just been done (DONE) if LinkedFrom has started (IN_PROGRESS or DONE)
                             if (isDone && string.Equals(sourceStatus, TaskStatusEnum.TO_DO.ToString(), StringComparison.OrdinalIgnoreCase))
                             {
@@ -980,10 +1038,6 @@ namespace IntelliPM.Services.TaskServices
 
         public async Task<TaskResponseDTO> ChangeTaskSprint(string id, int sprintId, int createdBy)
         {
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-
-
             var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
             var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
@@ -993,6 +1047,7 @@ namespace IntelliPM.Services.TaskServices
 
             if (sprintId == 0)
             {
+                // Cho phép gỡ Sprint khỏi Task
                 entity.SprintId = null;
             }
             else
@@ -1000,20 +1055,32 @@ namespace IntelliPM.Services.TaskServices
                 var sprint = await _sprintRepo.GetByIdAsync(sprintId);
                 if (sprint == null)
                     throw new KeyNotFoundException($"Sprint with ID {sprintId} not found.");
+
+                if (entity.PlannedStartDate.HasValue && entity.PlannedEndDate.HasValue && sprint.StartDate.HasValue && sprint.EndDate.HasValue)
+                {
+
+                    if (entity.PlannedStartDate < sprint.StartDate || entity.PlannedEndDate > sprint.EndDate)
+                    {
+                        throw new InvalidOperationException(
+                            $"Task {entity.Id} ({entity.PlannedStartDate:yyyy-MM-dd} → {entity.PlannedEndDate:yyyy-MM-dd}) " +
+                            $"must fit within Sprint {sprint.Id} ({sprint.StartDate:yyyy-MM-dd} → {sprint.EndDate:yyyy-MM-dd})."
+                        );
+                    }
+                }  
+
                 entity.SprintId = sprintId;
             }
-
 
             entity.UpdatedAt = DateTime.UtcNow;
 
             try
             {
                 await _taskRepo.Update(entity);
+                await RecalculateTaskPlannedHours(id);
                 await _activityLogService.LogAsync(new ActivityLog
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
                     RelatedEntityType = dynamicEntityType,
                     RelatedEntityId = entity.Id,
                     ActionType = dynamicActionType,
@@ -1029,6 +1096,7 @@ namespace IntelliPM.Services.TaskServices
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<TaskResponseDTO> ChangeTaskPlannedStartDate(string id, DateTime plannedStartDate, int createdBy)
         {
@@ -1361,16 +1429,20 @@ namespace IntelliPM.Services.TaskServices
             if (entity == null)
                 throw new KeyNotFoundException($"Task with ID {id} not found.");
 
-            var dynamicStatus = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_status");
-            var dynamicPriority = await _dynamicCategoryHelper.GetDefaultCategoryNameAsync("task_priority");
-            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "TASK");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
+            var epicEntity = await _epicRepo.GetByIdAsync(epicId);
+            if (epicEntity == null)
+                throw new KeyNotFoundException($"Epic with ID {epicId} not found.");
 
-            var sprint = await _epicRepo.GetByIdAsync(epicId);
-            if (sprint == null)
-                throw new KeyNotFoundException($"Epic with ID {id} not found.");
+            if(entity.PlannedStartDate.HasValue && entity.PlannedEndDate.HasValue && epicEntity.StartDate.HasValue && epicEntity.EndDate.HasValue)
+            {
+                if (entity.PlannedStartDate < epicEntity.StartDate || entity.PlannedEndDate > epicEntity.EndDate)
+                {
+                    throw new InvalidOperationException(
+                        $"Task {entity.Id} has StartDate {entity.PlannedStartDate} - EndDate {entity.PlannedEndDate}, " +
+                        $"which must be within Epic {epicEntity.Id} period {epicEntity.StartDate} - {epicEntity.EndDate}.");
+                }
+            }
+           
 
             entity.EpicId = epicId;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -1382,22 +1454,22 @@ namespace IntelliPM.Services.TaskServices
                 {
                     ProjectId = (await _taskRepo.GetByIdAsync(entity.Id))?.ProjectId ?? 0,
                     TaskId = entity.Id,
-                    //SubtaskId = entity.Subtask,
                     RelatedEntityType = ActivityLogRelatedEntityTypeEnum.TASK.ToString(),
                     RelatedEntityId = entity.Id,
                     ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Changed epic of task '{entity.Id}'",
                     CreatedBy = createdBy,
                     CreatedAt = DateTime.UtcNow
-                }); 
+                });
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to change task sprint: {ex.Message}", ex);
+                throw new Exception($"Failed to change task epic: {ex.Message}", ex);
             }
 
             return _mapper.Map<TaskResponseDTO>(entity);
         }
+
 
         public async Task<TaskWithSubtaskDTO?> GetTaskWithSubtasksAsync(string id)
         {
