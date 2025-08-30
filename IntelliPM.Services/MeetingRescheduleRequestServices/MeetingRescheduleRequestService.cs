@@ -19,14 +19,6 @@ namespace IntelliPM.Services.MeetingRescheduleRequestServices
             _mapper = mapper;
         }
 
-        //public async Task<MeetingRescheduleRequestResponseDTO> CreateAsync(MeetingRescheduleRequestDTO dto)
-        //{
-        //    var entity = _mapper.Map<MeetingRescheduleRequest>(dto);
-        //    entity.CreatedAt = DateTime.UtcNow;
-        //    entity.UpdatedAt = DateTime.UtcNow;
-        //    var saved = await _repo.AddAsync(entity);
-        //    return _mapper.Map<MeetingRescheduleRequestResponseDTO>(saved);
-        //}
 
         public async Task<MeetingRescheduleRequestResponseDTO> CreateAsync(MeetingRescheduleRequestDTO dto)
         {
