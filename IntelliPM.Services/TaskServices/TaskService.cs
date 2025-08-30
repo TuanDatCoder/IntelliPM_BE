@@ -29,6 +29,7 @@ using IntelliPM.Services.Utilities;
 using IntelliPM.Services.WorkItemLabelServices;
 using IntelliPM.Services.WorkLogServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Services.TaskServices
 {
@@ -54,8 +55,9 @@ namespace IntelliPM.Services.TaskServices
         private readonly IServiceProvider _serviceProvider;
         private readonly object _idGenerationLock = new object();
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        private readonly ILogger<TaskService> _logger;
 
-        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider, IDynamicCategoryHelper dynamicCategoryHelper)
+        public TaskService(IMapper mapper, ITaskRepository taskRepo, IEpicRepository epicRepo, IProjectRepository projectRepo, ISubtaskRepository subtaskRepo, IAccountRepository accountRepo, ITaskCommentService taskCommentService, IWorkItemLabelService workItemLabelService, ITaskAssignmentRepository taskAssignmentRepository, ITaskDependencyRepository taskDependencyRepo, IProjectMemberRepository projectMemberRepo, IDynamicCategoryRepository dynamicCategoryRepo, IWorkLogService workLogService, ISprintRepository sprintRepo, IActivityLogService activityLogService, IMilestoneRepository milestoneRepo, IGeminiService geminiService, IServiceProvider serviceProvider, IDynamicCategoryHelper dynamicCategoryHelper, ILogger<TaskService> logger)
         {
             _mapper = mapper;
             _taskRepo = taskRepo;
@@ -76,6 +78,7 @@ namespace IntelliPM.Services.TaskServices
             _geminiService = geminiService;
             _serviceProvider = serviceProvider;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _logger = logger;
         }
         public async Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId)
         {
@@ -437,6 +440,41 @@ namespace IntelliPM.Services.TaskServices
             }
 
             await _taskRepo.Update(task);
+        }
+
+        public async Task<TaskResponseDTO> RecalculateTaskPlannedHoursAsync(string taskId)
+        {
+            if (string.IsNullOrEmpty(taskId))
+                throw new ArgumentException("Task ID cannot be null or empty.", nameof(taskId));
+
+            var task = await _taskRepo.GetByIdAsync(taskId);
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID '{TaskId}' not found for recalculation.", taskId);
+                throw new KeyNotFoundException($"Task with ID '{taskId}' not found.");
+            }
+
+            await RecalculateTaskPlannedHours(taskId);
+
+            // Fetch updated task with assignments for response
+            var updatedTask = await _taskRepo.GetByIdAsync(taskId);
+            if (updatedTask == null)
+            {
+                _logger.LogError("Failed to retrieve updated task '{TaskId}' after recalculation.", taskId);
+                throw new Exception($"Failed to retrieve updated task '{taskId}' after recalculation.");
+            }
+
+            // Map to DTO (assuming a mapper exists, adjust based on your implementation)
+            var result = new TaskResponseDTO
+            {
+                Id = updatedTask.Id,
+                PlannedHours = updatedTask.PlannedHours,
+                PlannedResourceCost = updatedTask.PlannedResourceCost,
+                // Include other relevant fields as needed
+            };
+
+            _logger.LogInformation("Successfully recalculated planned hours for task '{TaskId}'.", taskId);
+            return result;
         }
 
         public async Task<List<TaskResponseDTO>> CreateTasksBulkAsync(List<TaskRequestDTO> requests)
