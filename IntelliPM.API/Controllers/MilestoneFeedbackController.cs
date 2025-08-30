@@ -1,11 +1,13 @@
 ﻿using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Services.MilestoneFeedbackServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class MilestoneFeedbackController : ControllerBase
     {
         private readonly IMilestoneFeedbackService _service;

@@ -3,6 +3,7 @@ using IntelliPM.Data.DTOs.TaskDependency.Request;
 using IntelliPM.Data.Entities;
 using IntelliPM.Services.ProjectServices;
 using IntelliPM.Services.TaskDependencyServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -10,6 +11,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TaskDependencyController : ControllerBase
     {
         private readonly ITaskDependencyService _service;

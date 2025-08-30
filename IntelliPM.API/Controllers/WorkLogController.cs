@@ -2,6 +2,7 @@
 using IntelliPM.Data.DTOs.WorkLog.Request;
 using IntelliPM.Services.TaskServices;
 using IntelliPM.Services.WorkLogServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -9,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class WorkLogController : ControllerBase
     {
         private readonly IWorkLogService _service;
