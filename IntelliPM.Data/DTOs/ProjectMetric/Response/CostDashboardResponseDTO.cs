@@ -16,6 +16,8 @@ namespace IntelliPM.Data.DTOs.ProjectMetric.Response
         public decimal PlannedTaskCost { get; set; }
         public decimal PlannedResourceCost { get; set; }
 
+        public decimal EarnedValue { get; set; }
+
         public decimal Budget { get; set; }
     }
 
