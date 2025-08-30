@@ -1283,6 +1283,9 @@ VALUES
     ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7, NULL, NULL),
     ('account_position', 'CLIENT', 'Client', 'Client position', 8, NULL, NULL),
     ('account_position', 'ADMIN', 'Admin', 'Admin position', 9, NULL, NULL),
+	 ('account_gender', 'MALE', 'Male', 'Male gender for account', 1, NULL, '#00BFFF'),
+    ('account_gender', 'FEMALE', 'Female', 'Female gender for account', 2, NULL, '#FF69B4'),
+    ('account_gender', 'OTHER', 'Other', 'Other / unspecified gender for account', 3, NULL, '#808080'),
     ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1, NULL, NULL),
     ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2, NULL, NULL),
     ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3, NULL, NULL),
@@ -1471,7 +1474,35 @@ INSERT INTO system_configuration (
 ('acual_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other actual cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL);
 
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'username_length_limit',
+    NULL,
+    '1',
+    '25',
+    '25',
+    'Maximum allowed length of username',
+    'Usernames should not exceed 25 characters',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'password_length_limit',
+    NULL,
+    '6',
+    '100',
+    '12',
+    'Password length must be between 6 and 100 characters',
+    'Minimum 6 characters required for security. Recommended 12+.',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
