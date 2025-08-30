@@ -59,7 +59,7 @@ namespace IntelliPM.Services.MeetingSummaryServices
             var transcriptText = transcriptEntity?.TranscriptText;
 
             var response = _mapper.Map<MeetingSummaryResponseDTO>(summaryEntity);
-            response.TranscriptText = transcriptText; // Add TranscriptText to the response
+            response.TranscriptText = transcriptText; 
             return response;
         }
 
