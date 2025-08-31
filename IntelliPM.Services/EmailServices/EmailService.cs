@@ -2108,6 +2108,39 @@ a  {{ color:#2980b9; text-decoration:none; }}
             await smtp.DisconnectAsync(true);
         }
 
+        public async Task SendDocumentShareEmailWithBccAsync(
+    List<string> toEmails,
+    string subject,
+    string body,
+    byte[] fileBytes,
+    string fileName)
+        {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+
+            // Thêm người nhận đầu tiên vào To để email hợp lệ (một số SMTP server yêu cầu)
+            // Hoặc bạn có thể gửi đến chính email của bạn.
+            message.To.Add(MailboxAddress.Parse(toEmails.First()));
+
+            // Thêm những người còn lại (và cả người đầu tiên) vào BCC
+            foreach (var email in toEmails)
+            {
+                message.Bcc.Add(MailboxAddress.Parse(email));
+            }
+
+            message.Subject = subject;
+
+            var builder = new BodyBuilder { TextBody = body };
+            builder.Attachments.Add(fileName, fileBytes);
+            message.Body = builder.ToMessageBody();
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+
     }
 
 }

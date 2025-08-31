@@ -416,6 +416,20 @@ Respond in plain text (not HTML).
             };
         }
 
+        private string GetBackendBaseUrl()
+        {
+            var fromConfig = _configuration["Environment:BE_URL"];
+            if (!string.IsNullOrWhiteSpace(fromConfig))
+                return fromConfig.TrimEnd('/');
+
+            var req = _httpContextAccessor.HttpContext?.Request;
+            if (req != null)
+                return $"{req.Scheme}://{req.Host.Value}".TrimEnd('/');
+
+            // Fallback dev
+            return "https://localhost:7128";
+        }
+
 
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
@@ -472,7 +486,8 @@ Respond in plain text (not HTML).
             }
 
             // 6) Gửi email VỚI LINK CHỨA TOKEN CÁ NHÂN HÓA
-            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            //var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            var beBaseUrl = GetBackendBaseUrl();
             var knownEmails = accountMap.Keys;
             var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
             var failedToSend = new List<string>(unknownEmails);
@@ -489,7 +504,7 @@ Respond in plain text (not HTML).
 
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
-                    var link = $"{baseUrl.TrimEnd('/')}/share/verify?token={token}";
+                    var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
 
                     await _emailService.SendShareDocumentEmail(
                         email,
@@ -850,6 +865,16 @@ For each task in the array, output exactly 1 table following the **fixed templat
             if (users == null || users.Count == 0)
                 throw new Exception("No valid users found");
 
+            // Lấy danh sách email hợp lệ
+            var recipientEmails = users
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email)
+                .ToList();
+
+            if (recipientEmails.Count == 0)
+                throw new Exception("No valid email addresses found for the selected users");
+
+            // Đọc file một lần
             byte[] fileBytes;
             using (var memoryStream = new MemoryStream())
             {
@@ -861,18 +886,14 @@ For each task in the array, output exactly 1 table following the **fixed templat
             var subject = $"📄 Bạn nhận được tài liệu mới";
             var body = req.CustomMessage ?? $"Bạn nhận được một tài liệu mới từ hệ thống IntelliPM.";
 
-            foreach (var user in users)
-            {
-                if (string.IsNullOrWhiteSpace(user.Email)) continue;
-
-                await _emailService.SendDocumentShareEmailMeeting(
-                    user.Email,
-                    subject,
-                    body,
-                    fileBytes,
-                    fileName
-                );
-            }
+            // Gọi hàm gửi email với BCC chỉ MỘT LẦN
+            await _emailService.SendDocumentShareEmailWithBccAsync(
+                recipientEmails,
+                subject,
+                body,
+                fileBytes,
+                fileName
+            );
         }
 
         public async Task<string> GetUserPermissionLevel(int documentId, int userId)
@@ -883,12 +904,20 @@ For each task in the array, output exactly 1 table following the **fixed templat
 
         public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
         {
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId)
+             ?? throw new KeyNotFoundException($"Document {documentId} not found.");
+
+            // 2) Chỉ creator mới được đổi visibility
+            if (doc.CreatedBy != currentUserId)
+                throw new UnauthorizedAccessException("Only the document creator can change its visibility.");
+
             var updated = await _IDocumentRepository.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
             if (!updated)
                 throw new KeyNotFoundException($"Document {documentId} not found.");
 
             var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
+
             //var
             var dto = new DocumentResponseDTO
             {
