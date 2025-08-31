@@ -2,8 +2,9 @@
 using IntelliPM.Data.DTOs.MilestoneFeedback.Request;
 using IntelliPM.Data.DTOs.MilestoneFeedback.Response;
 using IntelliPM.Data.Entities;
-using IntelliPM.Repositories.MilestoneFeedbackRepos;
+using IntelliPM.Data.Enum.MeetingLog;
 using IntelliPM.Repositories.MeetingLogRepos;
+using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using Microsoft.Extensions.Logging;
 using MFStatus = IntelliPM.Data.Enum.MilestoneFeedback.MilestoneFeedbackStatusEnum;
 
@@ -42,7 +43,7 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
             {
                 MeetingId = request.MeetingId,
                 AccountId = request.AccountId,
-                Action = "FEEDBACK_RECEIVED",
+                Action = "FEEDBACK_RECEIVED" ?? MeetingLogTypeEnum.FEEDBACK_RECEIVED.ToString(),
                 CreatedAt = DateTime.UtcNow
             };
             await _logRepo.AddAsync(logEntity);
@@ -71,7 +72,7 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
             {
                 MeetingId = meetingId,
                 AccountId = accountId,
-                Action = "MILESTONE_APPROVED",
+                Action = "MILESTONE_APPROVED" ?? MeetingLogTypeEnum.MILESTONE_APPROVED.ToString(),
                 CreatedAt = DateTime.UtcNow
             };
             await _logRepo.AddAsync(logEntity);
