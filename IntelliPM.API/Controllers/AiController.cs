@@ -19,6 +19,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class AiController : ControllerBase
     {
         private readonly ITaskPlanningService _taskPlanningService;

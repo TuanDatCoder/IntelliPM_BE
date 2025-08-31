@@ -14,6 +14,10 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using MStatus = IntelliPM.Data.Enum.Meeting.MeetingStatusEnum;
+using MPStatus = IntelliPM.Data.Enum.MeetingParticipant.MeetingParticipantStatusEnum;
+
+
 
 namespace IntelliPM.Services.MeetingServices
 {
@@ -50,9 +54,9 @@ namespace IntelliPM.Services.MeetingServices
             {
                 // 1) Validate conflict theo Project + ngày
                 bool hasConflict = await _context.Meeting.AnyAsync(m =>
-                    m.ProjectId == dto.ProjectId &&
-                    m.MeetingDate.Date == dto.MeetingDate.Date &&
-                    m.Status != "CANCELLED"
+                        m.ProjectId == dto.ProjectId &&
+                        m.MeetingDate.Date == dto.MeetingDate.Date &&
+                        m.Status != MStatus.CANCELLED.ToString()
                 );
                 if (hasConflict)
                     throw new InvalidOperationException("Project already has a meeting scheduled on this date.");
@@ -68,10 +72,14 @@ namespace IntelliPM.Services.MeetingServices
 
                     // Completed meeting cùng project, overlap thời gian
                     bool completedInProject = await _context.Meeting.AnyAsync(m =>
-                        m.ProjectId == dto.ProjectId &&
-                        m.Status == "COMPLETED" &&
-                        m.StartTime.HasValue && m.EndTime.HasValue &&
-                        m.StartTime.Value < end && m.EndTime.Value > start
+                            //m.ProjectId == dto.ProjectId &&
+                            //m.Status == "COMPLETED" &&
+                            //m.StartTime.HasValue && m.EndTime.HasValue &&
+                            //m.StartTime.Value < end && m.EndTime.Value > start
+                            m.ProjectId == dto.ProjectId &&
+    m.Status == MStatus.COMPLETED.ToString()// <- đổi ở đây
+    && m.StartTime.HasValue && m.EndTime.HasValue
+    && m.StartTime.Value < end && m.EndTime.Value > start
                     );
 
                     if (completedInProject)
@@ -94,7 +102,7 @@ namespace IntelliPM.Services.MeetingServices
 
                 // 4) Map + chuẩn hóa UTC
                 var meeting = _mapper.Map<Meeting>(dto);
-                meeting.Status = "ACTIVE";
+                meeting.Status = MStatus.ACTIVE.ToString();
                 meeting.CreatedAt = DateTime.UtcNow;
 
                 meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
@@ -128,7 +136,7 @@ namespace IntelliPM.Services.MeetingServices
                         MeetingId = meeting.Id,
                         AccountId = acc.Id,
                         Role = acc.Role ?? "Attendee",
-                        Status = "Active",
+                        Status = MPStatus.Active.ToString(),
                         CreatedAt = DateTime.UtcNow
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
@@ -136,7 +144,7 @@ namespace IntelliPM.Services.MeetingServices
 
                 // 8) Gửi email song song (bounded concurrency)
                 var emailTasks = new List<Task>();
-                var semaphore = new SemaphoreSlim(5); // <= chỉnh concurrency tại đây
+                var semaphore = new SemaphoreSlim(5); 
 
                 foreach (var acc in accounts)
                 {
@@ -234,7 +242,7 @@ namespace IntelliPM.Services.MeetingServices
                     // Completed meeting cùng project, overlap thời gian
                     bool completedInProject = await _context.Meeting.AnyAsync(m =>
                         m.ProjectId == dto.ProjectId &&
-                        m.Status == "COMPLETED" &&
+                        m.Status != MStatus.COMPLETED.ToString() &&
                         m.StartTime.HasValue && m.EndTime.HasValue &&
                         m.StartTime.Value < end && m.EndTime.Value > start
                     );
@@ -247,7 +255,7 @@ namespace IntelliPM.Services.MeetingServices
 
                 // 3) Map + chuẩn hóa UTC
                 var meeting = _mapper.Map<Meeting>(dto);
-                meeting.Status = "ACTIVE";
+                meeting.Status =  MStatus.ACTIVE.ToString();
                 meeting.CreatedAt = DateTime.UtcNow;
 
                 meeting.MeetingDate = DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc);
@@ -281,7 +289,7 @@ namespace IntelliPM.Services.MeetingServices
                         MeetingId = meeting.Id,
                         AccountId = acc.Id,
                         Role = acc.Role ?? "Attendee",
-                        Status = "Active",
+                        Status = MPStatus.Active.ToString(),
                         CreatedAt = DateTime.UtcNow
                     };
                     await _meetingParticipantRepo.AddAsync(participant);
@@ -357,8 +365,8 @@ namespace IntelliPM.Services.MeetingServices
         {
             try
             {
-                var meetings = await _repo.GetByAccountIdAsync(0);  // Lấy tất cả cuộc họp (có thể thay đổi theo logic của bạn)
-                return _mapper.Map<List<MeetingResponseDTO>>(meetings);  // Chuyển đổi sang dạng DTO
+                var meetings = await _repo.GetByAccountIdAsync(0);  
+                return _mapper.Map<List<MeetingResponseDTO>>(meetings);  
             }
             catch (Exception ex)
             {
@@ -498,29 +506,12 @@ namespace IntelliPM.Services.MeetingServices
             }
         }
 
-
-        //public async Task<MeetingResponseDTO> UpdateMeeting(int id, MeetingRequestDTO dto)
-        //{
-        //    try
-        //    {
-        //        var meeting = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Meeting not found");
-        //        _mapper.Map(dto, meeting);  // Ánh xạ và cập nhật cuộc họp
-        //        await _repo.UpdateAsync(meeting);
-        //        await _context.SaveChangesAsync();  // Lưu các thay đổi vào cơ sở dữ liệu
-        //        return _mapper.Map<MeetingResponseDTO>(meeting);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error in UpdateMeeting: " + ex.Message);
-        //        throw new Exception("An error occurred while updating the meeting.");
-        //    }
-        //}
         public async Task CompleteMeeting(int meetingId)
         {
             try
             {
                 var meeting = await _repo.GetByIdAsync(meetingId) ?? throw new KeyNotFoundException("Meeting not found");
-                meeting.Status = "COMPLETED";
+                meeting.Status = MStatus.COMPLETED.ToString();
 
                 await _repo.UpdateAsync(meeting);
                 await _context.SaveChangesAsync();
@@ -544,7 +535,7 @@ namespace IntelliPM.Services.MeetingServices
 
                 if (status == null)
                     throw new KeyNotFoundException("Meeting not found");
-                if (status == "CANCELLED")
+                if (status ==  MStatus.CANCELLED.ToString())
                     return;
 
                 // Lấy info cần cho email (nhẹ, không track)
@@ -568,7 +559,7 @@ namespace IntelliPM.Services.MeetingServices
                 // Bulk UPDATE trạng thái meeting
                 await _context.Meeting
                     .Where(m => m.Id == id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.Status, "CANCELLED"));
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.Status,  MStatus.CANCELLED.ToString()));
 
                 // Bulk DELETE participants
                 await _context.MeetingParticipant
@@ -643,7 +634,7 @@ namespace IntelliPM.Services.MeetingServices
                           m => m.Id,
                           (mp, m) => m)
                     .AnyAsync(m =>
-                        m.Status == "ACTIVE" &&
+                        m.Status ==  MStatus.ACTIVE.ToString() &&
                         m.MeetingDate.Date == date.Date &&
                         m.StartTime < endTime &&
                         m.EndTime > startTime
@@ -657,7 +648,7 @@ namespace IntelliPM.Services.MeetingServices
         }
 
         public async Task<(List<int> Added, List<int> AlreadyIn, List<int> Conflicted, List<int> NotFound)>
-    AddParticipantsAsync(int meetingId, List<int> participantIds)
+        AddParticipantsAsync(int meetingId, List<int> participantIds)
         {
             if (participantIds == null || participantIds.Count == 0)
                 throw new ArgumentException("Participant list cannot be empty.");
@@ -668,7 +659,7 @@ namespace IntelliPM.Services.MeetingServices
                 .FirstOrDefaultAsync();
 
             if (meeting == null) throw new KeyNotFoundException("Meeting not found.");
-            if (meeting.Status == "CANCELLED")
+            if (meeting.Status == MStatus.CANCELLED.ToString())
                 throw new InvalidOperationException("Cannot add participants to a cancelled meeting.");
 
             // hiện có
@@ -712,7 +703,7 @@ namespace IntelliPM.Services.MeetingServices
                         .Where(mp => mp.AccountId == acc.Id && validStatuses.Contains(mp.Status))
                         .Join(_context.Meeting, mp => mp.MeetingId, m => m.Id, (mp, m) => m)
                         .AnyAsync(m =>
-                            m.Status == "ACTIVE" &&
+                            m.Status ==  MStatus.ACTIVE.ToString() &&
                             m.MeetingDate.Date == meeting.MeetingDate.Date &&
                             m.StartTime < end && m.EndTime > start
                         );
@@ -734,7 +725,7 @@ namespace IntelliPM.Services.MeetingServices
                     MeetingId = meetingId,
                     AccountId = acc.Id,
                     Role = acc.Role ?? "Attendee",
-                    Status = "Active",
+                    Status = MPStatus.Active.ToString(),
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.MeetingParticipant.AddRangeAsync(entities);
@@ -787,7 +778,7 @@ namespace IntelliPM.Services.MeetingServices
                 .FirstOrDefaultAsync();
 
             if (meeting == null) return (false, "Meeting not found");
-            if (meeting.Status == "CANCELLED") return (false, "Meeting is CANCELLED");
+            if (meeting.Status == MStatus.CANCELLED.ToString()) return (false, "Meeting is CANCELLED");
 
             // 2) không cho remove người tạo
             var isCreator = await _context.MeetingLog

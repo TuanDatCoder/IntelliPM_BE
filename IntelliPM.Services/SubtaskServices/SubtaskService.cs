@@ -381,6 +381,19 @@ namespace IntelliPM.Services.SubtaskServices
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
 
+            var project = await _projectRepo.GetByIdAsync((await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {(await _taskRepo.GetByIdAsync(entity.TaskId))?.ProjectId ?? 0} not found.");
+
+            if (request.StartDate.HasValue && (request.StartDate.Value < project.StartDate || request.StartDate.Value > project.EndDate))
+                throw new ArgumentException($"Subtask StartDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.EndDate.HasValue && (request.EndDate.Value < project.StartDate || request.EndDate.Value > project.EndDate))
+                throw new ArgumentException($"Subtask EndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value >= request.EndDate.Value)
+                throw new ArgumentException("Subtask StartDate must be less than EndDate.");
+
             try
             {
                 await _subtaskRepo.Update(entity);
@@ -408,7 +421,7 @@ namespace IntelliPM.Services.SubtaskServices
                     SubtaskId = entity.Id,
                     RelatedEntityType = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = ActivityLogActionTypeEnum.CREATE.ToString(),
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Updated subtask '{entity.Id}' under task '{entity.TaskId}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow

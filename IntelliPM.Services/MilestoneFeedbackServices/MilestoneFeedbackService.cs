@@ -5,6 +5,8 @@ using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.MilestoneFeedbackRepos;
 using IntelliPM.Repositories.MeetingLogRepos;
 using Microsoft.Extensions.Logging;
+using MFStatus = IntelliPM.Data.Enum.MilestoneFeedback.MilestoneFeedbackStatusEnum;
+
 
 namespace IntelliPM.Services.MilestoneFeedbackServices
 {
@@ -58,7 +60,7 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
                 MeetingId = meetingId,
                 AccountId = accountId,
                 FeedbackText = "Approved",
-                Status = "approved",
+                Status = MFStatus.appproved.ToString() ,
                 CreatedAt = DateTime.UtcNow
             };
 

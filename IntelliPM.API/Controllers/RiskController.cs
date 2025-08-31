@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Data.DTOs.Risk.Response;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RiskController : ControllerBase
     {
         private readonly IRiskService _riskService;

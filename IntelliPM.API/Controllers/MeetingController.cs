@@ -1,11 +1,13 @@
 ﻿using IntelliPM.Data.DTOs.Meeting.Request;
 using IntelliPM.Services.MeetingServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/meetings")]
+    [Authorize]
     public class MeetingController : ControllerBase
     {
         private readonly IMeetingService _service;

@@ -4,11 +4,13 @@ using IntelliPM.Services.RiskCommentServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using IntelliPM.Data.DTOs.RiskComment.Request;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RiskCommentController : ControllerBase
     {
         private readonly IRiskCommentService _service;
