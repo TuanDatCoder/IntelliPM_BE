@@ -35,6 +35,8 @@ using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Data.Enum.Task;
 using IntelliPM.Data.Enum.ProjectMetric;
+using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Data.Enum.Account;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -57,8 +59,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IMetricHistoryRepository _metricHistoryRepo;
         private readonly ISystemConfigurationRepository _systemConfigRepo;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        private readonly IProjectPositionRepository _projectPositionRepo;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo, IDynamicCategoryHelper dynamicCategoryHelper)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo, IDynamicCategoryHelper dynamicCategoryHelper, IProjectPositionRepository projectPositionRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -77,6 +80,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _metricHistoryRepo = metricHistoryRepo;
             _systemConfigRepo = systemConfigurationRepo;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _projectPositionRepo = projectPositionRepo;
         }
 
         public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey) //
@@ -392,12 +396,18 @@ namespace IntelliPM.Services.ProjectMetricServices
                 ?? throw new Exception("Project not found");
 
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+            var projectPositions = await _projectPositionRepo.GetByProjectIdAsync(project.Id);
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
 
+            var filteredMembers = projectMembers
+                .Where(pm => !projectPositions
+                .Any(pp => pp.ProjectMemberId == pm.Id && pp.Position == AccountPositionEnum.CLIENT.ToString()))
+            .ToList();
+
             var today = DateTime.Today;
 
-            var result = projectMembers.Select(member =>
+            var result = filteredMembers.Select(member =>
             {
                 var assignedTaskIds = taskAssignments
                     .Where(a => a.AccountId == member.AccountId)
