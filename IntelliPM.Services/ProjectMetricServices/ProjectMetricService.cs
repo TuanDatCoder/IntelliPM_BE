@@ -371,11 +371,11 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal spi = metric.SchedulePerformanceIndex ?? 0;
             string status;
             if (spi < spiWarningThreshold)
-                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.BEHIND.ToString())?.Name;
-            else if (spi > 1)
-                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.AHEAD.ToString())?.Name;
+                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.BEHIND.ToString())?.Label;
+            else if (spi > spiWarningThreshold)
+                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.AHEAD.ToString())?.Label;
             else
-                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.ON_TIME.ToString())?.Name;
+                status = healthStatusCategories.FirstOrDefault(c => c.Name == ScheduleStatusEnum.ON_TIME.ToString())?.Label;
 
             return new
             {
@@ -472,6 +472,11 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal actualCost = actualTaskCost + actualResourceCost;
             decimal plannedCost = plannedTaskCost + plannedResourceCost;
 
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            var metric = await _repo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
+
+            decimal earnedValue = metric?.EarnedValue ?? 0; // EV: giá trị thu được từ công việc đã hoàn thành
+
             return new CostDashboardResponseDTO
             {
                 ActualCost = actualCost,
@@ -480,6 +485,7 @@ namespace IntelliPM.Services.ProjectMetricServices
                 PlannedCost = plannedCost,
                 PlannedTaskCost = plannedTaskCost, 
                 PlannedResourceCost = plannedResourceCost,
+                EarnedValue = Math.Round(earnedValue, 0),
                 Budget = project.Budget ?? 0
             };
         }

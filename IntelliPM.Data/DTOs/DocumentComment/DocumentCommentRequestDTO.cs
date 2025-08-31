@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,9 @@ namespace IntelliPM.Data.DTOs.DocumentComment
         public int FromPos { get; set; }                 // Vị trí bắt đầu đoạn comment
         public int ToPos { get; set; }                   // Vị trí kết thúc
         public string Content { get; set; } = null!;     // Đoạn text được chọn
-        public string Comment { get; set; } = null!;     // Nội dung người dùng nhập
+
+        [DynamicMinLength("comment_length")]
+        [DynamicMaxLength("comment_length")]   
+        public string? Comment { get; set; }    // Nội dung người dùng nhập
     }
 }
