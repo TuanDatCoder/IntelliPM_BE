@@ -17,6 +17,7 @@ namespace IntelliPM.Data.DTOs.Sprint.Request
         [DynamicMaxLength("sprint_name_length")]
         public string Name { get; set; } = null!;
 
+        [DynamicMaxLength("description_length")]
         public string? Goal { get; set; }
 
         [DynamicDuration("sprint_duration_days")]
