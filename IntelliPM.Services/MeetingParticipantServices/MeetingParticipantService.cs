@@ -3,6 +3,7 @@ using IntelliPM.Data.Contexts;
 using IntelliPM.Data.DTOs.MeetingParticipant.Request;
 using IntelliPM.Data.DTOs.MeetingParticipant.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.MeetingParticipant;
 using IntelliPM.Repositories.MeetingParticipantRepos;
 using IntelliPM.Repositories.MeetingRepos;
 using Microsoft.EntityFrameworkCore;
@@ -130,7 +131,7 @@ namespace IntelliPM.Services.MeetingParticipantServices
                     MeetingId = meetingId,
                     AccountId = i + 1, // Example logic for AccountId
                     Role = "Attendee",
-                    Status = "Active",
+                    Status = MeetingParticipantStatusEnum.Active.ToString(),
                     CreatedAt = DateTime.UtcNow
                 });
             }
