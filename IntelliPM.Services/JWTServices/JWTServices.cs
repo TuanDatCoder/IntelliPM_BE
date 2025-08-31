@@ -61,7 +61,8 @@ namespace IntelliPM.Services.JWTServices
                issuer: _config["JwtSettings:Issuer"],
                audience: _config["JwtSettings:Audience"],
                claims: claims,
-               expires: DateTime.Now.AddMonths(1),
+               //expires: DateTime.Now.AddMonths(1),
+               expires: DateTime.Now.AddDays(6),
                signingCredentials: credential
                );
 
