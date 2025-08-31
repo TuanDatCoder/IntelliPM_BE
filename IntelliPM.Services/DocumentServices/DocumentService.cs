@@ -883,12 +883,20 @@ For each task in the array, output exactly 1 table following the **fixed templat
 
         public async Task<DocumentResponseDTO> ChangeVisibilityAsync(int documentId, ChangeVisibilityRequest request, int currentUserId)
         {
+            var doc = await _IDocumentRepository.GetByIdAsync(documentId)
+             ?? throw new KeyNotFoundException($"Document {documentId} not found.");
+
+            // 2) Chỉ creator mới được đổi visibility
+            if (doc.CreatedBy != currentUserId)
+                throw new UnauthorizedAccessException("Only the document creator can change its visibility.");
+
             var updated = await _IDocumentRepository.UpdateVisibilityAsync(documentId, request.Visibility, currentUserId);
             if (!updated)
                 throw new KeyNotFoundException($"Document {documentId} not found.");
 
             var latest = await _IDocumentRepository.GetByIdAsync(documentId)
                          ?? throw new KeyNotFoundException($"Document {documentId} not found after update.");
+
             //var
             var dto = new DocumentResponseDTO
             {
