@@ -1,5 +1,4 @@
 using AutoMapper;
-using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.Milestone.Response;
 using IntelliPM.Data.DTOs.Project.Request;
 using IntelliPM.Data.DTOs.Project.Response;
@@ -9,15 +8,11 @@ using IntelliPM.Data.DTOs.Requirement.Response;
 using IntelliPM.Data.DTOs.Sprint.Response;
 using IntelliPM.Data.DTOs.Subtask.Response;
 using IntelliPM.Data.DTOs.Task.Response;
-using IntelliPM.Data.DTOs.TaskCheckList.Response;
 using IntelliPM.Data.DTOs.TaskDependency.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Data.Enum.Account;
-using IntelliPM.Data.Enum.ActivityLogActionType;
-using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Project;
 using IntelliPM.Data.Enum.ProjectMember;
-using IntelliPM.Data.Enum.TaskDependency;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
@@ -62,7 +57,7 @@ namespace IntelliPM.Services.ProjectServices
         private readonly ITaskDependencyRepository _taskDependencyRepo;
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly IConfiguration _config;
-       // private readonly string _backendUrl;
+        // private readonly string _backendUrl;
         private readonly string _frontendUrl;
         private readonly IServiceProvider _serviceProvider;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
@@ -88,8 +83,8 @@ namespace IntelliPM.Services.ProjectServices
             _subtaskRepo = subtaskRepo;
             _projectMemberRepo = projectMemberRepo;
             _config = config;
-                #pragma warning disable CS8601
-           // _backendUrl = config["Environment:BE_URL"];
+#pragma warning disable CS8601
+            // _backendUrl = config["Environment:BE_URL"];
             _frontendUrl = config["Environment:FE_URL"];
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _dynamicCategoryRepo = dynamicCategoryRepo ?? throw new ArgumentNullException(nameof(dynamicCategoryRepo));
@@ -169,7 +164,7 @@ namespace IntelliPM.Services.ProjectServices
             if (entity == null)
                 throw new KeyNotFoundException($"Project with ID {id} not found.");
 
-          
+
 
             // Ánh xạ dữ liệu từ request sang entity
             _mapper.Map(request, entity);
@@ -285,7 +280,7 @@ namespace IntelliPM.Services.ProjectServices
                 throw new ArgumentException("No Project Manager found or email is missing.");
             if (pm.Status.Equals(ProjectMemberStatusEnum.ACTIVE.ToString()))
                 throw new InvalidOperationException("The Project Manager has already reviewed this project. Email will not be sent again.");
-   
+
 
             var projectInfo = await GetProjectById(projectId);
             if (projectInfo == null)
@@ -396,7 +391,7 @@ namespace IntelliPM.Services.ProjectServices
                 .Where(m => m.ProjectPositions != null && !m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.PROJECT_MANAGER.ToString()))
                 .Where(m => m.Status == ProjectMemberStatusEnum.CREATED.ToString())
                 .ToList();
-           
+
             if (!eligibleMembers.Any())
                 return "No eligible team members to send invitations.";
 
@@ -439,6 +434,72 @@ namespace IntelliPM.Services.ProjectServices
 
             return $"Invitations sent successfully to {eligibleMembers.Count} team members.";
         }
+
+
+
+
+        public async Task<string> SendInvitationsToTeamMember(int projectId, int accountId, string token)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            var currentAccount = await _accountRepo.GetAccountByUsername(decode.username);
+            if (currentAccount == null)
+                throw new KeyNotFoundException("User not found.");
+
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            // Find the specific member by accountId
+            var targetMember = membersWithPositions.FirstOrDefault(m => m.AccountId == accountId);
+            if (targetMember == null)
+                throw new KeyNotFoundException($"Member with Account ID {accountId} not found in Project ID {projectId}.");
+
+
+            var projectInfo = await _projectRepo.GetByIdAsync(projectId);
+            if (projectInfo == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+
+            if (targetMember.Status != ProjectMemberStatusEnum.CREATED.ToString() &&
+                 targetMember.Status != ProjectMemberStatusEnum.INVITED.ToString())
+            {
+                throw new InvalidOperationException($"Member with Account ID {accountId} is not in CREATED or INVITED status and cannot be invited.");
+            }
+
+            if (targetMember.Status == ProjectMemberStatusEnum.CREATED.ToString())
+            {
+                await _projectMemberService.ChangeProjectMemberStatus(targetMember.Id, ProjectMemberStatusEnum.INVITED.ToString());
+            }
+
+            try
+            {
+                var projectInvitationUrl = $"{_frontendUrl}/project/invitation?projectKey={projectInfo.ProjectKey}&memberId={targetMember.Id}";
+
+                await _emailService.SendTeamInvitation(
+                    targetMember.FullName,
+                    targetMember.Email,
+                    currentAccount.FullName,
+                    currentAccount.Username,
+                    projectInfo.Name,
+                    projectInfo.ProjectKey,
+                    projectId,
+                    projectInvitationUrl
+                );
+
+                return $"Invitation sent successfully to member with Account ID {accountId}.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to send email to {targetMember.Email}");
+                throw new Exception($"Failed to send invitation to {targetMember.Email}.", ex);
+            }
+        }
+
+
+
 
 
 
