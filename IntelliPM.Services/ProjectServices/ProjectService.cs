@@ -22,6 +22,7 @@ using IntelliPM.Repositories.SprintRepos;
 using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskDependencyRepos;
 using IntelliPM.Repositories.TaskRepos;
+using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.EpicServices;
 using IntelliPM.Services.Helper.CustomExceptions;
@@ -62,9 +63,11 @@ namespace IntelliPM.Services.ProjectServices
         private readonly IServiceProvider _serviceProvider;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
         private readonly ISystemConfigurationService _systemConfigService;
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
 
 
-        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationService systemConfigService)
+
+        public ProjectService(IMapper mapper, IProjectRepository projectRepo, IDecodeTokenHandler decodeToken, IAccountRepository accountRepo, IEmailService emailService, IProjectMemberService projectMemberService, IProjectMemberRepository projectMemberRepo, ILogger<ProjectService> logger, IEpicService epicService, ITaskService taskService, ISubtaskService subtaskService, ISprintRepository sprintRepo, ITaskRepository taskRepo, IMilestoneRepository milestoneRepo, ITaskDependencyRepository taskDependencyRepo, ISubtaskRepository subtaskRepo, IConfiguration config, IServiceProvider serviceProvider, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationService systemConfigService, ICloudinaryStorageService cloudinaryStorageService)
         {
             _mapper = mapper;
             _projectRepo = projectRepo;
@@ -89,6 +92,7 @@ namespace IntelliPM.Services.ProjectServices
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _dynamicCategoryRepo = dynamicCategoryRepo ?? throw new ArgumentNullException(nameof(dynamicCategoryRepo));
             _systemConfigService = systemConfigService ?? throw new ArgumentNullException(nameof(systemConfigService));
+            _cloudinaryStorageService = cloudinaryStorageService ?? throw new ArgumentNullException(nameof(cloudinaryStorageService));
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -894,5 +898,25 @@ namespace IntelliPM.Services.ProjectServices
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey);
             return await _projectRepo.GetProjectItemsAsync(project.Id);
         }
+
+
+
+        public async Task<string> UploadProjectIconUrlAsync(int projectId, Stream fileStream, string fileName)
+        {
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+            {
+                throw new Exception("Account not found");
+            }
+
+            var fileUrl = await _cloudinaryStorageService.UploadFileAsync(fileStream, fileName);
+            project.IconUrl = fileUrl;
+            project.UpdatedAt = DateTime.UtcNow;
+            await _projectRepo.Update(project);
+
+            return fileUrl;
+        }
+
+
     }
 }

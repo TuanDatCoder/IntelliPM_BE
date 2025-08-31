@@ -30,5 +30,6 @@ namespace IntelliPM.Services.ProjectServices
         Task<List<ProjectItemDTO>> GetProjectItemsAsync(string projectKey);
         Task<WorkItemResponseDTO?> SearchWorkItemByKey(string key);
         Task<string> SendInvitationsToTeamMember(int projectId, int accountId, string token);
+        Task<string> UploadProjectIconUrlAsync(int projectId, Stream fileStream, string fileName);
     }
 }

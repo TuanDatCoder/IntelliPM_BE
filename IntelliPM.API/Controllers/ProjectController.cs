@@ -676,5 +676,45 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+        [HttpPost("{projectId}/upload-icon")]
+        [Authorize]
+        public async Task<IActionResult> UploadIcon(int projectId, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.BadRequest,
+                    Message = "File is not selected"
+                });
+            }
+
+            try
+            {
+                using var fileStream = file.OpenReadStream();
+                string fileUrl = await _projectService.UploadProjectIconUrlAsync(projectId, fileStream, file.FileName);
+
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "Avatar uploaded successfully",
+                    Data = new { FileUrl = fileUrl }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = (int)HttpStatusCode.InternalServerError,
+                    Message = ex.Message
+                });
+            }
+        }
+
+
     }
 }
