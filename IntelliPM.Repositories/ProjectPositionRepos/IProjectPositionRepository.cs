@@ -14,5 +14,6 @@ namespace IntelliPM.Repositories.ProjectPositionRepos
         Task Add(ProjectPosition projectPosition);
         Task Update(ProjectPosition projectPosition);
         Task Delete(ProjectPosition projectPosition);
+        Task<List<ProjectPosition>> GetByProjectIdAsync(int projectId);
     }
 }

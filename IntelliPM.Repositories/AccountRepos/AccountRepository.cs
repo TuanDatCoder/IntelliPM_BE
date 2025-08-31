@@ -128,5 +128,14 @@ namespace IntelliPM.Repositories.AccountRepos
                         .Where(a => ids.Contains(a.Id))
                         .ToListAsync();
         }
+
+        public async Task<List<Account>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectMember
+                .Where(pm => pm.ProjectId == projectId)
+                .Include(pm => pm.Account) 
+                .Select(pm => pm.Account)
+                .ToListAsync();
+        }
     }
 }

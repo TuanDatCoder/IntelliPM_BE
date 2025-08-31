@@ -2,10 +2,12 @@
 using IntelliPM.Data.DTOs.ProjectRecommendation.Request;
 using IntelliPM.Data.DTOs.ProjectRecommendation.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Repositories.ProjectMetricRepos;
+using IntelliPM.Repositories.ProjectPositionRepos;
 using IntelliPM.Repositories.ProjectRecommendationRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
@@ -37,8 +39,12 @@ namespace IntelliPM.Services.ProjectRecommendationServices
         private readonly ILogger<ProjectRecommendationService> _logger;
         private readonly IGeminiService _geminiService;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        private readonly IProjectMemberRepository _projectMemberRepo;
+        private readonly IAccountRepository _accountRepo;
+        private readonly IProjectPositionRepository _projectPositionRepo;
+        private readonly ITaskAssignmentRepository _taskAssignmentRepo;
 
-        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo, ISubtaskRepository subtaskRepo, IDynamicCategoryHelper dynamicCategoryHelper)
+        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo, ISubtaskRepository subtaskRepo, IDynamicCategoryHelper dynamicCategoryHelper, IProjectMemberRepository projectMemberRepo, IAccountRepository accountRepo, IProjectPositionRepository projectPositionRepo, ITaskAssignmentRepository taskAssignmentRepo)
         {
             _mapper = mapper;
             _projectMetricRepo = projectMetricRepo;
@@ -51,6 +57,10 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             _logger = logger;
             _geminiService = geminiService;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _projectMemberRepo = projectMemberRepo;
+            _accountRepo = accountRepo;
+            _projectPositionRepo = projectPositionRepo;
+            _taskAssignmentRepo = taskAssignmentRepo;
         }
 
         public async Task CreateAsync(ProjectRecommendationRequestDTO dto)
@@ -88,22 +98,28 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
             var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
             var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
+            var accounts = await _accountRepo.GetByProjectIdAsync(project.Id);
+            var projectPositions = await _projectPositionRepo.GetByProjectIdAsync(project.Id);
+            var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+            var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
 
             if (metric == null)
                 throw new Exception("ProjectMetric not found");
 
-            // Nếu dự án không gặp vấn đề về SPI hoặc CPI thì không cần gọi AI
             if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex >= 1)
                 return new List<AIRecommendationDTO>();
 
-            // Gọi AI sinh recommendations
             var recommendations = await _geminiService.GenerateProjectRecommendationsAsync(
                 project,
                 metric,
                 tasks,
                 sprints,
                 milestones,
-                subtasks
+                subtasks,
+                accounts,
+                projectPositions,
+                projectMembers,
+                taskAssignments
             );
 
             return recommendations ?? new List<AIRecommendationDTO>();
