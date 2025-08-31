@@ -6,6 +6,11 @@ using IntelliPM.Data.DTOs.Label.Response;
 using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.DTOs.TaskAssignment.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ActivityLogActionType;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Epic;
+using IntelliPM.Data.Enum.Task;
+using IntelliPM.Data.Enum.TaskAssignment;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.EpicRepos;
 using IntelliPM.Repositories.ProjectRepos;
@@ -23,6 +28,7 @@ using IntelliPM.Services.WorkItemLabelServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -84,7 +90,7 @@ namespace IntelliPM.Services.EpicServices
                 ProjectId = projectId,
                 Name = s.Name?.Trim() ?? "Untitled Epic",
                 Description = s.Description?.Trim() ?? string.Empty,
-                Status = "TO_DO",
+                Status = EpicStatusEnum.TO_DO.ToString(),
                 CreatedAt = now,
                 UpdatedAt = now
             }).ToList();
@@ -168,8 +174,11 @@ namespace IntelliPM.Services.EpicServices
             var entity = _mapper.Map<Epic>(request);
             entity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "CREATE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.EPIC.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.CREATE.ToString();
 
             try
             {
@@ -209,11 +218,21 @@ namespace IntelliPM.Services.EpicServices
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
 
+            var project = await _projectRepo.GetByIdAsync(request.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
+
+            if (request.StartDate.HasValue && (request.StartDate.Value < project.StartDate || request.StartDate.Value > project.EndDate))
+                throw new ArgumentException($"Epic StartDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.EndDate.HasValue && (request.EndDate.Value < project.StartDate || request.EndDate.Value > project.EndDate))
+                throw new ArgumentException($"Epic EndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value >= request.EndDate.Value)
+                throw new ArgumentException("Epic StartDate must be less than EndDate.");
+
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
-
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
 
             try
             {
@@ -221,7 +240,6 @@ namespace IntelliPM.Services.EpicServices
 
                 if (oldAssignedBy != entity.AssignedBy)
                 {
-
                     var assignee = await _accountRepo.GetAccountById(entity.AssignedBy ?? 0);
                     if (assignee != null)
                     {
@@ -238,15 +256,13 @@ namespace IntelliPM.Services.EpicServices
                 {
                     ProjectId = request.ProjectId,
                     EpicId = entity.Id,
-                    //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.EPIC.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Update epic '{entity.Id}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
                 });
-
             }
             catch (Exception ex)
             {
@@ -287,8 +303,11 @@ namespace IntelliPM.Services.EpicServices
             entity.Status = status;
             entity.UpdatedAt = DateTime.UtcNow;
 
-            var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
-            var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+            //var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
+            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "STATUS_CHANGE");
+
+            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.EPIC.ToString();
+            var dynamicActionType = ActivityLogActionTypeEnum.STATUS_CHANGE.ToString();
 
             try
             {
@@ -374,7 +393,7 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(projectKey))
                 throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
 
-            // Kiểm tra tất cả AccountId trước
+            // Kiểm tra tất cả AccountId trước\
             var allAccountIds = requests
                 .SelectMany(r => r.Tasks)
                 .SelectMany(t => t.AssignedMembers)
@@ -412,7 +431,7 @@ namespace IntelliPM.Services.EpicServices
                     epicEntity.ProjectId = projectId;
                     epicEntity.ReporterId = currentAccount.Id;
                     epicEntity.Name = request.Title;
-                    epicEntity.Status = "TO_DO";
+                    epicEntity.Status = EpicStatusEnum.TO_DO.ToString();
                     epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, context);
                     Console.WriteLine($"Generated Epic ID: {epicEntity.Id}");
 
@@ -445,8 +464,8 @@ namespace IntelliPM.Services.EpicServices
                         taskEntity.Type =  type;
                         taskEntity.PlannedStartDate = task.StartDate;
                         taskEntity.PlannedEndDate = task.EndDate;
-                        taskEntity.Status = "TO_DO";
-
+                        taskEntity.Status = TaskStatusEnum.TO_DO.ToString();
+                        taskEntity.Priority = TaskPriorityEnum.MEDIUM.ToString();
                         taskEntities.Add(taskEntity);
 
                         // Tạo task assignments
@@ -454,17 +473,13 @@ namespace IntelliPM.Services.EpicServices
                         {
                             TaskId = taskEntity.Id,
                             AccountId = member.AccountId,
-                            Status = "ASSIGNED"
+                            Status = TaskAssignmentStatusEnum.ASSIGNED.ToString()
                         }).ToList();
 
                         taskAssignmentEntities.AddRange(assignments);
                     }
                 }
 
-                // Log danh sách ID trước khi lưu
-                Console.WriteLine($"Epic IDs to save: {string.Join(", ", epicEntities.Select(e => e.Id))}");
-                Console.WriteLine($"Task IDs to save: {string.Join(", ", taskEntities.Select(t => t.Id))}");
-                Console.WriteLine($"Task Assignment Task IDs: {string.Join(", ", taskAssignmentEntities.Select(a => a.TaskId))}");
 
                 // Thêm tất cả bản ghi theo lô
                 await _epicRepo.AddRangeAsync(epicEntities);
@@ -545,7 +560,7 @@ namespace IntelliPM.Services.EpicServices
                     epicEntity.ProjectId = projectId;
                     epicEntity.ReporterId = currentAccount.Id;
                     epicEntity.Name = request.Title;
-                    epicEntity.Status = "TO_DO";
+                    epicEntity.Status = EpicStatusEnum.TO_DO.ToString();
                     epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, context);
                     Console.WriteLine($"Generated Epic ID: {epicEntity.Id}");
 
@@ -578,8 +593,8 @@ namespace IntelliPM.Services.EpicServices
                         taskEntity.Type = task.Type;
                         taskEntity.PlannedStartDate = task.StartDate;
                         taskEntity.PlannedEndDate = task.EndDate;
-                        taskEntity.Status = "TO_DO";
-
+                        taskEntity.Status = TaskStatusEnum.TO_DO.ToString();
+                        taskEntity.Priority = TaskPriorityEnum.MEDIUM.ToString();//
                         taskEntities.Add(taskEntity);
 
                         // Tạo task assignments
@@ -587,33 +602,25 @@ namespace IntelliPM.Services.EpicServices
                         {
                             TaskId = taskEntity.Id,
                             AccountId = member.AccountId,
-                            Status = "ASSIGNED"
+                            Status = TaskAssignmentStatusEnum.ASSIGNED.ToString()
                         }).ToList();
 
                         taskAssignmentEntities.AddRange(assignments);
                     }
                 }
 
-                // Log danh sách ID trước khi lưu
-                Console.WriteLine($"Epic IDs to save: {string.Join(", ", epicEntities.Select(e => e.Id))}");
-                Console.WriteLine($"Task IDs to save: {string.Join(", ", taskEntities.Select(t => t.Id))}");
-                Console.WriteLine($"Task Assignment Task IDs: {string.Join(", ", taskAssignmentEntities.Select(a => a.TaskId))}");
-
                 // Thêm tất cả bản ghi theo lô
                 await _epicRepo.AddRangeAsync(epicEntities);
                 await _taskRepo.AddRangeAsync(taskEntities);
                 await _taskAssignmentRepo.AddRangeAsync(taskAssignmentEntities);
 
-                // Lưu tất cả thay đổi
-                Console.WriteLine("Saving changes...");
                 await _epicRepo.SaveChangesAsync();
-                Console.WriteLine("Changes saved successfully.");
+            
 
                 return createdEpicIds;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create epics or tasks for projectId: {ProjectId}", projectId);
                 throw new Exception($"Failed to create epics or tasks: {ex.Message}", ex);
             }
         }
@@ -659,7 +666,7 @@ namespace IntelliPM.Services.EpicServices
             epicEntity.ProjectId = projectId;
             epicEntity.ReporterId = currentAccount.Id;
             epicEntity.Name = request.Title;
-            epicEntity.Status = "TO_DO";
+            epicEntity.Status = EpicStatusEnum.TO_DO.ToString(); 
             epicEntity.Id = await IdGenerator.GenerateNextId(projectKey, _epicRepo, _taskRepo, _projectRepo, _subtaskRepo);
 
             try
@@ -673,10 +680,10 @@ namespace IntelliPM.Services.EpicServices
                     taskEntity.ReporterId = currentAccount.Id;
                     taskEntity.ProjectId = projectId;
                     taskEntity.EpicId = epicEntity.Id;
-                    taskEntity.Type = "TASK";
+                    taskEntity.Type = TaskTypeEnum.TASK.ToString();
                     taskEntity.PlannedStartDate = task.StartDate;
                     taskEntity.PlannedEndDate = task.EndDate;
-                    taskEntity.Status = "TO_DO";
+                    taskEntity.Status = TaskStatusEnum.TO_DO.ToString();
 
                     await _taskRepo.Add(taskEntity);
 
@@ -690,7 +697,7 @@ namespace IntelliPM.Services.EpicServices
                         {
                             TaskId = taskEntity.Id,
                             AccountId = member.AccountId,
-                            Status = "ASSIGNED"
+                            Status = TaskAssignmentStatusEnum.ASSIGNED.ToString()
                         };
 
                         await _taskAssignmentRepo.Add(taskAssignmentEntity);
@@ -749,9 +756,9 @@ namespace IntelliPM.Services.EpicServices
             {
                 Tasks = taskDtos,
                 TotalTasks = taskDtos.Count,
-                TotalToDoTasks = taskDtos.Count(t => t.Status == "TO_DO"),
-                TotalInProgressTasks = taskDtos.Count(t => t.Status == "IN_PROGRESS"),
-                TotalDoneTasks = taskDtos.Count(t => t.Status == "DONE")
+                TotalToDoTasks = taskDtos.Count(t => t.Status == TaskStatusEnum.TO_DO.ToString()),
+                TotalInProgressTasks = taskDtos.Count(t => t.Status == TaskStatusEnum.IN_PROGRESS.ToString()),
+                TotalDoneTasks = taskDtos.Count(t => t.Status == TaskStatusEnum.DONE.ToString() )
             };
 
             return stats;
@@ -815,9 +822,9 @@ namespace IntelliPM.Services.EpicServices
 
 
                 epicDto.TotalTasks = taskDtos.Count;
-                epicDto.TotalToDoTasks = taskDtos.Count(t => t.Status == "TO_DO");
-                epicDto.TotalInProgressTasks = taskDtos.Count(t => t.Status == "IN_PROGRESS");
-                epicDto.TotalDoneTasks = taskDtos.Count(t => t.Status == "DONE");
+                epicDto.TotalToDoTasks = taskDtos.Count(t => t.Status == EpicStatusEnum.TO_DO.ToString());
+                epicDto.TotalInProgressTasks = taskDtos.Count(t => t.Status == EpicStatusEnum.IN_PROGRESS.ToString());
+                epicDto.TotalDoneTasks = taskDtos.Count(t => t.Status == EpicStatusEnum.DONE.ToString());
 
                 result.Add(epicDto);
             }

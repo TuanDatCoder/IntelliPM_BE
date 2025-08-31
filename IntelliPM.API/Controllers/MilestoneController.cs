@@ -9,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class MilestoneController : ControllerBase
     {
         private readonly IMilestoneService _service;

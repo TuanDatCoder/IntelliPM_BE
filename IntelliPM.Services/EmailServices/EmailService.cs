@@ -1001,7 +1001,7 @@ a  {{ color:#2980b9; text-decoration:none; }}
       display: inline-block;
       font-size: 16px;
     '>
-      Accept Invitation
+      Open this link
     </a>
 
     <p style='margin-top: 40px; font-size: 12px; color: #888;'>

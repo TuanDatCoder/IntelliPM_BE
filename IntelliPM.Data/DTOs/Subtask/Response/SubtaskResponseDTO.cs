@@ -30,5 +30,6 @@ namespace IntelliPM.Data.DTOs.TaskCheckList.Response
         public DateTime? EndDate { get; set; }
         public List<string>? Warnings { get; set; }
         public decimal? PercentComplete { get; set; }
+        public decimal ActualCost { get; set; }
     }
 }

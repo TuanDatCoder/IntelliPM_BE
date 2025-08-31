@@ -21,5 +21,6 @@ namespace IntelliPM.Services.ActivityLogServices
         Task<List<ActivityLogResponseDTO>> GetActivityLogsBySubtaskId(string subtaskId);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsByRiskKey(string riskKey);
         Task<List<ActivityLogResponseDTO>> GetActivityLogsByEpicId(string epicId);
+        Task<List<ActivityLogResponseDTO>> GetActivityLogsByCreatedBy(int createdBy);
     }
 }

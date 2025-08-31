@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Cloud.Storage.V1;
 using IntelliPM.Data.DTOs.ActivityLog.Response;
 using IntelliPM.Data.Entities;
 using IntelliPM.Repositories.ActivityLogRepos;
@@ -49,6 +50,17 @@ namespace IntelliPM.Services.ActivityLogServices
             }
         }
 
+        public async Task<List<ActivityLogResponseDTO>> GetActivityLogsByCreatedBy(int createdBy)
+        {
+            {
+                var entities = await _activityLogRepository.GetByCreatedByAsync(createdBy);
+
+                if (entities == null || !entities.Any())
+                    throw new KeyNotFoundException($"No activityLogs found for Account ID {createdBy}.");
+
+                return _mapper.Map<List<ActivityLogResponseDTO>>(entities);
+            }
+        }
         public async Task<List<ActivityLogResponseDTO>> GetActivityLogsBySubtaskId(string subtaskId)
         {
             {

@@ -10,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProjectController : ControllerBase
     {
         private readonly IProjectService _projectService;
@@ -83,9 +84,63 @@ namespace IntelliPM.API.Controllers
         }
 
 
+        [HttpGet("allworkitems")]
+        public async Task<IActionResult> GetAllWorkItems()
+        {
+            try
+            {
+                var workItems = await _projectService.GetAllWorkItems();
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "All work items retrieved successfully",
+                    Data = workItems
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving work items: {ex.Message}"
+                });
+            }
+        }
 
-
-
+        [HttpGet("{key}/allworkitems")]
+        public async Task<IActionResult> SearchWorkItemByKey(string key)
+        {
+            try
+            {
+                var workItems = await _projectService.SearchWorkItemByKey(key);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "All work items retrieved successfully",
+                    Data = workItems
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error retrieving work items: {ex.Message}"
+                });
+            }
+        }
 
         [HttpGet("{id}/workitems")]
         public async Task<IActionResult> GetAllWorkItemsByProjectId(int id)

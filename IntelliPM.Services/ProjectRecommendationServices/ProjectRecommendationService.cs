@@ -13,6 +13,7 @@ using IntelliPM.Repositories.SubtaskRepos;
 using IntelliPM.Repositories.TaskAssignmentRepos;
 using IntelliPM.Repositories.TaskRepos;
 using IntelliPM.Services.GeminiServices;
+using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Services.ProjectMetricServices;
 using Microsoft.Extensions.Logging;
 using System;
@@ -35,8 +36,9 @@ namespace IntelliPM.Services.ProjectRecommendationServices
         private readonly ISubtaskRepository _subtaskRepo;
         private readonly ILogger<ProjectRecommendationService> _logger;
         private readonly IGeminiService _geminiService;
+        private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
 
-        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo, ISubtaskRepository subtaskRepo)
+        public ProjectRecommendationService(IMapper mapper, IProjectMetricRepository projectMetricRepo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectRecommendationService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, IProjectRecommendationRepository projectRecommendationRepo, ISubtaskRepository subtaskRepo, IDynamicCategoryHelper dynamicCategoryHelper)
         {
             _mapper = mapper;
             _projectMetricRepo = projectMetricRepo;
@@ -48,6 +50,7 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             _subtaskRepo = subtaskRepo;
             _logger = logger;
             _geminiService = geminiService;
+            _dynamicCategoryHelper = dynamicCategoryHelper;
         }
 
         public async Task CreateAsync(ProjectRecommendationRequestDTO dto)
@@ -82,7 +85,8 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
-            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
             var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
 
             if (metric == null)
@@ -150,7 +154,8 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
-            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, "System");
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode);
             var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
             var approvedRecommendtions = await _projectRecommendationRepo.GetByProjectIdAsync(project.Id);
 
@@ -169,7 +174,8 @@ namespace IntelliPM.Services.ProjectRecommendationServices
 
             if (forecast != null)
             {
-                var existingAIMetric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, "AI");
+                var calculationAIMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "AI");
+                var existingAIMetric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationAIMode);
 
                 if (existingAIMetric != null)
                 {
@@ -191,7 +197,7 @@ namespace IntelliPM.Services.ProjectRecommendationServices
                     var newMetric = new ProjectMetric
                     {
                         ProjectId = project.Id,
-                        CalculatedBy = "AI",
+                        CalculatedBy = calculationAIMode,
                         IsApproved = false,
                         SchedulePerformanceIndex = Math.Round((decimal)forecast.SchedulePerformanceIndex, 2),
                         CostPerformanceIndex = Math.Round((decimal)forecast.CostPerformanceIndex, 2),
@@ -230,7 +236,8 @@ namespace IntelliPM.Services.ProjectRecommendationServices
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var milestones = await _milestoneRepo.GetMilestonesByProjectIdAsync(project.Id);
             var subtasks = await _subtaskRepo.GetByProjectIdAsync(project.Id);
-            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, "System")
+            var calculationMode = await _dynamicCategoryHelper.GetCategoryNameAsync("calculation_mode", "SYSTEM");
+            var metric = await _projectMetricRepo.GetByProjectIdAndCalculatedByAsync(project.Id, calculationMode)
                 ?? throw new Exception($"ProjectMetric for project {projectKey} not found");
             var approvedRecommendations = await _projectRecommendationRepo.GetByProjectIdAsync(project.Id);
 

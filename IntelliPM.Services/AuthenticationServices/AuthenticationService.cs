@@ -8,6 +8,7 @@ using IntelliPM.Data.DTOs.Auth.Request;
 using IntelliPM.Data.DTOs.Auth.Response;
 using IntelliPM.Data.DTOs.Password;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Account;
 using IntelliPM.Repositories.AccountRepos;
 using IntelliPM.Repositories.RefreshTokenRepos;
 using IntelliPM.Services.EmailServices;
@@ -108,54 +109,6 @@ namespace IntelliPM.Services.AuthenticationServices
             }
         }
 
-        //public async Task ForgotPassword(string email)
-        //{
-        //    var currentAccount = await _accountRepository.GetAccountByEmail(email);
-
-        //    if (currentAccount != null)
-        //    {
-
-        //        var otp = GenerateOTP();
-
-        //        verificationCodeCache.Put(currentAccount.Email, otp, 5);
-
-        //        await _emailService.SendAccountResetPassword(currentAccount.Email, currentAccount.Email, otp);
-
-        //    }
-        //    else
-        //    {
-        //        throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
-        //    }
-        //}
-
-
-        //public async Task ResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO)
-        //{
-        //    var currCustomer = await _accountRepository.GetAccountByEmail(resetPasswordRequestDTO.Email);
-
-
-
-        //    if (currCustomer != null)
-        //    {
-
-        //        var otp = verificationCodeCache.Get(currCustomer.Email);
-
-        //        if (otp == null || !otp.Equals(resetPasswordRequestDTO.OTP))
-        //        {
-        //            throw new ApiException(HttpStatusCode.BadRequest, "OTP has expired or invalid OTP");
-        //        }
-
-        //        currCustomer.Password = PasswordHasher.HashPassword(resetPasswordRequestDTO.NewPassword);
-
-        //        await _accountRepository.Update(currCustomer);
-
-        //    }
-
-        //    else
-        //    {
-        //        throw new ApiException(HttpStatusCode.NotFound, "User does not exist");
-        //    }
-        //}
 
 
         public async Task ForgotPassword(string email)
@@ -391,7 +344,7 @@ namespace IntelliPM.Services.AuthenticationServices
 
                     if (currentAccount != null)
                     {
-                        if (currentAccount.Status.Equals("UNVERIFIED"))
+                        if (currentAccount.Status.Equals(AccountStatusEnum.UNVERIFIED.ToString()))
                         {
                             throw new ApiException(HttpStatusCode.BadRequest, "This account has been deactivated.");
                         }
@@ -406,8 +359,8 @@ namespace IntelliPM.Services.AuthenticationServices
                             Username = email.Split('@')[0],
                             Picture = picture,
                             Password = PasswordHasher.HashPassword(Guid.NewGuid().ToString()), // Random password
-                            Status = "UNVERIFIED",
-                            Role = "TEAM MEMBER",
+                            Status = AccountStatusEnum.UNVERIFIED.ToString(),
+                            Role = AccountRoleEnum.TEAM_MEMBER.ToString(),
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow
                         };
@@ -465,12 +418,12 @@ namespace IntelliPM.Services.AuthenticationServices
                 throw new ApiException(HttpStatusCode.NotFound, "Account does not exist");
             }
 
-            if (currentAccount.Status != "UNVERIFIED")
+            if (currentAccount.Status != AccountStatusEnum.UNVERIFIED.ToString())
             {
                 throw new ApiException(HttpStatusCode.BadRequest, "Account is already verified");
             }
 
-            currentAccount.Status = "VERIFIED";
+            currentAccount.Status = AccountStatusEnum.VERIFIED.ToString() ;
 
             await _accountRepository.Update(currentAccount);
         }
@@ -489,16 +442,16 @@ namespace IntelliPM.Services.AuthenticationServices
 
             var account = _mapper.Map<Account>(accountRequestDTO);
             account.Password = PasswordHasher.HashPassword(accountRequestDTO.Password);
-            account.Role = "CLIENT"; // Đặt mặc định Role
-            account.Status = "UNVERIFIED";
+            account.Role = AccountRoleEnum.CLIENT.ToString(); // Đặt mặc định Role
+            account.Status = AccountStatusEnum.UNVERIFIED.ToString();
             account.CreatedAt = DateTime.UtcNow;
             account.UpdatedAt = DateTime.UtcNow;
 
-            if (accountRequestDTO.Gender.Equals("MALE"))
+            if (accountRequestDTO.Gender.Equals(AccountGenderEnum.MALE.ToString()))
             {
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/male.png?alt=media&token=6f3a8425-e611-4f17-b690-08fd7b465219";
             }
-            else if (accountRequestDTO.Gender.Equals("FEMALE"))
+            else if (accountRequestDTO.Gender.Equals(AccountGenderEnum.FEMALE.ToString()))
             {
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/female.png?alt=media&token=c1956e6d-1207-438d-bae4-5c1bcd52e33d";
             }
@@ -553,7 +506,7 @@ namespace IntelliPM.Services.AuthenticationServices
                 account.Username = username;
                 account.Password = PasswordHasher.HashPassword(randomPassword);
                 account.Role = accountRequestDTO.Role;
-                account.Status = "UNVERIFIED";
+                account.Status = AccountStatusEnum.UNVERIFIED.ToString();
                 account.CreatedAt = DateTime.UtcNow;
                 account.UpdatedAt = DateTime.UtcNow;
                 account.Picture = "https://firebasestorage.googleapis.com/v0/b/marinepath-56521.appspot.com/o/orther.png?alt=media&token=f1f7912c-c886-4206-856a-43418e1954bc";

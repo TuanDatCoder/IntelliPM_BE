@@ -47,5 +47,6 @@ namespace IntelliPM.Services.TaskServices
         Task<List<TaskResponseDTO>> GenerateTaskPreviewAsync(int projectId);
 
         Task<List<TaskResponseDTO>> GenerateTaskPreviewByEpicAsync(string epicId);
+        Task<TaskResponseDTO> RecalculateTaskPlannedHoursAsync(string taskId);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.DynamicCategory.Request;
 using IntelliPM.Services.DynamicCategoryServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class DynamicCategoryController : ControllerBase
     {
         private readonly IDynamicCategoryService _dynamicCategoryService;

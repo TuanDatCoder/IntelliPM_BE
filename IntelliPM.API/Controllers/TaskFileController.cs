@@ -9,7 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class TaskFileController : ControllerBase
     {
         private readonly ITaskFileService _service;

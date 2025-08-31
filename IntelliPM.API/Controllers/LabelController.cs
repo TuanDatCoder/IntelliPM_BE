@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs;
 using IntelliPM.Data.DTOs.Label.Request;
 using IntelliPM.Services.LabelServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -8,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class LabelController : ControllerBase
     {
         private readonly ILabelService _service;
