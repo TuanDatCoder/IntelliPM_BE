@@ -10,7 +10,7 @@ namespace IntelliPM.Data.DTOs.Task.Request
 {
     public class ChangeTaskDescriptionRequestDTO
     {
-        [DynamicMaxLength("description_length")]
+        //[DynamicMaxLength("description_length")]
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "CreatedBy is required")]

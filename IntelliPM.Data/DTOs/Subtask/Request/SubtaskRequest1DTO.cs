@@ -19,7 +19,7 @@ namespace IntelliPM.Data.DTOs.Subtask.Request
         [DynamicMinLength("title_length")]
         public string Title { get; set; } = null!;
 
-        [DynamicMaxLength("description_length")]
+        //[DynamicMaxLength("description_length")]
         public string? Description { get; set; }
     }
 }
