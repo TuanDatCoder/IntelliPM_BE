@@ -34,6 +34,8 @@ namespace IntelliPM.Services.CloudinaryStorageServices
                 throw new ArgumentException("File stream cannot be null or empty.");
             }
 
+            //if (fileStream.CanSeek) fileStream.Position = 0;
+
             string uniqueFileName = GenerateUniqueFileName(originalFileName);
 
             var uploadParams = new RawUploadParams
@@ -41,7 +43,7 @@ namespace IntelliPM.Services.CloudinaryStorageServices
                 File = new FileDescription(originalFileName, fileStream),
                 PublicId = uniqueFileName,
                 Overwrite = true,
-                Type = "upload"
+                 Type = "upload"
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
