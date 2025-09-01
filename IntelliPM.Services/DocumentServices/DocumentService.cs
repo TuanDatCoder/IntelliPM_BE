@@ -421,7 +421,7 @@ Respond in plain text (not HTML).
 
         private string GetBackendBaseUrl()
         {
-            var fromConfig = _configuration["Environment:BE_URL"];
+            var fromConfig = _configuration["Environment:FE_URL"];
             if (!string.IsNullOrWhiteSpace(fromConfig))
                 return fromConfig.TrimEnd('/');
 
@@ -430,7 +430,7 @@ Respond in plain text (not HTML).
                 return $"{req.Scheme}://{req.Host.Value}".TrimEnd('/');
 
             // Fallback dev
-            return "https://localhost:7128";
+            return "https://localhost:5173";
         }
 
 
@@ -507,7 +507,8 @@ Respond in plain text (not HTML).
 
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
-                    var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
+                    //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
+                    var link = $"{beBaseUrl}/share/accept?token={token}";
 
                     await _emailService.SendShareDocumentEmail(
                         email,
