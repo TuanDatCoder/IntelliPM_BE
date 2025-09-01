@@ -495,75 +495,43 @@ Respond in plain text (not HTML).
             var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
             var failedToSend = new List<string>(unknownEmails);
 
-            //foreach (var email in knownEmails)
-            //{
-            //    try
-            //    {
-            //        // Lấy AccountId tương ứng với email
-            //        var accountId = accountMap[email];
-
-            //        // TẠO TOKEN RIÊNG cho người dùng này
-            //        var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
-
-
-            //        // TẠO LINK CHIA SẺ MỚI chứa token
-            //        //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
-            //        var link = $"https://intellipm.vercel.app/share/accept?token={token}";
-
-            //        await _emailService.SendShareDocumentEmail(
-            //            email,
-            //            document.Title,
-            //            req.Message,
-            //            link // <-- Sử dụng link mới đã được cá nhân hóa
-            //        );
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        failedToSend.Add(email);
-            //        _logger.LogError(ex, "Failed to send share document email to {Email}", email);
-            //    }
-            //}
-
-            //// 7) Trả kết quả (giữ nguyên)
-            //return new ShareDocumentResponseDTO
-            //{
-            //    Success = failedToSend.Count == 0,
-            //    FailedEmails = failedToSend
-            //};
-
-            var emailTasks = knownEmails.Select(async email =>
+            foreach (var email in knownEmails)
             {
                 try
                 {
+                    // Lấy AccountId tương ứng với email
                     var accountId = accountMap[email];
+
+                    // TẠO TOKEN RIÊNG cho người dùng này
                     var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
-                    var link = $"{feBaseUrl}/share/accept?token={token}";
+
+
+                    // TẠO LINK CHIA SẺ MỚI chứa token
+                    //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
+                    var link = $"https://intellipm.vercel.app/share/accept?token={token}";
 
                     await _emailService.SendShareDocumentEmail(
                         email,
                         document.Title,
                         req.Message,
-                        link
+                        link // <-- Sử dụng link mới đã được cá nhân hóa
                     );
-                    return new { Email = email, Success = true };
                 }
                 catch (Exception ex)
                 {
+                    failedToSend.Add(email);
                     _logger.LogError(ex, "Failed to send share document email to {Email}", email);
-                    return new { Email = email, Success = false };
                 }
-            });
+            }
 
-            var sendResults = await Task.WhenAll(emailTasks);
-
-            var failedEmails = sendResults.Where(r => !r.Success).Select(r => r.Email).ToList();
-            failedEmails.AddRange(unknownEmails); 
-
+            // 7) Trả kết quả (giữ nguyên)
             return new ShareDocumentResponseDTO
             {
-                Success = !failedEmails.Any(),
-                FailedEmails = failedEmails.Distinct().ToList()
+                Success = failedToSend.Count == 0,
+                FailedEmails = failedToSend
             };
+
+
         }
 
         private static bool IsValidEmail(string email)

@@ -9,7 +9,6 @@ namespace IntelliPM.Data.DTOs.ShareDocumentViaEmail
 {
     public class ShareDocumentViaEmailRequest
     {
-        //public int DocumentId { get; set; }
 
         public List<string> Emails { get; set; }
 
