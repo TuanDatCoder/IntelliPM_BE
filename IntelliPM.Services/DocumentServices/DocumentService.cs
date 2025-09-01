@@ -419,7 +419,7 @@ Respond in plain text (not HTML).
             };
         }
 
-        private string GetBackendBaseUrl()
+        private string GetFrontendBaseUrl()
         {
             var fromConfig = _configuration["Environment:FE_URL"];
             if (!string.IsNullOrWhiteSpace(fromConfig))
@@ -490,7 +490,7 @@ Respond in plain text (not HTML).
 
             // 6) Gửi email VỚI LINK CHỨA TOKEN CÁ NHÂN HÓA
             //var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-            var beBaseUrl = GetBackendBaseUrl();
+            var feBaseUrl = GetFrontendBaseUrl();
             var knownEmails = accountMap.Keys;
             var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
             var failedToSend = new List<string>(unknownEmails);
@@ -508,7 +508,7 @@ Respond in plain text (not HTML).
 
                     // TẠO LINK CHIA SẺ MỚI chứa token
                     //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
-                    var link = $"{beBaseUrl}/share/accept?token={token}";
+                    var link = $"https://intellipm.vercel.app/share/accept?token={token}";
 
                     await _emailService.SendShareDocumentEmail(
                         email,
