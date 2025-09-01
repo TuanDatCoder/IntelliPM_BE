@@ -1052,9 +1052,9 @@ Return a JSON array with exactly 5 items, each with the following structure:
 - Recommendations **must** reference specific data (e.g., task IDs like 'TASK-001', subtask IDs like 'SUBTASK-005', sprint names, milestone keys).
 - All recommendations must be of type '{recommendationType}'.
 - Avoid generic suggestions (e.g., ""Improve communication"")—focus on measurable actions.
-- Ensure actions are feasible within the project's context (budget: {project.Budget}, timeline: {project.StartDate} to {project.EndDate}).
+- Ensure actions are feasible within the project's context (budget: {project.Budget} VND, timeline: {project.StartDate} to {project.EndDate}).
 - Do not return markdown or additional text outside the JSON array.
-- Assume personnel costs: $50/hour for senior developers (e.g., John Doe), $30/hour for junior developers (e.g., Bob Jones).
+- Assume personnel costs based on the hourly rate of each project member provided.
 
 Project Information:
 - Name: {project.Name}
