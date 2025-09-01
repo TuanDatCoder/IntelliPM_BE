@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IntelliPM.Common.Attributes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,10 +10,13 @@ namespace IntelliPM.Data.DTOs.Auth.Request
 {
     public class LoginRequestDTO
     {
-        [Required]
+        [Required(ErrorMessage = "Username is required")]
+        [DynamicMaxLength("username_length_limit")]
         public string Username { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Password is required")]
+        [DynamicMinLength("password_length_limit")]
+        [DynamicMaxLength("password_length_limit")]
         public string Password { get; set; }
     }
     

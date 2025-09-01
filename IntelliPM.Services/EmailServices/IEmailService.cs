@@ -50,5 +50,6 @@ namespace IntelliPM.Services.EmailServices
         Task SendMeetingUpdateEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl, string changeSummaryHtml);
         Task SendMeetingRemovalEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl);
         Task SendOverdueRiskNotificationEmailAsync(string assigneeFullName, string assigneeEmail, string riskKey, string riskTitle, string projectKey, DateTime dueDate, string riskDetailUrl);
+        Task SendHtmlEmailAsync(string toEmail, string subject, string htmlBody);
     }
 }

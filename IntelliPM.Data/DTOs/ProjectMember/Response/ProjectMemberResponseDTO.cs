@@ -18,6 +18,7 @@ namespace IntelliPM.Data.DTOs.ProjectMember.Response
         public DateTime? JoinedAt { get; set; }
         public DateTime InvitedAt { get; set; }
         public string? Status { get; set; }
+        public string? AccountRole { get; set; }
 
     }
 }

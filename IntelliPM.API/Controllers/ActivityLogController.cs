@@ -12,6 +12,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ActivityLogController : ControllerBase
     {
         private readonly IActivityLogService _activityLogService;
@@ -65,6 +66,27 @@ namespace IntelliPM.API.Controllers
             try
             {
                 var activityLogList = await _activityLogService.GetActivityLogsByProjectId(projectId);
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = "ActivityLog retrieved successfully",
+                    Data = activityLogList
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "PROJECT_MANAGER,TEAM_LEADER,TEAM_MEMBER,ADMIN")]
+        [HttpGet("createdby/{createdBy}")]
+        public async Task<IActionResult> GetByCreatedId(int createdBy)
+        {
+            try
+            {
+                var activityLogList = await _activityLogService.GetActivityLogsByCreatedBy(createdBy);
                 return Ok(new ApiResponseDTO
                 {
                     IsSuccess = true,

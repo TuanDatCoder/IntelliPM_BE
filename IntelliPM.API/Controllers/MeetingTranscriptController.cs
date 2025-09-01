@@ -1,6 +1,7 @@
 ﻿using IntelliPM.Data.DTOs.MeetingTranscript.Request;
 using IntelliPM.Data.DTOs.MeetingTranscript.Response;
 using IntelliPM.Services.MeetingTranscriptServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +9,7 @@ namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/meeting-transcripts")]
+    [Authorize]
     public class MeetingTranscriptController : ControllerBase
     {
         private readonly IMeetingTranscriptService _service;

@@ -22,7 +22,7 @@ namespace IntelliPM.Services.GeminiServices
         Task<ProjectMetricRequestDTO> CalculateProjectMetricsAsync(Project project, List<Tasks> tasks);
         Task<string> SummarizeTextAsync(string transcriptText);
         Task<List<RiskRequestDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);
-        Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(Project project, ProjectMetric metric, List<Tasks> tasks, List<Sprint> sprints, List<Milestone> milestones, List<Subtask> subtasks);
+        Task<List<AIRecommendationDTO>> GenerateProjectRecommendationsAsync(Project project, ProjectMetric metric, List<Tasks> tasks, List<Sprint> sprints, List<Milestone> milestones, List<Subtask> subtasks, List<Account> accounts, List<ProjectPosition> projectPositions, List<ProjectMember> projectMembers, List<TaskAssignment> taskAssignments);
         Task<List<AIRiskResponseDTO>> ViewAIProjectRisksAsync(Project project, List<Tasks> tasks);
         // Task<List<AIRiskResponseDTO>> DetectProjectRisksAsync(Project project, List<Tasks> tasks);
         Task<List<AIRiskResponseDTO>> DetectTaskRisksAsync(Project project, List<Tasks> tasks);

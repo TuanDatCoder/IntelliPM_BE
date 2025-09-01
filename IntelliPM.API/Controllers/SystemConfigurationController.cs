@@ -3,11 +3,13 @@ using IntelliPM.Data.DTOs;
 using IntelliPM.Services.SystemConfigurationServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SystemConfigurationController : ControllerBase
     {
         private readonly ISystemConfigurationService _service;

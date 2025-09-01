@@ -1001,7 +1001,7 @@ a  {{ color:#2980b9; text-decoration:none; }}
       display: inline-block;
       font-size: 16px;
     '>
-      Accept Invitation
+      Open this link
     </a>
 
     <p style='margin-top: 40px; font-size: 12px; color: #888;'>
@@ -1716,6 +1716,28 @@ a  {{ color:#2980b9; text-decoration:none; }}
 
             // 👇 Đính kèm file
             builder.Attachments.Add(fileName, fileBytes);
+
+            message.Body = builder.ToMessageBody();
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+
+     
+        public async Task SendHtmlEmailAsync(string toEmail, string subject, string htmlBody)
+        {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+
+            var builder = new BodyBuilder
+            {
+                HtmlBody = htmlBody
+            };
 
             message.Body = builder.ToMessageBody();
 

@@ -1099,15 +1099,6 @@ VALUES
     (4, 'Increase testing', 'Rollback changes'),
     (5, 'Freeze scope', 'Prioritize core features');
 
--- Insert sample data into change_request
-INSERT INTO change_request (project_id, requested_by, title, description, status)
-VALUES 
-    (1, 1, 'Add Feature', 'Add new login feature', 'PENDING'),
-    (2, 2, 'Change Budget', 'Increase budget by 10%', 'APPROVED'),
-    (3, 3, 'Extend Deadline', 'Extend by 1 month', 'REJECTED'),
-    (4, 4, 'Update Design', 'Revise UI colors', 'PENDING'),
-    (5, 5, 'Add Test Case', 'Include edge cases', 'APPROVED');
-
 -- Insert sample data into project_recommendation
 INSERT INTO project_recommendation (project_id, type, recommendation)
 VALUES 
@@ -1256,8 +1247,8 @@ VALUES
     ('project_status', 'COMPLETED', 'Completed', 'Project has been successfully completed', 5, NULL, NULL),
     ('project_status', 'CANCELLED', 'Cancelled', 'Project was cancelled', 6, NULL, '#b2da73'),
 
-    --('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
-    --('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
+    ('project_status', 'NOT_STARTED', 'Not Started', 'Project has not started', 7, NULL, NULL),
+    ('project_status', 'NO_PROGRESS', 'Started but No Progress', 'Project started but no tasks have progress', 8, NULL, NULL),
 
 	('requirement_type', 'FUNCTIONAL', 'Functional', 'Functional', 1, NULL, NULL),
     ('requirement_type', 'NON_FUNCTIONAL', 'Non Functional', 'Non Functional', 2, NULL, NULL),
@@ -1292,6 +1283,9 @@ VALUES
     ('account_position', 'TEAM_LEADER', 'Team Leader', 'Team leader position', 7, NULL, NULL),
     ('account_position', 'CLIENT', 'Client', 'Client position', 8, NULL, NULL),
     ('account_position', 'ADMIN', 'Admin', 'Admin position', 9, NULL, NULL),
+	 ('account_gender', 'MALE', 'Male', 'Male gender for account', 1, NULL, '#00BFFF'),
+    ('account_gender', 'FEMALE', 'Female', 'Female gender for account', 2, NULL, '#FF69B4'),
+    ('account_gender', 'OTHER', 'Other', 'Other / unspecified gender for account', 3, NULL, '#808080'),
     ('task_assignment_status', 'ASSIGNED', 'Assigned', 'Task assigned to user', 1, NULL, NULL),
     ('task_assignment_status', 'IN_PROGRESS', 'In Progress', 'User is actively working on the task', 2, NULL, NULL),
     ('task_assignment_status', 'BLOCKED', 'Blocked', 'User is blocked and cannot proceed', 3, NULL, NULL),
@@ -1353,10 +1347,6 @@ VALUES
     ('risk_type', 'SCOPE', 'Scope', 'Scope risk', 5, NULL, NULL),
     ('risk_type', 'TECHNICAL', 'Technical', 'Technical risk', 6, NULL, NULL),
     ('risk_type', 'SECURITY', 'Security', 'Security risk', 7, NULL, NULL),
-    ('change_request_status', 'PENDING', 'Pending', 'Change request pending', 1, NULL, NULL),
-    ('change_request_status', 'APPROVED', 'Approved', 'Change request approved', 2, NULL, NULL),
-    ('change_request_status', 'REJECTED', 'Rejected', 'Change request rejected', 3, NULL, NULL),
-    ('change_request_status', 'DELETED', 'Deleted', 'Deleted change request', 4, NULL, NULL),
     ('recommendation_type', 'COST', 'Cost', 'Cost recommendation', 1, NULL, NULL),
     ('recommendation_type', 'SCHEDULE', 'Schedule', 'Schedule recommendation', 2, NULL, NULL),
     ('label_status', 'ACTIVE', 'Active', 'Active label', 1, NULL, NULL),
@@ -1399,7 +1389,6 @@ VALUES
     ('activity_log_related_entity_type', 'FILE', 'File', 'File related entity', 4, NULL, NULL),
     ('activity_log_related_entity_type', 'NOTIFICATION', 'Notification', 'Notification related entity', 5, NULL, NULL),
     ('activity_log_related_entity_type', 'RISK', 'Risk', 'Risk related entity', 6, NULL, NULL),
-	('activity_log_related_entity_type', 'EPIC', 'epic', 'Epic related entity', 7, NULL, NULL),
 ('risk_scope', 'PROJECT', 'Project', 'Risk that affects the whole project', 1, NULL, '#2f54eb'),
     ('activity_log_action_type', 'USER_LOGIN', 'User Login','User Login....', 6, NULL, NULL),
     ('risk_scope', 'TASK', 'Task', 'Risk that affects a specific task', 2, NULL, '#faad14'),
@@ -1417,7 +1406,11 @@ VALUES
     ('ai_feature', 'RECOMMENDATION_SUGGESTION', 'Recommendation Suggestion', 'AI summarizes recommendation suggestion', 6, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
 	('ai_feature', 'EPIC_GENERATION', 'EPIC_GENERATION Suggestion', 'AI EPIC_GENERATION recommendation suggestion', 8, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
 	('ai_feature', 'STORY_TASK_GENERATION', 'STORY_TASK_GENERATION Suggestion', 'AI STORY_TASK_GENERATION recommendation suggestion', 9, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
-    ('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
+    ('ai_feature', 'SUBTASK_FROM_TASK_CREATION', 'Subtask From Task Creation', 'Suggest subtask from task via AI', 10, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'TASK_FROM_EPIC_CREATION', 'Task From Epic Creation', 'Suggest task from epic via AI', 11, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'TASK_FROM_PROJECT_CREATION', 'Task From Project Creation', 'Suggest task from project via AI', 12, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('ai_feature', 'EPIC_FROM_PROJECT_CREATION', 'Epic From Project Creation', 'Suggest epic from project via AI', 13, 'https://example.com/icons/recommendation-suggestion.png', '#3077b1ff'),
+	('risk_impact_level', 'LOW', 'Low', 'Low impact level', 1, NULL, 'green-100,green-700'),
     ('risk_impact_level', 'MEDIUM', 'Medium', 'Medium impact level', 2, NULL, 'yellow-100,yellow-700'),
     ('risk_impact_level', 'HIGH', 'High', 'High impact level', 3, NULL, 'red-100,red-700'),
     ('risk_probability_level', 'LOW', 'Low', 'Low probability level', 1, NULL, 'green-100,green-700'),
@@ -1428,10 +1421,7 @@ VALUES
     ('risk_severity_level', 'HIGH', 'High', 'High severity level', 3, NULL, 'red-100,red-700'),
     ('risk_generated_by', 'MANUAL', 'Manual', 'Risk created manually by a user', 1, NULL, '#4B5563'), -- Gray
     ('risk_generated_by', 'AI', 'AI', 'Risk generated by AI', 2, NULL, '#3B82F6'),
-    ('related_entity_type', 'RISK', 'Risk', 'Risk related entity', 14, NULL, NULL),
-    ('related_entity_type', 'RISK_FILE', 'Risk File', 'Record log file in risk', 15, NULL, NULL),
-	('related_entity_type', 'RISK_COMMENT', 'Risk Comment', 'Record log comment in risk', 16, NULL, NULL),
-    ('notification_type', 'RISK_COMMENT_CREATE', 'Risk Comment Create', 'Create comment in risk', 0, NULL, NULL);
+    ('related_entity_type', 'RISK', 'Risk', 'Risk related entity', 14, NULL, NULL);
 
 
 
@@ -1484,7 +1474,35 @@ INSERT INTO system_configuration (
 ('acual_cost_limit', NULL, '0', '10000000000', '10000000000', 'Maximum allowed total other actual cost per project', 'Limit for other cost', '2025-08-27 21:35:00+07', NULL);
 
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'username_length_limit',
+    NULL,
+    '1',
+    '25',
+    '25',
+    'Maximum allowed length of username',
+    'Usernames should not exceed 25 characters',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
+INSERT INTO system_configuration (
+    config_key, value_config, min_value, max_value, estimate_value, description, note, effected_from, effected_to
+) VALUES
+(
+    'password_length_limit',
+    NULL,
+    '6',
+    '100',
+    '12',
+    'Password length must be between 6 and 100 characters',
+    'Minimum 6 characters required for security. Recommended 12+.',
+    '2025-08-27 21:35:00+07',
+    NULL
+);
 
 INSERT INTO dynamic_category (category_group, name, label, description, order_index, icon_link, color)
 VALUES 
@@ -1494,17 +1512,6 @@ VALUES
     ('health_status', 'OVER_BUDGET', 'Over Budget', 'Project is exceeding budget', 4, NULL, '#FF0000'),
     ('health_status', 'ON_BUDGET', 'On Budget', 'Project is within budget', 5, NULL, '#FFA500'),
     ('health_status', 'UNDER_BUDGET', 'Under Budget', 'Project is under budget', 6, NULL, '#008000');
-
-INSERT INTO dynamic_category (category_group, name, label, description, order_index)
-VALUES 
-('calculation_mode', 'SYSTEM', 'System', 'Calculation mode using system rules', 1),
-('calculation_mode', 'AI', 'AI', 'Calculation mode using AI model', 2);
-
-INSERT INTO system_configuration 
-(config_key, value_config, description, effected_from, effected_to) 
-VALUES
-('calculation_mode_system', 'enabled', 'System-based calculation mode', NOW(), NULL),
-('calculation_mode_ai', 'enabled', 'AI-based calculation mode', NOW(), NULL);
 
 -------  INTELLIPM DB ---------
 	-- Update 16/06/2025

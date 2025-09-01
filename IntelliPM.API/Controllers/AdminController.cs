@@ -22,8 +22,8 @@ namespace IntelliPM.API.Controllers
         }
 
         [HttpGet("account")]
-        //[Authorize(Roles = "ADMIN,PROJECT MANAGER")]
-        [Authorize(Roles = "ADMIN")]
+        [Authorize(Roles = "ADMIN,PROJECT_MANAGER")]
+        //[Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> GetAccounts()
         {
             var result = await _adminService.GetAllAccountsAsync();

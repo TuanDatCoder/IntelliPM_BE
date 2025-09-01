@@ -218,13 +218,21 @@ namespace IntelliPM.Services.EpicServices
             if (request.AssignedBy == 0)
                 entity.AssignedBy = null;
 
+            var project = await _projectRepo.GetByIdAsync(request.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {request.ProjectId} not found.");
+
+            if (request.StartDate.HasValue && (request.StartDate.Value < project.StartDate || request.StartDate.Value > project.EndDate))
+                throw new ArgumentException($"Epic StartDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.EndDate.HasValue && (request.EndDate.Value < project.StartDate || request.EndDate.Value > project.EndDate))
+                throw new ArgumentException($"Epic EndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
+
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value >= request.EndDate.Value)
+                throw new ArgumentException("Epic StartDate must be less than EndDate.");
+
             _mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
-
-           // var dynamicEntityType = await _dynamicCategoryHelper.GetCategoryNameAsync("related_entity_type", "EPIC");
-            //var dynamicActionType = await _dynamicCategoryHelper.GetCategoryNameAsync("action_type", "UPDATE");
-            var dynamicEntityType = ActivityLogRelatedEntityTypeEnum.EPIC.ToString();
-            var dynamicActionType = ActivityLogActionTypeEnum.UPDATE.ToString();
 
             try
             {
@@ -232,7 +240,6 @@ namespace IntelliPM.Services.EpicServices
 
                 if (oldAssignedBy != entity.AssignedBy)
                 {
-
                     var assignee = await _accountRepo.GetAccountById(entity.AssignedBy ?? 0);
                     if (assignee != null)
                     {
@@ -249,15 +256,13 @@ namespace IntelliPM.Services.EpicServices
                 {
                     ProjectId = request.ProjectId,
                     EpicId = entity.Id,
-                    //SubtaskId = entity.Subtask,
-                    RelatedEntityType = dynamicEntityType,
+                    RelatedEntityType = ActivityLogRelatedEntityTypeEnum.EPIC.ToString(),
                     RelatedEntityId = entity.Id,
-                    ActionType = dynamicActionType,
+                    ActionType = ActivityLogActionTypeEnum.UPDATE.ToString(),
                     Message = $"Update epic '{entity.Id}'",
                     CreatedBy = request.CreatedBy,
                     CreatedAt = DateTime.UtcNow
                 });
-
             }
             catch (Exception ex)
             {
@@ -388,7 +393,7 @@ namespace IntelliPM.Services.EpicServices
             if (string.IsNullOrEmpty(projectKey))
                 throw new InvalidOperationException($"Invalid project key for Project ID {projectId}.");
 
-            // Kiểm tra tất cả AccountId trước
+            // Kiểm tra tất cả AccountId trước\
             var allAccountIds = requests
                 .SelectMany(r => r.Tasks)
                 .SelectMany(t => t.AssignedMembers)
@@ -475,10 +480,6 @@ namespace IntelliPM.Services.EpicServices
                     }
                 }
 
-                // Log danh sách ID trước khi lưu
-                Console.WriteLine($"Epic IDs to save: {string.Join(", ", epicEntities.Select(e => e.Id))}");
-                Console.WriteLine($"Task IDs to save: {string.Join(", ", taskEntities.Select(t => t.Id))}");
-                Console.WriteLine($"Task Assignment Task IDs: {string.Join(", ", taskAssignmentEntities.Select(a => a.TaskId))}");
 
                 // Thêm tất cả bản ghi theo lô
                 await _epicRepo.AddRangeAsync(epicEntities);
@@ -593,7 +594,7 @@ namespace IntelliPM.Services.EpicServices
                         taskEntity.PlannedStartDate = task.StartDate;
                         taskEntity.PlannedEndDate = task.EndDate;
                         taskEntity.Status = TaskStatusEnum.TO_DO.ToString();
-
+                        taskEntity.Priority = TaskPriorityEnum.MEDIUM.ToString();//
                         taskEntities.Add(taskEntity);
 
                         // Tạo task assignments

@@ -2,6 +2,10 @@
 using IntelliPM.Data.DTOs.Admin;
 using IntelliPM.Data.DTOs.Project.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Account;
+using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
+using IntelliPM.Data.Enum.Project;
+using IntelliPM.Data.Enum.Task;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -120,6 +124,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     Id = t.Id,
                     Name = t.Title,
                     Type = "Task"
+                    //Type = ActivityLogRelatedEntityTypeEnum.TASK.ToString()
                 }).ToListAsync();
 
 
@@ -130,6 +135,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     Id = m.Key,
                     Name = m.Name,
                     Type = "Milestone"
+                    //Type = ActivityLogRelatedEntityTypeEnum.MILESTONE.ToString()
                 }).ToListAsync();
 
             var subtaskDtos = await _context.Subtask
@@ -139,6 +145,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     Id = s.Id,
                     Name = s.Title,
                     Type = "Subtask"
+                    //Type = ActivityLogRelatedEntityTypeEnum.SUBTASK.ToString()
                 }).ToListAsync();
 
             return taskDtos
@@ -147,7 +154,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                 .ToList();
         }
 
-        public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync()
+        public async Task<List<ProjectStatusReportDto>> GetAllProjectStatusReportsAsync(string calculatedBy)
         {
             var projects = await _context.Project
                 .Include(p => p.Sprint)
@@ -159,10 +166,13 @@ namespace IntelliPM.Repositories.ProjectRepos
                 .Include(p => p.ProjectMetric)
                 .ToListAsync();
 
+            var statusDone = TaskStatusEnum.DONE.ToString();
+            var positionPM = AccountPositionEnum.PROJECT_MANAGER.ToString();
+
             var reports = projects.Select(project =>
             {
                 var systemMetric = project.ProjectMetric
-                    .FirstOrDefault(m => m.CalculatedBy == "System");
+                    .FirstOrDefault(m => m.CalculatedBy == calculatedBy);
 
                 return new ProjectStatusReportDto
                 {
@@ -170,7 +180,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     ProjectName = project.Name,
                     ProjectKey = project.ProjectKey,
                     ProjectManager = project.ProjectMember
-                        .Where(pm => pm.Account.Position == "PROJECT_MANAGER")
+                        .Where(pm => pm.Account.Position == positionPM)
                         .Select(pm => pm.Account.FullName)
                         .FirstOrDefault(),
 
@@ -178,7 +188,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     ActualCost = project.Tasks.Sum(t => t.ActualCost) ?? 0,
 
                     TotalTasks = project.Tasks.Count(),
-                    CompletedTasks = project.Tasks.Count(t => t.Status == "DONE"),
+                    CompletedTasks = project.Tasks.Count(t => t.Status == statusDone),
                     Progress = project.Tasks.Any() ? project.Tasks.Average(t => t.PercentComplete ?? 0) : 0,
 
                     SPI = systemMetric?.SchedulePerformanceIndex ?? 0,
@@ -186,7 +196,7 @@ namespace IntelliPM.Repositories.ProjectRepos
 
                     OverdueTasks = project.Tasks.Count(t =>
                         t.PlannedEndDate < DateTime.UtcNow &&
-                        t.Status != "DONE"),
+                        t.Status != statusDone),
 
                     Milestones = project.Milestone.Select(m => new MilestoneDto
                     {
@@ -209,7 +219,10 @@ namespace IntelliPM.Repositories.ProjectRepos
 
         public async Task<List<ProjectManagerReportDto>> GetProjectManagerReportsAsync()
         {
-            // Lấy danh sách Project Manager
+            var statusDone = TaskStatusEnum.DONE.ToString();
+            var positionPM = AccountPositionEnum.PROJECT_MANAGER.ToString();
+            var projectStatusActive = ProjectStatusEnum.IN_PROGRESS.ToString();
+
             var projectManagers = await _context.Account
                 .Join(_context.ProjectMember,
                     a => a.Id,
@@ -219,7 +232,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     pm => pm.ProjectMember.Id,
                     pp => pp.ProjectMemberId,
                     (pm, pp) => new { pm.Account, pp })
-                .Where(x => x.pp.Position == "PROJECT_MANAGER")
+                .Where(x => x.pp.Position == positionPM)
                 .Select(x => new
                 {
                     ProjectManagerId = x.Account.Id,
@@ -243,7 +256,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                         pm2 => pm2.ProjectMember.Id,
                         pp => pp.ProjectMemberId,
                         (pm2, pp) => new { pm2.Project, pm2.ProjectMember, pp })
-                    .Where(x => x.pp.Position == "PROJECT_MANAGER" &&
+                    .Where(x => x.pp.Position == positionPM &&
                                 x.ProjectMember.AccountId == pm.ProjectManagerId)
                     .GroupJoin(_context.ProjectMetric,
                         p => p.Project.Id,
@@ -261,9 +274,9 @@ namespace IntelliPM.Repositories.ProjectRepos
                     var tasks = _context.Tasks.Where(t => t.ProjectId == p.Project.Id);
 
                     var totalTasks = tasks.Count();
-                    var completedTasks = tasks.Count(t => t.Status == "DONE");
+                    var completedTasks = tasks.Count(t => t.Status == statusDone);
                     var overdueTasks = tasks.Count(t =>
-                        t.Status != "DONE" &&
+                        t.Status != statusDone &&
                         t.PlannedEndDate < DateTime.UtcNow &&
                         t.ActualEndDate == null);
                     var avgProgress = tasks.Any() ? tasks.Average(t => t.PercentComplete) ?? 0 : 0;
@@ -324,7 +337,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                     ProjectManagerId = pm.ProjectManagerId,
                     ProjectManagerName = pm.ProjectManagerName,
                     TotalProjects = projectSummaries.Count,
-                    ActiveProjects = projectSummaries.Count(p => p.Status == "ACTIVE"),
+                    ActiveProjects = projectSummaries.Count(p => p.Status == projectStatusActive),
                     OverdueTasks = projectSummaries.Sum(p => p.OverdueTasks),
                     TotalBudget = projectSummaries.Sum(p => p.Budget),
                     Projects = projectSummaries

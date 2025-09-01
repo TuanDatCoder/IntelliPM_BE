@@ -3,11 +3,13 @@ using IntelliPM.Data.DTOs;
 using IntelliPM.Services.RiskFileServices;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Data.DTOs.RiskFile.Request;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IntelliPM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RiskFileController : ControllerBase
     {
         private readonly IRiskFileService _service;

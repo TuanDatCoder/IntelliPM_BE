@@ -1,11 +1,13 @@
 ﻿using IntelliPM.Data.DTOs.MeetingLog.Request;
 using IntelliPM.Services.MeetingLogServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliPM.API.Controllers;
 
 [ApiController]
 [Route("api/meeting-logs")]
+[Authorize]
 public class MeetingLogController : ControllerBase
 {
     private readonly IMeetingLogService _service;
