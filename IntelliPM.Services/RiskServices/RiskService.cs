@@ -794,7 +794,7 @@ namespace IntelliPM.Services.RiskServices
             var overdueTasks = tasks
                 .Where(t => t.PlannedEndDate.HasValue &&
                             t.PlannedEndDate.Value < now &&
-                            !string.Equals(t.Status, TaskStatusEnum.DONE.ToString(), StringComparison.OrdinalIgnoreCase))
+                            !string.Equals(t.Status, "DONE", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             foreach (var task in overdueTasks)
@@ -1184,7 +1184,7 @@ namespace IntelliPM.Services.RiskServices
             var risks = await _riskRepo.GetByProjectIdAsync(project.Id);
 
             var overdueRisks = risks
-                .Where(r => !string.Equals(r.Status, RiskStatusEnum.CLOSED.ToString(), StringComparison.OrdinalIgnoreCase) &&
+                .Where(r => !string.Equals(r.Status, "CLOSED", StringComparison.OrdinalIgnoreCase) &&
                             r.DueDate.HasValue &&
                             r.DueDate.Value < today)
                 .ToList();
