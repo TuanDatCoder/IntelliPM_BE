@@ -10,24 +10,28 @@ using IntelliPM.Data.Enum.ProjectRecommendation;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.GeminiServices;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Text;
 
 public class GeminiService : IGeminiService
 {
     private readonly HttpClient _httpClient;
-    private const string _apiKey = "AIzaSyDWOB57CuXTor0WgXFCZ4cLOY6QnVtqJkc";
-    private readonly string _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+    //private const string _apiKey = "AIzaSyDWOB57CuXTor0WgXFCZ4cLOY6QnVtqJkc";
+    //private readonly string _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
     private readonly IMapper _mapper;
     private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
     private readonly ISystemConfigurationRepository _systemConfigRepo;
+    private readonly string _url;
 
-    public GeminiService(HttpClient httpClient, IMapper mapper, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationRepository systemConfigRepo)
+    public GeminiService(HttpClient httpClient, IMapper mapper, IDynamicCategoryRepository dynamicCategoryRepo, ISystemConfigurationRepository systemConfigRepo, IConfiguration configuration)
     {
         _httpClient = httpClient;
         _mapper = mapper;
         _dynamicCategoryRepo = dynamicCategoryRepo;
         _systemConfigRepo = systemConfigRepo;
+        var apiKey = configuration["GeminiApi:ApiKey"];
+        _url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={apiKey}";
     }
 
     public async Task<List<string>> GenerateSubtaskAsync(string taskTitle)
