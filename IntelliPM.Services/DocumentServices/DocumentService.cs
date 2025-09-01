@@ -11,6 +11,7 @@ using IntelliPM.Data.Enum.Document;
 using IntelliPM.Repositories.DocumentPermissionRepos;
 using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
+using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.EmailServices;
 using IntelliPM.Services.External.ProjectMetricApi;
 using IntelliPM.Services.External.TaskApi;
@@ -50,9 +51,10 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IShareTokenService _shareTokenService;
         private readonly IProjectMetricService _projectMetricService;
         private readonly ITaskService _taskService;
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
 
         public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService)
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService, ICloudinaryStorageService  cloudinaryStorageService)
         {
             _IDocumentRepository = IDocumentRepository;
             _httpClient = httpClient;
@@ -70,6 +72,7 @@ namespace IntelliPM.Services.DocumentServices
             _shareTokenService = shareTokenService;
             _projectMetricService = projectMetricService;
             _taskService = taskService;
+            _cloudinaryStorageService = cloudinaryStorageService;
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -859,42 +862,71 @@ For each task in the array, output exactly 1 table following the **fixed templat
             return authHeader?.Replace("Bearer ", "");
         }
 
+
         public async Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest req)
         {
+            //if (req.File == null || req.File.Length == 0)
+            //{
+            //    throw new BadHttpRequestException("File is required.");
+            //}
+
+            // Mở stream từ IFormFile và gọi service của bạn
+            string fileUrl;
+            using (var stream = req.File.OpenReadStream())
+            {
+                fileUrl = await _cloudinaryStorageService.UploadFileAsync(stream, req.File.FileName);
+            }
+
+            if (string.IsNullOrEmpty(fileUrl))
+            {
+                throw new Exception("An error occurred while uploading the file.");
+            }
+
             var users = await _projectMemberRepository.GetAccountsByIdsAsync(req.UserIds);
             if (users == null || users.Count == 0)
                 throw new Exception("No valid users found");
 
-            // Lấy danh sách email hợp lệ
-            var recipientEmails = users
-                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                .Select(u => u.Email)
-                .ToList();
-
-            if (recipientEmails.Count == 0)
-                throw new Exception("No valid email addresses found for the selected users");
-
-            // Đọc file một lần
-            byte[] fileBytes;
-            using (var memoryStream = new MemoryStream())
-            {
-                await req.File.CopyToAsync(memoryStream);
-                fileBytes = memoryStream.ToArray();
-            }
-
             var fileName = req.File.FileName;
-            var subject = $"📄 Bạn nhận được tài liệu mới";
-            var body = req.CustomMessage ?? $"Bạn nhận được một tài liệu mới từ hệ thống IntelliPM.";
+            var subject = $"📄 You've received a new document: {fileName}";
 
-            // Gọi hàm gửi email với BCC chỉ MỘT LẦN
-            await _emailService.SendDocumentShareEmailWithBccAsync(
-                recipientEmails,
-                subject,
-                body,
-                fileBytes,
-                fileName
-            );
+            var fileSizeInKB = req.File.Length / 1024;
+            var fileSizeDisplay = fileSizeInKB > 1024
+                ? $"{(double)fileSizeInKB / 1024:F1} MB"
+                : $"{fileSizeInKB} KB";
+
+            var iconUrl = "https://img.icons8.com/pastel-glyph/64/000000/document--v1.png";
+
+            var attachmentHtml = $@"
+        <a href=""{fileUrl}"" target=""_blank"" style=""display: block; text-decoration: none; background-color: #f0f4f8; border: 1px solid #d1d9e6; border-radius: 8px; padding: 12px; margin: 16px 0; max-width: 450px;"">
+          <table role=""presentation"" border=""0"" cellpadding=""0"" cellspacing=""0"" width=""100%"">
+            <tr>
+              <td width=""40"" style=""vertical-align: middle;"">
+                <img src=""{iconUrl}"" alt=""file icon"" width=""32"" height=""32"" style=""display: block;"">
+              </td>
+              <td style=""vertical-align: middle; padding-left: 12px; font-family: Arial, sans-serif; font-size: 14px;"">
+                <strong style=""color: #0d1b2a; display: block; margin-bottom: 2px;"">{fileName}</strong>
+                <span style=""color: #5f6c7b; font-size: 12px;"">{fileSizeDisplay}</span>
+              </td>
+            </tr>
+          </table>
+        </a>";
+
+            var customMessage = req.CustomMessage ?? "You have received a new document from the IntelliPM system. Please see the link below to download:";
+            var body = $"<p style='font-family: Arial, sans-serif;'>{customMessage}</p>{attachmentHtml}";
+
+            foreach (var user in users)
+            {
+                if (string.IsNullOrWhiteSpace(user.Email)) continue;
+
+                await _emailService.SendHtmlEmailAsync(
+                    user.Email,
+                    subject,
+                    body
+                );
+            }
         }
+
+
 
         public async Task<string> GetUserPermissionLevel(int documentId, int userId)
         {
