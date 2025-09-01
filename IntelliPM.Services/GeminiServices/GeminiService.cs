@@ -6,6 +6,7 @@ using IntelliPM.Data.DTOs.Risk.Request;
 using IntelliPM.Data.DTOs.Risk.Response;
 using IntelliPM.Data.DTOs.Task.Request;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.ProjectRecommendation;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.GeminiServices;
@@ -882,31 +883,40 @@ Return the result as a JSON array with the following structure for each risk:
     List<Tasks> tasks,
     List<Sprint> sprints,
     List<Milestone> milestones,
-    List<Subtask> subtasks)
+    List<Subtask> subtasks,
+    List<Account> accounts,
+    List<ProjectPosition> projectPositions,
+    List<ProjectMember> projectMembers,
+    List<TaskAssignment> taskAssignments)
     {
         var validRecommendationTypes = await _dynamicCategoryRepo.GetByCategoryGroupAsync("recommendation_type");
         var recommendationTypes = validRecommendationTypes
-            .Where(c => c.Name == "COST" || c.Name == "SCHEDULE")
+            .Where(c => c.Name == RecommendationTypeEnum.COST.ToString() || c.Name == RecommendationTypeEnum.SCHEDULE.ToString())
             .Select(c => c.Name)
             .ToList();
 
         if (!recommendationTypes.Any())
             throw new Exception("No valid recommendation types (Cost or Schedule) found in dynamic_category.");
 
+        var spiWarningThresholdConfig = await _systemConfigRepo.GetByConfigKeyAsync("spi_warning_threshold");
+        var cpiWarningThresholdConfig = await _systemConfigRepo.GetByConfigKeyAsync("cpi_warning_threshold");
+        decimal spiWarningThreshold = spiWarningThresholdConfig != null ? decimal.Parse(spiWarningThresholdConfig.ValueConfig) : 1m;
+        decimal cpiWarningThreshold = cpiWarningThresholdConfig != null ? decimal.Parse(cpiWarningThresholdConfig.ValueConfig) : 1m;
+
         // Determine recommendation type based on CPI and SPI
         string recommendationType;
-        if (metric.CostPerformanceIndex >= 1 && metric.SchedulePerformanceIndex < 1)
+        if (metric.CostPerformanceIndex >= cpiWarningThreshold && metric.SchedulePerformanceIndex < spiWarningThreshold)
         {
-            recommendationType = "SCHEDULE";
+            recommendationType = RecommendationTypeEnum.SCHEDULE.ToString();
         }
-        else if (metric.SchedulePerformanceIndex >= 1 && metric.CostPerformanceIndex < 1)
+        else if (metric.SchedulePerformanceIndex >= spiWarningThreshold && metric.CostPerformanceIndex < cpiWarningThreshold)
         {
-            recommendationType = "COST";
+            recommendationType = RecommendationTypeEnum.COST.ToString();
         }
         else
         {
             // Randomly select Cost or Schedule if both CPI and SPI are < 1
-            recommendationType = new Random().Next(0, 2) == 0 ? "COST" : "SCHEDULE";
+            recommendationType = new Random().Next(0, 2) == 0 ? RecommendationTypeEnum.COST.ToString() : RecommendationTypeEnum.SCHEDULE.ToString();
         }
 
         // Serialize input data
@@ -942,6 +952,7 @@ Return the result as a JSON array with the following structure for each risk:
             st.PercentComplete,
             st.PlannedHours,
             st.ActualHours,
+            st.AssignedBy,
         }), Formatting.Indented);
 
         var sprintList = JsonConvert.SerializeObject(sprints.Select(s => new
@@ -963,6 +974,37 @@ Return the result as a JSON array with the following structure for each risk:
             m.StartDate,
             m.EndDate,
             m.Status
+        }), Formatting.Indented);
+
+        var accountList = JsonConvert.SerializeObject(accounts.Select(a => new
+        {
+            a.Id,
+            a.FullName,
+            a.Username,
+            a.Role, 
+        }), Formatting.Indented);
+
+        var projectPositionList = JsonConvert.SerializeObject(projectPositions.Select(pp => new
+        {
+            pp.Id,
+            pp.ProjectMemberId,
+            pp.Position,
+        }), Formatting.Indented);
+
+        var projectMemberList = JsonConvert.SerializeObject(projectMembers.Select(pm => new
+        {
+            pm.Id,
+            pm.ProjectId,
+            pm.AccountId,
+            pm.HourlyRate,
+        }), Formatting.Indented);
+
+        var taskAssignmentList = JsonConvert.SerializeObject(taskAssignments.Select(ta => new
+        {
+            ta.Id,
+            ta.AccountId,
+            ta.TaskId,
+            ta.ActualHours,
         }), Formatting.Indented);
 
         var prompt = $@"
@@ -997,7 +1039,7 @@ Return a JSON array with exactly 5 items, each with the following structure:
     type: string,                  // Must be '{recommendationType}'
     affectedTasks: string[],       // List of affected task IDs, subtask IDs, milestone Keys
     expectedImpact: string,        // Quantified impact (e.g., ""Reduce cost by 10%"")
-    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of TASK-003 to 40"")
+    suggestedChanges: string,      // Clear description of changes (e.g., ""Increase PlannedHours of TASK-003 to 40""), use FullName or Username for personnel (e.g., ""Assign Chi to TASK-003"")
     priority: number              // 1 (High), 2 (Medium), 3 (Low)
   }}
 ]
@@ -1034,6 +1076,18 @@ Sprint List:
 
 Milestone List:
 {milestoneList}
+
+Account List:
+{accountList}
+
+Project Position List:
+{projectPositionList}
+
+Project Member List:
+{projectMemberList}
+
+Task Assignment List:
+{taskAssignmentList}
 
 All output must be written in English.
 ";

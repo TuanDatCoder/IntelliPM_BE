@@ -49,5 +49,13 @@ namespace IntelliPM.Repositories.ProjectPositionRepos
             _context.ProjectPosition.Remove(projectPosition);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<ProjectPosition>> GetByProjectIdAsync(int projectId)
+        {
+            return await _context.ProjectPosition
+                .Include(pp => pp.ProjectMember)
+                .Where(pp => pp.ProjectMember.ProjectId == projectId)
+                .ToListAsync();
+        }
     }
 }
