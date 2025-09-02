@@ -8,6 +8,6 @@ namespace IntelliPM.Data.Enum.MilestoneFeedback
 {
     public enum MilestoneFeedbackStatusEnum
     {
-        appproved = 1,
+        approved = 1,
     }
 }

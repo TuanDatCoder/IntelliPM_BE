@@ -61,7 +61,7 @@ namespace IntelliPM.Services.MilestoneFeedbackServices
                 MeetingId = meetingId,
                 AccountId = accountId,
                 FeedbackText = "Approved",
-                Status = MFStatus.appproved.ToString() ,
+                Status = MFStatus.approved.ToString() ,
                 CreatedAt = DateTime.UtcNow
             };
 
