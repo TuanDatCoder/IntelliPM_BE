@@ -391,8 +391,8 @@ namespace IntelliPM.Services.SubtaskServices
             if (request.EndDate.HasValue && (request.EndDate.Value < project.StartDate || request.EndDate.Value > project.EndDate))
                 throw new ArgumentException($"Subtask EndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
 
-            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value >= request.EndDate.Value)
-                throw new ArgumentException("Subtask StartDate must be less than EndDate.");
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value > request.EndDate.Value)
+                throw new ArgumentException("Subtask StartDate must be less or equal than EndDate.");
 
             try
             {
