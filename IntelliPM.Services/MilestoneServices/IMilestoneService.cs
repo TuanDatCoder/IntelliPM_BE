@@ -1,11 +1,5 @@
 ﻿using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
-using IntelliPM.Data.DTOs.Task.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.MilestoneServices
 {
@@ -21,5 +15,8 @@ namespace IntelliPM.Services.MilestoneServices
         Task<List<MilestoneResponseDTO>> GetMilestonesByProjectIdAsync(int projectId);
         Task<MilestoneResponseDTO> ChangeMilestoneSprint(string key, int sprintId);
         Task<MilestoneResponseDTO> CreateQuickMilestone(MilestoneQuickRequestDTO request);
+        Task<string> SendMilestoneEmail(int projectId, int milestoneId, string token);
+
+
     }
 }

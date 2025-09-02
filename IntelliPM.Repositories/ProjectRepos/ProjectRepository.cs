@@ -6,22 +6,26 @@ using IntelliPM.Data.Enum.Account;
 using IntelliPM.Data.Enum.ActivityLogRelatedEntityType;
 using IntelliPM.Data.Enum.Project;
 using IntelliPM.Data.Enum.Task;
+using IntelliPM.Repositories.DynamicCategoryRepos;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace IntelliPM.Repositories.ProjectRepos
 {
     public class ProjectRepository : IProjectRepository
     {
         private readonly Su25Sep490IntelliPmContext _context;
+        private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
 
-        public ProjectRepository(Su25Sep490IntelliPmContext context)
+        public ProjectRepository(Su25Sep490IntelliPmContext context, IDynamicCategoryRepository dynamicCategoryRepo)
         {
             _context = context;
+            _dynamicCategoryRepo = dynamicCategoryRepo;
         }
 
         public async Task<List<Project>> GetAllProjects()
@@ -222,6 +226,8 @@ namespace IntelliPM.Repositories.ProjectRepos
             var statusDone = TaskStatusEnum.DONE.ToString();
             var positionPM = AccountPositionEnum.PROJECT_MANAGER.ToString();
             var projectStatusActive = ProjectStatusEnum.IN_PROGRESS.ToString();
+            var calculationMode = (await _dynamicCategoryRepo.GetByNameOrCategoryGroupAsync("calculation_mode", "SYSTEM"))
+        ?.FirstOrDefault()?.Name ?? "SYSTEM";
 
             var projectManagers = await _context.Account
                 .Join(_context.ProjectMember,
@@ -258,7 +264,7 @@ namespace IntelliPM.Repositories.ProjectRepos
                         (pm2, pp) => new { pm2.Project, pm2.ProjectMember, pp })
                     .Where(x => x.pp.Position == positionPM &&
                                 x.ProjectMember.AccountId == pm.ProjectManagerId)
-                    .GroupJoin(_context.ProjectMetric,
+                    .GroupJoin(_context.ProjectMetric.Where(pm => pm.CalculatedBy == calculationMode),
                         p => p.Project.Id,
                         pm3 => pm3.ProjectId,
                         (p, pm3) => new { p.Project, p.ProjectMember, p.pp, ProjectMetrics = pm3 })

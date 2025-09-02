@@ -35,6 +35,8 @@ using IntelliPM.Repositories.SystemConfigurationRepos;
 using IntelliPM.Services.Helper.DynamicCategoryHelper;
 using IntelliPM.Data.Enum.Task;
 using IntelliPM.Data.Enum.ProjectMetric;
+using IntelliPM.Repositories.ProjectPositionRepos;
+using IntelliPM.Data.Enum.Account;
 
 namespace IntelliPM.Services.ProjectMetricServices
 {
@@ -57,8 +59,9 @@ namespace IntelliPM.Services.ProjectMetricServices
         private readonly IMetricHistoryRepository _metricHistoryRepo;
         private readonly ISystemConfigurationRepository _systemConfigRepo;
         private readonly IDynamicCategoryHelper _dynamicCategoryHelper;
+        private readonly IProjectPositionRepository _projectPositionRepo;
 
-        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo, IDynamicCategoryHelper dynamicCategoryHelper)
+        public ProjectMetricService(IMapper mapper, IProjectMetricRepository repo, IProjectRepository projectRepo, ITaskRepository taskRepo, ILogger<ProjectMetricService> logger, IGeminiService geminiService, ISprintRepository sprintRepo, IMilestoneRepository milestoneRepo, ITaskAssignmentRepository taskAssignmentRepo, IProjectMemberRepository projectMemberRepo, IProjectRecommendationRepository projectRecommendationRepo, IDynamicCategoryRepository dynamicCategoryRepo, IChatGPTService chatGPTService, ISubtaskRepository subtaskRepo, IMetricHistoryRepository metricHistoryRepo, ISystemConfigurationRepository systemConfigurationRepo, IDynamicCategoryHelper dynamicCategoryHelper, IProjectPositionRepository projectPositionRepo)
         {
             _mapper = mapper;
             _repo = repo;
@@ -77,6 +80,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             _metricHistoryRepo = metricHistoryRepo;
             _systemConfigRepo = systemConfigurationRepo;
             _dynamicCategoryHelper = dynamicCategoryHelper;
+            _projectPositionRepo = projectPositionRepo;
         }
 
         public async Task<NewProjectMetricResponseDTO> CalculateAndSaveMetricsAsync(string projectKey) //
@@ -101,7 +105,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal DAC = 0; // Duration At Completion (months)
 
             // Check if project has started
-            var now = DateTime.UtcNow;
+            var now = DateTime.UtcNow.Date;
             bool hasProjectStarted = project.StartDate.HasValue && project.StartDate.Value.Date <= now.Date;
 
             // Calculate Duration At Completion
@@ -279,6 +283,61 @@ namespace IntelliPM.Services.ProjectMetricServices
             return entity != null ? _mapper.Map<NewProjectMetricResponseDTO>(entity) : null;
         }
 
+        //public async Task<List<object>> GetProgressDashboardAsync(string projectKey)
+        //{
+        //    var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
+        //        ?? throw new Exception("Project not found");
+        //    var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
+        //    var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
+
+        //    var result = new List<object>();
+
+        //    foreach (var sprint in sprints)
+        //    {
+        //        var sprintTasks = tasks.Where(t => t.SprintId == sprint.Id).ToList();
+
+        //        if (!sprintTasks.Any())
+        //        {
+        //            result.Add(new
+        //            {
+        //                sprintId = sprint.Id,
+        //                sprintName = sprint.Name,
+        //                percentComplete = 0.0
+        //            });
+        //            continue;
+        //        }
+
+        //        // Weighted calculation
+        //        decimal totalPlanned = sprintTasks.Sum(t => t.PlannedHours ?? 0);
+        //        if (totalPlanned == 0)
+        //        {
+        //            // Nếu không có planned hours thì fallback về average % complete
+        //            decimal avgPercent = sprintTasks.Average(t => t.PercentComplete ?? 0);
+        //            result.Add(new
+        //            {
+        //                sprintId = sprint.Id,
+        //                sprintName = sprint.Name,
+        //                percentComplete = Math.Round(avgPercent, 2)
+        //            });
+        //        }
+        //        else
+        //        {
+        //            decimal weightedProgress = sprintTasks.Sum(t =>
+        //                (t.PlannedHours ?? 0) * (t.PercentComplete ?? 0));
+        //            decimal percentComplete = weightedProgress / totalPlanned;
+
+        //            result.Add(new
+        //            {
+        //                sprintId = sprint.Id,
+        //                sprintName = sprint.Name,
+        //                percentComplete = Math.Round(percentComplete, 2)
+        //            });
+        //        }
+        //    }
+
+        //    return result;
+        //}
+
         public async Task<List<object>> GetProgressDashboardAsync(string projectKey)
         {
             var project = await _projectRepo.GetProjectByKeyAsync(projectKey)
@@ -286,11 +345,19 @@ namespace IntelliPM.Services.ProjectMetricServices
             var sprints = await _sprintRepo.GetByProjectIdAsync(project.Id);
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
 
+            // Log task and sprint counts
+            Console.WriteLine($"Total tasks: {tasks.Count}");
+            Console.WriteLine($"Total sprints: {sprints.Count}");
+            Console.WriteLine($"Tasks with SprintId == null: {tasks.Count(t => t.SprintId == null)}");
+
             var result = new List<object>();
 
             foreach (var sprint in sprints)
             {
                 var sprintTasks = tasks.Where(t => t.SprintId == sprint.Id).ToList();
+
+                // Log tasks per sprint
+                Console.WriteLine($"Sprint {sprint.Name} (ID: {sprint.Id}): {sprintTasks.Count} tasks");
 
                 if (!sprintTasks.Any())
                 {
@@ -303,32 +370,73 @@ namespace IntelliPM.Services.ProjectMetricServices
                     continue;
                 }
 
-                // Weighted calculation
-                decimal totalPlanned = sprintTasks.Sum(t => t.PlannedHours ?? 0);
-                if (totalPlanned == 0)
+                // Calculate BAC and EV for the sprint
+                decimal bac = sprintTasks.Sum(t => (t.PlannedCost ?? 0) + (t.PlannedResourceCost ?? 0));
+                decimal ev = sprintTasks.Sum(t => ((t.PlannedCost ?? 0) + (t.PlannedResourceCost ?? 0)) * ((t.PercentComplete ?? 0) / 100m));
+                decimal percentComplete;
+
+                if (bac > 0)
                 {
-                    // Nếu không có planned hours thì fallback về average % complete
-                    decimal avgPercent = sprintTasks.Average(t => t.PercentComplete ?? 0);
-                    result.Add(new
-                    {
-                        sprintId = sprint.Id,
-                        sprintName = sprint.Name,
-                        percentComplete = Math.Round(avgPercent, 2)
-                    });
+                    percentComplete = (ev / bac) * 100m;
                 }
                 else
                 {
-                    decimal weightedProgress = sprintTasks.Sum(t =>
-                        (t.PlannedHours ?? 0) * (t.PercentComplete ?? 0));
-                    decimal percentComplete = weightedProgress / totalPlanned;
-
-                    result.Add(new
+                    decimal totalPlanned = sprintTasks.Sum(t => t.PlannedHours ?? 0);
+                    if (totalPlanned > 0)
                     {
-                        sprintId = sprint.Id,
-                        sprintName = sprint.Name,
-                        percentComplete = Math.Round(percentComplete, 2)
-                    });
+                        decimal weightedProgress = sprintTasks.Sum(t =>
+                            (t.PlannedHours ?? 0) * (t.PercentComplete ?? 0));
+                        percentComplete = weightedProgress / totalPlanned;
+                    }
+                    else
+                    {
+                        percentComplete = sprintTasks.Average(t => t.PercentComplete ?? 0);
+                    }
                 }
+
+                result.Add(new
+                {
+                    sprintId = sprint.Id,
+                    sprintName = sprint.Name,
+                    percentComplete = Math.Round(percentComplete, 2)
+                });
+            }
+
+            // Handle tasks with no sprint (SprintId is null)
+            var noSprintTasks = tasks.Where(t => t.SprintId == null).ToList();
+            Console.WriteLine($"No Sprint tasks: {noSprintTasks.Count}");
+
+            if (noSprintTasks.Any())
+            {
+                decimal bac = noSprintTasks.Sum(t => (t.PlannedCost ?? 0) + (t.PlannedResourceCost ?? 0));
+                decimal ev = noSprintTasks.Sum(t => ((t.PlannedCost ?? 0) + (t.PlannedResourceCost ?? 0)) * ((t.PercentComplete ?? 0) / 100m));
+                decimal percentComplete;
+
+                if (bac > 0)
+                {
+                    percentComplete = (ev / bac) * 100m;
+                }
+                else
+                {
+                    decimal totalPlanned = noSprintTasks.Sum(t => t.PlannedHours ?? 0);
+                    if (totalPlanned > 0)
+                    {
+                        decimal weightedProgress = noSprintTasks.Sum(t =>
+                            (t.PlannedHours ?? 0) * (t.PercentComplete ?? 0));
+                        percentComplete = weightedProgress / totalPlanned;
+                    }
+                    else
+                    {
+                        percentComplete = noSprintTasks.Average(t => t.PercentComplete ?? 0);
+                    }
+                }
+
+                result.Add(new
+                {
+                    sprintId = (int?)null,
+                    sprintName = "No Sprint",
+                    percentComplete = Math.Round(percentComplete, 2)
+                });
             }
 
             return result;
@@ -392,12 +500,18 @@ namespace IntelliPM.Services.ProjectMetricServices
                 ?? throw new Exception("Project not found");
 
             var projectMembers = await _projectMemberRepo.GetByProjectIdAsync(project.Id);
+            var projectPositions = await _projectPositionRepo.GetByProjectIdAsync(project.Id);
             var tasks = await _taskRepo.GetByProjectIdAsync(project.Id);
             var taskAssignments = await _taskAssignmentRepo.GetByProjectIdAsync(project.Id);
 
+            var filteredMembers = projectMembers
+                .Where(pm => !projectPositions
+                .Any(pp => pp.ProjectMemberId == pm.Id && pp.Position == AccountPositionEnum.CLIENT.ToString()))
+            .ToList();
+
             var today = DateTime.Today;
 
-            var result = projectMembers.Select(member =>
+            var result = filteredMembers.Select(member =>
             {
                 var assignedTaskIds = taskAssignments
                     .Where(a => a.AccountId == member.AccountId)

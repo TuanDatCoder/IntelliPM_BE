@@ -496,22 +496,20 @@ namespace IntelliPM.API.Controllers
             try
             {
                 var dto = await _documentService.ChangeVisibilityAsync(id, request, userId);
-
-                return Ok(new ApiResponseDTO
+                return Ok(new ApiResponseDTO { IsSuccess = true, Code = 200, Message = "Visibility changed successfully.", Data = dto });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new ApiResponseDTO
                 {
-                    IsSuccess = true,
-                    Code = 200,
-                    Message = "Visibility changed successfully.",
-                    Data = dto
+                    IsSuccess = false,
+                    Code = 403,
+                    Message = ex.Message
                 });
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(); // 403
             }
             catch (ArgumentException ex)
             {
@@ -519,16 +517,10 @@ namespace IntelliPM.API.Controllers
             }
             catch (Exception ex)
             {
-                // TODO: log ex.ToString()
-                return StatusCode(500, new ApiResponseDTO
-                {
-                    IsSuccess = false,
-                    Code = 500,
-                    Message = ex.Message  // t?m th?i ?? debug
-                });
+                return StatusCode(500, new ApiResponseDTO { IsSuccess = false, Code = 500, Message = ex.Message });
             }
-
         }
+
 
 
         [HttpGet("shared-to-me")]

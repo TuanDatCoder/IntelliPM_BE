@@ -16,6 +16,8 @@ using System.Collections.Generic;
 using System.Linq;
 using MStatus = IntelliPM.Data.Enum.Meeting.MeetingStatusEnum;
 using MPStatus = IntelliPM.Data.Enum.MeetingParticipant.MeetingParticipantStatusEnum;
+using MLStatus = IntelliPM.Data.Enum.MeetingLog.MeetingLogTypeEnum;
+
 
 
 
@@ -183,7 +185,7 @@ namespace IntelliPM.Services.MeetingServices
                     {
                         MeetingId = meeting.Id,
                         AccountId = dto.ParticipantIds[0],
-                        Action = "CREATE_MEETING"
+                        Action = MLStatus.CREATE_MEETING.ToString()
                     };
                     _context.MeetingLog.Add(log);
                     await _context.SaveChangesAsync();
@@ -336,7 +338,7 @@ namespace IntelliPM.Services.MeetingServices
                     {
                         MeetingId = meeting.Id,
                         AccountId = dto.ParticipantIds[0],
-                        Action = "CREATE_MEETING"
+                        Action = MLStatus.CREATE_MEETING.ToString()
                     };
                     _context.MeetingLog.Add(log);
                     await _context.SaveChangesAsync();
@@ -606,7 +608,7 @@ namespace IntelliPM.Services.MeetingServices
         {
             // Lấy các MeetingId mà account này đã tạo (Action = "CREATE_MEETING")
             var meetingIds = await _context.MeetingLog
-                .Where(log => log.AccountId == accountId && log.Action == "CREATE_MEETING")
+                .Where(log => log.AccountId == accountId && log.Action == MLStatus.CREATE_MEETING.ToString())
                 .Select(log => log.MeetingId)
                 .Distinct()
                 .ToListAsync();
@@ -782,7 +784,7 @@ namespace IntelliPM.Services.MeetingServices
 
             // 2) không cho remove người tạo
             var isCreator = await _context.MeetingLog
-                .AnyAsync(l => l.MeetingId == meetingId && l.AccountId == accountId && l.Action == "CREATE_MEETING");
+                .AnyAsync(l => l.MeetingId == meetingId && l.AccountId == accountId && l.Action == MLStatus.CREATE_MEETING.ToString());
             if (isCreator) return (false, "Cannot remove creator");
 
             // 3) check participant có trong meeting
