@@ -228,7 +228,7 @@ namespace IntelliPM.API.Controllers
             }
         }
 
-        [HttpGet("by-project-id")] 
+        [HttpGet("by-project-id")]
         public async Task<IActionResult> GetByProjectId([FromQuery] int projectId)
         {
             try
@@ -242,7 +242,7 @@ namespace IntelliPM.API.Controllers
                     Data = milestones
                 });
             }
-            catch(KeyNotFoundException ex)
+            catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
             }
@@ -293,5 +293,57 @@ namespace IntelliPM.API.Controllers
             }
         }
 
+
+
+
+        [HttpPost("send-milestone-email")]
+        public async Task<IActionResult> SendMilestoneEmail([FromBody] SendMilestoneEmailRequestDTO request)
+        {
+
+
+            var token = Request.Headers["Authorization"].ToString().Split(" ")[1];
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = "Invalid request data" });
+            }
+
+            try
+            {
+                var result = await _service.SendMilestoneEmail(
+                    request.ProjectId,
+                    request.MilestoneId,
+                    token
+                );
+                return Ok(new ApiResponseDTO
+                {
+                    IsSuccess = true,
+                    Code = (int)HttpStatusCode.OK,
+                    Message = result
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponseDTO { IsSuccess = false, Code = 401, Message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponseDTO { IsSuccess = false, Code = 404, Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDTO { IsSuccess = false, Code = 400, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO
+                {
+                    IsSuccess = false,
+                    Code = 500,
+                    Message = $"Error sending milestone email: {ex.Message}"
+                });
+            }
+        }
     }
+
 }
+

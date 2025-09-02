@@ -210,9 +210,9 @@ namespace IntelliPM.Services.EmailServices
   <div class='container'>
     <div class='top-bar'></div>
     <div class='content'>
-      <h1>Welcome to ConstructionEquipmentRental!</h1>
+      <h1>Welcome to IntelliPM!</h1>
       <p>Hi <strong>{fullName}</strong>,</p>
-      <p>Thank you for registering with <strong>ConstructionEquipmentRental</strong>. We're excited to have you on board and ready to help you rent the best construction equipment with ease and confidence.</p>
+      <p>Thank you for registering with <strong>IntelliPM</strong>. We're excited to have you on board and ready to help you rent the best construction equipment with ease and confidence.</p>
       <p>We hope you enjoy your experience with us!</p>
       <p>Cheers,<br/>The ConstructionEquipmentRental Team</p>
     </div>
@@ -837,7 +837,240 @@ namespace IntelliPM.Services.EmailServices
             }
         }
 
-       
+        public async Task SendMilestoneNotificationEmail(
+                    string clientFullName,
+                    string clientEmail,
+                    string projectName,
+                    string projectKey,
+                    int projectId,
+                    string milestoneName,
+                    string milestoneStatus,
+                    DateTime? milestoneStartDate,
+                    DateTime? milestoneEndDate,
+                    string milestoneDescription,
+                    string milestoneDetailsUrl)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["SmtpSettings:Username"]));
+            email.To.Add(MailboxAddress.Parse(clientEmail));
+            email.Subject = $"[IntelliPM] Milestone Update: {milestoneName} for Project {projectName}";
+
+            var logoUrl = "https://drive.google.com/uc?export=view&id=1Z-N8gT9PspL2EGvMq_X0DDS8lFSOgBT1";
+
+            // Hàm helper để lấy màu sắc cho trạng thái
+            string GetStatusBadgeStyle(string status)
+            {
+                return status switch
+                {
+                    "PLANNING" => "background-color: #e5e7eb; color: #374151;",
+                    "IN_PROGRESS" => "background-color: #dbeafe; color: #1e40af;",
+                    "AWAITING_REVIEW" => "background-color: #d1fae5; color: #065f46;",
+                    "DONE" => "background-color: #10b981; color: #ffffff;",
+                    _ => "background-color: #e5e7eb; color: #374151;"
+                };
+            }
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Milestone Update - IntelliPM</title>
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 40px 20px;
+    }}
+    .container {{
+      max-width: 640px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }}
+    .header {{
+      background: linear-gradient(135deg, #1b6fff 0%, #3b82f6 100%);
+      padding: 24px;
+      text-align: center;
+    }}
+    .logo img {{
+      width: 100px;
+      height: auto;
+    }}
+    .content {{
+      padding: 32px;
+    }}
+    h1 {{
+      font-size: 26px;
+      color: #111827;
+      margin: 0 0 16px;
+      font-weight: 600;
+    }}
+    h2 {{
+      font-size: 18px;
+      color: #1f2937;
+      margin: 24px 0 12px;
+      font-weight: 500;
+    }}
+    p {{
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+      margin: 0 0 16px;
+    }}
+    .btn {{
+      display: inline-block;
+      background: linear-gradient(135deg, #1b6fff 0%, #3b82f6 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 16px 0;
+      transition: background 0.3s ease;
+    }}
+    .btn:hover {{
+      background: linear-gradient(135deg, #155ed6 0%, #2563eb 100%);
+    }}
+    .btn-secondary {{
+      display: inline-block;
+      background: #e5e7eb;
+      color: #374151 !important;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 8px;
+    }}
+    .btn-secondary:hover {{
+      background: #d1d5db;
+    }}
+    .footer {{
+      background-color: #f9fafb;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+    }}
+    .footer a {{
+      color: #1b6fff;
+      text-decoration: none;
+    }}
+    .footer a:hover {{
+      text-decoration: underline;
+    }}
+    .details {{
+      background-color: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }}
+    .details ul {{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }}
+    .details li {{
+      font-size: 15px;
+      color: #4b5563;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+    }}
+    .details li strong {{
+      width: 120px;
+      font-weight: 500;
+    }}
+    .status-badge {{
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      {GetStatusBadgeStyle(milestoneStatus)}
+    }}
+    @media only screen and (max-width: 600px) {{
+      body {{
+        padding: 20px 10px;
+      }}
+      .container {{
+        max-width: 100%;
+      }}
+      .content {{
+        padding: 24px;
+      }}
+      h1 {{
+        font-size: 22px;
+      }}
+      p, .details li {{
+        font-size: 14px;
+      }}
+      .btn {{
+        padding: 10px 20px;
+        font-size: 14px;
+      }}
+    }}
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='header'>
+      <div class='logo'>
+        <img src='{logoUrl}' alt='IntelliPM Logo'>
+      </div>
+    </div>
+    <div class='content'>
+      <h1>Milestone Update: {HttpUtility.HtmlEncode(milestoneName)}</h1>
+      <p>Dear <strong>{HttpUtility.HtmlEncode(clientFullName)}</strong>,</p>
+      <p>We are excited to share the latest update on the <strong>{HttpUtility.HtmlEncode(projectName)}</strong> project (Key: {HttpUtility.HtmlEncode(projectKey)}). Below are the details of the milestone:</p>
+      
+      <div class='details'>
+        <h2>Milestone Information</h2>
+        <ul>
+          <li><strong>Name:</strong> {HttpUtility.HtmlEncode(milestoneName)}</li>
+          <li><strong>Status:</strong> <span class='status-badge'>{milestoneStatus.Replace("_", " ")}</span></li>
+          <li><strong>Start Date:</strong> {(milestoneStartDate?.ToString("dd MMM yyyy") ?? "N/A")}</li>
+          <li><strong>End Date:</strong> {(milestoneEndDate?.ToString("dd MMM yyyy") ?? "N/A")}</li>
+          <li><strong>Description:</strong> {(string.IsNullOrEmpty(milestoneDescription) ? "N/A" : HttpUtility.HtmlEncode(milestoneDescription))}</li>
+        </ul>
+      </div>
+
+      <p>Click below to review the milestone details:</p>
+      <a href='{milestoneDetailsUrl}' class='btn'>View Milestone Details</a>
+      
+      <p>If you have any questions or need further assistance, please don't hesitate to reach out.</p>
+      <a href='mailto:intellipm.official@gmail.com' class='btn-secondary'>Contact Us</a>
+      
+      <p>Best regards,<br>The IntelliPM Team</p>
+    </div>
+    <div class='footer'>
+      <p>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</p>
+      <p>FPT University HCMC</p>
+      <p><a href='mailto:intellipm.official@gmail.com'>intellipm.official@gmail.com</a></p>
+      <p>© 2025 IntelliPM. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["SmtpSettings:Host"], 587, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+    
+
         public async Task SendMeetingCancellationEmail(string toEmail, string fullName, string meetingTopic, DateTime startTime, string meetingUrl)
         {
             try
