@@ -13,8 +13,6 @@ using IntelliPM.Repositories.DocumentRepos;
 using IntelliPM.Repositories.ProjectMemberRepos;
 using IntelliPM.Services.CloudinaryStorageServices;
 using IntelliPM.Services.EmailServices;
-using IntelliPM.Services.External.ProjectMetricApi;
-using IntelliPM.Services.External.TaskApi;
 using IntelliPM.Services.NotificationServices;
 using IntelliPM.Services.ProjectMetricServices;
 using IntelliPM.Services.ShareServices;
@@ -25,8 +23,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
-using System.Collections.Concurrent;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -55,7 +51,7 @@ namespace IntelliPM.Services.DocumentServices
         private readonly ICloudinaryStorageService _cloudinaryStorageService;
 
         public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
-            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService, ICloudinaryStorageService  cloudinaryStorageService)
+            IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService, ICloudinaryStorageService cloudinaryStorageService)
         {
             _IDocumentRepository = IDocumentRepository;
             _httpClient = httpClient;
@@ -161,7 +157,7 @@ namespace IntelliPM.Services.DocumentServices
         //        CreatedBy = userId,
         //        CreatedAt = DateTime.UtcNow,
         //        UpdatedAt = DateTime.UtcNow,
-        
+
         //    };
 
         //    try
@@ -190,7 +186,7 @@ namespace IntelliPM.Services.DocumentServices
 
             if (!Enum.TryParse<DocumentVisibilityEnum>(req.Visibility, true, out visibility))
             {
-                visibility = DocumentVisibilityEnum.MAIN; 
+                visibility = DocumentVisibilityEnum.MAIN;
             }
 
 
@@ -218,7 +214,7 @@ namespace IntelliPM.Services.DocumentServices
                 Visibility = visibility.ToString(),
                 CreatedAt = now,
                 UpdatedAt = now,
-           
+
             };
 
             try
@@ -310,10 +306,10 @@ namespace IntelliPM.Services.DocumentServices
         {
             var doc = await _IDocumentRepository.GetByIdAsync(id);
 
-            if (doc == null )
+            if (doc == null)
                 throw new KeyNotFoundException($"Document {id} not found or already deleted");
 
-     
+
             doc.UpdatedBy = deletedBy;
             doc.UpdatedAt = DateTime.UtcNow;
 
@@ -438,11 +434,10 @@ Respond in plain text (not HTML).
         public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
         {
             // 1) Tìm document
-            var document = await _IDocumentRepository.GetByIdAsync(documentId);
-            if (document == null)
-                throw new KeyNotFoundException($"Document {documentId} not found");
+            var document = await _IDocumentRepository.GetByIdAsync(documentId)
+                             ?? throw new KeyNotFoundException($"Document {documentId} not found");
 
-            // 2) Validate emails (giữ nguyên)
+            // 2) Validate emails
             var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
                 .Where(e => !string.IsNullOrWhiteSpace(e))
                 .Select(e => e.Trim().ToLowerInvariant())
@@ -451,83 +446,85 @@ Respond in plain text (not HTML).
                 .ToList();
 
             if (lowerInputEmails.Count == 0)
-                throw new ArgumentException("No valid emails provided.");
+                throw new ArgumentException("No emails provided.");
 
-            // 3) Chuẩn hoá permission (giữ nguyên)
-            DocumentShareEnum permissionType;
-            if (!Enum.TryParse<DocumentShareEnum>(req.PermissionType, true, out permissionType))
-            {
-                permissionType = DocumentShareEnum.VIEW; 
-            }
+            // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
 
+            // 4) Base URL cho đường dẫn accept token
+            var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            string BuildAcceptUrl(string token) => $"{baseUrl.TrimEnd('/')}/share/accept?token={token}";
 
-
-            // 4) Lấy account map từ emails (giữ nguyên)
+            // 5) Lấy account map từ emails (email -> accountId)
             var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
 
-            // 5) Upsert quyền cho các email có accountId (giữ nguyên)
+            // 6) Upsert quyền cho các email có accountId
             if (accountMap.Count > 0)
             {
                 var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
                 var targetAccountIds = accountMap.Values.ToHashSet();
+
+                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent)
                 var toRemove = existingPermissions
                     .Where(p => targetAccountIds.Contains(p.AccountId) &&
-                                string.Equals(p.PermissionType, permissionType.ToString(), StringComparison.OrdinalIgnoreCase))
+                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 if (toRemove.Count > 0)
                     _permissionRepo.RemoveRange(toRemove);
 
+                // Thêm quyền mới
                 var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
                 {
                     DocumentId = documentId,
                     AccountId = accountId,
-                    PermissionType = permissionType.ToString()
+                    PermissionType = permissionType
                 });
 
                 await _permissionRepo.AddRangeAsync(newPermissions);
                 await _permissionRepo.SaveChangesAsync();
             }
 
-            // 6) Gửi email VỚI LINK CHỨA TOKEN CÁ NHÂN HÓA
-            //var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-            var feBaseUrl = GetFrontendBaseUrl();
-            var knownEmails = accountMap.Keys;
-            var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
-            var failedToSend = new ConcurrentBag<string>();
-            var tasks = new List<Task>();
-            var sem = new SemaphoreSlim(5); // tối đa 5 email đồng thời
+            // 7) Gửi email (mỗi người 1 token/link riêng)
+            var failedToSend = new List<string>();
 
-            foreach (var email in knownEmails)
+            // Khuyến nghị: dùng 1 kết nối SMTP rồi gửi tuần tự trong _emailService nếu có thể.
+            foreach (var email in lowerInputEmails)
             {
-                var accountId = accountMap[email];
-                var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
-                var link = $"https://intellipm.vercel.app/share/accept?token={token}";
-
-                await sem.WaitAsync();
-                tasks.Add(Task.Run(async () =>
+                try
                 {
-                    try
+                    if (!accountMap.TryGetValue(email, out var accountId))
                     {
-                        await _emailService.SendShareDocumentEmail(email, document.Title, req.Message, link);
+                        failedToSend.Add(email); // <- đánh dấu fail vì không có account
+                        _logger.LogWarning("Skip sending to external email {Email}", email);
+                        continue;
                     }
-                    catch (Exception ex)
-                    {
-                        failedToSend.Add(email);
-                        _logger.LogError(ex, "Failed to send share email to {Email}", email);
-                    }
-                    finally { sem.Release(); }
-                }));
+
+
+                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType);
+                    var acceptLink = BuildAcceptUrl(token);
+
+                    await _emailService.SendShareDocumentEmail(email, document.Title, req.Message, acceptLink);
+                    await Task.Delay(Random.Shared.Next(120, 280));
+                }
+                catch (Exception ex)
+                {
+                    failedToSend.Add(email);
+                    _logger.LogError(ex, "Failed to send share email to {Email}", email);
+                }
             }
 
-            await Task.WhenAll(tasks);
 
-            var failedList = failedToSend.Distinct().ToList();
-
-            return new ShareDocumentResponseDTO { Success = failedToSend.Count == 0, FailedEmails = failedList };
-
-
+            return new ShareDocumentResponseDTO
+            {
+                Success = failedToSend.Count == 0,
+                FailedEmails = failedToSend.Distinct().ToList()
+            };
         }
+
+
+
 
         private static bool IsValidEmail(string email)
         {
