@@ -105,7 +105,7 @@ namespace IntelliPM.Services.ProjectMetricServices
             decimal DAC = 0; // Duration At Completion (months)
 
             // Check if project has started
-            var now = DateTime.UtcNow;
+            var now = DateTime.UtcNow.Date;
             bool hasProjectStarted = project.StartDate.HasValue && project.StartDate.Value.Date <= now.Date;
 
             // Calculate Duration At Completion
