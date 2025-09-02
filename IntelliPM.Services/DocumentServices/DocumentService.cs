@@ -23,9 +23,11 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using static System.Net.WebRequestMethods;
 
 namespace IntelliPM.Services.DocumentServices
 
@@ -49,7 +51,7 @@ namespace IntelliPM.Services.DocumentServices
         private readonly IProjectMetricService _projectMetricService;
         private readonly ITaskService _taskService;
         private readonly ICloudinaryStorageService _cloudinaryStorageService;
-
+         private readonly string _frontendUrl;
         public DocumentService(IDocumentRepository IDocumentRepository, IConfiguration configuration, HttpClient httpClient, IEmailService emailService, IProjectMemberRepository projectMemberRepository, INotificationService notificationService, IHttpContextAccessor httpContextAccessor,
             IDocumentPermissionRepository permissionRepo, ILogger<DocumentService> logger, IHubContext<DocumentHub> hubContext, IMapper mapper, IShareTokenService shareTokenService, IProjectMetricService projectMetricService, ITaskService taskService, ICloudinaryStorageService cloudinaryStorageService)
         {
@@ -70,6 +72,7 @@ namespace IntelliPM.Services.DocumentServices
             _projectMetricService = projectMetricService;
             _taskService = taskService;
             _cloudinaryStorageService = cloudinaryStorageService;
+            _frontendUrl = configuration["Environment:FE_URL"];
         }
 
         //public async Task<List<DocumentResponseDTO>> GetDocumentsByProject(int projectId)
@@ -453,8 +456,20 @@ Respond in plain text (not HTML).
             var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
 
             // 4) Base URL cho đường dẫn accept token
+            //var baseUrl = _configuration["Frontend:BaseUrl"];
+            //string BuildAcceptUrl(string token) => $"{baseUrl.TrimEnd('/')}/share/accept?token={token}";
+
+            //        var baseUrl = _frontendUrl;
+            //        string BuildAcceptUrl(string token)
+            //=> $"{_frontendUrl.TrimEnd('/')}/share/accept?token={token}";
             var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-            string BuildAcceptUrl(string token) => $"{baseUrl.TrimEnd('/')}/share/accept?token={token}";
+            if (baseUrl.Contains("localhost"))
+                baseUrl = "https://intellipm.vercel.app"; // domain prod cho email
+
+            string BuildAcceptUrl(string token)
+                => $"{baseUrl.TrimEnd('/')}/share/accept?token={WebUtility.UrlEncode(token)}";
+
+
 
             // 5) Lấy account map từ emails (email -> accountId)
             var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
@@ -523,6 +538,111 @@ Respond in plain text (not HTML).
             };
         }
 
+
+        //        public async Task<ShareDocumentResponseDTO> ShareDocumentByEmail(int documentId, ShareDocumentRequestDTO req)
+        //        {
+        //            // 1) Tìm document
+        //            var document = await _IDocumentRepository.GetByIdAsync(documentId);
+        //            if (document == null)
+        //                throw new KeyNotFoundException($"Document {documentId} not found");
+
+        //            // 2) Validate emails (lọc null/empty/whitespace, chuẩn hóa lowercase, kiểm tra format)
+        //            var lowerInputEmails = (req.Emails ?? Enumerable.Empty<string>())
+        //                .Where(e => !string.IsNullOrWhiteSpace(e))
+        //                .Select(e => e.Trim().ToLowerInvariant())
+        //                .Where(IsValidEmail) // đảm bảo là email hợp lệ
+        //                .Distinct()
+        //                .ToList();
+
+        //            if (lowerInputEmails.Count == 0)
+        //                throw new ArgumentException("No valid emails provided.");
+
+        //            // 3) Chuẩn hoá permission (VIEW|EDIT) – mặc định VIEW
+        //            var permissionRaw = (req.PermissionType ?? "VIEW").Trim();
+        //            var permissionType = permissionRaw.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? "EDIT" : "VIEW";
+
+        //            // 4) Tạo link chia sẻ (từ cấu hình)
+        //            var link = $"http://localhost:5173/project/projects/form/document/{document.Id}";
+
+
+
+        //            // 5) Lấy account map từ emails (email -> accountId)
+        //            var accountMap = await _IDocumentRepository.GetAccountMapByEmailsAsync(lowerInputEmails);
+        //            // accountMap.Keys: tập email có account trong hệ thống
+
+        //            // 6) Upsert quyền cho các email có accountId
+        //            if (accountMap.Count > 0)
+        //            {
+        //                var existingPermissions = await _permissionRepo.GetByDocumentIdAsync(documentId);
+
+        //                // Xoá quyền trùng loại cho các account này (đảm bảo idempotent theo loại)
+        //                var targetAccountIds = accountMap.Values.ToHashSet();
+        //                var toRemove = existingPermissions
+        //                    .Where(p => targetAccountIds.Contains(p.AccountId) &&
+        //                                string.Equals(p.PermissionType, permissionType, StringComparison.OrdinalIgnoreCase))
+        //                    .ToList();
+
+        //                if (toRemove.Count > 0)
+        //                    _permissionRepo.RemoveRange(toRemove);
+
+        //                // Thêm quyền mới (cùng loại) cho các account target
+        //                var newPermissions = accountMap.Values.Select(accountId => new DocumentPermission
+        //                {
+        //                    DocumentId = documentId,
+        //                    AccountId = accountId,
+        //                    PermissionType = permissionType
+        //                });
+
+        //                await _permissionRepo.AddRangeAsync(newPermissions);
+        //                await _permissionRepo.SaveChangesAsync();
+        //            }
+
+        //            // 7) Gửi email: CHỈ gửi cho email có account.
+        //            //    Email không có account => coi là failed.
+        //            var knownEmails = accountMap.Keys.ToHashSet();                         // có account
+        //            var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();     // không có account => failed
+
+        //            var failedToSend = new List<string>(unknownEmails); // khởi tạo failed = các email ngoài hệ thống
+
+        //            foreach (var email in knownEmails)
+        //            {
+        //                try
+        //                {
+        //                    await _emailService.SendShareDocumentEmail(
+        //                        email,
+        //                        document.Title,
+        //                        req.Message,
+        //                        link
+        //                    );
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    failedToSend.Add(email);
+        //                    _logger.LogError(ex,
+        //                        """
+        //❌ Failed to send share document email
+        //Email: {Email}
+        //Title: {Title}
+        //Message: {Message}
+        //Link: {Link}
+        //Error: {ErrorMessage}
+        //""",
+        //                        email,
+        //                        document.Title,
+        //                        req.Message ?? "(No message)",
+        //                        link,
+        //                        ex.Message
+        //                    );
+        //                }
+        //            }
+
+        //            // 8) Trả kết quả
+        //            return new ShareDocumentResponseDTO
+        //            {
+        //                Success = failedToSend.Count == 0,
+        //                FailedEmails = failedToSend
+        //            };
+        //        }
 
 
 
