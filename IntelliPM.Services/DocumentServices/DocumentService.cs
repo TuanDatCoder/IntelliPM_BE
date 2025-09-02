@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using IntelliPM.Data.DTOs.Document.Request;
 using IntelliPM.Data.DTOs.Document.Response;
 using IntelliPM.Data.DTOs.ProjectMetric.Response;
