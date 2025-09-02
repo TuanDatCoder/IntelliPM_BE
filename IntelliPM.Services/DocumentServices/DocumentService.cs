@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -493,43 +494,39 @@ Respond in plain text (not HTML).
             var feBaseUrl = GetFrontendBaseUrl();
             var knownEmails = accountMap.Keys;
             var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
-            var failedToSend = new List<string>(unknownEmails);
+            var failedToSend = new ConcurrentBag<string>();
+            var tasks = new List<Task>();
+            var sem = new SemaphoreSlim(5); // tối đa 5 email đồng thời
 
             foreach (var email in knownEmails)
             {
-                try
+                var accountId = accountMap[email];
+                var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
+                var link = $"https://intellipm.vercel.app/share/accept?token={token}";
+
+                await sem.WaitAsync();
+                tasks.Add(Task.Run(async () =>
                 {
-                    // Lấy AccountId tương ứng với email
-                    var accountId = accountMap[email];
-                     
-                    // TẠO TOKEN RIÊNG cho người dùng này
-                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
-
-
-                    // TẠO LINK CHIA SẺ MỚI chứa token
-                    //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
-                    var link = $"https://intellipm.vercel.app/share/accept?token={token}";
-
-                    await _emailService.SendShareDocumentEmail(
-                        email,
-                        document.Title,
-                        req.Message,
-                        link // <-- Sử dụng link mới đã được cá nhân hóa
-                    );
-                }
-                catch (Exception ex)
-                {
-                    failedToSend.Add(email);
-                    _logger.LogError(ex, "Failed to send share document email to {Email}", email);
-                }
+                    try
+                    {
+                        await _emailService.SendShareDocumentEmail(email, document.Title, req.Message, link);
+                    }
+                    catch (Exception ex)
+                    {
+                        failedToSend.Add(email);
+                        _logger.LogError(ex, "Failed to send share email to {Email}", email);
+                    }
+                    finally { sem.Release(); }
+                }));
             }
 
-            // 7) Trả kết quả (giữ nguyên)
-            return new ShareDocumentResponseDTO
-            {
-                Success = failedToSend.Count == 0,
-                FailedEmails = failedToSend
-            };
+            await Task.WhenAll(tasks);
+
+            var failedList = failedToSend.Distinct().ToList();
+
+            return new ShareDocumentResponseDTO { Success = failedToSend.Count == 0, FailedEmails = failedList };
+
+
         }
 
         private static bool IsValidEmail(string email)
@@ -866,65 +863,32 @@ For each task in the array, output exactly 1 table following the **fixed templat
 
         public async Task ShareDocumentViaEmailWithFile(ShareDocumentViaEmailRequest req)
         {
-            //if (req.File == null || req.File.Length == 0)
-            //{
-            //    throw new BadHttpRequestException("File is required.");
-            //}
+            if (req.Emails == null || !req.Emails.Any())
+                throw new Exception("No valid emails provided");
 
-            // Mở stream từ IFormFile và gọi service của bạn
-            string fileUrl;
-            using (var stream = req.File.OpenReadStream())
+            byte[] fileBytes;
+            using (var memoryStream = new MemoryStream())
             {
-                fileUrl = await _cloudinaryStorageService.UploadFileAsync(stream, req.File.FileName);
+                await req.File.CopyToAsync(memoryStream);
+                fileBytes = memoryStream.ToArray();
             }
-
-            if (string.IsNullOrEmpty(fileUrl))
-            {
-                throw new Exception("An error occurred while uploading the file.");
-            }
-
-            var users = await _projectMemberRepository.GetAccountsByIdsAsync(req.UserIds);
-            if (users == null || users.Count == 0)
-                throw new Exception("No valid users found");
 
             var fileName = req.File.FileName;
-            var subject = $"📄 You've received a new document: {fileName}";
+            var subject = $"[IntelliPM] 📄 You've received a new document: {fileName}";
+            var body = req.CustomMessage ?? $"You have received a new document from the IntelliPM system.";
 
-            var fileSizeInKB = req.File.Length / 1024;
-            var fileSizeDisplay = fileSizeInKB > 1024
-                ? $"{(double)fileSizeInKB / 1024:F1} MB"
-                : $"{fileSizeInKB} KB";
-
-            var iconUrl = "https://img.icons8.com/pastel-glyph/64/000000/document--v1.png";
-
-            var attachmentHtml = $@"
-        <a href=""{fileUrl}"" target=""_blank"" style=""display: block; text-decoration: none; background-color: #f0f4f8; border: 1px solid #d1d9e6; border-radius: 8px; padding: 12px; margin: 16px 0; max-width: 450px;"">
-          <table role=""presentation"" border=""0"" cellpadding=""0"" cellspacing=""0"" width=""100%"">
-            <tr>
-              <td width=""40"" style=""vertical-align: middle;"">
-                <img src=""{iconUrl}"" alt=""file icon"" width=""32"" height=""32"" style=""display: block;"">
-              </td>
-              <td style=""vertical-align: middle; padding-left: 12px; font-family: Arial, sans-serif; font-size: 14px;"">
-                <strong style=""color: #0d1b2a; display: block; margin-bottom: 2px;"">{fileName}</strong>
-                <span style=""color: #5f6c7b; font-size: 12px;"">{fileSizeDisplay}</span>
-              </td>
-            </tr>
-          </table>
-        </a>";
-
-            var customMessage = req.CustomMessage ?? "You have received a new document from the IntelliPM system. Please see the link below to download:";
-            var body = $"<p style='font-family: Arial, sans-serif;'>{customMessage}</p>{attachmentHtml}";
-
-            foreach (var user in users)
-            {
-                if (string.IsNullOrWhiteSpace(user.Email)) continue;
-
-                await _emailService.SendHtmlEmailAsync(
-                    user.Email,
+            // Lặp trực tiếp qua danh sách email được cung cấp
+            var emailTasks = req.Emails
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Select(email => _emailService.SendDocumentShareEmailMeeting(
+                    email,
                     subject,
-                    body
-                );
-            }
+                    body,
+                    fileBytes,
+                    fileName
+                ));
+
+            await Task.WhenAll(emailTasks);
         }
 
 
