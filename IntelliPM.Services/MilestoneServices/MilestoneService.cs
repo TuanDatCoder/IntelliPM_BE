@@ -1,19 +1,19 @@
 ﻿using AutoMapper;
 using IntelliPM.Data.DTOs.Milestone.Request;
 using IntelliPM.Data.DTOs.Milestone.Response;
-using IntelliPM.Data.DTOs.Task.Response;
 using IntelliPM.Data.Entities;
+using IntelliPM.Data.Enum.Account;
+using IntelliPM.Data.Enum.ProjectMember;
 using IntelliPM.Repositories.DynamicCategoryRepos;
 using IntelliPM.Repositories.MilestoneRepos;
 using IntelliPM.Repositories.ProjectRepos;
 using IntelliPM.Repositories.SprintRepos;
+using IntelliPM.Services.EmailServices;
+using IntelliPM.Services.Helper.DecodeTokenHandler;
+using IntelliPM.Services.ProjectMemberServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntelliPM.Services.MilestoneServices
 {
@@ -25,8 +25,12 @@ namespace IntelliPM.Services.MilestoneServices
         private readonly IProjectRepository _projectRepo;
         private readonly ILogger<MilestoneService> _logger;
         private readonly IDynamicCategoryRepository _dynamicCategoryRepo;
-
-        public MilestoneService(IMapper mapper, IMilestoneRepository repo, IProjectRepository projectRepo, ISprintRepository sprintRepo,ILogger<MilestoneService> logger, IDynamicCategoryRepository dynamicCategoryRepo)
+        private readonly string _frontendUrl;
+        private readonly IConfiguration _config;
+        private readonly IDecodeTokenHandler _decodeToken;
+        private readonly IEmailService _emailService;
+        private readonly IProjectMemberService _projectMemberService;
+        public MilestoneService(IMapper mapper, IMilestoneRepository repo, IProjectRepository projectRepo, ISprintRepository sprintRepo, ILogger<MilestoneService> logger, IDynamicCategoryRepository dynamicCategoryRepo, IConfiguration config, IDecodeTokenHandler decodeToken, IEmailService emailService, IProjectMemberService projectMemberService)
         {
             _mapper = mapper;
             _repo = repo;
@@ -34,6 +38,10 @@ namespace IntelliPM.Services.MilestoneServices
             _sprintRepo = sprintRepo;
             _projectRepo = projectRepo;
             _dynamicCategoryRepo = dynamicCategoryRepo;
+            _frontendUrl = config["Environment:FE_URL"];
+            _decodeToken = decodeToken;
+            _emailService = emailService;
+            _projectMemberService = projectMemberService;
         }
 
         public async Task<List<MilestoneResponseDTO>> GetAllMilestones()
@@ -81,7 +89,7 @@ namespace IntelliPM.Services.MilestoneServices
             string milestoneKey = await GenerateMilestoneKeyAsync(request.ProjectId, project.ProjectKey);
 
             var entity = _mapper.Map<Milestone>(request);
-            entity.Key = milestoneKey; 
+            entity.Key = milestoneKey;
 
             try
             {
@@ -416,6 +424,93 @@ namespace IntelliPM.Services.MilestoneServices
                 throw new KeyNotFoundException($"No milestones found for Project ID {projectId}.");
 
             return _mapper.Map<List<MilestoneResponseDTO>>(entities);
+        }
+
+
+
+
+
+
+        public async Task<string> SendMilestoneEmail(int projectId, int milestoneId, string token)
+        {
+            var decode = _decodeToken.Decode(token);
+            if (decode == null || string.IsNullOrEmpty(decode.username))
+                throw new UnauthorizedAccessException("Invalid token data.");
+
+            
+            var project = await _projectRepo.GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+      
+            var milestone = await _repo.GetByIdAsync(milestoneId);
+            if (milestone == null)
+                throw new KeyNotFoundException($"Milestone with ID {milestoneId} not found.");
+
+            if (milestone.ProjectId != projectId)
+                throw new InvalidOperationException("Milestone does not belong to the specified project.");
+
+       
+            var membersWithPositions = await _projectMemberService.GetProjectMemberWithPositionsByProjectId(projectId);
+            if (membersWithPositions == null || !membersWithPositions.Any())
+                throw new KeyNotFoundException($"No project members found for Project ID {projectId}.");
+
+            var clients = membersWithPositions
+                .Where(m =>
+                    m.ProjectPositions != null &&
+                    m.ProjectPositions.Any(p => p.Position == AccountPositionEnum.CLIENT.ToString()) &&
+                    m.Status == ProjectMemberStatusEnum.ACTIVE.ToString())
+                .ToList();
+
+            if (!clients.Any())
+                throw new ArgumentException("No active clients found for the project.");
+
+            var milestoneDetailsUrl = $"{_frontendUrl}/projectclient?projectKey={project.ProjectKey}#timeline";
+
+
+            // Gửi email đến tất cả client
+            var failedEmails = new List<string>();
+            foreach (var client in clients)
+            {
+                if (string.IsNullOrEmpty(client.FullName) || string.IsNullOrEmpty(client.Email))
+                {
+                    _logger.LogWarning("Client with ID {ClientId} has missing full name or email.", client.Id);
+                    failedEmails.Add($"Client ID {client.Id}");
+                    continue;
+                }
+
+                try
+                {
+                    await _emailService.SendMilestoneNotificationEmail(
+                        client.FullName,
+                        client.Email,
+                        project.Name,
+                        project.ProjectKey,
+                        projectId,
+                        milestone.Name,
+                        milestone.Status,
+                        milestone.StartDate,
+                        milestone.EndDate,
+                        milestone.Description,
+                        milestoneDetailsUrl
+                    );
+
+                    _logger.LogInformation("Email sent successfully to client {Email} for Milestone ID {MilestoneId}", client.Email, milestoneId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send email to client {Email} for Milestone ID {MilestoneId}", client.Email, milestoneId);
+                    failedEmails.Add(client.Email);
+                }
+            }
+
+            // Trả về kết quả
+            if (failedEmails.Any())
+            {
+                throw new Exception($"Failed to send email to some clients: {string.Join(", ", failedEmails)}");
+            }
+
+            return $"Email sent successfully to {clients.Count} client(s) for Milestone ID {milestoneId}.";
         }
 
     }
