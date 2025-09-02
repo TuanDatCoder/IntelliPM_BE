@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -493,43 +494,37 @@ Respond in plain text (not HTML).
             var feBaseUrl = GetFrontendBaseUrl();
             var knownEmails = accountMap.Keys;
             var unknownEmails = lowerInputEmails.Except(knownEmails).ToList();
-            var failedToSend = new List<string>(unknownEmails);
+            var failedToSend = new ConcurrentBag<string>();
+            var tasks = new List<Task>();
+            var sem = new SemaphoreSlim(5); // tối đa 5 email đồng thời
 
             foreach (var email in knownEmails)
             {
-                try
+                var accountId = accountMap[email];
+                var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
+                var link = $"https://intellipm.vercel.app/share/accept?token={token}";
+
+                await sem.WaitAsync();
+                tasks.Add(Task.Run(async () =>
                 {
-                    // Lấy AccountId tương ứng với email
-                    var accountId = accountMap[email];
-
-                    // TẠO TOKEN RIÊNG cho người dùng này
-                    var token = _shareTokenService.GenerateShareToken(documentId, accountId, permissionType.ToString());
-
-
-                    // TẠO LINK CHIA SẺ MỚI chứa token
-                    //var link = $"{beBaseUrl}/api/documents/share/verify?token={token}";
-                    var link = $"https://intellipm.vercel.app/share/accept?token={token}";
-
-                    await _emailService.SendShareDocumentEmail(
-                        email,
-                        document.Title,
-                        req.Message,
-                        link // <-- Sử dụng link mới đã được cá nhân hóa
-                    );
-                }
-                catch (Exception ex)
-                {
-                    failedToSend.Add(email);
-                    _logger.LogError(ex, "Failed to send share document email to {Email}", email);
-                }
+                    try
+                    {
+                        await _emailService.SendShareDocumentEmail(email, document.Title, req.Message, link);
+                    }
+                    catch (Exception ex)
+                    {
+                        failedToSend.Add(email);
+                        _logger.LogError(ex, "Failed to send share email to {Email}", email);
+                    }
+                    finally { sem.Release(); }
+                }));
             }
 
-            // 7) Trả kết quả (giữ nguyên)
-            return new ShareDocumentResponseDTO
-            {
-                Success = failedToSend.Count == 0,
-                FailedEmails = failedToSend
-            };
+            await Task.WhenAll(tasks);
+
+            var failedList = failedToSend.Distinct().ToList();
+
+            return new ShareDocumentResponseDTO { Success = failedToSend.Count == 0, FailedEmails = failedList };
 
 
         }
