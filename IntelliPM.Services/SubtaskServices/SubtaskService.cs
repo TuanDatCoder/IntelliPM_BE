@@ -391,12 +391,13 @@ namespace IntelliPM.Services.SubtaskServices
             if (request.EndDate.HasValue && (request.EndDate.Value < project.StartDate || request.EndDate.Value > project.EndDate))
                 throw new ArgumentException($"Subtask EndDate must be within project start date ({project.StartDate}) and end date ({project.EndDate}).");
 
-            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value >= request.EndDate.Value)
-                throw new ArgumentException("Subtask StartDate must be less than EndDate.");
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value > request.EndDate.Value)
+                throw new ArgumentException("Subtask StartDate must be less or equal than EndDate.");
 
             try
             {
                 await _subtaskRepo.Update(entity);
+                await CalculatePlannedHoursAsync(entity.Id);
                 await UpdateSubtaskResourceCosts(entity);
 
                 if (oldAssignedBy != entity.AssignedBy)
@@ -432,6 +433,53 @@ namespace IntelliPM.Services.SubtaskServices
                 throw new Exception($"Failed to update Subtask: {ex.Message}", ex);
             }
             return _mapper.Map<SubtaskResponseDTO>(entity);
+        }
+
+        private async Task CalculatePlannedHoursAsync(string subtaskId)
+        {
+            var subtask = await _subtaskRepo.GetByIdAsync(subtaskId);
+            if (subtask == null || !subtask.StartDate.HasValue || !subtask.EndDate.HasValue)
+                return; // No dates, skip
+
+            var start = subtask.StartDate.Value.Date;
+            var end = subtask.EndDate.Value.Date;
+
+            // Calculate business days (exclude weekends)
+            var businessDays = 0;
+            for (var date = start; date <= end; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                    businessDays++;
+            }
+
+            // Use default working hours per day (8 hours)
+            const decimal defaultWorkingHoursPerDay = 8m;
+
+            // Estimate planned hours for subtask
+            subtask.PlannedHours = businessDays * defaultWorkingHoursPerDay;
+            subtask.UpdatedAt = DateTime.UtcNow;
+            await _subtaskRepo.Update(subtask);
+
+            // Update parent task's PlannedHours
+            if (subtask.TaskId != null)
+            {
+                var parentTask = await _taskRepo.GetByIdAsync(subtask.TaskId);
+                if (parentTask != null)
+                {
+                    // Get all subtasks for the parent task
+                    var subtasks = await _subtaskRepo.GetSubtaskByTaskIdAsync(subtask.TaskId);
+                    decimal totalPlannedHours = 0m;
+                    foreach (var st in subtasks)
+                    {
+                        totalPlannedHours += st.PlannedHours ?? 0m;
+                    }
+
+                    // Update parent task's PlannedHours
+                    parentTask.PlannedHours = totalPlannedHours;
+                    parentTask.UpdatedAt = DateTime.UtcNow;
+                    await _taskRepo.Update(parentTask);
+                }
+            }
         }
 
         private async Task UpdateSubtaskResourceCosts(Subtask entity)

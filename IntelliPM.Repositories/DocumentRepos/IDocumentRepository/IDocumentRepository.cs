@@ -48,7 +48,7 @@ namespace IntelliPM.Repositories.DocumentRepos
         Task<List<int>> GetAccountIdsByEmailsAsync(List<string> emails);
         Task<Dictionary<string, int>> GetAccountMapByEmailsAsync(List<string> emails);
 
-        Task<bool> UpdateVisibilityAsync(int documentId, DocumentVisibilityEnum newVisibility, int updatedBy);
+        Task<bool> UpdateVisibilityAsync(int documentId, string newVisibility, int updatedBy);
 
         Task<string?> GetProjectKeyByProjectIdAsync(int projectId);
 

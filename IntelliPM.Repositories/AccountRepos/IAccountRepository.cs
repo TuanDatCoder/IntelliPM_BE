@@ -19,6 +19,6 @@ namespace IntelliPM.Repositories.AccountRepos
         Task<List<Account>> GetAccounts();
         Task<int> GetTotalUsersAsync();
         Task<List<Account>> GetByIdsAsync(List<int> ids);
-
+        Task<List<Account>> GetByProjectIdAsync(int projectId);
     }
 }

@@ -1607,17 +1607,20 @@ namespace IntelliPM.Services.TaskServices
                     businessDays++;
             }
 
-            // Get assignments and sum working hours per day
-            var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
-            decimal totalWorkingHoursPerDay = 0m;
-            foreach (var assignment in assignments)
-            {
-                var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
-                totalWorkingHoursPerDay += member?.WorkingHoursPerDay ?? 0m;
-            }
+            // Use default working hours per day (8 hours)
+            const decimal defaultWorkingHoursPerDay = 8m;
+
+            //// Get assignments and sum working hours per day
+            //var assignments = await _taskAssignmentRepo.GetByTaskIdAsync(taskId);
+            //decimal totalWorkingHoursPerDay = 0m;
+            //foreach (var assignment in assignments)
+            //{
+            //    var member = await _projectMemberRepo.GetByAccountAndProjectAsync(assignment.AccountId, task.ProjectId);
+            //    totalWorkingHoursPerDay += member?.WorkingHoursPerDay ?? 0m;
+            //}
 
             // Estimate planned hours
-            task.PlannedHours = businessDays * totalWorkingHoursPerDay;
+            task.PlannedHours = businessDays * defaultWorkingHoursPerDay;
             task.UpdatedAt = DateTime.UtcNow;
             await _taskRepo.Update(task);
         }

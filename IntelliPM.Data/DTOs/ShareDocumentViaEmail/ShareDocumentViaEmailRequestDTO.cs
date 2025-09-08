@@ -9,12 +9,11 @@ namespace IntelliPM.Data.DTOs.ShareDocumentViaEmail
 {
     public class ShareDocumentViaEmailRequest
     {
-        //public int DocumentId { get; set; }
 
-        public List<int> UserIds { get; set; } = new();
+        public List<string> Emails { get; set; }
 
         public string? CustomMessage { get; set; }
 
-        public IFormFile File { get; set; } = null!;
+        public IFormFile? File { get; set; } = null!;
     }
 }
